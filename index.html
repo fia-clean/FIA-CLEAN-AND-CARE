@@ -1562,6 +1562,13 @@ Check your Browserslist config to be sure that your targets are set up correctly
             setInterval(runAutomaticBackup, 30 * 60 * 1000);
         }
 
+        function sanitizeForFirebase(obj) {
+            return JSON.parse(JSON.stringify(obj, function(key, value) {
+                if (value === undefined) return null;
+                return value;
+            }));
+        }
+
         function startRealtimeSync() {
             if (!window.FB_DB) {
                 updateSyncStatus(false, 'Local Offline Mode');
@@ -1587,38 +1594,110 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
             // Browser online/offline event listeners
             window.addEventListener('online', function() {
-                if (window.FB_DB) window.FB_DB.goOnline();
-                if (localStorage.getItem('fia_has_pending_sync') === 'true') {
-                    syncToFirebase();
+                if (window.FB_DB) {
+                    try { window.FB_DB.goOnline(); } catch(e) {}
                 }
+                syncToFirebase();
             });
             window.addEventListener('offline', function() {
-                if (window.FB_DB) window.FB_DB.goOffline();
+                isFirebaseConnected = false;
                 updateSyncStatus(false, 'Local Offline Mode');
             });
 
             window.FB_DB.ref('fia_data').on('value', function(snapshot) {
-                // Prevent old cloud data from overwriting offline changes that haven't synced yet
-                if (localStorage.getItem('fia_has_pending_sync') === 'true') {
-                    syncToFirebase();
-                    return;
-                }
-
                 const data = snapshot.val();
                 if (data) {
-                    products = Array.isArray(data.products) ? data.products : Object.entries(data.products || {}).map(([key, value]) => ({ ...(value || {}), id: String((value && value.id) || key) }));
-                    cosProducts = Array.isArray(data.cosProducts) ? data.cosProducts : Object.entries(data.cosProducts || {}).map(([key, value]) => ({ ...(value || {}), id: String((value && value.id) || key) }));
-                    customers = Array.isArray(data.customers) ? data.customers : Object.values(data.customers || {});
-                    purchases = Array.isArray(data.purchases) ? data.purchases : Object.values(data.purchases || {});
-                    expenses = Array.isArray(data.expenses) ? data.expenses : Object.values(data.expenses || {});
-                    cosPurchases = Array.isArray(data.cosPurchases) ? data.cosPurchases : Object.values(data.cosPurchases || {});
-                    cosSales = Array.isArray(data.cosSales) ? data.cosSales : Object.values(data.cosSales || {});
-                    packages = Array.isArray(data.packages) ? data.packages : Object.entries(data.packages || {}).map(([key, value]) => ({ ...(value || {}), id: String((value && value.id) || key) }));
-                    stockReturns = Array.isArray(data.stockReturns) ? data.stockReturns : Object.values(data.stockReturns || {});
-                    clearedDayBookEntries = Array.isArray(data.clearedDayBookEntries) ? data.clearedDayBookEntries : Object.values(data.clearedDayBookEntries || {});
-                    dayBookOpeningBalance = Number(data.dayBookOpeningBalance || 0);
-                    dayBookOpeningExpense = Number(data.dayBookOpeningExpense || 0);
-                    appPin = data.appPin || "1234";
+                    const cloudProducts = Array.isArray(data.products) ? data.products : Object.entries(data.products || {}).map(([key, value]) => ({ ...(value || {}), id: String((value && value.id) || key) }));
+                    const cloudCosProducts = Array.isArray(data.cosProducts) ? data.cosProducts : Object.entries(data.cosProducts || {}).map(([key, value]) => ({ ...(value || {}), id: String((value && value.id) || key) }));
+                    const cloudCustomers = Array.isArray(data.customers) ? data.customers : Object.values(data.customers || {});
+                    const cloudPurchases = Array.isArray(data.purchases) ? data.purchases : Object.values(data.purchases || {});
+                    const cloudExpenses = Array.isArray(data.expenses) ? data.expenses : Object.values(data.expenses || {});
+                    const cloudCosPurchases = Array.isArray(data.cosPurchases) ? data.cosPurchases : Object.values(data.cosPurchases || {});
+                    const cloudCosSales = Array.isArray(data.cosSales) ? data.cosSales : Object.values(data.cosSales || {});
+                    const cloudPackages = Array.isArray(data.packages) ? data.packages : Object.entries(data.packages || {}).map(([key, value]) => ({ ...(value || {}), id: String((value && value.id) || key) }));
+                    const cloudStockReturns = Array.isArray(data.stockReturns) ? data.stockReturns : Object.values(data.stockReturns || {});
+
+                    let hasNewLocalData = false;
+
+                    // 1. Merge customers: Preserve all local offline customers!
+                    const custMap = new Map();
+                    cloudCustomers.forEach(c => {
+                        if (c && c.name) {
+                            const key = (c.billNo ? c.billNo + '::' : '') + c.name.trim().toLowerCase();
+                            custMap.set(key, c);
+                        }
+                    });
+                    (Array.isArray(customers) ? customers : []).forEach(c => {
+                        if (c && c.name) {
+                            const key = (c.billNo ? c.billNo + '::' : '') + c.name.trim().toLowerCase();
+                            if (!custMap.has(key)) {
+                                custMap.set(key, c);
+                                hasNewLocalData = true;
+                            }
+                        }
+                    });
+                    customers = Array.from(custMap.values());
+
+                    // 2. Merge products: Preserve local products
+                    const prodMap = new Map();
+                    cloudProducts.forEach(p => { if (p && p.id) prodMap.set(String(p.id), p); });
+                    (Array.isArray(products) ? products : []).forEach(p => {
+                        if (p && p.id) {
+                            const sid = String(p.id);
+                            if (!prodMap.has(sid)) {
+                                prodMap.set(sid, p);
+                                hasNewLocalData = true;
+                            }
+                        }
+                    });
+                    products = Array.from(prodMap.values());
+
+                    // 3. Merge purchases
+                    const purchMap = new Map();
+                    cloudPurchases.forEach(p => { if (p) purchMap.set(String(p.id || p.invoiceNo || JSON.stringify(p)), p); });
+                    (Array.isArray(purchases) ? purchases : []).forEach(p => {
+                        if (p) {
+                            const key = String(p.id || p.invoiceNo || JSON.stringify(p));
+                            if (!purchMap.has(key)) { purchMap.set(key, p); hasNewLocalData = true; }
+                        }
+                    });
+                    purchases = Array.from(purchMap.values());
+
+                    // 4. Merge expenses
+                    const expMap = new Map();
+                    cloudExpenses.forEach(e => { if (e) expMap.set(String(e.id || JSON.stringify(e)), e); });
+                    (Array.isArray(expenses) ? expenses : []).forEach(e => {
+                        if (e) {
+                            const key = String(e.id || JSON.stringify(e));
+                            if (!expMap.has(key)) { expMap.set(key, e); hasNewLocalData = true; }
+                        }
+                    });
+                    expenses = Array.from(expMap.values());
+
+                    // 5. Merge packages
+                    const pkgMap = new Map();
+                    cloudPackages.forEach(p => { if (p && p.id) pkgMap.set(String(p.id), p); });
+                    (Array.isArray(packages) ? packages : []).forEach(p => {
+                        if (p && p.id) {
+                            if (!pkgMap.has(String(p.id))) { pkgMap.set(String(p.id), p); hasNewLocalData = true; }
+                        }
+                    });
+                    packages = Array.from(pkgMap.values());
+
+                    // 6. Merge cosmetics
+                    const cosProdMap = new Map();
+                    cloudCosProducts.forEach(p => { if (p && p.id) cosProdMap.set(String(p.id), p); });
+                    (Array.isArray(cosProducts) ? cosProducts : []).forEach(p => {
+                        if (p && p.id) {
+                            if (!cosProdMap.has(String(p.id))) { cosProdMap.set(String(p.id), p); hasNewLocalData = true; }
+                        }
+                    });
+                    cosProducts = Array.from(cosProdMap.values());
+
+                    clearedDayBookEntries = Array.isArray(data.clearedDayBookEntries) ? data.clearedDayBookEntries : Object.values(data.clearedDayBookEntries || []);
+                    dayBookOpeningBalance = Number(data.dayBookOpeningBalance || dayBookOpeningBalance || 0);
+                    dayBookOpeningExpense = Number(data.dayBookOpeningExpense || dayBookOpeningExpense || 0);
+                    appPin = data.appPin || appPin || "1234";
 
                     saveLocalStateSafely();
                     isFirebaseConnected = true;
@@ -1626,9 +1705,14 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     renderAll();
                     updateStockReturnDropdowns();
                     renderStockReturnHistory();
+
+                    // If local offline entries were merged, write complete merged state to Cloud!
+                    if (hasNewLocalData || localStorage.getItem('fia_has_pending_sync') === 'true') {
+                        syncToFirebase();
+                    }
                 } else {
                     loadFromLocalStorage();
-            loadPurchaseSuppliers();
+                    loadPurchaseSuppliers();
                     if (products.length || customers.length || cosProducts.length || purchases.length) {
                         syncToFirebase();
                     }
@@ -1636,145 +1720,10 @@ Check your Browserslist config to be sure that your targets are set up correctly
             }, function(error) {
                 console.error("Firebase Read Error:", error);
                 isFirebaseConnected = false;
-                updateSyncStatus(false, 'Check Firebase Database Rules');
+                updateSyncStatus(false, 'Local Offline Mode');
                 loadFromLocalStorage();
                 renderAll();
             });
-        }
-
-        function logoutApp() {
-            isLoggedIn = false;
-            isPreviewOpen = false;
-            try { closeBarcodeScanner(); } catch(e) {}
-            ['billPreviewModal','recordViewModal','settingsModal','changePinModal','resetPinModal'].forEach(id => { const el=document.getElementById(id); if(el) el.classList.add('hidden'); });
-            document.querySelectorAll('[id^="section"]').forEach(el => el.classList.add('hidden'));
-            document.getElementById('sectionHome')?.classList.remove('hidden');
-            const overlay = document.getElementById('loginOverlay');
-            if (overlay) overlay.classList.remove('hidden');
-            const pin = document.getElementById('loginPinInput');
-            if (pin) { pin.value=''; pin.focus(); }
-            history.replaceState({ loggedIn:false, tab:'home' }, '', '#login');
-        }
-
-        function togglePinVisibility(inputId, buttonId) {
-            const input = document.getElementById(inputId);
-            const button = document.getElementById(buttonId);
-            if (!input) return;
-            const showing = input.type === 'text';
-            input.type = showing ? 'password' : 'text';
-            if (button) {
-                button.textContent = showing ? 'ðŸ‘ï¸' : 'ðŸ™ˆ';
-                button.setAttribute('aria-label', showing ? 'Show PIN' : 'Hide PIN');
-            }
-        }
-
-        function verifyLoginPin() {
-            const entered = document.getElementById('loginPinInput').value;
-            if(entered === appPin) {
-                isLoggedIn = true;
-                document.getElementById('loginOverlay').classList.add('hidden');
-                history.replaceState({ loggedIn: true, tab: 'home' }, "", "#home");
-            } else {
-                alert("Incorrect PIN! Default PIN is 1234.");
-            }
-        }
-
-        function openChangePinModal() { document.getElementById('changePinModal').classList.remove('hidden'); }
-        function closeChangePinModal() { document.getElementById('changePinModal').classList.add('hidden'); }
-        function submitChangePin() {
-            const current = document.getElementById('cpCurrent').value;
-            const newP = document.getElementById('cpNew').value;
-            if(current !== appPin) { alert("Current PIN is incorrect!"); return; }
-            if(newP.length < 3) { alert("New PIN must be at least 3 digits."); return; }
-            appPin = newP;
-            syncToFirebase();
-            alert("PIN updated successfully!");
-            closeChangePinModal();
-        }
-
-        function openResetPinModal() {
-            document.getElementById('rpMasterKey').value = '';
-            document.getElementById('rpNewDirect').value = '';
-            const status = document.getElementById('rpMasterStatus');
-            if(status) { status.textContent = ''; status.classList.add('hidden'); }
-            document.getElementById('resetPinModal').classList.remove('hidden');
-        }
-
-        function closeResetPinModal() {
-            document.getElementById('resetPinModal').classList.add('hidden');
-        }
-
-        function verifyMasterKeyAndReset() {
-            const enteredKey = (document.getElementById('rpMasterKey')?.value || '').trim();
-            const newPin = (document.getElementById('rpNewDirect')?.value || '').trim();
-            const status = document.getElementById('rpMasterStatus');
-
-            if (enteredKey !== MASTER_RECOVERY_KEY) {
-                if(status) { status.textContent = 'âš ï¸ Invalid Master Key!'; status.classList.remove('hidden'); }
-                return;
-            }
-            if (newPin.length < 3) {
-                if(status) { status.textContent = 'âš ï¸ New PIN must be at least 3 digits.'; status.classList.remove('hidden'); }
-                return;
-            }
-
-            appPin = newPin;
-            syncToFirebase();
-            alert('âœ“ Security PIN updated successfully!');
-            closeResetPinModal();
-            const loginInput = document.getElementById('loginPinInput');
-            if(loginInput) { loginInput.value = newPin; loginInput.focus(); }
-        }
-
-        function openBackupModal() { document.getElementById('backupModal').classList.remove('hidden'); }
-        function closeBackupModal() { document.getElementById('backupModal').classList.add('hidden'); }
-
-        function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
-        function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
-        function saveNewPin() {
-            const newPin = document.getElementById('newPinInput').value.trim();
-            if(newPin.length >= 3) {
-                appPin = newPin;
-                syncToFirebase();
-                alert("Security PIN updated successfully!");
-                closeSettingsModal();
-            } else {
-                alert("PIN must be at least 3 digits.");
-            }
-        }
-
-        function loadFromLocalStorage() {
-            products = JSON.parse(localStorage.getItem('fia_products')) || [];
-            cosProducts = JSON.parse(localStorage.getItem('fia_cosproducts')) || [];
-            customers = JSON.parse(localStorage.getItem('fia_customers')) || [];
-            purchases = JSON.parse(localStorage.getItem('fia_purchases')) || [];
-            expenses = JSON.parse(localStorage.getItem('fia_expenses')) || [];
-            cosPurchases = JSON.parse(localStorage.getItem('fia_cospurchases')) || [];
-            cosSales = JSON.parse(localStorage.getItem('fia_cossales')) || [];
-            packages = JSON.parse(localStorage.getItem('fia_packages')) || [];
-            stockReturns = JSON.parse(localStorage.getItem('fia_stock_returns')) || [];
-            clearedDayBookEntries = JSON.parse(localStorage.getItem('fia_cleared_daybook')) || [];
-            dayBookOpeningBalance = Number(localStorage.getItem('fia_daybook_opening_balance') || 0);
-            dayBookOpeningExpense = Number(localStorage.getItem('fia_daybook_opening_expense') || 0);
-            appPin = localStorage.getItem('fia_app_pin') || "1234";
-        }
-
-        function saveLocalStateSafely() {
-            try {
-                localStorage.setItem('fia_products', JSON.stringify(products));
-                localStorage.setItem('fia_cosproducts', JSON.stringify(cosProducts));
-                localStorage.setItem('fia_customers', JSON.stringify(customers));
-                localStorage.setItem('fia_purchases', JSON.stringify(purchases));
-                localStorage.setItem('fia_expenses', JSON.stringify(expenses));
-                localStorage.setItem('fia_cospurchases', JSON.stringify(cosPurchases));
-                localStorage.setItem('fia_cossales', JSON.stringify(cosSales));
-                localStorage.setItem('fia_packages', JSON.stringify(packages));
-                localStorage.setItem('fia_stock_returns', JSON.stringify(stockReturns));
-                localStorage.setItem('fia_cleared_daybook', JSON.stringify(clearedDayBookEntries));
-                localStorage.setItem('fia_daybook_opening_balance', String(dayBookOpeningBalance || 0));
-                localStorage.setItem('fia_daybook_opening_expense', String(dayBookOpeningExpense || 0));
-                localStorage.setItem('fia_app_pin', appPin);
-            } catch (e) { console.warn('Local storage write failed:', e); }
         }
 
         function syncToFirebase() {
@@ -1787,9 +1736,25 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 return Promise.resolve(false);
             }
 
-            const payload = { products, cosProducts, customers, purchases, expenses, cosPurchases, cosSales, packages, stockReturns, clearedDayBookEntries, dayBookOpeningBalance, dayBookOpeningExpense, appPin };
-            
-            return window.FB_DB.ref('fia_data').update(payload)
+            const payload = {
+                products: products || [],
+                cosProducts: cosProducts || [],
+                customers: customers || [],
+                purchases: purchases || [],
+                expenses: expenses || [],
+                cosPurchases: cosPurchases || [],
+                cosSales: cosSales || [],
+                packages: packages || [],
+                stockReturns: stockReturns || [],
+                clearedDayBookEntries: clearedDayBookEntries || [],
+                dayBookOpeningBalance: Number(dayBookOpeningBalance || 0),
+                dayBookOpeningExpense: Number(dayBookOpeningExpense || 0),
+                appPin: appPin || "1234"
+            };
+
+            const cleanPayload = sanitizeForFirebase(payload);
+
+            return window.FB_DB.ref('fia_data').set(cleanPayload)
                 .then(() => {
                     localStorage.removeItem('fia_has_pending_sync');
                     isFirebaseConnected = true;
@@ -1798,13 +1763,14 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 })
                 .catch((err) => {
                     console.error('Firebase write error:', err);
-                    updateSyncStatus(false, 'Check Database Rules');
+                    updateSyncStatus(false, 'Local Offline Mode (Saved Locally)');
                     return false;
                 });
         }
 
         function manualCloudSync() {
             updateSyncStatus(null, 'Syncing to Cloud...');
+            if (window.FB_DB) { try { window.FB_DB.goOnline(); } catch(e) {} }
             return syncToFirebase().then(ok => {
                 if (ok) {
                     alert('Cloud sync completed successfully!');
@@ -3068,6 +3034,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             renderCustomers();
             updateCustomerDropdown();
             updateCosCustomerDropdown();
+            alert('Customer saved successfully!');
         }
 
         function editCustomerProfile(name, phone) {
@@ -3089,6 +3056,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 renderCustomers();
                 updateCustomerDropdown();
                 updateCosCustomerDropdown();
+            alert('Customer saved successfully!');
                 renderAccounts();
             }
         }
@@ -3863,6 +3831,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             renderCustomers();
             updateCustomerDropdown();
             updateCosCustomerDropdown();
+            alert('Customer saved successfully!');
             updateProductDropdown();
             updateCosProductDropdowns();
             updateCleaningAddStockDropdown();
@@ -3929,6 +3898,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 renderCustomers();
                 updateCustomerDropdown();
                 updateCosCustomerDropdown();
+            alert('Customer saved successfully!');
                 renderProducts();
                 renderAccounts();
                 updateDashboard();
@@ -4832,6 +4802,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             renderCustomers(); 
             updateCustomerDropdown(); 
             updateCosCustomerDropdown();
+            alert('Customer saved successfully!');
             updateCombinedProductSelect();
             updateCombinedCustomerSelect();
             renderPackages(); updatePackageSelectors();
