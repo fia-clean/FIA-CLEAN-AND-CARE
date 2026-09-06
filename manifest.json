@@ -1,15 +1,33 @@
 {
   "name": "FIA CLEAN & CARE - Inventory, Billing & Accounts",
-  "short_name": "FIA Clean & Care",
+  "short_name": "FIA CLEAN",
+  "description": "Direct realtime sync, inventory, billing, purchase & accounts management",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#0b6335",
-  "theme_color": "#0b6335",
-  "description": "FIA CLEAN & CARE online and offline business management app",
+  "display_override": ["standalone", "window-controls-overlay"],
+  "orientation": "any",
+  "background_color": "#020617",
+  "theme_color": "#064e3b",
+  "categories": ["business", "finance", "productivity"],
   "icons": [
-    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {
+      "src": "./icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
