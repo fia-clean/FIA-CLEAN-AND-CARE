@@ -469,7 +469,6 @@
             </div>
         </div>
 
-            </div>
             <div id="stockPackageArea" class="hidden space-y-4">
                 <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner">
                     <div class="flex justify-between items-center mb-3 gap-2">
@@ -1131,6 +1130,16 @@
                     <button type="button" onclick="setFilterPreset('all')" class="flex-1 bg-slate-800 text-slate-300 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 hover:bg-slate-700">All Time</button>
                 </div>
 
+                <div class="grid grid-cols-2 gap-2 bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs">
+                    <div>
+                        <label class="text-[10px] text-slate-400 block mb-1">Opening Balance (₹):</label>
+                        <input type="number" id="dayBookOpeningBalanceInput" min="0" step="any" value="0" oninput="saveDayBookOpeningValues()" class="w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-emerald-300 font-bold focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 block mb-1">Opening Expense (₹):</label>
+                        <input type="number" id="dayBookOpeningExpenseInput" min="0" step="any" value="0" oninput="saveDayBookOpeningValues()" class="w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-rose-300 font-bold focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
                 <div id="accountsSummaryContainer" class="text-xs space-y-2 pt-1"></div>
             </div>
 
@@ -1309,6 +1318,8 @@
         let packages = [];
         let stockReturns = [];
         let clearedDayBookEntries = [];
+        let dayBookOpeningBalance = 0;
+        let dayBookOpeningExpense = 0;
         let appPin = "1234";
         const MASTER_RECOVERY_KEY = "FIA786";
         let isLoggedIn = false;
@@ -1363,7 +1374,7 @@
                 backupVersion: 1,
                 app: 'FIA CLEAN & CARE',
                 createdAt: new Date().toISOString(),
-                data: { products, cosProducts, customers, purchases, expenses, cosPurchases, cosSales, packages, clearedDayBookEntries, appPin }
+                data: { products, cosProducts, customers, purchases, expenses, cosPurchases, cosSales, packages, clearedDayBookEntries, dayBookOpeningBalance, dayBookOpeningExpense, appPin }
             };
             const dbData = JSON.stringify(backupData, null, 2);
             
@@ -1434,6 +1445,8 @@
                     packages = Array.isArray(data.packages) ? data.packages : Object.entries(data.packages || {}).map(([key, value]) => ({ ...(value || {}), id: String((value && value.id) || key) }));
                     stockReturns = Array.isArray(data.stockReturns) ? data.stockReturns : Object.values(data.stockReturns || {});
                     clearedDayBookEntries = Array.isArray(data.clearedDayBookEntries) ? data.clearedDayBookEntries : Object.values(data.clearedDayBookEntries || {});
+                    dayBookOpeningBalance = Number(data.dayBookOpeningBalance || 0);
+                    dayBookOpeningExpense = Number(data.dayBookOpeningExpense || 0);
                     appPin = data.appPin || "1234";
 
                     saveLocalStateSafely();
@@ -1570,6 +1583,8 @@
             packages = JSON.parse(localStorage.getItem('fia_packages')) || [];
             stockReturns = JSON.parse(localStorage.getItem('fia_stock_returns')) || [];
             clearedDayBookEntries = JSON.parse(localStorage.getItem('fia_cleared_daybook')) || [];
+            dayBookOpeningBalance = Number(localStorage.getItem('fia_daybook_opening_balance') || 0);
+            dayBookOpeningExpense = Number(localStorage.getItem('fia_daybook_opening_expense') || 0);
             appPin = localStorage.getItem('fia_app_pin') || "1234";
         }
 
@@ -1585,6 +1600,8 @@
                 localStorage.setItem('fia_packages', JSON.stringify(packages));
                 localStorage.setItem('fia_stock_returns', JSON.stringify(stockReturns));
                 localStorage.setItem('fia_cleared_daybook', JSON.stringify(clearedDayBookEntries));
+                localStorage.setItem('fia_daybook_opening_balance', String(dayBookOpeningBalance || 0));
+                localStorage.setItem('fia_daybook_opening_expense', String(dayBookOpeningExpense || 0));
                 localStorage.setItem('fia_app_pin', appPin);
             } catch (e) { console.warn('Local storage write failed:', e); }
         }
@@ -1597,7 +1614,7 @@
                 return Promise.resolve(false);
             }
 
-            const payload = { products, cosProducts, customers, purchases, expenses, cosPurchases, cosSales, packages, stockReturns, clearedDayBookEntries, appPin };
+            const payload = { products, cosProducts, customers, purchases, expenses, cosPurchases, cosSales, packages, stockReturns, clearedDayBookEntries, dayBookOpeningBalance, dayBookOpeningExpense, appPin };
             
             return window.FB_DB.ref('fia_data').update(payload)
                 .then(() => {
@@ -1624,7 +1641,7 @@
         }
 
         function downloadFullBackup() {
-            const backup = { backupVersion: 1, app: 'FIA CLEAN & CARE', createdAt: new Date().toISOString(), data: { products, cosProducts, customers, purchases, expenses, cosPurchases, cosSales, packages, clearedDayBookEntries, appPin } };
+            const backup = { backupVersion: 1, app: 'FIA CLEAN & CARE', createdAt: new Date().toISOString(), data: { products, cosProducts, customers, purchases, expenses, cosPurchases, cosSales, packages, clearedDayBookEntries, dayBookOpeningBalance, dayBookOpeningExpense, appPin } };
             const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1671,6 +1688,8 @@
                     packages = Array.isArray(d.packages) ? d.packages : [];
                     stockReturns = Array.isArray(d.stockReturns) ? d.stockReturns : [];
                     clearedDayBookEntries = Array.isArray(d.clearedDayBookEntries) ? d.clearedDayBookEntries : [];
+                    dayBookOpeningBalance = Number(d.dayBookOpeningBalance || 0);
+                    dayBookOpeningExpense = Number(d.dayBookOpeningExpense || 0);
                     if (typeof d.appPin === 'string' && d.appPin) appPin = d.appPin;
                     syncToFirebase(); renderAll(); updateCosProductDropdowns(); updateStockReturnDropdowns(); renderStockReturnHistory();
                     alert('Backup restored successfully!');
@@ -1717,8 +1736,12 @@
             // Operations -> Stock module. This does not alter Stock data or forms.
             const activeCustomer = !document.getElementById('sectionCustomers')?.classList.contains('hidden');
             const activeBilling = !document.getElementById('sectionBilling')?.classList.contains('hidden');
+            const activeAccounts = !document.getElementById('sectionAccounts')?.classList.contains('hidden');
+            const activePurchase = !document.getElementById('sectionPurchase')?.classList.contains('hidden');
+            const activeExpenses = !document.getElementById('sectionExpenses')?.classList.contains('hidden');
+            const activeCosmetics = !document.getElementById('sectionCosmetics')?.classList.contains('hidden');
             const backupOpen = !document.getElementById('backupModal')?.classList.contains('hidden');
-            const shouldHide = activeCustomer || activeBilling || backupOpen;
+            const shouldHide = activeCustomer || activeBilling || activeAccounts || activePurchase || activeExpenses || activeCosmetics || backupOpen;
             document.querySelectorAll('button, a, [role="button"]').forEach(el => {
                 if (el.closest('#sectionStock, #sectionOperations')) return;
                 const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
@@ -1826,16 +1849,20 @@
                 document.getElementById('billPreviewModal').classList.add('hidden');
                 return;
             }
-            const modals = ['barcodeScannerModal', 'settingsModal', 'changePinModal', 'resetPinModal'];
+            const modals = ['barcodeScannerModal', 'settingsModal', 'changePinModal', 'resetPinModal', 'dueAmountListModal', 'lowStockListModal'];
             let modalClosed = false;
             modals.forEach(mId => {
-                const mEl = document.getElementById('mId');
+                const mEl = document.getElementById(mId);
                 if (mEl && !mEl.classList.contains('hidden')) {
                     mEl.classList.add('hidden');
                     modalClosed = true;
                 }
             });
-            if (modalClosed) return;
+            if (modalClosed) {
+                if (event.state && event.state.tab) switchTab(event.state.tab, false);
+                else switchTab('home', false);
+                return;
+            }
 
             if (event.state && event.state.tab) {
                 switchTab(event.state.tab, false);
@@ -2327,7 +2354,14 @@
             if (video && video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
         }
 
+        function pushDashboardModalState(modalName) {
+            if (isLoggedIn && (!history.state || history.state.modal !== modalName)) {
+                history.pushState({ loggedIn: true, tab: 'home', modal: modalName }, '', '#home-' + modalName);
+            }
+        }
+
         function openLowStockList() {
+            pushDashboardModalState('lowStock');
             const container = document.getElementById('lowStockListContainer');
             if (!container) return;
             const rows = [
@@ -2338,7 +2372,10 @@
             container.innerHTML = rows.length ? rows.map(p => `<div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-xs"><div class="flex justify-between gap-3"><div><div class="font-bold ${p.category==='Cosmetics'?'text-pink-300':'text-emerald-300'}">${p.name || 'Product'}</div><div class="text-slate-500 mt-1">${p.category}</div></div><div class="text-right"><div class="text-rose-300 font-extrabold">${p.stock || 0} ${p.unit || ''}</div><div class="text-[10px] text-slate-500">Current Stock</div></div></div></div>`).join('') : '<p class="text-xs text-slate-500 text-center py-8">No low stock products.</p>';
             document.getElementById('lowStockListModal').classList.remove('hidden');
         }
-        function closeLowStockList() { document.getElementById('lowStockListModal')?.classList.add('hidden'); }
+        function closeLowStockList() {
+            document.getElementById('lowStockListModal')?.classList.add('hidden');
+            if (history.state && history.state.modal === 'lowStock') history.back();
+        }
 
         function checkLowStockAlerts() {
             const banner = document.getElementById('lowStockAlertBanner');
@@ -4339,6 +4376,15 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             syncToFirebase(); renderAccounts();
         }
 
+        function saveDayBookOpeningValues() {
+            const balanceInput = document.getElementById('dayBookOpeningBalanceInput');
+            const expenseInput = document.getElementById('dayBookOpeningExpenseInput');
+            dayBookOpeningBalance = Math.max(0, Number(balanceInput?.value || 0));
+            dayBookOpeningExpense = Math.max(0, Number(expenseInput?.value || 0));
+            syncToFirebase();
+            renderAccounts();
+        }
+
         function renderAccounts() {
             let fromDate = parseDateDDMMYYYY(document.getElementById('filterFromDate').value);
             let toDate = parseDateDDMMYYYY(document.getElementById('filterToDate').value);
@@ -4386,6 +4432,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         }
 
         function openDueAmountList() {
+            pushDashboardModalState('dueAmount');
             renderDueAmountList();
             const modal = document.getElementById('dueAmountListModal');
             if(modal) modal.classList.remove('hidden');
@@ -4394,6 +4441,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function closeDueAmountList() {
             const modal = document.getElementById('dueAmountListModal');
             if(modal) modal.classList.add('hidden');
+            if (history.state && history.state.modal === 'dueAmount') history.back();
         }
 
         function renderDueAmountList() {
