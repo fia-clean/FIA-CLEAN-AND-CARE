@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FIA CLEAN & CARE - Inventory, Billing & Accounts App</title>
+    <!-- PWA / Offline App Support -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#065f46">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <!-- Tailwind CSS Play CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -135,6 +140,7 @@
             #printSection { display: block !important; position: static !important; width: 100% !important; height: auto !important; overflow: visible !important; background: #fff !important; }
             #billPreviewModal { display: none !important; }
         }
+        #offlinePwaBanner { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 9999; max-width: calc(100vw - 32px); }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 min-h-screen text-slate-100 p-3 sm:p-6">
@@ -4694,5 +4700,28 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         window.purchaseActionCleaning = 'add';
         window.purchaseActionCosmetics = 'add';
 </script>
+    <div id="offlinePwaBanner" class="hidden bg-amber-950 text-amber-100 border border-amber-700 px-4 py-2.5 rounded-xl text-xs shadow-2xl">📴 Offline mode: working with data saved on this device. Changes will sync when internet returns.</div>
+
+    <!-- Offline-first PWA registration: additive layer, existing app logic is unchanged -->
+    <script>
+    (function(){
+        function updateOfflineBanner(){
+            const b=document.getElementById('offlinePwaBanner');
+            if(!b) return;
+            b.classList.toggle('hidden', navigator.onLine);
+        }
+        window.addEventListener('online', function(){
+            updateOfflineBanner();
+            if(typeof manualCloudSync==='function') setTimeout(function(){ try{ manualCloudSync(); }catch(e){} }, 1200);
+        });
+        window.addEventListener('offline', updateOfflineBanner);
+        document.addEventListener('DOMContentLoaded', function(){
+            updateOfflineBanner();
+            if('serviceWorker' in navigator && location.protocol !== 'file:'){
+                navigator.serviceWorker.register('./service-worker.js').catch(function(err){ console.warn('Offline service worker registration failed:', err); });
+            }
+        });
+    })();
+    </script>
 </body>
 </html>

@@ -1,0 +1,9 @@
+{
+  "name": "FIA CLEAN & CARE",
+  "short_name": "FIA CLEAN",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#065f46",
+  "description": "Inventory, Billing and Accounts app with offline-first support."
+}
