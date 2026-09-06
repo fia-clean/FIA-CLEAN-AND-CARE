@@ -1,25 +1,9 @@
 {
   "name": "FIA CLEAN & CARE",
   "short_name": "FIA CLEAN",
-  "description": "FIA CLEAN & CARE - Billing, Inventory, Customers and Accounts",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0f172a",
-  "theme_color": "#064e3b",
-  "icons": [
-    {
-      "src": "./icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "background_color": "#020617",
+  "theme_color": "#065f46",
+  "description": "Inventory, Billing and Accounts app with offline-first support."
 }
