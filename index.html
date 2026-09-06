@@ -1130,15 +1130,18 @@
                     <button type="button" onclick="setFilterPreset('all')" class="flex-1 bg-slate-800 text-slate-300 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 hover:bg-slate-700">All Time</button>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs">
-                    <div>
-                        <label class="text-[10px] text-slate-400 block mb-1">Opening Balance (₹):</label>
-                        <input type="number" id="dayBookOpeningBalanceInput" min="0" step="any" value="0" oninput="saveDayBookOpeningValues()" class="w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-emerald-300 font-bold focus:outline-none focus:border-purple-500">
+                <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs space-y-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">Opening Balance (₹):</label>
+                            <input type="number" id="dayBookOpeningBalanceInput" min="0" step="any" value="0" class="w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-emerald-300 font-bold focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">Opening Expense (₹):</label>
+                            <input type="number" id="dayBookOpeningExpenseInput" min="0" step="any" value="0" class="w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-rose-300 font-bold focus:outline-none focus:border-purple-500">
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-[10px] text-slate-400 block mb-1">Opening Expense (₹):</label>
-                        <input type="number" id="dayBookOpeningExpenseInput" min="0" step="any" value="0" oninput="saveDayBookOpeningValues()" class="w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-rose-300 font-bold focus:outline-none focus:border-purple-500">
-                    </div>
+                    <button type="button" onclick="saveDayBookOpeningValues()" class="w-full bg-purple-700 hover:bg-purple-600 text-white py-2.5 rounded-lg text-[11px] font-bold transition">💾 Save Opening Values</button>
                 </div>
                 <div id="accountsSummaryContainer" class="text-xs space-y-2 pt-1"></div>
             </div>
@@ -1407,7 +1410,7 @@
 
         function createAutomaticLocalBackup() {
             try {
-                const backupData = { backupVersion: 1, app: 'FIA CLEAN & CARE', createdAt: new Date().toISOString(), data: { products, cosProducts, customers, purchases, expenses, cosPurchases, cosSales, stockReturns, clearedDayBookEntries, appPin } };
+                const backupData = { backupVersion: 1, app: 'FIA CLEAN & CARE', createdAt: new Date().toISOString(), data: { products, cosProducts, customers, purchases, expenses, cosPurchases, cosSales, stockReturns, clearedDayBookEntries, dayBookOpeningBalance, dayBookOpeningExpense, appPin } };
                 localStorage.setItem('fia_auto_backup_latest', JSON.stringify(backupData));
                 localStorage.setItem('fia_auto_backup_time', backupData.createdAt);
             } catch(e) { console.warn('Automatic local backup failed:', e); }
@@ -4381,11 +4384,17 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             const expenseInput = document.getElementById('dayBookOpeningExpenseInput');
             dayBookOpeningBalance = Math.max(0, Number(balanceInput?.value || 0));
             dayBookOpeningExpense = Math.max(0, Number(expenseInput?.value || 0));
+            saveLocalStateSafely();
             syncToFirebase();
             renderAccounts();
         }
 
         function renderAccounts() {
+            const openingBalanceInput = document.getElementById('dayBookOpeningBalanceInput');
+            const openingExpenseInput = document.getElementById('dayBookOpeningExpenseInput');
+            if (openingBalanceInput && document.activeElement !== openingBalanceInput) openingBalanceInput.value = Number(dayBookOpeningBalance || 0);
+            if (openingExpenseInput && document.activeElement !== openingExpenseInput) openingExpenseInput.value = Number(dayBookOpeningExpense || 0);
+
             let fromDate = parseDateDDMMYYYY(document.getElementById('filterFromDate').value);
             let toDate = parseDateDDMMYYYY(document.getElementById('filterToDate').value);
             let filtered = getAllMasterEntries().filter(e => (!fromDate || dashboardDateKey(e.date) >= fromDate) && (!toDate || dashboardDateKey(e.date) <= toDate));
@@ -4393,11 +4402,18 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
 
             let inc = filtered.filter(e => e.type === 'Income').reduce((s, e) => s + e.amount, 0);
             let exp = filtered.filter(e => e.type === 'Expense').reduce((s, e) => s + e.amount, 0);
+            const openingBalance = Number(dayBookOpeningBalance || 0);
+            const openingExpense = Number(dayBookOpeningExpense || 0);
+            const currentIncome = openingBalance + inc;
+            const currentExpense = openingExpense + exp;
+            const netBalance = currentIncome - currentExpense;
             
             document.getElementById('accountsSummaryContainer').innerHTML = `
-                <div class="flex justify-between p-2 bg-slate-900 rounded-lg"><span>Total Income:</span><strong class="text-emerald-400">₹${inc.toFixed(2)}</strong></div>
-                <div class="flex justify-between p-2 bg-slate-900 rounded-lg"><span>Total Expense:</span><strong class="text-rose-400">₹${exp.toFixed(2)}</strong></div>
-                <div class="flex justify-between p-2 bg-slate-900 rounded-lg font-bold"><span>Net Balance:</span><span class="${inc-exp>=0?'text-emerald-300':'text-red-400'}">₹${(inc-exp).toFixed(2)}</span></div>`;
+                <div class="flex justify-between p-2 bg-slate-900 rounded-lg"><span>Opening Balance:</span><strong class="text-emerald-300">₹${openingBalance.toFixed(2)}</strong></div>
+                <div class="flex justify-between p-2 bg-slate-900 rounded-lg"><span>Opening Expense:</span><strong class="text-rose-300">₹${openingExpense.toFixed(2)}</strong></div>
+                <div class="flex justify-between p-2 bg-slate-900 rounded-lg"><span>Current Income:</span><strong class="text-emerald-400">₹${currentIncome.toFixed(2)}</strong></div>
+                <div class="flex justify-between p-2 bg-slate-900 rounded-lg"><span>Current Expense:</span><strong class="text-rose-400">₹${currentExpense.toFixed(2)}</strong></div>
+                <div class="flex justify-between p-2 bg-slate-900 rounded-lg font-bold"><span>Net Balance:</span><span class="${netBalance>=0?'text-emerald-300':'text-red-400'}">₹${netBalance.toFixed(2)}</span></div>`;
 
             document.getElementById('dayBookListContainer').innerHTML = filtered.map(e => `
                 <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between text-xs">
