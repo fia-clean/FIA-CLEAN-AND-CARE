@@ -1197,7 +1197,7 @@
                                 <span class="text-[9px] text-slate-400">Changes sync with Accounts</span>
                             </div>
                             <div class="grid grid-cols-2 gap-2">
-                                <input type="number" id="paymentAdjustmentAmt" placeholder="Amount ₹" min="0" step="any" class="col-span-2 w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 text-xs min-w-0">
+                                <input type="number" id="cosmeticsPaymentAdjustmentAmt" placeholder="Amount ₹" min="0" step="any" class="col-span-2 w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 text-xs min-w-0">
                                 <button type="button" onclick="adjustCosmeticsSalePayment('add')" class="w-full bg-emerald-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold leading-tight">+ Add Paid</button>
                                 <button type="button" onclick="adjustCosmeticsSalePayment('reduce')" class="w-full bg-rose-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold leading-tight">− Reduce Paid</button>
                             </div>
@@ -4018,10 +4018,10 @@
 
             if(currentBillItems.length === 0) { alert("Please add at least one item."); return; }
 
-            if(index !== -1) {
-                const oldBill = customers[index];
+            const oldBill = index !== -1 ? customers[index] : null;
+            if(oldBill) {
                 restorePackageStock(oldBill.items || []);
-                if(oldBill && oldBill.items) {
+                if(oldBill.items) {
                     oldBill.items.forEach(oldItem => {
                         const p = products.find(prod => prod.name === oldItem.productName);
                         if(p) p.stock += (oldItem.stockDeductionQty || oldItem.qty || 0);
@@ -4036,7 +4036,7 @@
             const packageDeduction=checkAndDeductPackageStock(currentBillItems);
             if(!packageDeduction.ok){
                 currentBillItems.forEach(item=>{const p=products.find(prod=>prod.name===item.productName);if(p)p.stock+=Number(item.stockDeductionQty||0);});
-                if(index!==-1){restorePackageStock(oldBill?.items||[]);(oldBill?.items||[]).forEach(item=>{const p=products.find(prod=>prod.name===item.productName);if(p)p.stock-=Number(item.stockDeductionQty||item.qty||0);});}
+                if(index!==-1 && oldBill){restorePackageStock(oldBill.items||[]);(oldBill.items||[]).forEach(item=>{const p=products.find(prod=>prod.name===item.productName);if(p)p.stock-=Number(item.stockDeductionQty||item.qty||0);});}
                 if(packageDeduction.missing){ alert(`Packaging item not found for: ${packageDeduction.products.join(', ')}. Please add the matching Bottle/Pack item in Stock → Package.`); } else { alert(`Insufficient package stock for ${packageDeduction.pkg?.name||'packaging item'}. Available: ${packageDeduction.pkg?.stock||0}`); } return;
             }
 
@@ -4621,7 +4621,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function adjustCosmeticsSalePayment(direction) {
             const index = parseInt(document.getElementById('cosSIndex').value);
             if(index < 0 || !cosSales[index]) { alert('Please click Edit on a cosmetics due bill first.'); return; }
-            const amount = parseFloat(document.getElementById('paymentAdjustmentAmt').value) || 0;
+            const amount = parseFloat(document.getElementById('cosmeticsPaymentAdjustmentAmt')?.value || document.getElementById('paymentAdjustmentAmt')?.value) || 0;
             if(amount <= 0) { alert('Enter a valid adjustment amount.'); return; }
             const sale = cosSales[index];
             const total = cosSaleTotal(sale);
@@ -4636,7 +4636,8 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             }
             document.getElementById('cosSPaid').value = paid.toFixed(2);
             document.getElementById('cosSBalance').value = Math.max(0, total - paid).toFixed(2);
-            document.getElementById('paymentAdjustmentAmt').value = '';
+            const cosAdj = document.getElementById('cosmeticsPaymentAdjustmentAmt');
+            if (cosAdj) cosAdj.value = '';
             syncToFirebase();
             renderCosSales();
             renderCosmeticsSummary();
