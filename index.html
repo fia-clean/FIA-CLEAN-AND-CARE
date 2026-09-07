@@ -1364,7 +1364,7 @@
             <div class="space-y-3 text-xs">
                 <div>
                     <label class="text-slate-400 block mb-1">Change Security PIN:</label>
-                    <input type="password" id="newPinInput" placeholder="New PIN (e.g. 1234)" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white">
+                    <input type="password" id="newPinInput" placeholder="Enter New PIN" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500" maxlength="6">
                 </div>
                 <button onclick="saveNewPin()" class="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-500">Save PIN</button>
                 <div class="pt-3 border-t border-slate-800 space-y-2">
@@ -1416,7 +1416,7 @@
             
             <div class="space-y-3 text-xs text-left">
                 <div>
-                    <input type="password" id="rpMasterKey" placeholder="Enter Master Key (FIA786)" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-500 text-sm">
+                    <input type="password" id="rpMasterKey" placeholder="Enter Master Key" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-500 text-sm">
                 </div>
                 <div>
                     <input type="password" id="rpNewDirect" placeholder="Enter New PIN" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 text-sm" maxlength="6">
@@ -1781,7 +1781,7 @@
                 history.replaceState({ loggedIn: true, tab: 'home' }, "", "#home");
                 if (input) input.value = '';
             } else {
-                alert("Incorrect PIN! Default PIN is 1234.");
+                alert("Incorrect PIN! Please try again.");
                 if (input) {
                     input.value = '';
                     input.focus();
@@ -1848,7 +1848,7 @@
             const status = document.getElementById('rpMasterStatus');
 
             if (enteredKey.toUpperCase() !== MASTER_RECOVERY_KEY.toUpperCase()) {
-                if (status) { status.textContent = '⚠️ Invalid Master Key! (Hint: FIA786)'; status.classList.remove('hidden'); }
+                if (status) { status.textContent = '⚠️ Invalid Master Key! Please try again.'; status.classList.remove('hidden'); }
                 return;
             }
             if (newPin.length < 3) {
