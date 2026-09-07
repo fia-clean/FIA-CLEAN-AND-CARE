@@ -27,9 +27,6 @@
       }
     </script>
 
-    <!-- Google Identity Services Library for Google Drive Backup -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-
     <!-- Firebase SDKs: Core App, Realtime Database & Auth -->
     <script src="./lib/firebase-app-compat.js"></script>
     <script src="./lib/firebase-database-compat.js"></script>
@@ -268,7 +265,7 @@
         <div class="flex gap-2 flex-wrap items-center">
             <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
             <button onclick="manualCloudSync()" class="hover:text-emerald-400 transition underline">Force Sync</button>
-            <button onclick="backupToGoogleDrive()" class="hover:text-emerald-400 transition underline text-blue-400 font-bold">☁️ Drive Backup</button>
+            <button type="button" onclick="openBackupModal()" class="hover:text-emerald-400 transition underline text-blue-400 font-bold">💾 Backup</button>
             <button type="button" onclick="logoutApp()" aria-label="Logout" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-800 bg-rose-950/40 text-rose-300 hover:bg-rose-900/60 transition font-bold"><span>🚪</span><span>Logout</span></button>
         </div>
     </div>
@@ -1346,27 +1343,56 @@
                 <div class="pt-3 border-t border-slate-800 space-y-2">
                     <div class="font-bold text-slate-200 text-xs">💾 Data Backup & Restore</div>
                     <p class="text-[10px] text-slate-500">Backup is downloaded as a JSON file to your device.</p>
-                    <button type="button" onclick="downloadFullBackup()" class="w-full bg-blue-700 text-white py-2.5 rounded-bold hover:bg-blue-600">📥 Download Full Backup</button>
-                    <button type="button" onclick="backupToGoogleDrive()" class="w-full bg-emerald-700 text-white py-2.5 rounded-bold hover:bg-emerald-600">☁️ Backup to Google Drive</button>
-                    <button type="button" onclick="openBackupFilePicker('backupFileInput')" class="block w-full bg-slate-800 text-slate-200 py-2.5 rounded-xl font-bold text-center cursor-pointer border border-slate-700 hover:bg-slate-700">📤 Restore Backup</button>
+                    <button type="button" onclick="downloadFullBackup()" class="w-full bg-blue-700 text-white py-2.5 rounded-xl font-bold hover:bg-blue-600">📥 Download Full Backup (.json)</button>
+                    <button type="button" onclick="closeSettingsModal(); openBackupModal();" class="w-full bg-emerald-700 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-600">🕒 Auto-Snapshots & Restore</button>
+                    <button type="button" onclick="openBackupFilePicker('backupFileInput')" class="block w-full bg-slate-800 text-slate-200 py-2.5 rounded-xl font-bold text-center cursor-pointer border border-slate-700 hover:bg-slate-700">📤 Restore from File</button>
                     <input type="file" id="backupFileInput" accept=".json,application/json,text/json,text/plain,*/*" class="hidden" onchange="restoreFullBackup(event)">
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="backupModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 space-y-4">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                <h3 class="font-bold text-blue-300 text-sm">Data Backup & Restore</h3>
-                <button type="button" onclick="closeBackupModal()" class="text-slate-400 font-bold">✕</button>
+    <div id="backupModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">💾</span>
+                    <div>
+                        <h3 class="font-bold text-blue-300 text-sm">Data Backup & Restore</h3>
+                        <p class="text-[10px] text-slate-400">Automatic local snapshots & instant device download</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeBackupModal()" class="text-slate-400 hover:text-white font-bold text-base px-2 py-1">✕</button>
             </div>
-            <div class="space-y-3 text-xs">
-                <p class="text-[10px] text-slate-500">Backup and restore your application data from this Day Book menu.</p>
-                <button type="button" onclick="downloadFullBackup()" class="w-full bg-blue-700 text-white py-2.5 rounded-xl font-bold hover:bg-blue-600">📥 Download Full Backup</button>
-                <button type="button" onclick="backupToGoogleDrive()" class="w-full bg-emerald-700 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-600">☁️ Backup to Google Drive</button>
-                <button type="button" onclick="openBackupFilePicker('dayBookBackupFileInput')" class="block w-full bg-slate-800 text-slate-200 py-2.5 rounded-xl font-bold text-center cursor-pointer border border-slate-700 hover:bg-slate-700">📤 Restore Backup</button>
+
+            <!-- Instant Actions -->
+            <div class="space-y-2 text-xs">
+                <button type="button" onclick="downloadFullBackup()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-blue-900/30">
+                    <span>📥</span><span>Download Full Backup (.json)</span>
+                </button>
+                <button type="button" onclick="openBackupFilePicker('dayBookBackupFileInput')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 rounded-xl font-bold transition border border-slate-700 flex items-center justify-center gap-2">
+                    <span>📤</span><span>Restore from File (.json)</span>
+                </button>
                 <input type="file" id="dayBookBackupFileInput" accept=".json,application/json,text/json,text/plain,*/*" class="hidden" onchange="restoreFullBackup(event)">
+            </div>
+
+            <!-- Rolling Multi-Day Auto-Snapshots -->
+            <div class="pt-2 border-t border-slate-800 space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Auto-Saved Snapshots (Last 7 Days)
+                    </span>
+                    <button type="button" onclick="createManualSnapshotNow()" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-emerald-300 px-2 py-1 rounded-lg border border-slate-700 font-bold">+ New Snapshot</button>
+                </div>
+                <p class="text-[10px] text-slate-400">Automatic daily safety copies saved directly on this device. Retains the last 7 days.</p>
+                <div id="autoBackupListContainer" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- Cloud status badge -->
+            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-center gap-2 text-[11px] text-slate-400">
+                <span class="text-base">☁️</span>
+                <span><b>Firebase Realtime Cloud</b> actively backs up your data 24/7 across all connected devices.</span>
             </div>
         </div>
     </div>
@@ -1445,93 +1471,170 @@
         let scannerTargetMode = 'stock';
         let salesHistoryFilter = 'all';
 
-        let tokenClient;
-        let accessToken = null;
-        const CLIENT_ID = '64795058382-kdguglk3j6pfj5dcgbf9qnt50lbs8a3o.apps.googleusercontent.com';
-
-        function initGoogleDriveAuth() {
-            if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
-                tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: CLIENT_ID,
-                    scope: 'https://www.googleapis.com/auth/drive.file',
-                    callback: (response) => {
-                        if (response.access_token) {
-                            accessToken = response.access_token;
-                            uploadDatabaseToDrive();
-                        }
-                    },
-                });
-            }
-        }
-
-        function backupToGoogleDrive() {
-            if (!accessToken) {
-                if (tokenClient) {
-                    tokenClient.requestAccessToken({prompt: 'consent'});
-                } else {
-                    initGoogleDriveAuth();
-                    if (tokenClient) {
-                        tokenClient.requestAccessToken({prompt: 'consent'});
-                    } else {
-                        alert('Google Identity service not loaded yet. Please try again in a moment.');
-                    }
-                }
-            } else {
-                uploadDatabaseToDrive();
-            }
-        }
-
-        async function uploadDatabaseToDrive() {
-            const backupData = {
-                backupVersion: 1,
-                app: 'FIA CLEAN & CARE',
-                createdAt: new Date().toISOString(),
-                data: { products, cosProducts, customers, purchases, expenses, cosPurchases, cosSales, packages, clearedDayBookEntries, dayBookOpeningBalance, dayBookOpeningExpense, appPin }
-            };
-            const dbData = JSON.stringify(backupData, null, 2);
-            
-            const fileMetadata = {
-                name: 'FIA_Clean_Care_Backup_' + new Date().toISOString().slice(0,10) + '.json',
-                mimeType: 'application/json'
-            };
-
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-            form.append('file', new Blob([dbData], { type: 'application/json' }));
-
+        // --- Multi-Day Smart Local Snapshots (Last 7 Days) ---
+        function getSnapshotKeys() {
             try {
-                let res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                    method: 'POST',
-                    headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }),
-                    body: form
-                });
-                let result = await res.json();
-                if(result.id) {
-                    alert('ഗൂഗിൾ ഡ്രൈവിലേക്ക് ബാക്കപ്പ് വിജയകരമായി സേവ് ചെയ്തു!');
-                } else {
-                    alert('ബാക്കപ്പ് ചെയ്യുന്നതിൽ ചെറിയൊരു തടസ്സം നേരിട്ടു.');
-                }
-            } catch (error) {
-                console.error(error);
-                alert('എർർ വന്നു: ' + error.message);
+                const keys = JSON.parse(localStorage.getItem('fia_snapshot_keys') || '[]');
+                return Array.isArray(keys) ? keys : [];
+            } catch (e) {
+                return [];
             }
         }
 
         function createAutomaticLocalBackup() {
             try {
-                const backupData = { backupVersion: 1, app: 'FIA CLEAN & CARE', createdAt: new Date().toISOString(), data: { products, cosProducts, customers, purchases, expenses, cosPurchases, cosSales, stockReturns, clearedDayBookEntries, dayBookOpeningBalance, dayBookOpeningExpense, appPin } };
+                const now = new Date();
+                const todayDate = now.toISOString().slice(0, 10);
+                const snapKey = 'fia_snap_' + todayDate;
+                
+                const backupData = {
+                    backupVersion: 1,
+                    app: 'FIA CLEAN & CARE',
+                    snapshotDate: todayDate,
+                    createdAt: now.toISOString(),
+                    stats: {
+                        products: (products || []).length,
+                        cosProducts: (cosProducts || []).length,
+                        customers: (customers || []).length,
+                        packages: (packages || []).length
+                    },
+                    data: {
+                        products: products || [],
+                        cosProducts: cosProducts || [],
+                        customers: customers || [],
+                        purchases: purchases || [],
+                        expenses: expenses || [],
+                        cosPurchases: cosPurchases || [],
+                        cosSales: cosSales || [],
+                        packages: packages || [],
+                        stockReturns: stockReturns || [],
+                        clearedDayBookEntries: clearedDayBookEntries || [],
+                        dayBookOpeningBalance: Number(dayBookOpeningBalance || 0),
+                        dayBookOpeningExpense: Number(dayBookOpeningExpense || 0),
+                        appPin: appPin || "1234"
+                    }
+                };
+
+                // Store today's snapshot
+                localStorage.setItem(snapKey, JSON.stringify(backupData));
                 localStorage.setItem('fia_auto_backup_latest', JSON.stringify(backupData));
                 localStorage.setItem('fia_auto_backup_time', backupData.createdAt);
-            } catch(e) { console.warn('Automatic local backup failed:', e); }
-        }
-        function runAutomaticBackup() {
-            createAutomaticLocalBackup();
-            const today = new Date().toISOString().slice(0,10);
-            if (accessToken && localStorage.getItem('fia_drive_auto_backup_date') !== today) {
-                localStorage.setItem('fia_drive_auto_backup_date', today);
-                uploadDatabaseToDrive();
+
+                // Update snapshot keys list (keep max 7 days)
+                let keys = getSnapshotKeys().filter(k => k !== snapKey);
+                keys.unshift(snapKey);
+
+                // Prune older than 7 days
+                while (keys.length > 7) {
+                    const oldKey = keys.pop();
+                    try { localStorage.removeItem(oldKey); } catch (e) {}
+                }
+                localStorage.setItem('fia_snapshot_keys', JSON.stringify(keys));
+            } catch (e) {
+                console.warn('Automatic local backup failed:', e);
             }
         }
+
+        function createManualSnapshotNow() {
+            createAutomaticLocalBackup();
+            renderAutoBackupList();
+            alert('✓ New local snapshot created successfully!');
+        }
+
+        function renderAutoBackupList() {
+            const container = document.getElementById('autoBackupListContainer');
+            if (!container) return;
+            const keys = getSnapshotKeys();
+            if (keys.length === 0) {
+                createAutomaticLocalBackup();
+            }
+            const updatedKeys = getSnapshotKeys();
+            if (updatedKeys.length === 0) {
+                container.innerHTML = '<p class="text-slate-500 text-center py-2 text-[11px]">No local snapshots saved yet.</p>';
+                return;
+            }
+
+            container.innerHTML = updatedKeys.map(k => {
+                let snap = null;
+                try { snap = JSON.parse(localStorage.getItem(k) || 'null'); } catch(e) {}
+                if (!snap) return '';
+                const dateStr = snap.snapshotDate || (snap.createdAt ? snap.createdAt.slice(0, 10) : k.replace('fia_snap_', ''));
+                const stats = snap.stats || {};
+                const billCount = stats.customers ?? (snap.data?.customers?.length || 0);
+                const prodCount = (stats.products ?? (snap.data?.products?.length || 0)) + (stats.cosProducts ?? (snap.data?.cosProducts?.length || 0));
+                
+                return `
+                    <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs">
+                        <div class="min-w-0">
+                            <div class="font-bold text-slate-200 truncate flex items-center gap-1">
+                                <span>🗓️</span> <span>${dateStr}</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400 mt-0.5">${billCount} Bills • ${prodCount} Products</div>
+                        </div>
+                        <div class="flex gap-1 shrink-0">
+                            <button type="button" onclick="restoreSnapshot('${k}')" class="bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 px-2.5 py-1 rounded text-[10px] font-bold border border-emerald-700 cursor-pointer">Restore</button>
+                            <button type="button" onclick="downloadSnapshot('${k}')" class="bg-blue-900/80 hover:bg-blue-800 text-blue-200 px-2.5 py-1 rounded text-[10px] font-bold border border-blue-700 cursor-pointer">Download</button>
+                        </div>
+                    </div>
+                `;
+            }).filter(Boolean).join('');
+        }
+
+        function restoreSnapshot(snapKey) {
+            let snap = null;
+            try { snap = JSON.parse(localStorage.getItem(snapKey) || 'null'); } catch(e) {}
+            if (!snap || !snap.data) {
+                alert('Snapshot data could not be read.');
+                return;
+            }
+            const dateStr = snap.snapshotDate || snap.createdAt || snapKey;
+            if (!confirm(`Restore backup from ${dateStr}? Current data will be replaced.`)) {
+                return;
+            }
+            const d = snap.data;
+            products = Array.isArray(d.products) ? d.products : [];
+            cosProducts = Array.isArray(d.cosProducts) ? d.cosProducts : [];
+            customers = Array.isArray(d.customers) ? d.customers : [];
+            purchases = Array.isArray(d.purchases) ? d.purchases : [];
+            expenses = Array.isArray(d.expenses) ? d.expenses : [];
+            cosPurchases = Array.isArray(d.cosPurchases) ? d.cosPurchases : [];
+            cosSales = Array.isArray(d.cosSales) ? d.cosSales : [];
+            packages = Array.isArray(d.packages) ? d.packages : [];
+            stockReturns = Array.isArray(d.stockReturns) ? d.stockReturns : [];
+            clearedDayBookEntries = Array.isArray(d.clearedDayBookEntries) ? d.clearedDayBookEntries : [];
+            dayBookOpeningBalance = Number(d.dayBookOpeningBalance || 0);
+            dayBookOpeningExpense = Number(d.dayBookOpeningExpense || 0);
+            if (typeof d.appPin === 'string' && d.appPin) appPin = d.appPin;
+
+            syncToFirebase();
+            renderAll();
+            updateCosProductDropdowns();
+            updateStockReturnDropdowns();
+            renderStockReturnHistory();
+            closeBackupModal();
+            alert(`✓ Backup from ${dateStr} restored successfully!`);
+        }
+
+        function downloadSnapshot(snapKey) {
+            let snap = null;
+            try { snap = JSON.parse(localStorage.getItem(snapKey) || 'null'); } catch(e) {}
+            if (!snap) { alert('Snapshot not found.'); return; }
+            const dateStr = snap.snapshotDate || snapKey.replace('fia_snap_', '');
+            const blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `FIA_Clean_Care_Snapshot_${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function runAutomaticBackup() {
+            createAutomaticLocalBackup();
+        }
+
         function startAutomaticBackup() {
             runAutomaticBackup();
             setInterval(runAutomaticBackup, 30 * 60 * 1000);
@@ -1840,8 +1943,17 @@
             if (loginInput) { loginInput.value = newPin; loginInput.focus(); }
         }
 
-        function openBackupModal() { document.getElementById('backupModal').classList.remove('hidden'); }
-        function closeBackupModal() { document.getElementById('backupModal').classList.add('hidden'); }
+        function openBackupModal() {
+            const modal = document.getElementById('backupModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                renderAutoBackupList();
+            }
+        }
+        function closeBackupModal() {
+            const modal = document.getElementById('backupModal');
+            if (modal) modal.classList.add('hidden');
+        }
 
         function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
         function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
@@ -2194,7 +2306,6 @@
         window.onload = function() {
             loadFromLocalStorage();
             setupDateFields();
-            initGoogleDriveAuth();
             history.replaceState({ loggedIn: false, tab: 'home' }, "", window.location.href);
             
             const expDateEl = document.getElementById('expDate');

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-offline-v8';
+const CACHE_NAME = 'fia-clean-care-offline-v9';
 
 const APP_SHELL = [
   './',
@@ -15,10 +15,7 @@ const APP_SHELL = [
   // Firebase
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js',
-  'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
-
-  // Google Identity Services
-  'https://accounts.google.com/gsi/client'
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'
 ];
 
 self.addEventListener('install', event => {
