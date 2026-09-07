@@ -102,6 +102,18 @@
             z-index: 100000 !important;
         }
 
+        html, body {
+            overflow-x: hidden !important;
+            width: 100% !important;
+            max-width: 100vw !important;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #020617;
@@ -109,104 +121,63 @@
             padding: 0;
         }
 
-        /* ===== MOBILE-FRIENDLY PURCHASE + STOCK CONSOLIDATED REPORT ===== */
-        @media (max-width: 640px) {
-            #sectionPurchase #purchaseActionTabsCleaning,
-            #sectionPurchase #purchaseActionTabsCosmetics {
-                display: grid !important;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 4px !important;
-                width: 100%;
-            }
-            #sectionPurchase #purchaseActionTabsCleaning button,
-            #sectionPurchase #purchaseActionTabsCosmetics button {
-                width: 100%;
-                min-width: 0;
-                white-space: normal;
-                line-height: 1.15;
-                min-height: 42px;
-                padding: 8px 4px !important;
-            }
-            #sectionPurchase > .bg-slate-950\/60:nth-of-type(2) > div:nth-child(2),
-            #sectionPurchase #purchaseCleaningContent .flex.gap-2,
-            #sectionPurchase #purchaseCosmeticsContent .flex.gap-2 {
-                flex-direction: column;
-            }
-            #sectionPurchase #purchaseCleaningContent input,
-            #sectionPurchase #purchaseCleaningContent select,
-            #sectionPurchase #purchaseCosmeticsContent input,
-            #sectionPurchase #purchaseCosmeticsContent select {
-                max-width: 100%;
-            }
-            #sectionPurchase #purchaseCleaningContent .flex.gap-2 > *,
-            #sectionPurchase #purchaseCosmeticsContent .flex.gap-2 > * {
-                width: 100% !important;
-                flex: 1 1 100% !important;
-            }
-            #sectionPurchase #purchaseCleaningContent #rawBarcode,
-            #sectionPurchase #purchaseCleaningContent #rawQty,
-            #sectionPurchase #purchaseCosmeticsContent #cosPBarcode,
-            #sectionPurchase #purchaseCosmeticsContent #cosPQty,
-            #sectionPurchase #purchaseCosmeticsContent #cosPUnit {
-                width: 100% !important;
-            }
-            #sectionPurchase #purchaseCleaningContent .grid.grid-cols-2,
-            #sectionPurchase #purchaseCosmeticsContent .grid.grid-cols-2 {
-                grid-template-columns: minmax(0, 1fr) !important;
-            }
-            #sectionPurchase #purchaseCleaningContent .grid.grid-cols-1.sm\:grid-cols-2,
-            #sectionPurchase #purchaseCosmeticsContent .grid.grid-cols-1.sm\:grid-cols-2 {
-                grid-template-columns: minmax(0, 1fr) !important;
-            }
-            #sectionPurchase #purchaseCleaningContent .flex.flex-wrap,
-            #sectionPurchase #purchaseCosmeticsContent .flex.flex-wrap {
-                flex-wrap: wrap;
-            }
-            #sectionPurchase #purchaseCleaningContent button,
-            #sectionPurchase #purchaseCosmeticsContent button {
-                max-width: 100%;
-            }
-            #sectionPurchase .purchase-mobile-stack {
-                display: flex !important;
-                flex-direction: column !important;
-                gap: 8px !important;
-            }
-        }
         .tab-scroll {
             display: flex;
             flex-wrap: nowrap;
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
+            scroll-behavior: smooth;
         }
         .tab-scroll::-webkit-scrollbar { display: none; }
-        /* ===== MOBILE-FRIENDLY PURCHASE + STOCK CONSOLIDATED REPORT ===== */
+
+        /* Ensure all tables and data containers scroll horizontally within cards without stretching viewport */
+        .table-scroll-wrapper {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* ===== MOBILE-FRIENDLY RESPONSIVE STYLES (< 640px) ===== */
         @media (max-width: 640px) {
+            /* 2x2 Subtabs and Action Grids on Smartphones */
+            #sectionBilling .billing-subtabs-grid,
+            #sectionBilling .billing-history-tabs-grid,
+            #sectionStock .stock-action-grid,
             #sectionPurchase #purchaseActionTabsCleaning,
             #sectionPurchase #purchaseActionTabsCosmetics {
                 display: grid !important;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 4px !important;
-                width: 100%;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 6px !important;
+                width: 100% !important;
             }
+
+            #sectionBilling .billing-subtabs-grid button,
+            #sectionBilling .billing-history-tabs-grid button,
+            #sectionStock .stock-action-grid button,
             #sectionPurchase #purchaseActionTabsCleaning button,
             #sectionPurchase #purchaseActionTabsCosmetics button {
-                width: 100%;
-                min-width: 0;
-                white-space: normal;
-                line-height: 1.15;
-                min-height: 42px;
+                width: 100% !important;
+                min-width: 0 !important;
+                white-space: normal !important;
+                line-height: 1.2 !important;
+                min-height: 42px !important;
                 padding: 8px 4px !important;
+                text-align: center !important;
             }
+
+            /* Responsive input constraints */
+            input, select, textarea {
+                max-width: 100% !important;
+                min-width: 0 !important;
+            }
+
             #sectionPurchase > .bg-slate-950\/60:nth-of-type(2) > div:nth-child(2),
             #sectionPurchase #purchaseCleaningContent .flex.gap-2,
             #sectionPurchase #purchaseCosmeticsContent .flex.gap-2 {
                 flex-direction: column;
-            }
-            #sectionPurchase #purchaseCleaningContent input,
-            #sectionPurchase #purchaseCleaningContent select,
-            #sectionPurchase #purchaseCosmeticsContent input,
-            #sectionPurchase #purchaseCosmeticsContent select {
-                max-width: 100%;
             }
             #sectionPurchase #purchaseCleaningContent .flex.gap-2 > *,
             #sectionPurchase #purchaseCosmeticsContent .flex.gap-2 > * {
@@ -253,7 +224,7 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 min-h-screen text-slate-100 p-3 sm:p-6">
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 min-h-screen text-slate-100 p-2 sm:p-6">
 
     <!-- ================= LOGIN OVERLAY ================= -->
     <div id="loginOverlay" class="fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4 backdrop-blur-md">
@@ -292,9 +263,9 @@
     </div>
 
     <!-- Firebase Sync Status Indicator -->
-    <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex justify-between items-center px-2 text-[10px] text-slate-400">
+    <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
         <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-        <div class="flex gap-3">
+        <div class="flex gap-2 flex-wrap items-center">
             <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
             <button onclick="manualCloudSync()" class="hover:text-emerald-400 transition underline">Force Sync</button>
             <button onclick="backupToGoogleDrive()" class="hover:text-emerald-400 transition underline text-blue-400 font-bold">☁️ Drive Backup</button>
@@ -302,7 +273,7 @@
         </div>
     </div>
 
-    <div class="max-w-md mx-auto bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl overflow-hidden md:max-w-2xl p-5 sm:p-7 mb-10 space-y-6">
+    <div class="max-w-md mx-auto bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl overflow-hidden md:max-w-2xl p-3 sm:p-6 mb-10 space-y-6">
         
         <!-- Header Title -->
         <div class="relative text-center space-y-1">
@@ -468,7 +439,7 @@
             </div>
             <div id="stockCleaningContent">
                 <!-- Cleaning Stock Action Tabs -->
-                <div class="flex justify-between items-center bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1 mb-3">
+                <div class="stock-action-grid grid grid-cols-2 sm:grid-cols-4 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1.5 mb-3">
                     <button type="button" onclick="switchStockActionTab('cleaning','add')" id="cleanStockAddTab" class="flex-1 py-2 text-center text-xs font-bold bg-emerald-700 text-white rounded-xl shadow-md transition">➕ Add Stock</button>
                     <button type="button" onclick="switchStockActionTab('cleaning','view')" id="cleanStockViewTab" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">👁️ View Stock</button>
                     <button type="button" onclick="switchStockActionTab('cleaning','return')" id="cleanStockReturnTab" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">↩️ Return Stock</button>
@@ -525,12 +496,13 @@
                             <button type="button" onclick="renderConsolidatedStockReport()" class="bg-slate-800 text-emerald-300 border border-slate-700 px-3 py-2 rounded-lg text-[10px] font-bold">↻ Refresh Report</button>
                         </div>
                         <div id="consolidatedStockSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3"></div>
-                        <div class="overflow-x-auto rounded-xl border border-slate-800">
+                        <div class="w-full min-w-0 overflow-x-auto rounded-xl border border-slate-800 table-scroll-wrapper">
                             <table class="w-full min-w-[560px] text-xs">
                                 <thead class="bg-slate-900"><tr><th class="text-left p-2 text-slate-400">#</th><th class="text-left p-2 text-slate-400">Category</th><th class="text-left p-2 text-slate-400">Product</th><th class="text-right p-2 text-slate-400">Stock</th><th class="text-left p-2 text-slate-400">Unit</th><th class="text-left p-2 text-slate-400">Barcode</th></tr></thead>
                                 <tbody id="consolidatedStockTableBody"></tbody>
                             </table>
                         </div>
+                        <div class="text-[9px] text-slate-500 mt-1 sm:hidden">↔️ Swipe sideways to view all columns</div>
                         <div id="consolidatedStockUnitTotals" class="mt-3 space-y-1"></div>
                     </div>
                 </div>
@@ -552,7 +524,7 @@
 
             <div id="stockCosmeticsContent" class="space-y-4 hidden">
                 <!-- Cosmetics Stock Action Tabs -->
-                <div class="flex justify-between items-center bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1 mb-3">
+                <div class="stock-action-grid grid grid-cols-2 sm:grid-cols-4 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1.5 mb-3">
                     <button type="button" onclick="switchStockActionTab('cosmetics','add')" id="cosStockAddTab" class="flex-1 py-2 text-center text-xs font-bold bg-pink-700 text-white rounded-xl shadow-md transition">➕ Add Stock</button>
                     <button type="button" onclick="switchStockActionTab('cosmetics','view')" id="cosStockViewTab" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">👁️ View Stock</button>
                     <button type="button" onclick="switchStockActionTab('cosmetics','return')" id="cosStockReturnTab" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">↩️ Return Stock</button>
@@ -582,12 +554,13 @@
                             <button type="button" onclick="renderConsolidatedStockReport()" class="bg-slate-800 text-pink-300 border border-slate-700 px-3 py-2 rounded-lg text-[10px] font-bold">↻ Refresh Report</button>
                         </div>
                         <div id="consolidatedStockSummaryCos" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3"></div>
-                        <div class="overflow-x-auto rounded-xl border border-slate-800">
+                        <div class="w-full min-w-0 overflow-x-auto rounded-xl border border-slate-800 table-scroll-wrapper">
                             <table class="w-full min-w-[560px] text-xs">
                                 <thead class="bg-slate-900"><tr><th class="text-left p-2 text-slate-400">#</th><th class="text-left p-2 text-slate-400">Category</th><th class="text-left p-2 text-slate-400">Product</th><th class="text-right p-2 text-slate-400">Stock</th><th class="text-left p-2 text-slate-400">Unit</th><th class="text-left p-2 text-slate-400">Barcode</th></tr></thead>
                                 <tbody id="consolidatedStockTableBodyCos"></tbody>
                             </table>
                         </div>
+                        <div class="text-[9px] text-slate-500 mt-1 sm:hidden">↔️ Swipe sideways to view all columns</div>
                         <div id="consolidatedStockUnitTotalsCos" class="mt-3 space-y-1"></div>
                     </div>
                 </div>
@@ -626,12 +599,13 @@
                 <div id="packageReportArea" class="hidden bg-slate-950/60 p-4 rounded-2xl border border-cyan-800/40 shadow-inner">
                     <div class="flex justify-between items-center mb-3 gap-2"><h3 class="font-bold text-cyan-300 text-sm">📊 Package Consolidated Report</h3><button type="button" onclick="switchPackageView('list')" class="bg-slate-800 text-slate-300 px-2.5 py-1.5 rounded-lg text-[10px] font-bold">← Package Stock</button></div>
                     <div id="packageReportSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3"></div>
-                    <div class="overflow-x-auto border border-slate-800 rounded-xl">
-                        <table class="w-full text-[10px]">
+                    <div class="w-full min-w-0 overflow-x-auto border border-slate-800 rounded-xl table-scroll-wrapper">
+                        <table class="w-full min-w-[480px] text-[10px]">
                             <thead class="bg-slate-900 text-slate-400"><tr><th class="p-2 text-left">#</th><th class="p-2 text-left">Package Item</th><th class="p-2 text-left">Size</th><th class="p-2 text-right">Stock</th><th class="p-2 text-left">Unit</th><th class="p-2 text-left">Status</th></tr></thead>
                             <tbody id="packageReportTableBody"></tbody>
                         </table>
                     </div>
+                    <div class="text-[9px] text-slate-500 mt-1 sm:hidden">↔️ Swipe sideways to view all columns</div>
                     <div id="packageReportUnitTotals" class="mt-3 space-y-1"></div>
                 </div>
             </div>
@@ -709,7 +683,7 @@
         <div id="sectionBilling" class="space-y-4 hidden">
             <div class="bg-slate-950/60 p-3 rounded-2xl border border-amber-800/40 shadow-inner">
                 <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-2 font-bold">BILLING</div>
-                <div class="grid grid-cols-4 gap-2">
+                <div class="billing-subtabs-grid grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button type="button" onclick="openBillingSection('cleaning')" class="py-3 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-md">🧹 Cleaning</button>
                     <button type="button" onclick="openBillingSection('cosmetics')" class="py-3 rounded-xl bg-slate-800 text-pink-300 border border-pink-800/50 text-xs font-bold">💄 Cosmetics</button>
                     <button type="button" onclick="openBillingSection('combined')" class="py-3 rounded-xl bg-slate-800 text-cyan-300 border border-cyan-800/50 text-xs font-bold">🧾 Combined</button>
@@ -722,7 +696,7 @@
                         <h2 class="font-bold text-slate-200 text-sm">🧾 Sales History</h2>
                         <button type="button" id="centralSalesHistoryRefreshBtn" onclick="refreshSalesHistoryFromCloud()" class="text-[10px] bg-slate-800 text-emerald-300 border border-slate-700 px-2.5 py-1.5 rounded-lg font-bold">↻ Refresh</button>
                     </div>
-                    <div class="grid grid-cols-4 gap-1.5 mb-3">
+                    <div class="billing-history-tabs-grid grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-3">
                         <button type="button" onclick="setSalesHistoryFilter('all')" id="salesHistoryTabAll" class="py-2 rounded-lg bg-slate-700 text-white text-[10px] font-bold">All</button>
                         <button type="button" onclick="setSalesHistoryFilter('cleaning')" id="salesHistoryTabCleaning" class="py-2 rounded-lg bg-slate-900 text-amber-300 border border-slate-700 text-[10px] font-bold">🧹 Cleaning</button>
                         <button type="button" onclick="setSalesHistoryFilter('cosmetics')" id="salesHistoryTabCosmetics" class="py-2 rounded-lg bg-slate-900 text-pink-300 border border-slate-700 text-[10px] font-bold">💄 Cosmetics</button>
@@ -800,17 +774,18 @@
                         <button type="button" onclick="addToBillItems()" class="w-full bg-amber-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-amber-500 transition shadow-md shadow-amber-900/30">Add to Bill</button>
                     </div>
 
-                    <div class="grid grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_0.9fr_auto] gap-1 px-2 text-[10px] text-slate-400 font-bold uppercase"><span>Product</span><span>Quantity</span><span>Unit</span><span>Price</span><span>Total</span><span></span></div><div id="currentBillItemsPreview" class="space-y-1.5 text-xs"></div>
+                    <div class="hidden sm:grid grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_0.9fr_auto] gap-1 px-2 text-[10px] text-slate-400 font-bold uppercase"><span>Product</span><span>Quantity</span><span>Unit</span><span>Price</span><span>Total</span><span></span></div>
+                    <div id="currentBillItemsPreview" class="space-y-1.5 text-xs w-full min-w-0"></div>
 
                     <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
                         <div>
                             <label class="text-[10px] text-slate-400 block mb-1">Paid Amount (₹):</label>
-                            <input type="number" id="billPaidAmt" placeholder="Paid Amount" oninput="calculateBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500" min="0" step="any">
+                            <input type="number" id="billPaidAmt" placeholder="Paid Amount" oninput="calculateBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500 min-w-0" min="0" step="any">
                             <select id="billPaymentMode" class="w-full mt-1.5 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500"><option value="Cash">💵 Cash</option><option value="Online">🌐 Online</option></select>
                         </div>
                         <div>
                             <label id="billBalanceLabel" class="text-[10px] text-slate-400 block mb-1">Balance / Due (₹):</label>
-                            <input type="number" id="billPendingAmt" placeholder="Balance" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-slate-400 cursor-not-allowed">
+                            <input type="number" id="billPendingAmt" placeholder="Balance" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-slate-400 cursor-not-allowed min-w-0">
                             <div id="billBalanceStatus" class="text-[10px] font-bold mt-1 text-right"></div>
                         </div>
                     </div>
@@ -822,8 +797,8 @@
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <input type="number" id="paymentAdjustmentAmt" placeholder="Amount ₹" min="0" step="any" class="col-span-2 w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 text-xs min-w-0">
-                            <button type="button" onclick="adjustEditedPayment('add')" class="w-full bg-emerald-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold whitespace-nowrap">+ Add Paid</button>
-                            <button type="button" onclick="adjustEditedPayment('reduce')" class="w-full bg-rose-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold whitespace-nowrap">− Reduce Paid</button>
+                            <button type="button" onclick="adjustEditedPayment('add')" class="w-full bg-emerald-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold leading-tight">+ Add Paid</button>
+                            <button type="button" onclick="adjustEditedPayment('reduce')" class="w-full bg-rose-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold leading-tight">− Reduce Paid</button>
                         </div>
                     </div>
 
@@ -884,11 +859,11 @@
                         <input type="number" id="combinedCalculatedTotal" placeholder="Total (₹)" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-emerald-400 font-bold">
                         <button type="button" onclick="addToCombinedBill()" class="w-full bg-cyan-700 text-white py-2 rounded-xl text-xs font-bold">Add to Combined Bill</button>
                     </div>
-                    <div class="grid grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr_0.9fr_auto_auto] gap-1 px-2 text-[10px] text-slate-400 font-bold uppercase"><span>Product</span><span>Qty</span><span>Units</span><span>Price</span><span>Total</span><span></span><span></span></div>
-                    <div id="combinedBillItemsPreview" class="space-y-1.5 text-xs"></div>
+                    <div class="hidden sm:grid grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr_0.9fr_auto_auto] gap-1 px-2 text-[10px] text-slate-400 font-bold uppercase"><span>Product</span><span>Qty</span><span>Units</span><span>Price</span><span>Total</span><span></span><span></span></div>
+                    <div id="combinedBillItemsPreview" class="space-y-1.5 text-xs w-full min-w-0"></div>
                     <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                        <div><label class="text-[10px] text-slate-400 block mb-1">Paid Amount (₹)</label><input type="number" id="combinedPaidAmt" placeholder="Paid Amount" oninput="calculateCombinedBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200" min="0" step="any"><select id="combinedPaymentMode" class="w-full mt-1.5 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200"><option value="Cash">💵 Cash</option><option value="Online">🌐 Online</option></select></div>
-                        <div><label class="text-[10px] text-slate-400 block mb-1">Balance / Due (₹)</label><input type="number" id="combinedPendingAmt" placeholder="Balance" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-slate-400"><div id="combinedBalanceStatus" class="text-[10px] font-bold mt-1 text-right"></div></div>
+                        <div><label class="text-[10px] text-slate-400 block mb-1">Paid Amount (₹)</label><input type="number" id="combinedPaidAmt" placeholder="Paid Amount" oninput="calculateCombinedBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 min-w-0" min="0" step="any"><select id="combinedPaymentMode" class="w-full mt-1.5 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200"><option value="Cash">💵 Cash</option><option value="Online">🌐 Online</option></select></div>
+                        <div><label class="text-[10px] text-slate-400 block mb-1">Balance / Due (₹)</label><input type="number" id="combinedPendingAmt" placeholder="Balance" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-slate-400 min-w-0"><div id="combinedBalanceStatus" class="text-[10px] font-bold mt-1 text-right"></div></div>
                     </div>
                     <div class="flex gap-2 pt-1"><button type="submit" id="combinedSubmitBtn" class="flex-1 bg-cyan-700 text-white py-3 rounded-xl font-bold text-sm">Save Combined Bill</button><button type="button" onclick="resetCombinedBillForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm border border-slate-700">Clear</button></div>
                 </form>
@@ -1197,12 +1172,13 @@
                             <button type="button" onclick="addToCosBillItems()" class="w-full bg-pink-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-pink-500 transition shadow-md shadow-pink-900/30">Add to Bill</button>
                         </div>
 
-                        <div class="grid grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_0.9fr_auto] gap-1 px-2 text-[10px] text-slate-400 font-bold uppercase"><span>Product</span><span>Quantity</span><span>Unit</span><span>Price</span><span>Total</span><span></span></div><div id="cosCurrentBillItemsPreview" class="space-y-1.5 text-xs"></div>
+                        <div class="hidden sm:grid grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_0.9fr_auto] gap-1 px-2 text-[10px] text-slate-400 font-bold uppercase"><span>Product</span><span>Quantity</span><span>Unit</span><span>Price</span><span>Total</span><span></span></div>
+                        <div id="cosCurrentBillItemsPreview" class="space-y-1.5 text-xs w-full min-w-0"></div>
 
                         <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
                             <div>
                                 <label class="text-[10px] text-slate-400 block mb-1">Paid Amount (₹):</label>
-                                <input type="number" id="cosSPaid" placeholder="Paid Amount" oninput="calculateCosSalesBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-pink-500" min="0" step="any">
+                                <input type="number" id="cosSPaid" placeholder="Paid Amount" oninput="calculateCosSalesBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-pink-500 min-w-0" min="0" step="any">
                                 <select id="cosSPaymentMode" class="w-full mt-1.5 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-pink-500">
                                     <option value="Cash">💵 Cash</option>
                                     <option value="Online">🌐 Online</option>
@@ -1210,7 +1186,7 @@
                             </div>
                             <div>
                                 <label class="text-[10px] text-slate-400 block mb-1">Pending / Due (₹):</label>
-                                <input type="number" id="cosSBalance" placeholder="Pending" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-rose-400 font-bold cursor-not-allowed">
+                                <input type="number" id="cosSBalance" placeholder="Pending" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-rose-400 font-bold cursor-not-allowed min-w-0">
                                 <div id="cosSBalanceStatus" class="text-[10px] font-bold mt-1 text-right text-slate-400">BALANCE: ₹0.00</div>
                             </div>
                         </div>
@@ -1222,8 +1198,8 @@
                             </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <input type="number" id="paymentAdjustmentAmt" placeholder="Amount ₹" min="0" step="any" class="col-span-2 w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 text-xs min-w-0">
-                                <button type="button" onclick="adjustCosmeticsSalePayment('add')" class="w-full bg-emerald-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold whitespace-nowrap">+ Add Paid</button>
-                                <button type="button" onclick="adjustCosmeticsSalePayment('reduce')" class="w-full bg-rose-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold whitespace-nowrap">− Reduce Paid</button>
+                                <button type="button" onclick="adjustCosmeticsSalePayment('add')" class="w-full bg-emerald-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold leading-tight">+ Add Paid</button>
+                                <button type="button" onclick="adjustCosmeticsSalePayment('reduce')" class="w-full bg-rose-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold leading-tight">− Reduce Paid</button>
                             </div>
                         </div>
 
@@ -2879,7 +2855,7 @@
         function editPackage(id){const x=packages.find(p=>p.id===id);if(!x)return;switchTab('stock',false);switchStockTopTab('package');document.getElementById('packageId').value=x.id;document.getElementById('packageName').value=x.name||'';document.getElementById('packageSize').value=x.size||'';document.getElementById('packageUnit').value=x.unit||'Pcs';document.getElementById('packageStock').value=x.stock??0;document.getElementById('packageSubmitBtn').textContent='Update Package';}
         function deletePackage(id){if(!confirm('Delete this package item?'))return;packages=packages.filter(x=>x.id!==id);products.forEach(p=>{if(p.packageId===id){p.packageId='';p.packageQty=0;}});cosProducts.forEach(p=>{if(p.packageId===id){p.packageId='';p.packageQty=0;}});syncToFirebase();renderPackages();updatePackageSelectors();renderProducts();renderCosProductStock();}
         function addPackageStock(id,qty){const x=packages.find(p=>p.id===id);if(!x||!(qty>0))return;x.stock=(Number(x.stock)||0)+qty;syncToFirebase();renderPackages();updatePackageSelectors();}
-        function renderPackages(){const c=document.getElementById('packageListContainer');if(!c)return;c.innerHTML=sortByNameAsc(packages).map(x=>`<div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 flex justify-between gap-3 items-center"><div><div class="font-bold text-cyan-300 text-xs">${x.name}</div><div class="text-[10px] text-slate-500">${x.size||'—'} • ${x.unit||'Pcs'}</div></div><div class="text-right"><div class="font-extrabold ${(Number(x.stock)||0)<=5?'text-rose-300':'text-white'}">${Number(x.stock)||0}</div><div class="flex gap-1 justify-end mt-1 items-center"><input id="pkgAdd_${x.id}" type="number" min="0" step="any" placeholder="+Stock" class="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-[10px] text-white"><button type="button" onclick="addPackageStock('${x.id}',parseFloat(document.getElementById('pkgAdd_${x.id}').value)||0);document.getElementById('pkgAdd_${x.id}').value=''" class="bg-cyan-900 text-cyan-200 px-2 py-1 rounded-lg text-[10px]">Add</button><button type="button" onclick="editPackage('${x.id}')" class="bg-slate-800 text-amber-300 px-2 py-1 rounded-lg text-[10px]">Edit</button><button type="button" onclick="deletePackage('${x.id}')" class="bg-slate-800 text-red-300 px-2 py-1 rounded-lg text-[10px]">Delete</button></div></div></div>`).join('')||'<p class="text-xs text-slate-500 text-center py-6">No package items added yet.</p>';renderPackageConsolidationReport();};checkLowStockAlerts();updateDashboard();
+        function renderPackages(){const c=document.getElementById('packageListContainer');if(!c)return;c.innerHTML=sortByNameAsc(packages).map(x=>`<div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row justify-between gap-2 items-start sm:items-center"><div class="min-w-0 flex-1"><div class="font-bold text-cyan-300 text-xs break-words">${x.name}</div><div class="text-[10px] text-slate-500">${x.size||'—'} • ${x.unit||'Pcs'}</div></div><div class="text-left sm:text-right w-full sm:w-auto flex flex-row sm:flex-col justify-between sm:justify-end items-center sm:items-end gap-2"><div class="font-extrabold ${(Number(x.stock)||0)<=5?'text-rose-300':'text-white'} text-sm">${Number(x.stock)||0}</div><div class="flex gap-1 items-center"><input id="pkgAdd_${x.id}" type="number" min="0" step="any" placeholder="+Stock" class="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-[10px] text-white"><button type="button" onclick="addPackageStock('${x.id}',parseFloat(document.getElementById('pkgAdd_${x.id}').value)||0);document.getElementById('pkgAdd_${x.id}').value=''" class="bg-cyan-900 text-cyan-200 px-2 py-1 rounded-lg text-[10px]">Add</button><button type="button" onclick="editPackage('${x.id}')" class="bg-slate-800 text-amber-300 px-2 py-1 rounded-lg text-[10px]">Edit</button><button type="button" onclick="deletePackage('${x.id}')" class="bg-slate-800 text-red-300 px-2 py-1 rounded-lg text-[10px]">Delete</button></div></div></div>`).join('')||'<p class="text-xs text-slate-500 text-center py-6">No package items added yet.</p>';renderPackageConsolidationReport();};checkLowStockAlerts();updateDashboard();
         function switchPackageView(view){const list=document.getElementById('packageListArea'),report=document.getElementById('packageReportArea');if(!list||!report)return;if(view==='report'){list.classList.add('hidden');report.classList.remove('hidden');renderPackageConsolidationReport();}else{report.classList.add('hidden');list.classList.remove('hidden');}}
         function renderPackageConsolidationReport(){const rows=sortByNameAsc(packages||[]).map(p=>({name:p.name||'',size:p.size||'',stock:Number(p.stock)||0,unit:p.unit||'Pcs'}));const summary=[['Total Items',rows.length],['Total Stock',rows.reduce((s,r)=>s+r.stock,0)],['Low Stock',rows.filter(r=>r.stock<=5).length],['Units Used',new Set(rows.map(r=>r.unit).filter(Boolean)).size]];const sh=document.getElementById('packageReportSummary');if(sh)sh.innerHTML=summary.map(([l,v])=>`<div class="bg-slate-900 rounded-lg p-3"><div class="text-[10px] text-slate-400">${l}</div><b class="text-sm text-white">${v}</b></div>`).join('');const tb=document.getElementById('packageReportTableBody');if(tb)tb.innerHTML=rows.length?rows.map((r,i)=>`<tr class="border-t border-slate-800"><td class="p-2 text-slate-500">${i+1}</td><td class="p-2 text-cyan-300 font-semibold">${r.name||'—'}</td><td class="p-2 text-slate-400">${r.size||'—'}</td><td class="p-2 text-right font-bold ${r.stock<=5?'text-rose-300':'text-white'}">${r.stock}</td><td class="p-2 text-slate-300">${r.unit}</td><td class="p-2 ${r.stock<=5?'text-rose-300':'text-emerald-300'}">${r.stock<=5?'LOW STOCK':'OK'}</td></tr>`).join(''):'<tr><td colspan="6" class="p-5 text-center text-slate-500">No package items found.</td></tr>';const um={};rows.forEach(r=>um[r.unit]=(um[r.unit]||0)+r.stock);const uh=document.getElementById('packageReportUnitTotals');if(uh)uh.innerHTML=Object.entries(um).sort((a,b)=>a[0].localeCompare(b[0])).map(([u,t])=>`<div class="flex justify-between bg-slate-900/70 border border-slate-800 rounded-lg px-3 py-2 text-[11px]"><span class="text-slate-400">Total ${u}</span><b class="text-slate-200">${t}</b></div>`).join('')||'<div class="text-[10px] text-slate-500">No stock data.</div>';}
         function getProductPackageInfo(product){
@@ -3164,7 +3140,7 @@
             sortByNameAsc(products).forEach((p) => {
                 container.innerHTML += `
                     <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                        <div>
+                        <div class="min-w-0 flex-1 pr-2 break-words">
                             <p class="font-bold text-emerald-300">${p.name} ${p.barcode ? '<span class="text-[10px] text-slate-400">['+p.barcode+']</span>' : ''}</p>
                             <p class="text-slate-400">Stock: <span class="${p.stock <= 5 ? 'text-rose-400 font-bold' : ''}">${p.stock} ${p.unit}</span> | <span class="text-amber-300">W: ₹${p.wholesalePrice}</span> | <span class="text-emerald-400">R: ₹${p.retailPrice}</span></p>
                         </div>
@@ -3285,11 +3261,11 @@
                 let phone = cObj ? cObj.phone : '';
                 container.innerHTML += `
                     <div class="flex justify-between items-center bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs">
-                        <div>
+                        <div class="min-w-0 flex-1 pr-2 break-words">
                             <strong class="text-amber-300 text-sm">${name}</strong>
                             <p class="text-slate-400 text-[11px]">Phone: ${phone || 'No Phone'}</p>
                         </div>
-                        <div class="flex gap-1">
+                        <div class="flex gap-1 shrink-0">
                             <button type="button" onclick="viewCustomerProfile('${name}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 hover:bg-blue-800 font-bold">View</button>
                             <button type="button" onclick="editCustomerProfile('${name}', '${phone}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Edit</button>
                             <button type="button" onclick="deleteDirectCustomer('${name}')" class="bg-slate-800 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Delete</button>
@@ -3472,7 +3448,7 @@
 
             container.innerHTML = sortByNameAsc(cosProducts).map(p => `
                 <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                    <div>
+                    <div class="min-w-0 flex-1 pr-2 break-words">
                         <p class="font-bold text-pink-300">${p.name} ${p.barcode ? '<span class="text-[10px] text-slate-400">['+p.barcode+']</span>' : ''}</p>
                         <p class="text-slate-400">Stock:
                             <span class="${(parseFloat(p.stock) || 0) <= 5 ? 'text-rose-400 font-bold' : 'text-emerald-300 font-bold'}">${p.stock} ${p.unit}</span>
@@ -3638,10 +3614,25 @@
             currentCosBillItems.forEach((item, index) => {
                 grandTotal += Number(item.total || 0);
                 container.innerHTML += `
-                    <div class="grid grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr_0.9fr_auto_auto] gap-1 items-center bg-slate-900 p-2 rounded-lg border border-slate-800">
-                        <span class="font-semibold">${item.productName}</span><span>${item.qty} ${item.unitType || ''}</span><span>${item.numberOfUnits || 1} Pcs</span><span>₹${Number(item.rate).toFixed(2)}</span><strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
-                        <button type="button" onclick="editCosBillItem(${index})" class="text-amber-300 font-bold px-1" title="Edit item">✎</button>
-                        <button type="button" onclick="currentCosBillItems.splice(${index},1);renderCosBillPreviewInput();calculateCosSalesBalance();" class="text-red-400 font-bold px-1" title="Delete item">✕</button>
+                    <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
+                        <div class="hidden sm:grid sm:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
+                            <span class="font-semibold truncate">${item.productName}</span><span>${item.qty} ${item.unitType || ''}</span><span>${item.numberOfUnits || 1} Pcs</span><span>₹${Number(item.rate).toFixed(2)}</span><strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
+                            <button type="button" onclick="editCosBillItem(${index})" class="text-amber-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
+                            <button type="button" onclick="currentCosBillItems.splice(${index},1);renderCosBillPreviewInput();calculateCosSalesBalance();" class="text-red-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
+                        </div>
+                        <div class="sm:hidden flex flex-col gap-1.5">
+                            <div class="flex justify-between items-start gap-2">
+                                <span class="font-bold text-white leading-snug break-words flex-1">${item.productName}</span>
+                                <strong class="text-emerald-400 text-sm whitespace-nowrap shrink-0">₹${Number(item.total).toFixed(2)}</strong>
+                            </div>
+                            <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
+                                <span>${item.qty} ${item.unitType || ''} × ${item.numberOfUnits || 1} Pcs @ ₹${Number(item.rate).toFixed(2)}</span>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <button type="button" onclick="editCosBillItem(${index})" class="px-2.5 py-1 rounded-lg bg-amber-950/60 text-amber-300 border border-amber-800/60 font-bold text-[10px]">✎ Edit</button>
+                                    <button type="button" onclick="currentCosBillItems.splice(${index},1);renderCosBillPreviewInput();calculateCosSalesBalance();" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>`;
             });
             if (currentCosBillItems.length > 0) {
@@ -3862,16 +3853,32 @@
 
         function renderBillPreviewInput() {
             const container = document.getElementById('currentBillItemsPreview');
+            if (!container) return;
             container.innerHTML = "";
             let grandTotal = 0;
             currentBillItems = sortBillItemsAlphabetically(currentBillItems);
             currentBillItems.forEach((item, index) => {
                 grandTotal += Number(item.total || 0);
                 container.innerHTML += `
-                    <div class="grid grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr_0.9fr_auto_auto] gap-1 items-center bg-slate-900 p-2 rounded-lg border border-slate-800">
-                        <span class="font-semibold">${item.productName}</span><span>${item.qty} ${item.unitType || ''}</span><span>${item.numberOfUnits || 1} Pcs</span><span>₹${Number(item.rate).toFixed(2)}</span><strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
-                        <button type="button" onclick="editBillItem(${index})" class="text-amber-300 font-bold px-1" title="Edit item">✎</button>
-                        <button type="button" onclick="currentBillItems.splice(${index},1);renderBillPreviewInput();calculateBalance();" class="text-red-400 font-bold px-1" title="Delete item">✕</button>
+                    <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
+                        <div class="hidden sm:grid sm:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
+                            <span class="font-semibold truncate">${item.productName}</span><span>${item.qty} ${item.unitType || ''}</span><span>${item.numberOfUnits || 1} Pcs</span><span>₹${Number(item.rate).toFixed(2)}</span><strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
+                            <button type="button" onclick="editBillItem(${index})" class="text-amber-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
+                            <button type="button" onclick="currentBillItems.splice(${index},1);renderBillPreviewInput();calculateBalance();" class="text-red-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
+                        </div>
+                        <div class="sm:hidden flex flex-col gap-1.5">
+                            <div class="flex justify-between items-start gap-2">
+                                <span class="font-bold text-white leading-snug break-words flex-1">${item.productName}</span>
+                                <strong class="text-emerald-400 text-sm whitespace-nowrap shrink-0">₹${Number(item.total).toFixed(2)}</strong>
+                            </div>
+                            <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
+                                <span>${item.qty} ${item.unitType || ''} × ${item.numberOfUnits || 1} Pcs @ ₹${Number(item.rate).toFixed(2)}</span>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <button type="button" onclick="editBillItem(${index})" class="px-2.5 py-1 rounded-lg bg-amber-950/60 text-amber-300 border border-amber-800/60 font-bold text-[10px]">✎ Edit</button>
+                                    <button type="button" onclick="currentBillItems.splice(${index},1);renderBillPreviewInput();calculateBalance();" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>`;
             });
             if(currentBillItems.length > 0) container.innerHTML += `<div class="text-right font-bold text-amber-300 pt-1">Grand Total: ₹${grandTotal.toFixed(2)}</div>`;
@@ -3925,7 +3932,33 @@
         }
         function renderCombinedBillItems(){
             const c=document.getElementById('combinedBillItemsPreview'); if(!c)return; currentBillItems=sortBillItemsAlphabetically(currentBillItems); let total=0;
-            c.innerHTML=currentBillItems.map((item,i)=>{total+=Number(item.total||0);return `<div class="grid grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr_0.9fr_auto_auto] gap-1 items-center bg-slate-900 p-2 rounded-lg border border-slate-800"><span class="font-semibold">${item.productName} <small class="text-cyan-400">(${item.combinedCategory||''})</small></span><span>${item.qty} ${item.unitType||''}</span><span>${item.numberOfUnits||1}</span><span>₹${Number(item.rate||0).toFixed(2)}</span><strong class="text-emerald-400">₹${Number(item.total||0).toFixed(2)}</strong><button type="button" onclick="editCombinedBillItem(${i})" class="text-amber-300 font-bold px-1">✎</button><button type="button" onclick="currentBillItems.splice(${i},1);renderCombinedBillItems();calculateCombinedBalance();" class="text-red-400 font-bold px-1">✕</button></div>`}).join('')+(currentBillItems.length?`<div class="text-right font-bold text-cyan-300 pt-1">Grand Total: ₹${total.toFixed(2)}</div>`:''); calculateCombinedBalance();
+            c.innerHTML=currentBillItems.map((item,i)=>{
+                total+=Number(item.total||0);
+                return `<div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
+                    <div class="hidden sm:grid sm:grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
+                        <span class="font-semibold truncate">${item.productName} <small class="text-cyan-400">(${item.combinedCategory||''})</small></span>
+                        <span>${item.qty} ${item.unitType||''}</span>
+                        <span>${item.numberOfUnits||1}</span>
+                        <span>₹${Number(item.rate||0).toFixed(2)}</span>
+                        <strong class="text-emerald-400">₹${Number(item.total||0).toFixed(2)}</strong>
+                        <button type="button" onclick="editCombinedBillItem(${i})" class="text-amber-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
+                        <button type="button" onclick="currentBillItems.splice(${i},1);renderCombinedBillItems();calculateCombinedBalance();" class="text-red-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
+                    </div>
+                    <div class="sm:hidden flex flex-col gap-1.5">
+                        <div class="flex justify-between items-start gap-2">
+                            <span class="font-bold text-white leading-snug break-words flex-1">${item.productName} <small class="text-cyan-400">(${item.combinedCategory||''})</small></span>
+                            <strong class="text-emerald-400 text-sm whitespace-nowrap shrink-0">₹${Number(item.total||0).toFixed(2)}</strong>
+                        </div>
+                        <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
+                            <span>${item.qty} ${item.unitType||''} × ${item.numberOfUnits||1} @ ₹${Number(item.rate||0).toFixed(2)}</span>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button type="button" onclick="editCombinedBillItem(${i})" class="px-2.5 py-1 rounded-lg bg-amber-950/60 text-amber-300 border border-amber-800/60 font-bold text-[10px]">✎ Edit</button>
+                                <button type="button" onclick="currentBillItems.splice(${i},1);renderCombinedBillItems();calculateCombinedBalance();" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('')+(currentBillItems.length?`<div class="text-right font-bold text-cyan-300 pt-1">Grand Total: ₹${total.toFixed(2)}</div>`:''); calculateCombinedBalance();
         }
         function editCombinedBillItem(index){
             const item=currentBillItems[index]; if(!item)return; const q=prompt(`Edit quantity for ${item.productName}:`,String(item.qty??'')); if(q===null)return; const qty=parseFloat(q); if(!Number.isFinite(qty)||qty<=0){alert('Invalid quantity.');return;} const u=prompt(`Edit number of units for ${item.productName}:`,String(item.numberOfUnits||1)); if(u===null)return; const units=Math.max(1,parseInt(u,10)||1); const r=prompt(`Edit rate for ${item.productName}:`,String(item.rate??'')); if(r===null)return; const rate=parseFloat(r); if(!Number.isFinite(rate)||rate<0){alert('Invalid rate.');return;} const product=combinedStockRecord(item), factor=getBillingUnitFactor(item.unitType,product?.unit), need=qty*factor*units, other=currentBillItems.reduce((s,x,i)=>i===index?s:s+Number(x.productName===item.productName&&x.combinedCategory===item.combinedCategory?x.stockDeductionQty||0:0),0); if(product&&need+other>Number(product.stock||0)){alert(`Insufficient stock. Available: ${product.stock} ${product.unit}`);return;} currentBillItems[index]={...item,qty,numberOfUnits:units,rate,total:qty*factor*units*rate,stockDeductionQty:need}; currentBillItems=sortBillItemsAlphabetically(currentBillItems); renderCombinedBillItems();
@@ -4326,7 +4359,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             });
             document.getElementById('expenseListContainer').innerHTML = sortedExpenses.map((ex) => `
                 <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between gap-2 text-xs">
-                    <div><span class="font-bold text-rose-300">${ex.title}</span><p class="text-slate-400">₹${ex.amount} | ${formatDateDDMMYYYY(ex.date)}</p></div>
+                    <div class="min-w-0 flex-1 break-words"><span class="font-bold text-rose-300">${ex.title}</span><p class="text-slate-400">₹${ex.amount} | ${formatDateDDMMYYYY(ex.date)}</p></div>
                     <div class="flex flex-wrap gap-1 shrink-0">
                         <button type="button" onclick="viewExpense(${ex._originalIndex})" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button>
                         <button type="button" onclick="editExpense(${ex._originalIndex})" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button>
