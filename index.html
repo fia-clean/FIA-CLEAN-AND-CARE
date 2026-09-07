@@ -4998,6 +4998,27 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
     
         window.purchaseActionCleaning = 'add';
         window.purchaseActionCosmetics = 'add';
-</script>
+    </script>
+    <!-- PWA Service Worker Registration & Instant Cache Refresh -->
+    <script>
+        if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(function(reg) {
+                        console.log('FIA Service Worker registered, scope:', reg.scope);
+                        reg.update();
+                    })
+                    .catch(function(err) { console.warn('Service Worker registration skipped:', err); });
+
+                var refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    if (!refreshing) {
+                        refreshing = true;
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+    </script>
 </body>
 </html>

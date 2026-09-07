@@ -29,12 +29,13 @@ const CDN_HOSTS = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_ASSETS).catch((err) => {
         console.warn('Pre-cache error (ignoring non-fatal):', err);
       });
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
@@ -67,23 +68,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 1. Navigation requests (Opening the web app / reloading)
-  if (request.mode === 'navigate') {
+  // 1. Navigation / Document requests (Opening the web app / reloading) - Network First with Cache Fallback
+  if (request.mode === 'navigate' || request.destination === 'document' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
     event.respondWith(
       fetch(request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put('./index.html', responseClone);
+              cache.put(request, responseClone);
             });
           }
           return networkResponse;
         })
         .catch(() => {
           // If offline or network fails, return cached index.html immediately!
-          return caches.match('./index.html').then((cached) => {
-            return cached || caches.match('/');
+          return caches.match(request).then((cached) => {
+            return cached || caches.match('./index.html') || caches.match('./');
           });
         })
     );
