@@ -1435,10 +1435,18 @@
 
 
     <!-- Low Stock Products Modal -->
-    <div id="lowStockListModal" class="fixed inset-0 bg-black/70 z-[70] hidden p-4 overflow-y-auto">
-      <div class="max-w-md mx-auto mt-8 bg-slate-900 border border-rose-800 rounded-2xl shadow-2xl p-4">
-        <div class="flex items-center justify-between mb-3"><h3 class="font-bold text-rose-300">⚠️ Low Stock Products</h3><button type="button" onclick="closeLowStockList()" class="text-slate-300 text-xl">×</button></div>
-        <div id="lowStockListContainer" class="space-y-2"></div>
+    <div id="lowStockListModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
+      <div class="max-w-md w-full bg-slate-900 border border-rose-800/80 rounded-2xl shadow-2xl p-5 space-y-3 max-h-[85vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div>
+                <h3 class="font-bold text-rose-300 text-sm flex items-center gap-1.5">
+                    <span>⚠️</span> <span>Low Stock Products</span>
+                </h3>
+                <p class="text-[10px] text-slate-400">Tap any product to directly add stock</p>
+            </div>
+            <button type="button" onclick="closeLowStockList()" class="text-slate-400 hover:text-white font-bold text-xl px-2 py-1">×</button>
+        </div>
+        <div id="lowStockListContainer" class="space-y-2 pt-1"></div>
       </div>
     </div>
     <div id="printSection" class="hidden"></div>
@@ -2791,6 +2799,62 @@
             }
         }
 
+        function goToAddStockFromLowStock(category, id) {
+            closeLowStockList();
+
+            if (category === 'Cleaning') {
+                switchTab('stock', false);
+                switchStockTopTab('product');
+                switchStockSubTab('cleaning');
+                switchStockActionTab('cleaning', 'add');
+                updateCleaningAddStockDropdown();
+                const sel = document.getElementById('cleanAddStockProduct');
+                if (sel) {
+                    sel.value = id;
+                }
+                setTimeout(() => {
+                    const qty = document.getElementById('cleanAddStockQty');
+                    if (qty) {
+                        qty.focus();
+                        qty.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        qty.classList.add('ring-2', 'ring-emerald-400');
+                        setTimeout(() => qty.classList.remove('ring-2', 'ring-emerald-400'), 2500);
+                    }
+                }, 150);
+            } else if (category === 'Cosmetics') {
+                switchTab('stock', false);
+                switchStockTopTab('product');
+                switchStockSubTab('cosmetics');
+                switchStockActionTab('cosmetics', 'add');
+                updateCosProductDropdowns();
+                const sel = document.getElementById('cosAddStockProduct');
+                if (sel) {
+                    sel.value = id;
+                }
+                setTimeout(() => {
+                    const qty = document.getElementById('cosAddStockQty');
+                    if (qty) {
+                        qty.focus();
+                        qty.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        qty.classList.add('ring-2', 'ring-pink-400');
+                        setTimeout(() => qty.classList.remove('ring-2', 'ring-pink-400'), 2500);
+                    }
+                }, 150);
+            } else if (category === 'Packaging') {
+                switchTab('stock', false);
+                switchStockTopTab('package');
+                setTimeout(() => {
+                    const inputEl = document.getElementById('pkgAdd_' + id);
+                    if (inputEl) {
+                        inputEl.focus();
+                        inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        inputEl.classList.add('ring-2', 'ring-cyan-400');
+                        setTimeout(() => inputEl.classList.remove('ring-2', 'ring-cyan-400'), 2500);
+                    }
+                }, 150);
+            }
+        }
+
         function openLowStockList() {
             pushDashboardModalState('lowStock');
             const container = document.getElementById('lowStockListContainer');
@@ -2800,7 +2864,28 @@
                 ...cosProducts.filter(p => Number(p.stock || 0) <= 5).map(p => ({...p, category:'Cosmetics'})),
                 ...packages.filter(p => Number(p.stock || 0) <= 5).map(p => ({...p, category:'Packaging'}))
             ].sort((a,b) => Number(a.stock||0) - Number(b.stock||0));
-            container.innerHTML = rows.length ? rows.map(p => `<div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-xs"><div class="flex justify-between gap-3"><div><div class="font-bold ${p.category==='Cosmetics'?'text-pink-300':'text-emerald-300'}">${p.name || 'Product'}</div><div class="text-slate-500 mt-1">${p.category}</div></div><div class="text-right"><div class="text-rose-300 font-extrabold">${p.stock || 0} ${p.unit || ''}</div><div class="text-[10px] text-slate-500">Current Stock</div></div></div></div>`).join('') : '<p class="text-xs text-slate-500 text-center py-8">No low stock products.</p>';
+            
+            container.innerHTML = rows.length ? rows.map(p => `
+                <div onclick="goToAddStockFromLowStock('${p.category}', '${p.id}')" class="bg-slate-950/80 hover:bg-slate-950 border border-slate-800 hover:border-emerald-600/70 rounded-xl p-3 text-xs transition cursor-pointer group shadow-sm">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-bold ${p.category==='Cosmetics'?'text-pink-300':p.category==='Packaging'?'text-cyan-300':'text-emerald-300'} truncate group-hover:underline">
+                                ${p.name || 'Product'}
+                            </div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex flex-wrap items-center gap-1.5">
+                                <span class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">${p.category}</span>
+                                <span>Stock: <b class="text-rose-400 font-extrabold">${p.stock || 0} ${p.unit || ''}</b></span>
+                            </div>
+                        </div>
+                        <div class="shrink-0">
+                            <button type="button" onclick="event.stopPropagation(); goToAddStockFromLowStock('${p.category}', '${p.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition shadow-md shadow-emerald-950 flex items-center gap-1 cursor-pointer">
+                                <span>➕</span> <span>Add Stock</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('') : '<p class="text-xs text-slate-500 text-center py-8">No low stock products.</p>';
+            
             document.getElementById('lowStockListModal').classList.remove('hidden');
         }
         function closeLowStockList() {
@@ -2818,9 +2903,9 @@
             if (!banner || !preview) return;
             if (totalLow > 0) {
                 banner.classList.remove('hidden');
-                const mainText = mainLow.length ? `<div class="mb-1"><span class="text-rose-300 font-semibold">Cleaning Products:</span> ${mainLow.map(i => `${i.name} (${i.stock} ${i.unit || ''})`).join(', ')}</div>` : '';
-                const cosText = cosLow.length ? `<div><span class="text-pink-300 font-semibold">Cosmetics:</span> ${cosLow.map(i => `${i.name} (${i.stock} ${i.unit || ''})`).join(', ')}</div>` : '';
-                const packageText = packageLow.length ? `<div><span class="text-cyan-300 font-semibold">Packaging:</span> ${packageLow.map(i => `${i.name} (${i.stock} ${i.unit || ''})`).join(', ')}</div>` : '';
+                const mainText = mainLow.length ? `<div class="mb-1.5"><span class="text-rose-300 font-semibold">Cleaning Products:</span> ${mainLow.map(i => `<button type="button" onclick="goToAddStockFromLowStock('Cleaning', '${i.id}')" class="inline-flex items-center gap-1 bg-rose-950/60 hover:bg-rose-900/80 text-rose-200 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] mr-1 my-0.5 transition cursor-pointer font-medium"><span>${i.name}</span><b class="text-rose-300">(${i.stock} ${i.unit || ''})</b><span class="text-emerald-300 font-bold">➕</span></button>`).join('')}</div>` : '';
+                const cosText = cosLow.length ? `<div class="mb-1.5"><span class="text-pink-300 font-semibold">Cosmetics:</span> ${cosLow.map(i => `<button type="button" onclick="goToAddStockFromLowStock('Cosmetics', '${i.id}')" class="inline-flex items-center gap-1 bg-pink-950/60 hover:bg-pink-900/80 text-pink-200 border border-pink-800/60 px-2 py-0.5 rounded text-[10px] mr-1 my-0.5 transition cursor-pointer font-medium"><span>${i.name}</span><b class="text-pink-300">(${i.stock} ${i.unit || ''})</b><span class="text-emerald-300 font-bold">➕</span></button>`).join('')}</div>` : '';
+                const packageText = packageLow.length ? `<div><span class="text-cyan-300 font-semibold">Packaging:</span> ${packageLow.map(i => `<button type="button" onclick="goToAddStockFromLowStock('Packaging', '${i.id}')" class="inline-flex items-center gap-1 bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-200 border border-cyan-800/60 px-2 py-0.5 rounded text-[10px] mr-1 my-0.5 transition cursor-pointer font-medium"><span>${i.name}</span><b class="text-cyan-300">(${i.stock} ${i.unit || ''})</b><span class="text-emerald-300 font-bold">➕</span></button>`).join('')}</div>` : '';
                 preview.innerHTML = mainText + cosText + packageText;
             } else {
                 banner.classList.add('hidden');

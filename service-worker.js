@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-offline-v9';
+const CACHE_NAME = 'fia-clean-care-offline-v10';
 
 const APP_SHELL = [
   './',
