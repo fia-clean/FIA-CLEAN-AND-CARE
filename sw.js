@@ -1,9 +1,10 @@
-const CACHE_NAME = 'fia-clean-care-v4';
+const CACHE_NAME = 'fia-clean-care-v5';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [
   './',
   './index.html',
+  './style.css',
   './manifest.json',
   './icon.svg',
   './icon-192.png',
@@ -31,10 +32,14 @@ const CDN_HOSTS = [
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-        console.warn('Pre-cache error (ignoring non-fatal):', err);
-      });
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.allSettled(
+        PRECACHE_ASSETS.map((asset) =>
+          cache.add(asset).catch((err) => {
+            console.warn('Pre-cache warning for asset:', asset, err);
+          })
+        )
+      );
     })
   );
 });

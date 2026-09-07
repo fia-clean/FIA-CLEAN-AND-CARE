@@ -1,8 +1,9 @@
-const CACHE_NAME = 'fia-clean-care-offline-v1';
+const CACHE_NAME = 'fia-clean-care-offline-v5';
 
 const APP_SHELL = [
   './',
   './index.html',
+  './style.css',
   './manifest.json',
 
   // External libraries used by the app
