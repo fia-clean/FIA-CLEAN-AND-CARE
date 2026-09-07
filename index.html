@@ -2800,7 +2800,10 @@
         }
 
         function goToAddStockFromLowStock(category, id) {
-            closeLowStockList();
+            closeLowStockList(true);
+            if (history.state) {
+                history.replaceState({ loggedIn: true, tab: 'stock' }, '', '#stock');
+            }
 
             if (category === 'Cleaning') {
                 switchTab('stock', false);
@@ -2888,9 +2891,9 @@
             
             document.getElementById('lowStockListModal').classList.remove('hidden');
         }
-        function closeLowStockList() {
+        function closeLowStockList(skipHistory = false) {
             document.getElementById('lowStockListModal')?.classList.add('hidden');
-            if (history.state && history.state.modal === 'lowStock') history.back();
+            if (!skipHistory && history.state && history.state.modal === 'lowStock') history.back();
         }
 
         function checkLowStockAlerts() {
@@ -5025,10 +5028,10 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             if(modal) modal.classList.remove('hidden');
         }
 
-        function closeDueAmountList() {
+        function closeDueAmountList(skipHistory = false) {
             const modal = document.getElementById('dueAmountListModal');
             if(modal) modal.classList.add('hidden');
-            if (history.state && history.state.modal === 'dueAmount') history.back();
+            if (!skipHistory && history.state && history.state.modal === 'dueAmount') history.back();
         }
 
         function renderDueAmountList() {
@@ -5057,8 +5060,8 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-1.5 mt-2.5">
-                        <button type="button" onclick="previewBill(${index}); closeDueAmountList();" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 text-[10px] font-bold">View</button>
-                        <button type="button" onclick="closeDueAmountList(); editCustomerBill(${index});" class="bg-slate-800 text-emerald-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Edit</button>
+                        <button type="button" onclick="closeDueAmountList(true); previewBill(${index});" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 text-[10px] font-bold">View</button>
+                        <button type="button" onclick="closeDueAmountList(true); if(history.state) history.replaceState({ loggedIn: true, tab: 'billing' }, '', '#billing'); editCustomerBill(${index});" class="bg-slate-800 text-emerald-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Edit</button>
                         <button type="button" onclick="deleteDueBillFromList(${index})" class="bg-slate-800 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Delete</button>
                     </div>
                 </div>`).join('');
