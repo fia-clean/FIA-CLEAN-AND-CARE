@@ -84,6 +84,17 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
   const [purchaseActionTab, setPurchaseActionTab] = useState<'add' | 'view' | 'return'>('add');
 
   // Dedicated Modal States for View Stock Edit & Delete
+  const [viewingStockItem, setViewingStockItem] = useState<{
+    type: 'cleaning' | 'cosmetics';
+    id: string;
+    name: string;
+    barcode?: string;
+    stock: number;
+    unit: UnitType;
+    price1: number; // Wholesale or Cost Price
+    price2: number; // Retail or Sale Price
+  } | null>(null);
+
   const [editingStockItem, setEditingStockItem] = useState<{
     type: 'cleaning' | 'cosmetics';
     id: string;
@@ -102,6 +113,13 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
     stock: number;
     unit: string;
   } | null>(null);
+
+  // Dedicated in-app delete modal state for Purchases
+  const [deletingPurchaseRecord, setDeletingPurchaseRecord] = useState<PurchaseRecord | null>(null);
+
+  // Dedicated view and delete modal states for Expenses
+  const [viewingExpense, setViewingExpense] = useState<ExpenseRecord | null>(null);
+  const [deletingExpenseRecord, setDeletingExpenseRecord] = useState<ExpenseRecord | null>(null);
 
   // Product Form states
   const [editingCleanId, setEditingCleanId] = useState<string | null>(null);
@@ -509,15 +527,10 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
     handleCancelEditPurchase();
   };
 
-  // Delete Purchase with Stock Reversal
-  const handleDeletePurchaseWithStockReversal = (p: PurchaseRecord) => {
-    if (
-      !confirm(
-        `Delete purchase record for "${p.supplierName} — ${p.rawMaterial}"?\n\nThis will reverse the ${p.rawQty} ${p.rawUnit} stock added by this purchase.`
-      )
-    ) {
-      return;
-    }
+  // Confirm Delete Purchase with Stock Reversal (In-App Modal)
+  const handleConfirmDeletePurchase = () => {
+    if (!deletingPurchaseRecord) return;
+    const p = deletingPurchaseRecord;
 
     if (p.stockId) {
       const netToDeduct = Math.max(0, Number(p.rawQty || 0) - Number(p.returnedQty || 0));
@@ -533,6 +546,20 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
     }
 
     onDeletePurchase(p.id);
+    if (editingPurchaseId === p.id) {
+      handleCancelEditPurchase();
+    }
+    setDeletingPurchaseRecord(null);
+  };
+
+  // Confirm Delete Expense (In-App Modal)
+  const handleConfirmDeleteExpense = () => {
+    if (!deletingExpenseRecord) return;
+    onDeleteExpense(deletingExpenseRecord.id);
+    if (editingExpId === deletingExpenseRecord.id) {
+      handleCancelEditExpense();
+    }
+    setDeletingExpenseRecord(null);
   };
 
   // Open Return Modal
@@ -1175,12 +1202,32 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                             )}
                           </div>
 
-                          {/* Action Buttons: Edit Stock & Delete Stock */}
+                          {/* Action Buttons: View, Edit Stock & Delete Stock */}
                           <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100">
                             <button
                               type="button"
+                              onClick={() =>
+                                setViewingStockItem({
+                                  type: 'cleaning',
+                                  id: p.id,
+                                  name: p.name,
+                                  barcode: p.barcode,
+                                  stock: p.stock,
+                                  unit: p.unit,
+                                  price1: p.wholesalePrice,
+                                  price2: p.retailPrice,
+                                })
+                              }
+                              className="flex items-center justify-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-2.5 rounded-md text-xs font-bold transition border border-slate-200 shadow-2xs cursor-pointer"
+                              title="View Product Details"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>View</span>
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => openEditCleanStock(p)}
-                              className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 py-1.5 px-2 rounded-md text-xs font-bold transition border border-indigo-200 shadow-2xs"
+                              className="flex-1 flex items-center justify-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 py-1.5 px-2 rounded-md text-xs font-bold transition border border-indigo-200 shadow-2xs cursor-pointer"
                               title="Edit Stock details and quantity"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -1197,7 +1244,7 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                                   unit: p.unit,
                                 })
                               }
-                              className="flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 py-1.5 px-2.5 rounded-md text-xs font-bold transition border border-rose-200 shadow-2xs"
+                              className="flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 py-1.5 px-2 rounded-md text-xs font-bold transition border border-rose-200 shadow-2xs cursor-pointer"
                               title="Delete Stock Item"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1256,12 +1303,32 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                             )}
                           </div>
 
-                          {/* Action Buttons: Edit Stock & Delete Stock */}
+                          {/* Action Buttons: View, Edit Stock & Delete Stock */}
                           <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100">
                             <button
                               type="button"
+                              onClick={() =>
+                                setViewingStockItem({
+                                  type: 'cosmetics',
+                                  id: p.id,
+                                  name: p.name,
+                                  barcode: p.barcode,
+                                  stock: p.stock,
+                                  unit: p.unit,
+                                  price1: p.costPrice,
+                                  price2: p.salePrice,
+                                })
+                              }
+                              className="flex items-center justify-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-2.5 rounded-md text-xs font-bold transition border border-slate-200 shadow-2xs cursor-pointer"
+                              title="View Product Details"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>View</span>
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => openEditCosStock(p)}
-                              className="flex-1 flex items-center justify-center gap-1.5 bg-pink-50 hover:bg-pink-100 text-pink-700 py-1.5 px-2 rounded-md text-xs font-bold transition border border-pink-200 shadow-2xs"
+                              className="flex-1 flex items-center justify-center gap-1 bg-pink-50 hover:bg-pink-100 text-pink-700 py-1.5 px-2 rounded-md text-xs font-bold transition border border-pink-200 shadow-2xs cursor-pointer"
                               title="Edit Cosmetic Stock details and quantity"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -1278,7 +1345,7 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                                   unit: p.unit,
                                 })
                               }
-                              className="flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 py-1.5 px-2.5 rounded-md text-xs font-bold transition border border-rose-200 shadow-2xs"
+                              className="flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 py-1.5 px-2 rounded-md text-xs font-bold transition border border-rose-200 shadow-2xs cursor-pointer"
                               title="Delete Stock Item"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1474,13 +1541,51 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                                 onClick={() => {
                                   if (p.category === 'Cleaning') {
                                     const item = products.find((x) => x.id === p.id);
+                                    if (item) {
+                                      setViewingStockItem({
+                                        type: 'cleaning',
+                                        id: item.id,
+                                        name: item.name,
+                                        barcode: item.barcode,
+                                        stock: item.stock,
+                                        unit: item.unit,
+                                        price1: item.wholesalePrice,
+                                        price2: item.retailPrice,
+                                      });
+                                    }
+                                  } else {
+                                    const item = cosProducts.find((x) => x.id === p.id);
+                                    if (item) {
+                                      setViewingStockItem({
+                                        type: 'cosmetics',
+                                        id: item.id,
+                                        name: item.name,
+                                        barcode: item.barcode,
+                                        stock: item.stock,
+                                        unit: item.unit,
+                                        price1: item.costPrice,
+                                        price2: item.salePrice,
+                                      });
+                                    }
+                                  }
+                                }}
+                                className="p-1.5 text-slate-600 hover:bg-slate-100 rounded transition cursor-pointer"
+                                title="View Product Details"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (p.category === 'Cleaning') {
+                                    const item = products.find((x) => x.id === p.id);
                                     if (item) openEditCleanStock(item);
                                   } else {
                                     const item = cosProducts.find((x) => x.id === p.id);
                                     if (item) openEditCosStock(item);
                                   }
                                 }}
-                                className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded transition"
+                                className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded transition cursor-pointer"
                                 title="Edit Stock"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
@@ -1496,7 +1601,7 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                                     unit: p.unit,
                                   })
                                 }
-                                className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition"
+                                className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
                                 title="Delete Stock"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -2046,7 +2151,7 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
 
                               <button
                                 type="button"
-                                onClick={() => handleDeletePurchaseWithStockReversal(p)}
+                                onClick={() => setDeletingPurchaseRecord(p)}
                                 className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                                 title="Delete purchase record"
                               >
@@ -2390,8 +2495,17 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                         </span>
                         <button
                           type="button"
+                          onClick={() => setViewingExpense(ex)}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer transition border border-slate-200 shadow-2xs"
+                          title="View Expense Details"
+                        >
+                          <Eye className="w-3 h-3 text-slate-600" />
+                          <span>View</span>
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleEditExpense(ex)}
-                          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer transition shadow-2xs"
                           title="Edit Expense"
                         >
                           <Edit2 className="w-3 h-3 text-indigo-600" />
@@ -2399,13 +2513,12 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (confirm(`Delete expense "${ex.title}"?`)) onDeleteExpense(ex.id);
-                          }}
-                          className="text-rose-400 hover:text-rose-700 p-1 cursor-pointer"
+                          onClick={() => setDeletingExpenseRecord(ex)}
+                          className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer transition shadow-2xs"
                           title="Delete Expense"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
                         </button>
                       </div>
                     </div>
@@ -2797,7 +2910,20 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                 <span>Print</span>
               </button>
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const item = viewingPurchase;
+                    setViewingPurchase(null);
+                    setDeletingPurchaseRecord(item);
+                  }}
+                  className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  title="Delete this purchase record"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -2934,6 +3060,314 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ================= VIEW STOCK ITEM DETAILS MODAL ================= */}
+      {viewingStockItem && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-xs">
+                  <Package className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold tracking-wide">Product Details</h3>
+                  <p className="text-[11px] text-slate-300">
+                    {viewingStockItem.type === 'cleaning' ? '🧹 Cleaning Product' : '💄 Cosmetic Product'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingStockItem(null)}
+                className="text-slate-400 hover:text-white p-1 rounded transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Product Name</span>
+                <h4 className="text-base font-extrabold text-slate-900 mt-0.5">{viewingStockItem.name}</h4>
+                {viewingStockItem.barcode && (
+                  <span className="text-[11px] font-mono text-slate-500 block mt-0.5">
+                    Barcode: {viewingStockItem.barcode}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                <div>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Current Stock</span>
+                  <span className={`text-lg font-mono font-bold ${viewingStockItem.stock <= 5 ? 'text-rose-600' : 'text-slate-900'}`}>
+                    {viewingStockItem.stock} {viewingStockItem.unit}
+                  </span>
+                  {viewingStockItem.stock <= 5 && (
+                    <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.2 rounded font-bold block w-fit mt-0.5">
+                      LOW STOCK
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Category & Unit</span>
+                  <span className="text-xs font-semibold text-slate-800 block mt-1">
+                    {viewingStockItem.type === 'cleaning' ? 'Cleaning' : 'Cosmetics'} ({viewingStockItem.unit})
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 p-3 bg-indigo-50/40 border border-indigo-100 rounded-lg font-mono">
+                <div>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase block">
+                    {viewingStockItem.type === 'cleaning' ? 'Wholesale Rate' : 'Cost Price'}
+                  </span>
+                  <span className="text-sm font-bold text-slate-800">{formatCurrency(viewingStockItem.price1)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase block">
+                    {viewingStockItem.type === 'cleaning' ? 'Retail Rate' : 'Sale Price'}
+                  </span>
+                  <span className="text-sm font-bold text-indigo-700">{formatCurrency(viewingStockItem.price2)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 px-5 py-3 border-t border-slate-200 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const item = viewingStockItem;
+                  setViewingStockItem(null);
+                  setDeletingStockItem({
+                    type: item.type,
+                    id: item.id,
+                    name: item.name,
+                    stock: item.stock,
+                    unit: item.unit,
+                  });
+                }}
+                className="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const item = viewingStockItem;
+                    setViewingStockItem(null);
+                    setEditingStockItem({
+                      type: item.type,
+                      id: item.id,
+                      name: item.name,
+                      barcode: item.barcode || '',
+                      stock: item.stock,
+                      unit: item.unit,
+                      price1: item.price1,
+                      price2: item.price2,
+                    });
+                  }}
+                  className="py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>Edit Stock</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingStockItem(null)}
+                  className="py-2 px-4 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= DELETE PURCHASE CONFIRMATION MODAL ================= */}
+      {deletingPurchaseRecord && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Delete Purchase Record?</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Are you sure you want to permanently delete purchase record for{' '}
+                <strong className="text-slate-900">"{deletingPurchaseRecord.supplierName} — {deletingPurchaseRecord.rawMaterial}"</strong>?
+              </p>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 space-y-1">
+                <div className="flex justify-between">
+                  <span>Purchase Amount:</span>
+                  <strong className="text-slate-900">{formatCurrency(deletingPurchaseRecord.rawCost)}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span>Date:</span>
+                  <span>{formatDateDDMMYYYY(deletingPurchaseRecord.date)}</span>
+                </div>
+              </div>
+              {deletingPurchaseRecord.stockId && (
+                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900 text-left">
+                  ⚠️ <strong>Stock Reversal:</strong>{' '}
+                  {Math.max(0, Number(deletingPurchaseRecord.rawQty || 0) - Number(deletingPurchaseRecord.returnedQty || 0))}{' '}
+                  {deletingPurchaseRecord.rawUnit} will be automatically deducted from your stock inventory.
+                </div>
+              )}
+            </div>
+
+            <div className="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDeletingPurchaseRecord(null)}
+                className="flex-1 py-2 px-3 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeletePurchase}
+                className="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Yes, Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= VIEW EXPENSE DETAILS MODAL ================= */}
+      {viewingExpense && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center text-white shadow-xs">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold tracking-wide">Expense Details</h3>
+                  <p className="text-[11px] text-slate-300">Shop & Operations Outflow</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingExpense(null)}
+                className="text-slate-400 hover:text-white p-1 rounded transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3.5 text-xs">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Title / Category</span>
+                <h4 className="text-base font-extrabold text-slate-900 mt-0.5">{viewingExpense.title}</h4>
+              </div>
+
+              <div className="p-3 bg-rose-50/40 border border-rose-100 rounded-lg flex justify-between items-center">
+                <span className="text-slate-600 font-medium">Expense Amount:</span>
+                <span className="text-lg font-mono font-black text-rose-600">
+                  {formatCurrency(viewingExpense.amount)}
+                </span>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex justify-between items-center font-mono">
+                <span className="text-slate-500">Date Recorded:</span>
+                <span className="font-bold text-slate-800">{formatDateDDMMYYYY(viewingExpense.date)}</span>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 px-5 py-3 border-t border-slate-200 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const item = viewingExpense;
+                  setViewingExpense(null);
+                  setDeletingExpenseRecord(item);
+                }}
+                className="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const item = viewingExpense;
+                    setViewingExpense(null);
+                    handleEditExpense(item);
+                  }}
+                  className="py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingExpense(null)}
+                  className="py-2 px-4 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= DELETE EXPENSE CONFIRMATION MODAL ================= */}
+      {deletingExpenseRecord && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Delete Expense Record?</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Are you sure you want to permanently delete{' '}
+                <strong className="text-slate-900">"{deletingExpenseRecord.title}"</strong>?
+              </p>
+              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 space-y-1">
+                <div className="flex justify-between">
+                  <span>Amount:</span>
+                  <strong className="text-rose-600">{formatCurrency(deletingExpenseRecord.amount)}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span>Date:</span>
+                  <span>{formatDateDDMMYYYY(deletingExpenseRecord.date)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDeletingExpenseRecord(null)}
+                className="flex-1 py-2 px-3 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteExpense}
+                className="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Yes, Delete</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

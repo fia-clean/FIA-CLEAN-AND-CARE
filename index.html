@@ -1648,6 +1648,50 @@
             setInterval(runAutomaticBackup, 30 * 60 * 1000);
         }
 
+        const myFiaClientId = 'client_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        let deletedRecordIds = new Set();
+        try {
+            const savedDeleted = localStorage.getItem('fia_deleted_ids') || localStorage.getItem('fia_deleted_keys');
+            if (savedDeleted) {
+                const parsed = JSON.parse(savedDeleted);
+                if (Array.isArray(parsed)) {
+                    deletedRecordIds = new Set(parsed.map(x => String(x).trim().toLowerCase()));
+                }
+            }
+        } catch(e) {}
+
+        function markIdDeleted(id) {
+            if (!id) return;
+            const cleanId = String(id).trim().toLowerCase();
+            if (!cleanId) return;
+            deletedRecordIds.add(cleanId);
+            try {
+                localStorage.setItem('fia_deleted_ids', JSON.stringify(Array.from(deletedRecordIds)));
+            } catch(e) {}
+        }
+
+        function isIdDeleted(id) {
+            if (!id) return false;
+            return deletedRecordIds.has(String(id).trim().toLowerCase());
+        }
+
+        function markRecordDeleted(type, item) {
+            if (!item) return;
+            if (item.id) markIdDeleted(item.id);
+            if (item.billNo) markIdDeleted(item.billNo);
+            if (type === 'customer' && !item.billNo && item.name) {
+                markIdDeleted('cust_' + String(item.name).trim().toLowerCase());
+            }
+        }
+
+        function isRecordDeleted(type, item) {
+            if (!item) return false;
+            if (item.id && isIdDeleted(item.id)) return true;
+            if (item.billNo && isIdDeleted(item.billNo)) return true;
+            if (type === 'customer' && !item.billNo && item.name && isIdDeleted('cust_' + String(item.name).trim().toLowerCase())) return true;
+            return false;
+        }
+
         function sanitizeForFirebase(obj) {
             return JSON.parse(JSON.stringify(obj, function(key, value) {
                 if (value === undefined) return null;
@@ -1693,96 +1737,169 @@
             window.FB_DB.ref('fia_data').on('value', function(snapshot) {
                 const data = snapshot.val();
                 if (data) {
-                    const cloudProducts = Array.isArray(data.products) ? data.products : Object.entries(data.products || {}).map(([key, value]) => ({ ...(value || {}), id: String((value && value.id) || key) }));
-                    const cloudCosProducts = Array.isArray(data.cosProducts) ? data.cosProducts : Object.entries(data.cosProducts || {}).map(([key, value]) => ({ ...(value || {}), id: String((value && value.id) || key) }));
-                    const cloudCustomers = Array.isArray(data.customers) ? data.customers : Object.values(data.customers || {});
-                    const cloudPurchases = Array.isArray(data.purchases) ? data.purchases : Object.values(data.purchases || {});
-                    const cloudExpenses = Array.isArray(data.expenses) ? data.expenses : Object.values(data.expenses || {});
-                    const cloudCosPurchases = Array.isArray(data.cosPurchases) ? data.cosPurchases : Object.values(data.cosPurchases || {});
-                    const cloudCosSales = Array.isArray(data.cosSales) ? data.cosSales : Object.values(data.cosSales || {});
-                    const cloudPackages = Array.isArray(data.packages) ? data.packages : Object.entries(data.packages || {}).map(([key, value]) => ({ ...(value || {}), id: String((value && value.id) || key) }));
-                    const cloudStockReturns = Array.isArray(data.stockReturns) ? data.stockReturns : Object.values(data.stockReturns || {});
+                    // Skip self-echo: this client just wrote this exact data
+                    if (data._meta && data._meta.clientId === myFiaClientId) {
+                        return;
+                    }
 
-                    let hasNewLocalData = false;
+                    // 1. Sync remote tombstone deleted IDs into local tombstones
+                    const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
+                    remoteDeleted.forEach(k => { if (k) deletedRecordIds.add(String(k).trim().toLowerCase()); });
+                    try {
+                        localStorage.setItem('fia_deleted_ids', JSON.stringify(Array.from(deletedRecordIds)));
+                    } catch(e) {}
 
-                    // 1. Merge customers: Preserve all local offline customers!
-                    const custMap = new Map();
-                    cloudCustomers.forEach(c => {
-                        if (c && c.name) {
-                            const key = (c.billNo ? c.billNo + '::' : '') + c.name.trim().toLowerCase();
-                            custMap.set(key, c);
-                        }
-                    });
-                    (Array.isArray(customers) ? customers : []).forEach(localC => {
-                        if (localC && localC.name) {
-                            const key = (localC.billNo ? localC.billNo + '::' : '') + localC.name.trim().toLowerCase();
-                            const cloudC = custMap.get(key);
-                            if (!cloudC) {
-                                custMap.set(key, localC);
-                                hasNewLocalData = true;
-                            } else if ((Number(localC.savedAt) || 0) > (Number(cloudC.savedAt) || 0)) {
-                                custMap.set(key, localC);
+                    // Helper to check if an item was deleted
+                    const isItemDeleted = (item) => {
+                        if (!item) return true;
+                        if (item.id && isIdDeleted(item.id)) return true;
+                        if (item.billNo && isIdDeleted(item.billNo)) return true;
+                        return false;
+                    };
+                    const isCustItemDeleted = (c) => {
+                        if (!c) return true;
+                        if (c.billNo && isIdDeleted(c.billNo)) return true;
+                        if (c.id && isIdDeleted(c.id)) return true;
+                        if (!c.billNo && c.name && isIdDeleted('cust_' + String(c.name).trim().toLowerCase())) return true;
+                        return false;
+                    };
+
+                    // 2. Parse cloud collections, strictly filtering out deleted items
+                    const cloudProducts = (Array.isArray(data.products) ? data.products : Object.entries(data.products || {}).map(([k, v]) => ({ ...(v || {}), id: String((v && v.id) || k) }))).filter(p => !isItemDeleted(p));
+                    const cloudCosProducts = (Array.isArray(data.cosProducts) ? data.cosProducts : Object.entries(data.cosProducts || {}).map(([k, v]) => ({ ...(v || {}), id: String((v && v.id) || k) }))).filter(p => !isItemDeleted(p));
+                    const cloudCustomers = (Array.isArray(data.customers) ? data.customers : Object.values(data.customers || {})).filter(c => !isCustItemDeleted(c));
+                    const cloudPurchases = (Array.isArray(data.purchases) ? data.purchases : Object.values(data.purchases || {})).filter(p => !isItemDeleted(p));
+                    const cloudExpenses = (Array.isArray(data.expenses) ? data.expenses : Object.values(data.expenses || {})).filter(e => !isItemDeleted(e));
+                    const cloudCosPurchases = (Array.isArray(data.cosPurchases) ? data.cosPurchases : Object.values(data.cosPurchases || {})).filter(p => !isItemDeleted(p));
+                    const cloudCosSales = (Array.isArray(data.cosSales) ? data.cosSales : Object.values(data.cosSales || {})).filter(s => !isItemDeleted(s));
+                    const cloudPackages = (Array.isArray(data.packages) ? data.packages : Object.entries(data.packages || {}).map(([k, v]) => ({ ...(v || {}), id: String((v && v.id) || k) }))).filter(p => !isItemDeleted(p));
+                    const cloudStockReturns = (Array.isArray(data.stockReturns) ? data.stockReturns : Object.values(data.stockReturns || {})).filter(r => !isItemDeleted(r));
+
+                    // 3. Purge any deleted items from local memory immediately!
+                    products = (products || []).filter(p => !isItemDeleted(p));
+                    cosProducts = (cosProducts || []).filter(p => !isItemDeleted(p));
+                    customers = (customers || []).filter(c => !isCustItemDeleted(c));
+                    purchases = (purchases || []).filter(p => !isItemDeleted(p));
+                    expenses = (expenses || []).filter(e => !isItemDeleted(e));
+                    cosPurchases = (cosPurchases || []).filter(p => !isItemDeleted(p));
+                    cosSales = (cosSales || []).filter(s => !isItemDeleted(s));
+                    packages = (packages || []).filter(p => !isItemDeleted(p));
+                    stockReturns = (stockReturns || []).filter(r => !isItemDeleted(r));
+
+                    // 4. Memory Recall Fix:
+                    // If this device was online and has NO pending offline writes, Cloud is the authoritative truth!
+                    // Do NOT reverse-merge deleted items from memory back into Cloud!
+                    const hasPendingOfflineSync = localStorage.getItem('fia_has_pending_sync') === 'true';
+
+                    if (!hasPendingOfflineSync) {
+                        products = cloudProducts;
+                        cosProducts = cloudCosProducts;
+                        customers = cloudCustomers;
+                        purchases = cloudPurchases;
+                        expenses = cloudExpenses;
+                        cosPurchases = cloudCosPurchases;
+                        cosSales = cloudCosSales;
+                        packages = cloudPackages;
+                        stockReturns = cloudStockReturns;
+                    } else {
+                        // Device was offline when changes occurred: merge ONLY un-deleted offline additions
+                        let hasNewLocalData = false;
+
+                        const prodMap = new Map();
+                        cloudProducts.forEach(p => { if (p && p.id) prodMap.set(String(p.id), p); });
+                        products.forEach(p => {
+                            if (p && p.id && !isItemDeleted(p) && !prodMap.has(String(p.id))) {
+                                prodMap.set(String(p.id), p);
                                 hasNewLocalData = true;
                             }
-                        }
-                    });
-                    customers = Array.from(custMap.values());
+                        });
+                        products = Array.from(prodMap.values());
 
-                    // 2. Merge products: Preserve local product additions
-                    const prodMap = new Map();
-                    cloudProducts.forEach(p => { if (p && p.id) prodMap.set(String(p.id), p); });
-                    (Array.isArray(products) ? products : []).forEach(p => {
-                        if (p && p.id) {
-                            const sid = String(p.id);
-                            if (!prodMap.has(sid)) {
-                                prodMap.set(sid, p);
+                        const cosProdMap = new Map();
+                        cloudCosProducts.forEach(p => { if (p && p.id) cosProdMap.set(String(p.id), p); });
+                        cosProducts.forEach(p => {
+                            if (p && p.id && !isItemDeleted(p) && !cosProdMap.has(String(p.id))) {
+                                cosProdMap.set(String(p.id), p);
                                 hasNewLocalData = true;
                             }
-                        }
-                    });
-                    products = Array.from(prodMap.values());
+                        });
+                        cosProducts = Array.from(cosProdMap.values());
 
-                    // 3. Merge purchases
-                    const purchMap = new Map();
-                    cloudPurchases.forEach(p => { if (p) purchMap.set(String(p.id || p.invoiceNo || JSON.stringify(p)), p); });
-                    (Array.isArray(purchases) ? purchases : []).forEach(p => {
-                        if (p) {
-                            const key = String(p.id || p.invoiceNo || JSON.stringify(p));
-                            if (!purchMap.has(key)) { purchMap.set(key, p); hasNewLocalData = true; }
-                        }
-                    });
-                    purchases = Array.from(purchMap.values());
+                        const pkgMap = new Map();
+                        cloudPackages.forEach(p => { if (p && p.id) pkgMap.set(String(p.id), p); });
+                        packages.forEach(p => {
+                            if (p && p.id && !isItemDeleted(p) && !pkgMap.has(String(p.id))) {
+                                pkgMap.set(String(p.id), p);
+                                hasNewLocalData = true;
+                            }
+                        });
+                        packages = Array.from(pkgMap.values());
 
-                    // 4. Merge expenses
-                    const expMap = new Map();
-                    cloudExpenses.forEach(e => { if (e) expMap.set(String(e.id || JSON.stringify(e)), e); });
-                    (Array.isArray(expenses) ? expenses : []).forEach(e => {
-                        if (e) {
-                            const key = String(e.id || JSON.stringify(e));
-                            if (!expMap.has(key)) { expMap.set(key, e); hasNewLocalData = true; }
-                        }
-                    });
-                    expenses = Array.from(expMap.values());
+                        const custMap = new Map();
+                        cloudCustomers.forEach(c => {
+                            if (c && c.name) {
+                                const key = (c.billNo ? c.billNo + '::' : 'dir::') + c.name.trim().toLowerCase();
+                                custMap.set(key, c);
+                            }
+                        });
+                        customers.forEach(localC => {
+                            if (localC && localC.name && !isCustItemDeleted(localC)) {
+                                const key = (localC.billNo ? localC.billNo + '::' : 'dir::') + localC.name.trim().toLowerCase();
+                                if (!custMap.has(key)) {
+                                    custMap.set(key, localC);
+                                    hasNewLocalData = true;
+                                }
+                            }
+                        });
+                        customers = Array.from(custMap.values());
 
-                    // 5. Merge packages
-                    const pkgMap = new Map();
-                    cloudPackages.forEach(p => { if (p && p.id) pkgMap.set(String(p.id), p); });
-                    (Array.isArray(packages) ? packages : []).forEach(p => {
-                        if (p && p.id) {
-                            if (!pkgMap.has(String(p.id))) { pkgMap.set(String(p.id), p); hasNewLocalData = true; }
-                        }
-                    });
-                    packages = Array.from(pkgMap.values());
+                        const purchMap = new Map();
+                        cloudPurchases.forEach(p => { if (p && p.id) purchMap.set(String(p.id), p); });
+                        purchases.forEach(p => {
+                            if (p && p.id && !isItemDeleted(p) && !purchMap.has(String(p.id))) {
+                                purchMap.set(String(p.id), p);
+                                hasNewLocalData = true;
+                            }
+                        });
+                        purchases = Array.from(purchMap.values());
 
-                    // 6. Merge cosmetics
-                    const cosProdMap = new Map();
-                    cloudCosProducts.forEach(p => { if (p && p.id) cosProdMap.set(String(p.id), p); });
-                    (Array.isArray(cosProducts) ? cosProducts : []).forEach(p => {
-                        if (p && p.id) {
-                            if (!cosProdMap.has(String(p.id))) { cosProdMap.set(String(p.id), p); hasNewLocalData = true; }
+                        const expMap = new Map();
+                        cloudExpenses.forEach(e => { if (e && e.id) expMap.set(String(e.id), e); });
+                        expenses.forEach(e => {
+                            if (e && e.id && !isItemDeleted(e) && !expMap.has(String(e.id))) {
+                                expMap.set(String(e.id), e);
+                                hasNewLocalData = true;
+                            }
+                        });
+                        expenses = Array.from(expMap.values());
+
+                        const cosPurchMap = new Map();
+                        cloudCosPurchases.forEach(p => { if (p && p.id) cosPurchMap.set(String(p.id), p); });
+                        cosPurchases.forEach(p => {
+                            if (p && p.id && !isItemDeleted(p) && !cosPurchMap.has(String(p.id))) {
+                                cosPurchMap.set(String(p.id), p);
+                                hasNewLocalData = true;
+                            }
+                        });
+                        cosPurchases = Array.from(cosPurchMap.values());
+
+                        const cosSaleMap = new Map();
+                        cloudCosSales.forEach(s => { if (s && (s.billNo || s.id)) cosSaleMap.set(String(s.billNo || s.id), s); });
+                        cosSales.forEach(s => {
+                            const sid = String(s.billNo || s.id || '');
+                            if (sid && !isItemDeleted(s) && !cosSaleMap.has(sid)) {
+                                cosSaleMap.set(sid, s);
+                                hasNewLocalData = true;
+                            }
+                        });
+                        cosSales = Array.from(cosSaleMap.values());
+
+                        if (hasNewLocalData) {
+                            syncToFirebase();
+                        } else {
+                            localStorage.removeItem('fia_has_pending_sync');
                         }
-                    });
-                    cosProducts = Array.from(cosProdMap.values());
+                    }
 
                     clearedDayBookEntries = Array.isArray(data.clearedDayBookEntries) ? data.clearedDayBookEntries : Object.values(data.clearedDayBookEntries || []);
                     dayBookOpeningBalance = Number(data.dayBookOpeningBalance || dayBookOpeningBalance || 0);
@@ -1795,11 +1912,6 @@
                     renderAll();
                     updateStockReturnDropdowns();
                     renderStockReturnHistory();
-
-                    // If local offline entries were merged, write complete merged state to Cloud!
-                    if (hasNewLocalData || localStorage.getItem('fia_has_pending_sync') === 'true') {
-                        syncToFirebase();
-                    }
                 } else {
                     loadFromLocalStorage();
                     loadPurchaseSuppliers();
@@ -1979,14 +2091,14 @@
 
         function loadFromLocalStorage() {
             try {
-                products = JSON.parse(localStorage.getItem('fia_products')) || [];
-                cosProducts = JSON.parse(localStorage.getItem('fia_cosproducts')) || [];
-                customers = JSON.parse(localStorage.getItem('fia_customers')) || [];
-                purchases = JSON.parse(localStorage.getItem('fia_purchases')) || [];
-                expenses = JSON.parse(localStorage.getItem('fia_expenses')) || [];
-                cosPurchases = JSON.parse(localStorage.getItem('fia_cospurchases')) || [];
-                cosSales = JSON.parse(localStorage.getItem('fia_cossales')) || [];
-                packages = JSON.parse(localStorage.getItem('fia_packages')) || [];
+                products = (JSON.parse(localStorage.getItem('fia_products')) || []).filter(p => !isRecordDeleted('product', p));
+                cosProducts = (JSON.parse(localStorage.getItem('fia_cosproducts')) || []).filter(p => !isRecordDeleted('cosProduct', p));
+                customers = (JSON.parse(localStorage.getItem('fia_customers')) || []).filter(c => !isRecordDeleted('customer', c));
+                purchases = (JSON.parse(localStorage.getItem('fia_purchases')) || []).filter(p => !isRecordDeleted('purchase', p));
+                expenses = (JSON.parse(localStorage.getItem('fia_expenses')) || []).filter(e => !isRecordDeleted('expense', e));
+                cosPurchases = (JSON.parse(localStorage.getItem('fia_cospurchases')) || []).filter(p => !isRecordDeleted('cosPurchase', p));
+                cosSales = (JSON.parse(localStorage.getItem('fia_cossales')) || []).filter(s => !isRecordDeleted('cosSale', s));
+                packages = (JSON.parse(localStorage.getItem('fia_packages')) || []).filter(p => !isRecordDeleted('package', p));
                 stockReturns = JSON.parse(localStorage.getItem('fia_stock_returns')) || [];
                 clearedDayBookEntries = JSON.parse(localStorage.getItem('fia_cleared_daybook')) || [];
                 dayBookOpeningBalance = Number(localStorage.getItem('fia_daybook_opening_balance') || 0);
@@ -1999,14 +2111,14 @@
 
         function saveLocalStateSafely() {
             try {
-                localStorage.setItem('fia_products', JSON.stringify(products || []));
-                localStorage.setItem('fia_cosproducts', JSON.stringify(cosProducts || []));
-                localStorage.setItem('fia_customers', JSON.stringify(customers || []));
-                localStorage.setItem('fia_purchases', JSON.stringify(purchases || []));
-                localStorage.setItem('fia_expenses', JSON.stringify(expenses || []));
-                localStorage.setItem('fia_cospurchases', JSON.stringify(cosPurchases || []));
-                localStorage.setItem('fia_cossales', JSON.stringify(cosSales || []));
-                localStorage.setItem('fia_packages', JSON.stringify(packages || []));
+                localStorage.setItem('fia_products', JSON.stringify((products || []).filter(p => !isRecordDeleted('product', p))));
+                localStorage.setItem('fia_cosproducts', JSON.stringify((cosProducts || []).filter(p => !isRecordDeleted('cosProduct', p))));
+                localStorage.setItem('fia_customers', JSON.stringify((customers || []).filter(c => !isRecordDeleted('customer', c))));
+                localStorage.setItem('fia_purchases', JSON.stringify((purchases || []).filter(p => !isRecordDeleted('purchase', p))));
+                localStorage.setItem('fia_expenses', JSON.stringify((expenses || []).filter(e => !isRecordDeleted('expense', e))));
+                localStorage.setItem('fia_cospurchases', JSON.stringify((cosPurchases || []).filter(p => !isRecordDeleted('cosPurchase', p))));
+                localStorage.setItem('fia_cossales', JSON.stringify((cosSales || []).filter(s => !isRecordDeleted('cosSale', s))));
+                localStorage.setItem('fia_packages', JSON.stringify((packages || []).filter(p => !isRecordDeleted('package', p))));
                 localStorage.setItem('fia_stock_returns', JSON.stringify(stockReturns || []));
                 localStorage.setItem('fia_cleared_daybook', JSON.stringify(clearedDayBookEntries || []));
                 localStorage.setItem('fia_daybook_opening_balance', String(dayBookOpeningBalance || 0));
@@ -2018,6 +2130,7 @@
         }
 
         function syncToFirebase() {
+            ensureStableTransactionIds();
             saveLocalStateSafely();
             createAutomaticLocalBackup();
             localStorage.setItem('fia_has_pending_sync', 'true');
@@ -2027,20 +2140,40 @@
                 return Promise.resolve(false);
             }
 
+            const isItemDeleted = (item) => {
+                if (!item) return true;
+                if (item.id && isIdDeleted(item.id)) return true;
+                if (item.billNo && isIdDeleted(item.billNo)) return true;
+                return false;
+            };
+            const isCustItemDeleted = (c) => {
+                if (!c) return true;
+                if (c.billNo && isIdDeleted(c.billNo)) return true;
+                if (c.id && isIdDeleted(c.id)) return true;
+                if (!c.billNo && c.name && isIdDeleted('cust_' + String(c.name).trim().toLowerCase())) return true;
+                return false;
+            };
+
             const payload = {
-                products: products || [],
-                cosProducts: cosProducts || [],
-                customers: customers || [],
-                purchases: purchases || [],
-                expenses: expenses || [],
-                cosPurchases: cosPurchases || [],
-                cosSales: cosSales || [],
-                packages: packages || [],
+                products: (products || []).filter(p => !isItemDeleted(p)),
+                cosProducts: (cosProducts || []).filter(p => !isItemDeleted(p)),
+                customers: (customers || []).filter(c => !isCustItemDeleted(c)),
+                purchases: (purchases || []).filter(p => !isItemDeleted(p)),
+                expenses: (expenses || []).filter(e => !isItemDeleted(e)),
+                cosPurchases: (cosPurchases || []).filter(p => !isItemDeleted(p)),
+                cosSales: (cosSales || []).filter(s => !isItemDeleted(s)),
+                packages: (packages || []).filter(p => !isItemDeleted(p)),
                 stockReturns: stockReturns || [],
                 clearedDayBookEntries: clearedDayBookEntries || [],
                 dayBookOpeningBalance: Number(dayBookOpeningBalance || 0),
                 dayBookOpeningExpense: Number(dayBookOpeningExpense || 0),
-                appPin: appPin || "1234"
+                appPin: appPin || "1234",
+                _deletedIds: Array.from(deletedRecordIds).slice(-1500),
+                _deletedKeys: Array.from(deletedRecordIds).slice(-1500),
+                _meta: {
+                    clientId: myFiaClientId,
+                    updatedAt: Date.now()
+                }
             };
 
             const cleanPayload = sanitizeForFirebase(payload);
@@ -2544,8 +2677,11 @@
                                     <div class="font-bold ${r.cosmetics ? 'text-pink-300' : 'text-amber-300'}">#${ri + 1} • ${detailParts[0]}</div>
                                     <div class="text-[10px] text-slate-400 mt-0.5">${detailParts.slice(1).join(' | ')}</div>
                                     <div class="text-[10px] text-slate-500 mt-0.5">${r.saleType} • ${r.paymentMode}</div>
+                                <div class="flex flex-wrap gap-1 shrink-0">
+                                    <button type="button" onclick="${viewFn}" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button>
+                                    <button type="button" onclick="${r.cosmetics ? `editCosSale(${r.index})` : `editCustomerBill(${r.index})`}" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg border border-slate-700">Edit</button>
+                                    <button type="button" onclick="${r.cosmetics ? `deleteCosSale(${r.index})` : `deleteCustomerBill(${r.index})`}" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button>
                                 </div>
-                                <button type="button" onclick="${viewFn}" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg shrink-0">View</button>
                             </div>`;
                         }).join('')}
                     </div>
@@ -3051,10 +3187,27 @@
             syncToFirebase(); resetPackageForm(); renderPackages(); updatePackageSelectors();
         }
         function resetPackageForm(){const f=document.getElementById('packageForm');if(f)f.reset();document.getElementById('packageId').value='';document.getElementById('packageSubmitBtn').textContent='Add Package';document.getElementById('packageUnit').value='Pcs';}
-        function editPackage(id){const x=packages.find(p=>p.id===id);if(!x)return;switchTab('stock',false);switchStockTopTab('package');document.getElementById('packageId').value=x.id;document.getElementById('packageName').value=x.name||'';document.getElementById('packageSize').value=x.size||'';document.getElementById('packageUnit').value=x.unit||'Pcs';document.getElementById('packageStock').value=x.stock??0;document.getElementById('packageSubmitBtn').textContent='Update Package';}
-        function deletePackage(id){if(!confirm('Delete this package item?'))return;packages=packages.filter(x=>x.id!==id);products.forEach(p=>{if(p.packageId===id){p.packageId='';p.packageQty=0;}});cosProducts.forEach(p=>{if(p.packageId===id){p.packageId='';p.packageQty=0;}});syncToFirebase();renderPackages();updatePackageSelectors();renderProducts();renderCosProductStock();}
+        function deletePackage(id){
+            if(!id) return;
+            const pkg = packages.find(x => String(x.id) === String(id));
+            const name = pkg ? pkg.name : 'package item';
+            if(!confirm(`Delete package item "${name}"?`)) return;
+            markIdDeleted(id);
+            packages = packages.filter(x => String(x.id) !== String(id));
+            products.forEach(p => { if(String(p.packageId) === String(id)){ p.packageId=''; p.packageQty=0; } });
+            cosProducts.forEach(p => { if(String(p.packageId) === String(id)){ p.packageId=''; p.packageQty=0; } });
+            syncToFirebase();
+            renderAll();
+        }
         function addPackageStock(id,qty){const x=packages.find(p=>p.id===id);if(!x||!(qty>0))return;x.stock=(Number(x.stock)||0)+qty;syncToFirebase();renderPackages();updatePackageSelectors();}
-        function renderPackages(){const c=document.getElementById('packageListContainer');if(!c)return;c.innerHTML=sortByNameAsc(packages).map(x=>`<div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row justify-between gap-2 items-start sm:items-center"><div class="min-w-0 flex-1"><div class="font-bold text-cyan-300 text-xs break-words">${x.name}</div><div class="text-[10px] text-slate-500">${x.size||'—'} • ${x.unit||'Pcs'}</div></div><div class="text-left sm:text-right w-full sm:w-auto flex flex-row sm:flex-col justify-between sm:justify-end items-center sm:items-end gap-2"><div class="font-extrabold ${(Number(x.stock)||0)<=5?'text-rose-300':'text-white'} text-sm">${Number(x.stock)||0}</div><div class="flex gap-1 items-center"><input id="pkgAdd_${x.id}" type="number" min="0" step="any" placeholder="+Stock" class="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-[10px] text-white"><button type="button" onclick="addPackageStock('${x.id}',parseFloat(document.getElementById('pkgAdd_${x.id}').value)||0);document.getElementById('pkgAdd_${x.id}').value=''" class="bg-cyan-900 text-cyan-200 px-2 py-1 rounded-lg text-[10px]">Add</button><button type="button" onclick="editPackage('${x.id}')" class="bg-slate-800 text-amber-300 px-2 py-1 rounded-lg text-[10px]">Edit</button><button type="button" onclick="deletePackage('${x.id}')" class="bg-slate-800 text-red-300 px-2 py-1 rounded-lg text-[10px]">Delete</button></div></div></div>`).join('')||'<p class="text-xs text-slate-500 text-center py-6">No package items added yet.</p>';renderPackageConsolidationReport();};checkLowStockAlerts();updateDashboard();
+        function renderPackages(){
+            const c=document.getElementById('packageListContainer');
+            if(!c) return;
+            c.innerHTML=sortByNameAsc(packages).map(x=>`<div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row justify-between gap-2 items-start sm:items-center"><div class="min-w-0 flex-1"><div class="font-bold text-cyan-300 text-xs break-words">${x.name}</div><div class="text-[10px] text-slate-500">${x.size||'—'} • ${x.unit||'Pcs'}</div></div><div class="text-left sm:text-right w-full sm:w-auto flex flex-row sm:flex-col justify-between sm:justify-end items-center sm:items-end gap-2"><div class="font-extrabold ${(Number(x.stock)||0)<=5?'text-rose-300':'text-white'} text-sm">${Number(x.stock)||0}</div><div class="flex gap-1 items-center"><input id="pkgAdd_${x.id}" type="number" min="0" step="any" placeholder="+Stock" class="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-[10px] text-white"><button type="button" onclick="addPackageStock('${x.id}',parseFloat(document.getElementById('pkgAdd_${x.id}').value)||0);document.getElementById('pkgAdd_${x.id}').value=''" class="bg-cyan-900 text-cyan-200 px-2 py-1 rounded-lg text-[10px]">Add</button><button type="button" onclick="viewPackage('${x.id}')" class="bg-blue-900 text-blue-200 px-2 py-1 rounded-lg text-[10px]">View</button><button type="button" onclick="editPackage('${x.id}')" class="bg-slate-800 text-amber-300 px-2 py-1 rounded-lg text-[10px]">Edit</button><button type="button" onclick="deletePackage('${x.id}')" class="bg-slate-800 text-red-300 px-2 py-1 rounded-lg text-[10px]">Delete</button></div></div></div>`).join('')||'<p class="text-xs text-slate-500 text-center py-6">No package items added yet.</p>';
+            renderPackageConsolidationReport();
+            checkLowStockAlerts();
+            updateDashboard();
+        }
         function switchPackageView(view){const list=document.getElementById('packageListArea'),report=document.getElementById('packageReportArea');if(!list||!report)return;if(view==='report'){list.classList.add('hidden');report.classList.remove('hidden');renderPackageConsolidationReport();}else{report.classList.add('hidden');list.classList.remove('hidden');}}
         function renderPackageConsolidationReport(){const rows=sortByNameAsc(packages||[]).map(p=>({name:p.name||'',size:p.size||'',stock:Number(p.stock)||0,unit:p.unit||'Pcs'}));const summary=[['Total Items',rows.length],['Total Stock',rows.reduce((s,r)=>s+r.stock,0)],['Low Stock',rows.filter(r=>r.stock<=5).length],['Units Used',new Set(rows.map(r=>r.unit).filter(Boolean)).size]];const sh=document.getElementById('packageReportSummary');if(sh)sh.innerHTML=summary.map(([l,v])=>`<div class="bg-slate-900 rounded-lg p-3"><div class="text-[10px] text-slate-400">${l}</div><b class="text-sm text-white">${v}</b></div>`).join('');const tb=document.getElementById('packageReportTableBody');if(tb)tb.innerHTML=rows.length?rows.map((r,i)=>`<tr class="border-t border-slate-800"><td class="p-2 text-slate-500">${i+1}</td><td class="p-2 text-cyan-300 font-semibold">${r.name||'—'}</td><td class="p-2 text-slate-400">${r.size||'—'}</td><td class="p-2 text-right font-bold ${r.stock<=5?'text-rose-300':'text-white'}">${r.stock}</td><td class="p-2 text-slate-300">${r.unit}</td><td class="p-2 ${r.stock<=5?'text-rose-300':'text-emerald-300'}">${r.stock<=5?'LOW STOCK':'OK'}</td></tr>`).join(''):'<tr><td colspan="6" class="p-5 text-center text-slate-500">No package items found.</td></tr>';const um={};rows.forEach(r=>um[r.unit]=(um[r.unit]||0)+r.stock);const uh=document.getElementById('packageReportUnitTotals');if(uh)uh.innerHTML=Object.entries(um).sort((a,b)=>a[0].localeCompare(b[0])).map(([u,t])=>`<div class="flex justify-between bg-slate-900/70 border border-slate-800 rounded-lg px-3 py-2 text-[11px]"><span class="text-slate-400">Total ${u}</span><b class="text-slate-200">${t}</b></div>`).join('')||'<div class="text-[10px] text-slate-500">No stock data.</div>';}
         function getProductPackageInfo(product){
@@ -3375,13 +3528,14 @@
         }
 
         function deleteProduct(id) {
-            if(confirm("Are you sure you want to delete this product?")) {
-                products = products.filter(p => p.id !== id);
+            if(!id) return;
+            const p = products.find(x => String(x.id) === String(id));
+            const name = p ? p.name : 'product';
+            if(confirm(`Are you sure you want to delete "${name}"?`)) {
+                markIdDeleted(id);
+                products = products.filter(p => String(p.id) !== String(id));
                 syncToFirebase();
-                renderProducts();
-                updateProductDropdown();
-                updateCosProductDropdowns();
-                updateStockReturnDropdowns();
+                renderAll();
             }
         }
 
@@ -3402,7 +3556,8 @@
             if (!name) return;
 
             if (originalIndex === -1) {
-                customers.push({ name, phone, saleType: 'Retail', items: [], grandTotal: 0, paidAmount: 0, pendingAmount: 0, date: new Date().toISOString().split('T')[0], savedAt: Date.now() });
+                const custId = 'cust_' + name.trim().toLowerCase();
+                customers.push({ id: custId, name, phone, saleType: 'Retail', items: [], grandTotal: 0, paidAmount: 0, pendingAmount: 0, date: new Date().toISOString().split('T')[0], savedAt: Date.now() });
             } else {
                 const oldName = customers[originalIndex].name;
                 customers.forEach(c => { if (c.name === oldName) { c.name = name; c.phone = phone; c.savedAt = Date.now(); } });
@@ -3428,13 +3583,20 @@
         }
 
         function deleteDirectCustomer(name) {
-            if (confirm(`Are you sure you want to delete customer "${name}"?`)) {
-                customers = customers.filter(c => c.name !== name);
+            if (!name) return;
+            const targetName = String(name).trim();
+            if (confirm(`Are you sure you want to delete customer "${targetName}"?`)) {
+                const key = targetName.toLowerCase();
+                markIdDeleted('cust_' + key);
+                customers.forEach(c => {
+                    if (c && String(c.name || '').trim().toLowerCase() === key) {
+                        if (c.billNo) markIdDeleted(c.billNo);
+                        if (c.id) markIdDeleted(c.id);
+                    }
+                });
+                customers = customers.filter(c => !c || !c.name || String(c.name).trim().toLowerCase() !== key);
                 syncToFirebase();
-                renderCustomers();
-                updateCustomerDropdown();
-                updateCosCustomerDropdown();
-                renderAccounts();
+                renderAll();
             }
         }
 
@@ -3626,14 +3788,14 @@
         }
 
         function deleteCosProduct(id) {
-            const p = cosProducts.find(x => x.id === id);
-            if (!p) return;
-            if (!confirm(`Delete ${p.name} from cosmetic product stock?`)) return;
-            cosProducts = cosProducts.filter(x => x.id !== id);
+            if (!id) return;
+            const p = cosProducts.find(x => String(x.id) === String(id));
+            const name = p ? p.name : 'product';
+            if (!confirm(`Delete "${name}" from cosmetic product stock?`)) return;
+            markIdDeleted(id);
+            cosProducts = cosProducts.filter(x => String(x.id) !== String(id));
             syncToFirebase();
-            renderCosProductStock();
-            updateCosProductDropdowns();
-            updateStockReturnDropdowns();
+            renderAll();
         }
 
         function renderCosProductStock() {
@@ -4119,7 +4281,7 @@
         }
         function onCombinedSaleTypeChange(){ fillCombinedProductPrice(); }
         function calculateCombinedItemTotal(){ const qty=parseFloat(document.getElementById('combinedQty')?.value)||0, u=Math.max(1,parseInt(document.getElementById('combinedNumberOfUnits')?.value,10)||1), r=parseFloat(document.getElementById('combinedRate')?.value)||0, unitType=document.getElementById('combinedUnitType')?.value||'Pcs', selected=getCombinedSelected(), product=selected?combinedStockRecord({category:selected.category,productName:selected.name}):null, factor=getBillingUnitFactor(unitType,product?.unit); const el=document.getElementById('combinedCalculatedTotal'); if(el)el.value=(qty*factor*u*r).toFixed(2); }
-        function combinedStockRecord(item){ return item.category==='Cosmetics'?cosProducts.find(p=>p.name===item.productName):products.find(p=>p.name===item.productName); }
+        function combinedStockRecord(item){ const cat = item ? (item.combinedCategory || item.category) : ''; return cat==='Cosmetics'?cosProducts.find(p=>p.name===item.productName):products.find(p=>p.name===item.productName); }
         function addToCombinedBill(){
             const selected=getCombinedSelected(), qty=parseFloat(document.getElementById('combinedQty')?.value), rate=parseFloat(document.getElementById('combinedRate')?.value), unitType=document.getElementById('combinedUnitType')?.value||'Pcs', numberOfUnits=Math.max(1,parseInt(document.getElementById('combinedNumberOfUnits')?.value,10)||1);
             if(!selected||!Number.isFinite(qty)||qty<=0||!Number.isFinite(rate)){alert('Please select product, quantity, and rate.');return;}
@@ -4315,28 +4477,36 @@
             const radio=document.querySelector(`input[name="combinedSaleType"][value="${c.saleType||'Retail'}"]`); if(radio)radio.checked=true; document.getElementById('combinedPaidAmt').value=Number(c.paidAmount||0); document.getElementById('combinedPaymentMode').value=c.paymentMode||'Cash'; currentBillItems=sortBillItemsAlphabetically((c.items||[]).map(i=>({...i}))); renderCombinedBillItems(); document.getElementById('combinedSubmitBtn').textContent='Update Combined Bill';
         }
 
-        function deleteCustomerBill(index) {
-            if(!customers[index]) return;
-            if(confirm('Are you sure you want to delete this bill?')) {
-                const c = customers[index];
-                if(c.items) {
-                    restorePackageStock(c.items);
-                    c.items.forEach(oldItem => {
-                        const p = c.billType === 'Combined' ? combinedStockRecord(oldItem) : products.find(prod => prod.name === oldItem.productName);
-                        if(p) p.stock += (oldItem.stockDeductionQty || oldItem.qty || 0);
-                    });
+        function deleteCustomerBill(billIdentifier, askConfirm = true) {
+            let index = -1;
+            if (typeof billIdentifier === 'number') {
+                index = billIdentifier;
+            } else if (billIdentifier !== undefined && billIdentifier !== null) {
+                const idStr = String(billIdentifier).trim();
+                index = customers.findIndex(c => c && (String(c.billNo) === idStr || String(c.id) === idStr));
+                if (index === -1 && /^\d+$/.test(idStr)) {
+                    index = parseInt(idStr, 10);
                 }
-                customers.splice(index, 1);
-                syncToFirebase();
-                renderCustomers();
-                updateCustomerDropdown();
-                updateCosCustomerDropdown();
-                renderProducts();
-                renderAccounts();
-                updateDashboard();
-                renderSalesHistory();
-                alert("Bill deleted successfully!");
             }
+            if (index < 0 || !customers[index]) return;
+            if (askConfirm && !confirm('Are you sure you want to delete this bill?')) return;
+
+            const c = customers[index];
+            if (c.billNo) markIdDeleted(c.billNo);
+            if (c.id) markIdDeleted(c.id);
+
+            if (c.items && Array.isArray(c.items)) {
+                restorePackageStock(c.items);
+                c.items.forEach(oldItem => {
+                    const p = c.billType === 'Combined' ? combinedStockRecord(oldItem) : products.find(prod => prod.name === oldItem.productName);
+                    if (p) p.stock += (parseFloat(oldItem.stockDeductionQty ?? oldItem.qty) || 0);
+                });
+            }
+
+            customers.splice(index, 1);
+            syncToFirebase();
+            renderAll();
+            alert("Bill deleted successfully!");
         }
 
         function adjustEditedPayment(direction) {
@@ -4500,11 +4670,48 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function findPurchaseSupplier(name){ const q=String(name||'').trim().toLowerCase(); const a=purchaseSuppliers.find(x=>String(x.name||'').toLowerCase()===q); if(a)return a; const p=purchases.find(x=>String(x.supplierName||'').toLowerCase()===q); return p?{name:p.supplierName,mobile:p.supplierMobile||''}:null; }
         function fillPurchaseSupplierMobile(){ const x=findPurchaseSupplier(document.getElementById('supplierName')?.value); if(x&&document.getElementById('supplierMobile'))document.getElementById('supplierMobile').value=x.mobile||''; }
         function fillCosPurchaseSupplierMobile(){ const x=findPurchaseSupplier(document.getElementById('cosPSupplier')?.value); if(x&&document.getElementById('cosPSupplierMobile'))document.getElementById('cosPSupplierMobile').value=x.mobile||''; }
-        function savePurchase(e) { e.preventDefault(); const idx=parseInt(document.getElementById('purchIndex').value), entryType=document.getElementById('purchaseEntryType').value, stockId=entryType==='stock'?document.getElementById('purchaseStockSelect').value:'', selectedProduct=stockId?products.find(p=>p.id===stockId):null, rawMaterial=selectedProduct?selectedProduct.name:document.getElementById('rawMaterial').value.trim(), rawQty=parseFloat(document.getElementById('rawQty').value)||0, rawUnit=document.getElementById('rawUnit').value, rawBarcode=document.getElementById('rawBarcode').value.trim()||(selectedProduct?.barcode||''), rawCost=parseFloat(document.getElementById('rawCost').value)||0, paid=parseFloat(document.getElementById('purchasePaid').value)||0, balance=Math.max(0,rawCost-paid), supplierName=document.getElementById('supplierName').value.trim(), supplierMobile=document.getElementById('supplierMobile').value.trim(), date=document.getElementById('purchaseDate').value||getTodayPurchaseDate(); const data={supplierName,supplierMobile,rawMaterial,rawBarcode,stockId,rawQty,rawUnit,rawUnitPrice:parseFloat(document.getElementById('rawUnitPrice').value)||0,rawCost,paid,balance,date,savedAt:(idx>=0&&purchases[idx]&&purchases[idx].savedAt)?purchases[idx].savedAt:Date.now()}; if(idx>=0&&purchases[idx]){const old=purchases[idx]; if(old.stockId){const op=products.find(p=>p.id===old.stockId);if(op)op.stock=Math.max(0,(parseFloat(op.stock)||0)-(parseFloat(old.rawQty)||0)+(Number(old.returnedQty)||0));} if(selectedProduct&&rawQty>0)selectedProduct.stock=(parseFloat(selectedProduct.stock)||0)+rawQty; purchases[idx]={...old,...data,returns:Array.isArray(old.returns)?old.returns:[]};}else{if(selectedProduct&&rawQty>0)selectedProduct.stock=(parseFloat(selectedProduct.stock)||0)+rawQty;purchases.push({...data,returns:[]});} syncToFirebase(); renderPurchaseSupplierList(); resetPurchaseForm(); renderPurchases(); renderProducts(); updateCleaningPurchaseDropdown(); renderAccounts(); }
+        function savePurchase(e) {
+            e.preventDefault();
+            const idx=parseInt(document.getElementById('purchIndex').value), entryType=document.getElementById('purchaseEntryType').value, stockId=entryType==='stock'?document.getElementById('purchaseStockSelect').value:'', selectedProduct=stockId?products.find(p=>p.id===stockId):null, rawMaterial=selectedProduct?selectedProduct.name:document.getElementById('rawMaterial').value.trim(), rawQty=parseFloat(document.getElementById('rawQty').value)||0, rawUnit=document.getElementById('rawUnit').value, rawBarcode=document.getElementById('rawBarcode').value.trim()||(selectedProduct?.barcode||''), rawCost=parseFloat(document.getElementById('rawCost').value)||0, paid=parseFloat(document.getElementById('purchasePaid').value)||0, balance=Math.max(0,rawCost-paid), supplierName=document.getElementById('supplierName').value.trim(), supplierMobile=document.getElementById('supplierMobile').value.trim(), date=document.getElementById('purchaseDate').value||getTodayPurchaseDate();
+            const purchaseId = (idx >= 0 && purchases[idx]?.id) || ('purch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
+            const data={id:purchaseId,supplierName,supplierMobile,rawMaterial,rawBarcode,stockId,rawQty,rawUnit,rawUnitPrice:parseFloat(document.getElementById('rawUnitPrice').value)||0,rawCost,paid,balance,date,savedAt:(idx>=0&&purchases[idx]&&purchases[idx].savedAt)?purchases[idx].savedAt:Date.now()};
+            if(idx>=0&&purchases[idx]){
+                const old=purchases[idx];
+                if(old.stockId){const op=products.find(p=>p.id===old.stockId);if(op)op.stock=Math.max(0,(parseFloat(op.stock)||0)-(parseFloat(old.rawQty)||0)+(Number(old.returnedQty)||0));}
+                if(selectedProduct&&rawQty>0)selectedProduct.stock=(parseFloat(selectedProduct.stock)||0)+rawQty;
+                purchases[idx]={...old,...data,returns:Array.isArray(old.returns)?old.returns:[]};
+            } else {
+                if(selectedProduct&&rawQty>0)selectedProduct.stock=(parseFloat(selectedProduct.stock)||0)+rawQty;
+                purchases.push({...data,returns:[]});
+            }
+            syncToFirebase(); renderPurchaseSupplierList(); resetPurchaseForm(); renderPurchases(); renderProducts(); updateCleaningPurchaseDropdown(); renderAccounts();
+        }
         function editPurchase(index){const p=purchases[index];if(!p)return;document.getElementById('purchIndex').value=index;document.getElementById('supplierName').value=p.supplierName||'';document.getElementById('supplierMobile').value=p.supplierMobile||'';document.getElementById('purchaseDate').value=p.date||getTodayPurchaseDate();document.getElementById('purchaseEntryType').value=p.stockId?'stock':'manual';togglePurchaseInputs();if(p.stockId)document.getElementById('purchaseStockSelect').value=p.stockId;else document.getElementById('rawMaterial').value=p.rawMaterial||'';document.getElementById('rawBarcode').value=p.rawBarcode||'';document.getElementById('rawQty').value=p.rawQty??'';document.getElementById('rawUnit').value=p.rawUnit||'';document.getElementById('rawUnitPrice').value=p.rawUnitPrice??'';document.getElementById('rawCost').value=p.rawCost??'';document.getElementById('purchasePaid').value=p.paid??'';document.getElementById('purchaseBalance').value=p.balance??'';document.getElementById('purchaseFormTitle').innerText='Edit Cleaning Products Purchase';document.getElementById('purchSubmitBtn').innerText='Update Purchase';if(p.stockId)fillPurchaseStockDetails();switchTab('purchase',false);switchPurchaseSubTab('cleaning');window.scrollTo({top:0,behavior:'smooth'});}
-        function deletePurchase(index){if(!purchases[index])return;if(!confirm('Delete this purchase?'))return;const old=purchases[index];if(old.stockId){const op=products.find(p=>p.id===old.stockId);if(op)op.stock=Math.max(0,(parseFloat(op.stock)||0)-(parseFloat(old.rawQty)||0)+(Number(old.returnedQty)||0));}purchases.splice(index,1);syncToFirebase();renderPurchases();renderProducts();updateCleaningPurchaseDropdown();renderAccounts();}
-        function ensurePurchaseTimestamps(list){let max=0;list.forEach(p=>{const t=Number(p?.savedAt)||0;if(t>max)max=t;});list.forEach(p=>{if(!(Number(p?.savedAt)>0)){max+=1;p.savedAt=max;}});return list;}
-        function renderPurchases(){ensurePurchaseTimestamps(purchases);const q=(document.getElementById('purchaseSearch')?.value||'').trim().toLowerCase();const sorted=purchases.map((p,i)=>({...p,_originalIndex:i})).filter(p=>!q||[p.supplierName,p.supplierMobile,p.rawMaterial,p.rawBarcode].some(v=>String(v||'').toLowerCase().includes(q))).sort((a,b)=>dateSortValue(b.date)-dateSortValue(a.date)||(Number(b.savedAt)||0)-(Number(a.savedAt)||0)||b._originalIndex-a._originalIndex);document.getElementById('purchaseListContainer').innerHTML='<div class="text-[10px] text-slate-500 text-right mb-1">Latest Purchase First</div>'+sorted.map(p=>`<div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between gap-2 text-xs"><div><span class="font-bold text-blue-300">${p.supplierName} - ${p.rawMaterial}</span><p class="text-slate-400">📞 ${p.supplierMobile||'No mobile'} | ${formatDateDDMMYYYY(p.date)} | Qty: ${p.rawQty} ${p.rawUnit||''} | Total: ₹${p.rawCost} | Return: ${p.returnedQty||0} ${p.rawUnit||''} | Net: ₹${Number(p.netPurchaseAmount??p.rawCost??0).toFixed(2)} | <span class="text-rose-400">Bal: ₹${Number(p.netBalance??p.balance??0).toFixed(2)}</span></p></div><div class="flex flex-wrap gap-1 shrink-0"><button type="button" onclick="viewPurchase(${p._originalIndex})" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button><button type="button" onclick="editPurchase(${p._originalIndex})" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button><button type="button" onclick="deletePurchase(${p._originalIndex})" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button></div></div>`).join('')||'<p class="text-xs text-slate-500 text-center">No purchases found.</p>'; renderPurchaseReturnSelectors(); renderPurchaseReturnHistory();}
+        function deletePurchase(identifier){
+            let index = -1;
+            if (typeof identifier === 'number') {
+                index = identifier;
+            } else if (identifier !== undefined && identifier !== null) {
+                const idStr = String(identifier).trim();
+                index = purchases.findIndex(p => p && String(p.id) === idStr);
+                if (index === -1 && /^\d+$/.test(idStr)) {
+                    index = parseInt(idStr, 10);
+                }
+            }
+            if (index < 0 || !purchases[index]) return;
+            if(!confirm('Delete this purchase?')) return;
+            const old=purchases[index];
+            if (old.id) markIdDeleted(old.id);
+            if(old.stockId){
+                const op=products.find(p=>p.id===old.stockId);
+                if(op)op.stock=Math.max(0,(parseFloat(op.stock)||0)-(parseFloat(old.rawQty)||0)+(Number(old.returnedQty)||0));
+            }
+            purchases.splice(index,1);
+            syncToFirebase();
+            renderAll();
+        }
+        function ensurePurchaseTimestamps(list){let max=0;list.forEach(p=>{const t=Number(p?.savedAt)||0;if(t>max)max=t;});list.forEach(p=>{if(!(Number(p?.savedAt)>0)){max+=1;p.savedAt=max;} if(!p.id){p.id='purch_'+p.savedAt;}});return list;}
+        function renderPurchases(){ensurePurchaseTimestamps(purchases);const q=(document.getElementById('purchaseSearch')?.value||'').trim().toLowerCase();const sorted=purchases.map((p,i)=>({...p,_originalIndex:i})).filter(p=>!q||[p.supplierName,p.supplierMobile,p.rawMaterial,p.rawBarcode].some(v=>String(v||'').toLowerCase().includes(q))).sort((a,b)=>dateSortValue(b.date)-dateSortValue(a.date)||(Number(b.savedAt)||0)-(Number(a.savedAt)||0)||b._originalIndex-a._originalIndex);document.getElementById('purchaseListContainer').innerHTML='<div class="text-[10px] text-slate-500 text-right mb-1">Latest Purchase First</div>'+sorted.map(p=>`<div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between gap-2 text-xs"><div><span class="font-bold text-blue-300">${p.supplierName} - ${p.rawMaterial}</span><p class="text-slate-400">📞 ${p.supplierMobile||'No mobile'} | ${formatDateDDMMYYYY(p.date)} | Qty: ${p.rawQty} ${p.rawUnit||''} | Total: ₹${p.rawCost} | Return: ${p.returnedQty||0} ${p.rawUnit||''} | Net: ₹${Number(p.netPurchaseAmount??p.rawCost??0).toFixed(2)} | <span class="text-rose-400">Bal: ₹${Number(p.netBalance??p.balance??0).toFixed(2)}</span></p></div><div class="flex flex-wrap gap-1 shrink-0"><button type="button" onclick="viewPurchase(${p._originalIndex})" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button><button type="button" onclick="editPurchase(${p._originalIndex})" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button><button type="button" onclick="deletePurchase('${p.id || p._originalIndex}')" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button></div></div>`).join('')||'<p class="text-xs text-slate-500 text-center">No purchases found.</p>'; renderPurchaseReturnSelectors(); renderPurchaseReturnHistory();}
         function resetPurchaseForm(){document.getElementById('purchaseForm').reset();document.getElementById('purchIndex').value='-1';document.getElementById('purchaseFormTitle').innerText='Cleaning Products Purchase';document.getElementById('purchSubmitBtn').innerText='Save Purchase';document.getElementById('purchaseDate').value=getTodayPurchaseDate();document.getElementById('purchaseEntryType').value='stock';togglePurchaseInputs();calculatePurchaseBalance();updateCleaningPurchaseDropdown();}
         function renderPurchaseReturnSelectors(){const el=document.getElementById('purchaseReturnSelect');if(!el)return;el.innerHTML='<option value="">-- Select Purchase --</option>'+purchases.map((p,i)=>`<option value="${i}">${formatDateDDMMYYYY(p.date)} • ${p.supplierName} • ${p.rawMaterial} • Qty ${p.rawQty}</option>`).join('');const d=document.getElementById('purchaseReturnDate');if(d&&!d.value)d.value=getTodayPurchaseDate();}
         function fillPurchaseReturnDetails(){const i=parseInt(document.getElementById('purchaseReturnSelect').value);const p=purchases[i];document.getElementById('purchaseReturnInfo').textContent=p?`Supplier: ${p.supplierName} | Mobile: ${p.supplierMobile||'—'} | Available return: ${Math.max(0,Number(p.rawQty||0)-Number(p.returnedQty||0))} ${p.rawUnit||''}`:'Select a purchase to return.';}
@@ -4537,7 +4744,8 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function saveExpense(e) {
             e.preventDefault();
             const idx = parseInt(document.getElementById('expIndex').value);
-            const data = { title: document.getElementById('expTitle').value.trim(), amount: parseFloat(document.getElementById('expAmount').value) || 0, date: parseDateDDMMYYYY(document.getElementById('expDate').value) };
+            const expId = (idx >= 0 && expenses[idx]?.id) || ('exp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
+            const data = { id: expId, title: document.getElementById('expTitle').value.trim(), amount: parseFloat(document.getElementById('expAmount').value) || 0, date: parseDateDDMMYYYY(document.getElementById('expDate').value) };
             if (idx >= 0 && expenses[idx]) expenses[idx] = { ...expenses[idx], ...data };
             else expenses.push({...data, savedAt: Date.now()});
             syncToFirebase(); resetExpenseForm(); renderExpenses(); renderAccounts();
@@ -4548,8 +4756,27 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             document.getElementById('expFormTitle').innerText='Edit Shop Expense'; document.getElementById('expSubmitBtn').innerText='Update Expense';
             switchTab('expenses', false); window.scrollTo({top:0,behavior:'smooth'});
         }
-        function deleteExpense(index) { if(!expenses[index]) return; if(!confirm('Delete this expense?')) return; expenses.splice(index,1); syncToFirebase(); renderExpenses(); renderAccounts(); }
+        function deleteExpense(identifier) {
+            let index = -1;
+            if (typeof identifier === 'number') {
+                index = identifier;
+            } else if (identifier !== undefined && identifier !== null) {
+                const idStr = String(identifier).trim();
+                index = expenses.findIndex(e => e && String(e.id) === idStr);
+                if (index === -1 && /^\d+$/.test(idStr)) {
+                    index = parseInt(idStr, 10);
+                }
+            }
+            if(index < 0 || !expenses[index]) return;
+            if(!confirm('Delete this expense?')) return;
+            const ex = expenses[index];
+            if (ex.id) markIdDeleted(ex.id);
+            expenses.splice(index,1);
+            syncToFirebase();
+            renderAll();
+        }
         function renderExpenses() {
+            ensurePurchaseTimestamps(expenses);
             const sortedExpenses = expenses.map((ex, i) => ({ ...ex, _originalIndex: i })).sort((a, b) => {
                 const diff = dateSortValue(b.date) - dateSortValue(a.date);
                 if (diff !== 0) return diff;
@@ -4562,17 +4789,53 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                     <div class="flex flex-wrap gap-1 shrink-0">
                         <button type="button" onclick="viewExpense(${ex._originalIndex})" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button>
                         <button type="button" onclick="editExpense(${ex._originalIndex})" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button>
-                        <button type="button" onclick="deleteExpense(${ex._originalIndex})" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button>
+                        <button type="button" onclick="deleteExpense('${ex.id || ex._originalIndex}')" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button>
                     </div>
                 </div>`).join('') || '<p class="text-xs text-slate-500 text-center">No expenses found.</p>';
         }
         function resetExpenseForm() { document.getElementById('expenseForm').reset(); document.getElementById('expIndex').value='-1'; document.getElementById('expFormTitle').innerText='General Shop Expenses (Rent, Current, Wages)'; document.getElementById('expSubmitBtn').innerText='Save Expense'; setupDateFields(); }
 
-        function saveCosPurchase(e){e.preventDefault();const barcode=document.getElementById('cosPBarcode')?.value.trim()||'',entryType=document.getElementById('cosPurchaseEntryType').value,stockId=entryType==='stock'?document.getElementById('cosPurchaseStockSelect').value:'',selectedProduct=stockId?cosProducts.find(p=>p.id===stockId):null,item=selectedProduct?selectedProduct.name:document.getElementById('cosPItem').value.trim(),supplier=document.getElementById('cosPSupplier').value.trim(),supplierMobile=document.getElementById('cosPSupplierMobile').value.trim(),finalBarcode=barcode||(selectedProduct?.barcode||''),qty=parseFloat(document.getElementById('cosPQty').value)||0,unit=document.getElementById('cosPUnit').value,amount=parseFloat(document.getElementById('cosPAmount').value)||0,paid=parseFloat(document.getElementById('cosPPaid').value)||0,balance=Math.max(0,amount-paid),idx=parseInt(document.getElementById('cosPIndex').value),date=document.getElementById('cosPurchaseDate').value||getTodayPurchaseDate();if(idx>=0&&cosPurchases[idx]){const old=cosPurchases[idx];if(old.stockId){const op=cosProducts.find(p=>p.id===old.stockId);if(op)op.stock=Math.max(0,(parseFloat(op.stock)||0)-(parseFloat(old.qty)||0)+(Number(old.returnedQty)||0));}if(selectedProduct&&qty>0)selectedProduct.stock=(parseFloat(selectedProduct.stock)||0)+qty;cosPurchases[idx]={...old,supplier,supplierMobile,item,stockId,barcode:finalBarcode,qty,unit,amount,paid,balance,date,returns:Array.isArray(old.returns)?old.returns:[]};}else{if(selectedProduct&&qty>0)selectedProduct.stock=(parseFloat(selectedProduct.stock)||0)+qty;cosPurchases.push({supplier,supplierMobile,item,stockId,barcode:finalBarcode,qty,unit,amount,paid,balance,date,savedAt:Date.now(),returns:[]});}syncToFirebase();renderPurchaseSupplierList();resetCosPurchaseForm();renderCosPurchases();renderCosProductStock();updateCosProductDropdowns();renderCosmeticsSummary();renderAccounts();}
-        function viewCosPurchase(index){const p=cosPurchases[index];if(!p)return;showRecordView('Cosmetics Purchase Details',`<div class="space-y-2"><p><b>Supplier:</b> ${p.supplier}</p><p><b>Mobile:</b> ${p.supplierMobile||'—'}</p><p><b>Item:</b> ${p.item}</p><p><b>Barcode:</b> ${p.barcode||'—'}</p><p><b>Qty:</b> ${p.qty} ${p.unit}</p><p><b>Total:</b> ₹${Number(p.amount||0).toFixed(2)}</p><p><b>Paid:</b> ₹${Number(p.paid||0).toFixed(2)}</p><p><b>Balance:</b> ₹${Number(p.balance||0).toFixed(2)}</p><p><b>Date:</b> ${formatDateDDMMYYYY(p.date)}</p></div>`);}
+        function saveCosPurchase(e){
+            e.preventDefault();
+            const barcode=document.getElementById('cosPBarcode')?.value.trim()||'',entryType=document.getElementById('cosPurchaseEntryType').value,stockId=entryType==='stock'?document.getElementById('cosPurchaseStockSelect').value:'',selectedProduct=stockId?cosProducts.find(p=>p.id===stockId):null,item=selectedProduct?selectedProduct.name:document.getElementById('cosPItem').value.trim(),supplier=document.getElementById('cosPSupplier').value.trim(),supplierMobile=document.getElementById('cosPSupplierMobile').value.trim(),finalBarcode=barcode||(selectedProduct?.barcode||''),qty=parseFloat(document.getElementById('cosPQty').value)||0,unit=document.getElementById('cosPUnit').value,amount=parseFloat(document.getElementById('cosPAmount').value)||0,paid=parseFloat(document.getElementById('cosPPaid').value)||0,balance=Math.max(0,amount-paid),idx=parseInt(document.getElementById('cosPIndex').value),date=document.getElementById('cosPurchaseDate').value||getTodayPurchaseDate();
+            const cosPId = (idx >= 0 && cosPurchases[idx]?.id) || ('cospurch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
+            if(idx>=0&&cosPurchases[idx]){
+                const old=cosPurchases[idx];
+                if(old.stockId){const op=cosProducts.find(p=>p.id===old.stockId);if(op)op.stock=Math.max(0,(parseFloat(op.stock)||0)-(parseFloat(old.qty)||0)+(Number(old.returnedQty)||0));}
+                if(selectedProduct&&qty>0)selectedProduct.stock=(parseFloat(selectedProduct.stock)||0)+qty;
+                cosPurchases[idx]={...old,id:cosPId,supplier,supplierMobile,item,stockId,barcode:finalBarcode,qty,unit,amount,paid,balance,date,returns:Array.isArray(old.returns)?old.returns:[]};
+            } else {
+                if(selectedProduct&&qty>0)selectedProduct.stock=(parseFloat(selectedProduct.stock)||0)+qty;
+                cosPurchases.push({id:cosPId,supplier,supplierMobile,item,stockId,barcode:finalBarcode,qty,unit,amount,paid,balance,date,savedAt:Date.now(),returns:[]});
+            }
+            syncToFirebase();renderPurchaseSupplierList();resetCosPurchaseForm();renderCosPurchases();renderCosProductStock();updateCosProductDropdowns();renderCosmeticsSummary();renderAccounts();
+        }
+        function viewCosPurchase(index){const p=cosPurchases[index];if(!p)return;showRecordView('Cosmetics Purchase Details',`<div class="space-y-2"><p><b>Supplier:</b> ${p.supplier}</p><p><b>Mobile:</b> ${p.supplierMobile||'—'}</p><p><b>Item:</b> ${p.item}</p><p><b>Barcode:</b> ${p.barcode||'—'}</p><p><b>Qty:</b> ${p.qty} ${p.unit}</p><p><b>Total:</b> ₹${Number(p.amount||0).toFixed(2)}</p><p><b>Paid:</b> ₹${Number(p.paid||0).toFixed(2)}</p><p><b>Balance:</b> ₹${Number(p.balance||0).toFixed(2)}</p><p><b>Date:</b> ${formatDateDDMMYYYY(p.date)}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editCosPurchase(${index});" class="bg-slate-800 text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteCosPurchase('${p.id || index}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);}
         function editCosPurchase(index){const p=cosPurchases[index];if(!p)return;document.getElementById('cosPIndex').value=index;document.getElementById('cosPSupplier').value=p.supplier||'';document.getElementById('cosPSupplierMobile').value=p.supplierMobile||'';document.getElementById('cosPurchaseDate').value=p.date||getTodayPurchaseDate();document.getElementById('cosPBarcode').value=p.barcode||'';document.getElementById('cosPQty').value=p.qty??'';document.getElementById('cosPUnit').value=p.unit||'';document.getElementById('cosPAmount').value=p.amount??'';document.getElementById('cosPPaid').value=p.paid??'';document.getElementById('cosPBalance').value=p.balance??'';document.getElementById('cosPurchaseEntryType').value=p.stockId?'stock':'manual';toggleCosPurchaseInputs();if(p.stockId)document.getElementById('cosPurchaseStockSelect').value=p.stockId;else document.getElementById('cosPItem').value=p.item||'';document.getElementById('cosPFormTitle').innerText='Edit Cosmetics Purchase';document.getElementById('cosPSubmitBtn').innerText='Update Purchase';switchTab('purchase',false);switchPurchaseSubTab('cosmetics');}
-        function deleteCosPurchase(index){if(!cosPurchases[index])return;if(!confirm('Delete this cosmetics purchase?'))return;const old=cosPurchases[index];if(old.stockId){const op=cosProducts.find(p=>p.id===old.stockId);if(op)op.stock=Math.max(0,(parseFloat(op.stock)||0)-(parseFloat(old.qty)||0)+(Number(old.returnedQty)||0));}cosPurchases.splice(index,1);syncToFirebase();renderCosPurchases();renderCosProductStock();renderCosmeticsSummary();renderAccounts();}
-        function renderCosPurchases(){ensurePurchaseTimestamps(cosPurchases);const q=(document.getElementById('cosPurchaseSearch')?.value||'').trim().toLowerCase();const sorted=cosPurchases.map((p,i)=>({...p,_originalIndex:i})).filter(p=>!q||[p.supplier,p.supplierMobile,p.item,p.barcode].some(v=>String(v||'').toLowerCase().includes(q))).sort((a,b)=>dateSortValue(b.date)-dateSortValue(a.date)||(Number(b.savedAt)||0)-(Number(a.savedAt)||0)||b._originalIndex-a._originalIndex);document.getElementById('cosPurchaseListContainer').innerHTML='<div class="text-[10px] text-slate-500 text-right mb-1">Latest Purchase First</div>'+sorted.map(p=>`<div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between gap-2 items-start text-xs"><div><span class="font-bold text-pink-300">${p.supplier} - ${p.item}</span><p class="text-slate-400">📞 ${p.supplierMobile||'No mobile'} | ${formatDateDDMMYYYY(p.date)} | Qty: ${p.qty} ${p.unit||''} | Total: ₹${p.amount} | Return: ${p.returnedQty||0} ${p.unit||''} | Net: ₹${Number(p.netPurchaseAmount??p.amount??0).toFixed(2)} | <span class="text-rose-400">Bal: ₹${Number(p.netBalance??p.balance??0).toFixed(2)}</span></p></div><div class="flex flex-wrap gap-1 shrink-0"><button type="button" onclick="viewCosPurchase(${p._originalIndex})" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button><button type="button" onclick="editCosPurchase(${p._originalIndex})" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button><button type="button" onclick="deleteCosPurchase(${p._originalIndex})" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button></div></div>`).join('')||'<p class="text-xs text-slate-500 text-center">No cosmetics purchases found.</p>';renderCosPurchaseReturnSelectors();renderCosPurchaseReturnHistory();}
+        function deleteCosPurchase(identifier){
+            let index = -1;
+            if (typeof identifier === 'number') {
+                index = identifier;
+            } else if (identifier !== undefined && identifier !== null) {
+                const idStr = String(identifier).trim();
+                index = cosPurchases.findIndex(p => p && String(p.id) === idStr);
+                if (index === -1 && /^\d+$/.test(idStr)) {
+                    index = parseInt(idStr, 10);
+                }
+            }
+            if(index < 0 || !cosPurchases[index]) return;
+            if(!confirm('Delete this cosmetics purchase?')) return;
+            const old=cosPurchases[index];
+            if (old.id) markIdDeleted(old.id);
+            if(old.stockId){
+                const op=cosProducts.find(p=>p.id===old.stockId);
+                if(op)op.stock=Math.max(0,(parseFloat(op.stock)||0)-(parseFloat(old.qty)||0)+(Number(old.returnedQty)||0));
+            }
+            cosPurchases.splice(index,1);
+            syncToFirebase();
+            renderAll();
+        }
+        function renderCosPurchases(){ensurePurchaseTimestamps(cosPurchases);const q=(document.getElementById('cosPurchaseSearch')?.value||'').trim().toLowerCase();const sorted=cosPurchases.map((p,i)=>({...p,_originalIndex:i})).filter(p=>!q||[p.supplier,p.supplierMobile,p.item,p.barcode].some(v=>String(v||'').toLowerCase().includes(q))).sort((a,b)=>dateSortValue(b.date)-dateSortValue(a.date)||(Number(b.savedAt)||0)-(Number(a.savedAt)||0)||b._originalIndex-a._originalIndex);document.getElementById('cosPurchaseListContainer').innerHTML='<div class="text-[10px] text-slate-500 text-right mb-1">Latest Purchase First</div>'+sorted.map(p=>`<div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between gap-2 items-start text-xs"><div><span class="font-bold text-pink-300">${p.supplier} - ${p.item}</span><p class="text-slate-400">📞 ${p.supplierMobile||'No mobile'} | ${formatDateDDMMYYYY(p.date)} | Qty: ${p.qty} ${p.unit||''} | Total: ₹${p.amount} | Return: ${p.returnedQty||0} ${p.unit||''} | Net: ₹${Number(p.netPurchaseAmount??p.amount??0).toFixed(2)} | <span class="text-rose-400">Bal: ₹${Number(p.netBalance??p.balance??0).toFixed(2)}</span></p></div><div class="flex flex-wrap gap-1 shrink-0"><button type="button" onclick="viewCosPurchase(${p._originalIndex})" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button><button type="button" onclick="editCosPurchase(${p._originalIndex})" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button><button type="button" onclick="deleteCosPurchase('${p.id || p._originalIndex}')" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button></div></div>`).join('')||'<p class="text-xs text-slate-500 text-center">No cosmetics purchases found.</p>';renderCosPurchaseReturnSelectors();renderCosPurchaseReturnHistory();}
         function resetCosPurchaseForm(){document.getElementById('cosPurchaseForm').reset();document.getElementById('cosPIndex').value='-1';document.getElementById('cosPFormTitle').innerText='Cosmetics Purchase Entry';document.getElementById('cosPSubmitBtn').innerText='Save Purchase';document.getElementById('cosPurchaseDate').value=getTodayPurchaseDate();toggleCosPurchaseInputs();}
 
         function normalizeCosSale(s) {
@@ -4780,11 +5043,41 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             document.getElementById('recordViewModal').classList.remove('hidden');
         }
         function closeRecordView() { document.getElementById('recordViewModal').classList.add('hidden'); }
-        function viewProduct(id) { const p=products.find(x=>x.id===id); if(!p)return; showRecordView('Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode||'—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Wholesale:</b> ₹${p.wholesalePrice}</p><p><b>Retail:</b> ₹${p.retailPrice}</p></div>`); }
-        function viewCosProduct(id) { const p=cosProducts.find(x=>x.id===id); if(!p)return; showRecordView('Cosmetic Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode||'—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Cost Price:</b> ₹${p.costPrice}</p><p><b>Sale Price:</b> ₹${p.salePrice}</p></div>`); }
-        function viewCustomerProfile(name) { const list=customers.filter(c=>c && c.name===name); if(!list.length)return; const total=list.reduce((s,c)=>s+Number(c.grandTotal||0),0), paid=list.reduce((s,c)=>s+Number(c.paidAmount||0),0), due=list.reduce((s,c)=>s+Number(c.pendingAmount||0),0); showRecordView('Customer Details', `<div class="space-y-2"><p><b>Name:</b> ${name}</p><p><b>Phone:</b> ${list[0].phone||'—'}</p><p><b>Total Bills:</b> ${list.filter(c=>c.items&&c.items.length).length}</p><p><b>Total Sales:</b> ₹${total.toFixed(2)}</p><p><b>Total Paid:</b> ₹${paid.toFixed(2)}</p><p class="text-rose-300"><b>Total Due:</b> ₹${due.toFixed(2)}</p></div>`); }
-        function viewPurchase(index) { const p=purchases[index]; if(!p)return; showRecordView('Cleaning Purchase Details', `<div class="space-y-2"><p><b>Supplier:</b> ${p.supplierName}</p><p><b>Mobile:</b> ${p.supplierMobile||'—'}</p><p><b>Product:</b> ${p.rawMaterial}</p><p><b>Barcode:</b> ${p.rawBarcode||'—'}</p><p><b>Quantity:</b> ${p.rawQty} ${p.rawUnit||''}</p><p><b>Total:</b> ₹${Number(p.rawCost||0).toFixed(2)}</p><p><b>Paid:</b> ₹${Number(p.paid||0).toFixed(2)}</p><p><b>Balance:</b> ₹${Number(p.balance||0).toFixed(2)}</p><p><b>Date:</b> ${formatDateDDMMYYYY(p.date)}</p></div>`); }
-        function viewExpense(index) { const ex=expenses[index]; if(!ex)return; showRecordView('Expense Details', `<div class="space-y-2"><p><b>Title:</b> ${ex.title}</p><p><b>Amount:</b> ₹${Number(ex.amount||0).toFixed(2)}</p><p><b>Date:</b> ${formatDateDDMMYYYY(ex.date)}</p></div>`); }
+        function viewProduct(id) {
+            const p = products.find(x => x.id === id);
+            if (!p) return;
+            showRecordView('Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Wholesale:</b> ₹${p.wholesalePrice}</p><p><b>Retail:</b> ₹${p.retailPrice}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editProduct('${p.id}');" class="bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteProduct('${p.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+        }
+        function viewCosProduct(id) {
+            const p = cosProducts.find(x => x.id === id);
+            if (!p) return;
+            showRecordView('Cosmetic Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Cost Price:</b> ₹${p.costPrice}</p><p><b>Sale Price:</b> ₹${p.salePrice}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editCosProduct('${p.id}');" class="bg-slate-800 text-pink-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteCosProduct('${p.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+        }
+        function viewPackage(id) {
+            const x = packages.find(p => p.id === id);
+            if (!x) return;
+            showRecordView('Package Item Details', `<div class="space-y-2"><p><b>Package Name:</b> ${x.name}</p><p><b>Size / Volume:</b> ${x.size || '—'}</p><p><b>Unit:</b> ${x.unit || 'Pcs'}</p><p><b>Available Stock:</b> <span class="${(Number(x.stock)||0)<=5?'text-rose-400 font-bold':'text-emerald-300 font-bold'}">${x.stock ?? 0}</span></p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editPackage('${x.id}');" class="bg-slate-800 text-amber-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deletePackage('${x.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+        }
+        function viewCustomerProfile(name) {
+            const list = customers.filter(c => c && c.name === name);
+            if (!list.length) return;
+            const phone = list[0].phone || '';
+            const total = list.reduce((s, c) => s + Number(c.grandTotal || 0), 0);
+            const paid = list.reduce((s, c) => s + Number(c.paidAmount || 0), 0);
+            const due = list.reduce((s, c) => s + Number(c.pendingAmount || 0), 0);
+            const escapedName = String(name).replace(/'/g, "\\'");
+            showRecordView('Customer Details', `<div class="space-y-2"><p><b>Name:</b> ${name}</p><p><b>Phone:</b> ${phone || '—'}</p><p><b>Total Bills:</b> ${list.filter(c => c.items && c.items.length).length}</p><p><b>Total Sales:</b> ₹${total.toFixed(2)}</p><p><b>Total Paid:</b> ₹${paid.toFixed(2)}</p><p class="text-rose-300"><b>Total Due:</b> ₹${due.toFixed(2)}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editCustomerProfile('${escapedName}', '${phone}');" class="bg-slate-800 text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteDirectCustomer('${escapedName}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+        }
+        function viewPurchase(index) {
+            const p = purchases[index];
+            if (!p) return;
+            showRecordView('Cleaning Purchase Details', `<div class="space-y-2"><p><b>Supplier:</b> ${p.supplierName}</p><p><b>Mobile:</b> ${p.supplierMobile || '—'}</p><p><b>Product:</b> ${p.rawMaterial}</p><p><b>Barcode:</b> ${p.rawBarcode || '—'}</p><p><b>Quantity:</b> ${p.rawQty} ${p.rawUnit || ''}</p><p><b>Total:</b> ₹${Number(p.rawCost || 0).toFixed(2)}</p><p><b>Paid:</b> ₹${Number(p.paid || 0).toFixed(2)}</p><p><b>Balance:</b> ₹${Number(p.balance || 0).toFixed(2)}</p><p><b>Date:</b> ${formatDateDDMMYYYY(p.date)}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editPurchase(${index});" class="bg-slate-800 text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deletePurchase(${index});" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+        }
+        function viewExpense(index) {
+            const ex = expenses[index];
+            if (!ex) return;
+            showRecordView('Expense Details', `<div class="space-y-2"><p><b>Title:</b> ${ex.title}</p><p><b>Amount:</b> ₹${Number(ex.amount || 0).toFixed(2)}</p><p><b>Date:</b> ${formatDateDDMMYYYY(ex.date)}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editExpense(${index});" class="bg-slate-800 text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteExpense(${index});" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+        }
         
         function editCosSale(index) {
             const s = cosSales[index];
@@ -4845,18 +5138,29 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             renderSalesHistory();
         }
 
-        function deleteCosSale(index) {
-            if(!cosSales[index]) return;
-            if(!confirm('Delete this cosmetics sale?')) return;
-            restoreCosSaleStock(cosSales[index]); restorePackageStock(normalizeCosSale(cosSales[index]).items);
-            cosSales.splice(index,1);
+        function deleteCosSale(billIdentifier, askConfirm = true) {
+            let index = -1;
+            if (typeof billIdentifier === 'number') {
+                index = billIdentifier;
+            } else if (billIdentifier !== undefined && billIdentifier !== null) {
+                const idStr = String(billIdentifier).trim();
+                index = cosSales.findIndex(s => s && (String(s.billNo) === idStr || String(s.id) === idStr));
+                if (index === -1 && /^\d+$/.test(idStr)) {
+                    index = parseInt(idStr, 10);
+                }
+            }
+            if (index < 0 || !cosSales[index]) return;
+            if (askConfirm && !confirm('Delete this cosmetics sale?')) return;
+
+            const s = cosSales[index];
+            if (s.billNo) markIdDeleted(s.billNo);
+            if (s.id) markIdDeleted(s.id);
+
+            restoreCosSaleStock(s);
+            restorePackageStock(normalizeCosSale(s).items);
+            cosSales.splice(index, 1);
             syncToFirebase();
-            renderCosSales();
-            renderCosProductStock();
-            renderCosmeticsSummary();
-            renderAccounts();
-            updateDashboard();
-            renderSalesHistory();
+            renderAll();
             alert("Cosmetics bill deleted successfully!");
         }
 
@@ -4902,17 +5206,23 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function ensureStableTransactionIds() {
             let changed = false;
             const ensure = (arr, prefix) => {
-                arr.forEach((item, i) => {
+                (arr || []).forEach((item, i) => {
                     if (!item || typeof item !== 'object') return;
                     if (!item.savedAt) {
                         item.savedAt = Date.now() + i;
                         changed = true;
                     }
+                    if (!item.id) {
+                        item.id = (item.billNo ? String(item.billNo) : (prefix + '_' + (item.savedAt || Date.now()) + '_' + i));
+                        changed = true;
+                    }
                 });
             };
-            ensure(purchases, 'p');
-            ensure(expenses, 'e');
-            ensure(cosPurchases, 'cp');
+            ensure(purchases, 'purch');
+            ensure(expenses, 'exp');
+            ensure(cosPurchases, 'cospurch');
+            ensure(customers, 'cust');
+            ensure(cosSales, 'cossale');
             if (changed) { try { saveLocalStateSafely(); } catch(e) {} }
         }
 
@@ -4921,23 +5231,28 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             let entries = [];
             customers.forEach((c, i) => { 
                 let incomeVal = Number(c.grandTotal || 0);
-                if(incomeVal > 0) entries.push({ id: `c_${i}`, type: 'Income', desc: `Customer Sale (${c.name})`, amount: incomeVal, date: c.date }); 
+                const entryId = c.billNo ? 'bill_' + c.billNo : ('c_' + (c.id || c.savedAt || i));
+                if(incomeVal > 0) entries.push({ id: entryId, type: 'Income', desc: `Customer Sale (${c.name})`, amount: incomeVal, date: c.date }); 
             });
             cosSales.forEach((s, i) => {
                 let incomeVal = Number((normalizeCosSale(s) || {}).grandTotal || 0);
-                if(incomeVal > 0) entries.push({ id: `cs_${i}`, type: 'Income', desc: `Cosmetics Sale (${s.customer})`, amount: incomeVal, date: s.date });
+                const entryId = s.billNo ? 'cossale_' + s.billNo : ('cs_' + (s.id || s.savedAt || i));
+                if(incomeVal > 0) entries.push({ id: entryId, type: 'Income', desc: `Cosmetics Sale (${s.customer})`, amount: incomeVal, date: s.date });
             });
             purchases.forEach((p, i) => {
                 const amount = Number(p.rawCost || 0);
-                if(amount > 0) entries.push({ id: `p_${p.savedAt || i}`, type: 'Expense', desc: `Purchase (${p.supplierName || p.rawMaterial || 'Supplier'})`, amount, date: p.date });
+                const entryId = p.id ? 'purch_' + p.id : ('p_' + (p.savedAt || i));
+                if(amount > 0) entries.push({ id: entryId, type: 'Expense', desc: `Purchase (${p.supplierName || p.rawMaterial || 'Supplier'})`, amount, date: p.date });
             });
             expenses.forEach((ex, i) => {
                 const amount = Number(ex.amount || 0);
-                if(amount > 0) entries.push({ id: `e_${ex.savedAt || i}`, type: 'Expense', desc: `Expense (${ex.title || 'General Expense'})`, amount, date: ex.date });
+                const entryId = ex.id ? 'exp_' + ex.id : ('e_' + (ex.savedAt || i));
+                if(amount > 0) entries.push({ id: entryId, type: 'Expense', desc: `Expense (${ex.title || 'General Expense'})`, amount, date: ex.date });
             });
             cosPurchases.forEach((cp, i) => {
                 const amount = Number(cp.amount || 0);
-                if(amount > 0) entries.push({ id: `cp_${cp.savedAt || i}`, type: 'Expense', desc: `Cosmetics Purchase (${cp.supplier || cp.item || 'Supplier'})`, amount, date: cp.date });
+                const entryId = cp.id ? 'cospurch_' + cp.id : ('cp_' + (cp.savedAt || i));
+                if(amount > 0) entries.push({ id: entryId, type: 'Expense', desc: `Cosmetics Purchase (${cp.supplier || cp.item || 'Supplier'})`, amount, date: cp.date });
             });
             return entries;
         }
@@ -4945,12 +5260,24 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function clearDayBook() {
             let fromDate = parseDateDDMMYYYY(document.getElementById('filterFromDate').value);
             let toDate = parseDateDDMMYYYY(document.getElementById('filterToDate').value);
+            if (!confirm('Clear all filtered Day Book entries from view?')) return;
             getAllMasterEntries().forEach(e => {
-                if((!fromDate || e.date >= fromDate) && (!toDate || e.date <= toDate)) {
+                if((!fromDate || dashboardDateKey(e.date) >= fromDate) && (!toDate || dashboardDateKey(e.date) <= toDate)) {
                     if(!clearedDayBookEntries.includes(e.id)) clearedDayBookEntries.push(e.id);
                 }
             });
-            syncToFirebase(); renderAccounts();
+            syncToFirebase();
+            renderAccounts();
+        }
+
+        function deleteDayBookEntry(id) {
+            if (!id) return;
+            if (!confirm('Remove this entry from Day Book view?')) return;
+            if (!clearedDayBookEntries.includes(id)) {
+                clearedDayBookEntries.push(id);
+            }
+            syncToFirebase();
+            renderAccounts();
         }
 
         function saveDayBookOpeningValues() {
@@ -4971,7 +5298,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
 
             let fromDate = parseDateDDMMYYYY(document.getElementById('filterFromDate').value);
             let toDate = parseDateDDMMYYYY(document.getElementById('filterToDate').value);
-            let filtered = getAllMasterEntries().filter(e => (!fromDate || dashboardDateKey(e.date) >= fromDate) && (!toDate || dashboardDateKey(e.date) <= toDate));
+            let filtered = getAllMasterEntries().filter(e => !clearedDayBookEntries.includes(e.id) && (!fromDate || dashboardDateKey(e.date) >= fromDate) && (!toDate || dashboardDateKey(e.date) <= toDate));
             filtered.sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date));
 
             let inc = filtered.filter(e => e.type === 'Income').reduce((s, e) => s + e.amount, 0);
@@ -4992,7 +5319,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             document.getElementById('dayBookListContainer').innerHTML = filtered.map(e => `
                 <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between text-xs">
                     <div><p class="font-bold ${e.type==='Income'?'text-emerald-300':'text-blue-300'}">[${e.type}] ${e.desc}</p><p class="text-slate-400">${formatDateDDMMYYYY(e.date)} | ₹${e.amount}</p></div>
-                    <button onclick="clearedDayBookEntries.push('${e.id}');syncToFirebase();renderAccounts();" class="text-red-400 font-bold">Del</button>
+                    <button type="button" onclick="deleteDayBookEntry('${e.id}')" class="text-red-400 font-bold px-2 py-1 bg-red-950/40 border border-red-800/60 rounded-lg text-[10px] hover:bg-red-900 cursor-pointer">Del</button>
                 </div>`).join('') || '<p class="text-xs text-slate-500 text-center">No entries found.</p>';
         }
 
@@ -5152,12 +5479,12 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                 const safeItems = Array.isArray(r.items) ? r.items : [];
                 const itemText = safeItems.map(i => i && (i.productName || i.item || 'Item')).join(', ');
                 const viewFn = (r.type === 'cleaning' || r.type === 'combined') ? `previewBill(${r.index})` : `previewCosSaleBill(cosSales[${r.index}])`;
-                const editFn = r.type === 'cleaning' ? `editCustomerBill(${r.index})` : `editCosSale(${r.index})`;
+                const editFn = (r.type === 'cleaning' || r.type === 'combined') ? `editCustomerBill(${r.index})` : `editCosSale(${r.index})`;
                 const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `deleteCustomerBill(${r.index})` : `deleteCosSale(${r.index})`;
                 return `<div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs">
                     <div class="flex justify-between items-start gap-2">
                         <div class="min-w-0">
-                            <div class="font-bold ${r.type==='cleaning'?'text-amber-300':'text-pink-300'}">${label(r)} — ${r.name}</div>
+                            <div class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — ${r.name}</div>
                             <div class="text-slate-400 mt-0.5">${formatDateDDMMYYYY(r.date)} | ${r.saleType} | ${r.paymentMode}</div>
                             ${r.phone ? `<div class="text-slate-500 mt-0.5">📞 ${r.phone}</div>` : ''}
                             <div class="text-slate-300 mt-1">${itemText || 'No item details'}</div>
@@ -5180,12 +5507,14 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             if(!q){ box.innerHTML='<div class="text-center py-8 text-slate-500 text-xs">Search by customer name or phone number.</div>'; return; }
             const allRows = getSalesHistoryRows();
             const data = allRows.filter(r => String(r.name).toLowerCase().includes(q) || String(r.phone).toLowerCase().includes(q));
-            const label = r => r.type === 'cleaning' ? '🧹 Cleaning' : '💄 Cosmetics';
+            const label = r => r.type === 'cleaning' ? '🧹 Cleaning' : r.type === 'combined' ? '🧾 Combined' : '💄 Cosmetics';
             box.innerHTML = data.length ? data.map(r => {
                 const safeItems = Array.isArray(r.items) ? r.items : [];
                 const itemText = safeItems.map(i => i && (i.productName || i.item || 'Item')).join(', ');
-                const viewFn = r.type === 'cleaning' ? `previewBill(${r.index})` : `previewCosSaleBill(cosSales[${r.index}])`;
-                return `<div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs"><div class="flex justify-between gap-2"><div><div class="font-bold ${r.type==='cleaning'?'text-amber-300':'text-pink-300'}">${label(r)} — ${r.name}</div><div class="text-slate-400">${formatDateDDMMYYYY(r.date)} | ${r.saleType} | ${r.paymentMode}</div>${r.phone?`<div class="text-slate-500">📞 ${r.phone}</div>`:''}<div class="text-slate-300 mt-1">${itemText}</div><div class="mt-1">Total ₹${r.total.toFixed(2)} · <span class="text-emerald-300">Paid ₹${r.paid.toFixed(2)}</span> · <span class="text-rose-300">Due ₹${r.due.toFixed(2)}</span></div></div><button type="button" onclick="${viewFn}" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg h-fit">View</button></div></div>`;
+                const viewFn = (r.type === 'cleaning' || r.type === 'combined') ? `previewBill(${r.index})` : `previewCosSaleBill(cosSales[${r.index}])`;
+                const editFn = (r.type === 'cleaning' || r.type === 'combined') ? `editCustomerBill(${r.index})` : `editCosSale(${r.index})`;
+                const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `deleteCustomerBill(${r.index})` : `deleteCosSale(${r.index})`;
+                return `<div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs"><div class="flex justify-between items-start gap-2"><div><div class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — ${r.name}</div><div class="text-slate-400">${formatDateDDMMYYYY(r.date)} | ${r.saleType} | ${r.paymentMode}</div>${r.phone?`<div class="text-slate-500">📞 ${r.phone}</div>`:''}<div class="text-slate-300 mt-1">${itemText}</div><div class="mt-1">Total ₹${r.total.toFixed(2)} · <span class="text-emerald-300">Paid ₹${r.paid.toFixed(2)}</span> · <span class="text-rose-300">Due ₹${r.due.toFixed(2)}</span></div></div><div class="flex flex-wrap gap-1 justify-end shrink-0"><button type="button" onclick="${viewFn}" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button><button type="button" onclick="${editFn}" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button><button type="button" onclick="${deleteFn}" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button></div></div></div>`;
             }).join('') : '<div class="text-center py-8 text-slate-500 text-xs">No sales found for this customer.</div>';
         }
 
