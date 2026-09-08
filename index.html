@@ -212,68 +212,68 @@
 
             /* Enhanced Mobile Readability for Smartphone Viewports */
             input, select, textarea {
-                font-size: 15.5px !important;
+                font-size: 16px !important;
                 line-height: 1.4 !important;
             }
             
             label {
-                font-size: 12.5px !important;
+                font-size: 13.5px !important;
                 line-height: 1.35 !important;
             }
 
             .text-\[9px\] {
-                font-size: 11.5px !important;
+                font-size: 12px !important;
             }
             .text-\[10px\] {
-                font-size: 12.5px !important;
+                font-size: 13px !important;
             }
             .text-\[11px\] {
-                font-size: 13.5px !important;
+                font-size: 14px !important;
             }
             .text-xs {
-                font-size: 14px !important;
+                font-size: 14.5px !important;
                 line-height: 1.4 !important;
             }
             .text-sm {
-                font-size: 15px !important;
+                font-size: 15.5px !important;
             }
 
             /* View tables and records on phone */
             table th, table td {
-                font-size: 12.5px !important;
+                font-size: 13.5px !important;
                 padding-top: 8px !important;
                 padding-bottom: 8px !important;
             }
 
             /* Item card buttons (Add, View, Edit, Delete) */
             button.text-\[10px\], .text-\[10px\] button {
-                font-size: 12px !important;
-                padding: 6px 10px !important;
+                font-size: 13px !important;
+                padding: 6px 11px !important;
             }
 
             /* Billing preview and customer list items */
             #currentBillItemsPreview, #cosCurrentBillItemsPreview, #combinedBillItemsPreview,
             #productListContainer, #cosProductListContainer, #packageListContainer, #directCustomerListContainer,
             #recentTransactionsList, #salesHistoryContainer {
-                font-size: 13.5px !important;
+                font-size: 14px !important;
             }
         }
 
         /* ===== GLOBAL ACCESSIBILITY & FONT SIZE BASE ENHANCEMENT ===== */
         input, select, textarea {
-            font-size: 14.5px !important;
+            font-size: 15px !important;
         }
         .text-\[9px\] {
-            font-size: 11px !important;
+            font-size: 11.5px !important;
         }
         .text-\[10px\] {
-            font-size: 12px !important;
+            font-size: 12.5px !important;
         }
         .text-\[11px\] {
-            font-size: 13px !important;
+            font-size: 13.5px !important;
         }
         .text-xs {
-            font-size: 13.5px !important;
+            font-size: 14px !important;
         }
 
         @media print {
@@ -533,6 +533,25 @@
                                 <div><label class="text-[10px] text-slate-400 block mb-1">Wholesale Price (₹):</label><input type="number" id="prodWholesalePrice" placeholder="Wholesale Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div>
                                 <div><label class="text-[10px] text-slate-400 block mb-1">Retail Price (₹):</label><input type="number" id="prodRetailPrice" placeholder="Retail Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div>
                             </div>
+                            <!-- Multi-Variant Pack Sizes & Custom Rates -->
+                            <div class="p-3 bg-slate-900/90 border border-emerald-500/40 rounded-xl space-y-2.5">
+                                <div class="flex items-center justify-between gap-2">
+                                    <div>
+                                        <span class="text-xs font-bold text-emerald-300">📦 Pack Sizes & Pricing (മൾട്ടി പാക്ക് വേരിയന്റുകൾ)</span>
+                                        <p class="text-[10px] text-slate-400">500ml Bottle, 500ml Pouch, 1L Bottle, 5L Can മുതലായവ പ്രത്യേക റേറ്റും പാക്കേജുമായി നൽകാം.</p>
+                                    </div>
+                                    <button type="button" onclick="addProductVariantRow('cleaning')" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-emerald-500/50 shadow shrink-0">+ Add Pack</button>
+                                </div>
+                                <div id="productVariantsContainer" class="space-y-2"></div>
+                                <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-800">
+                                    <span class="text-[10px] text-slate-400">Quick Presets:</span>
+                                    <button type="button" onclick="addPresetProductVariant('500 ml Bottle', 500, 'ml', 'cleaning')" class="text-[10px] bg-slate-800 text-slate-300 hover:text-emerald-300 border border-slate-700 px-2 py-0.5 rounded-md transition">+ 500ml Bottle</button>
+                                    <button type="button" onclick="addPresetProductVariant('500 ml Pouch', 500, 'ml', 'cleaning')" class="text-[10px] bg-slate-800 text-slate-300 hover:text-emerald-300 border border-slate-700 px-2 py-0.5 rounded-md transition">+ 500ml Pouch</button>
+                                    <button type="button" onclick="addPresetProductVariant('1 Ltr Bottle', 1, 'Ltr', 'cleaning')" class="text-[10px] bg-slate-800 text-slate-300 hover:text-emerald-300 border border-slate-700 px-2 py-0.5 rounded-md transition">+ 1L Bottle</button>
+                                    <button type="button" onclick="addPresetProductVariant('5 Ltr Can', 5, 'Ltr', 'cleaning')" class="text-[10px] bg-slate-800 text-slate-300 hover:text-emerald-300 border border-slate-700 px-2 py-0.5 rounded-md transition">+ 5L Can</button>
+                                    <button type="button" onclick="addPresetProductVariant('300 ml Bottle', 300, 'ml', 'cleaning')" class="text-[10px] bg-slate-800 text-slate-300 hover:text-emerald-300 border border-slate-700 px-2 py-0.5 rounded-md transition">+ 300ml Bottle</button>
+                                </div>
+                            </div>
                             <div class="flex gap-2 pt-1"><button type="submit" id="prodSubmitBtn" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm">Add Product</button><button type="button" onclick="resetProductForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm">Clear</button></div>
                         </form>
                     </div>
@@ -597,7 +616,26 @@
                 <div id="cosStockAddContent">
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-pink-800/40 shadow-inner">
                         <div class="flex justify-between items-center mb-3"><h2 id="cosStockFormTitle" class="font-bold text-pink-400 text-sm">Add Cosmetic Product</h2><button type="button" onclick="openBarcodeScannerForCosmeticStock()" class="bg-slate-800 text-pink-300 border border-slate-700 px-2.5 py-1 rounded-lg text-[11px] font-bold">📷 Scan Barcode</button></div>
-                        <form id="cosProductForm" class="space-y-3" onsubmit="saveCosProduct(event)"><input type="hidden" id="cosProdId" value=""><input type="text" id="cosProdName" placeholder="Product Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><input type="text" id="cosProdBarcode" placeholder="Barcode / QR Number (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><div class="flex gap-2"><input type="number" id="cosProdStock" placeholder="Stock Qty" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"><select id="cosProdUnit" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">Select Unit</option><option value="Ltr">Litre (Ltr)</option><option value="Kg">Kilogram (Kg)</option><option value="Gram">Gram (g)</option><option value="ml">Millilitre (ml)</option><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option></select></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Package Used per Selling Unit:</label><select id="cosProdPackageId" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">No Package Mapping</option></select></div><div><label class="text-[10px] text-slate-400 block mb-1">Package Qty:</label><input type="number" id="cosProdPackageQty" value="1" min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"></div></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Wholesale Price (₹):</label><input type="number" id="cosProdCostPrice" placeholder="Wholesale Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div><div><label class="text-[10px] text-slate-400 block mb-1">Retail Price (₹):</label><input type="number" id="cosProdSalePrice" placeholder="Retail Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div></div><div class="flex gap-2 pt-1"><button type="submit" id="cosProdSubmitBtn" class="flex-1 bg-pink-600 text-white py-3 rounded-xl font-bold text-sm">Add Product</button><button type="button" onclick="resetCosProductForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm">Clear</button></div></form>
+                        <form id="cosProductForm" class="space-y-3" onsubmit="saveCosProduct(event)"><input type="hidden" id="cosProdId" value=""><input type="text" id="cosProdName" placeholder="Product Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><input type="text" id="cosProdBarcode" placeholder="Barcode / QR Number (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><div class="flex gap-2"><input type="number" id="cosProdStock" placeholder="Stock Qty" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"><select id="cosProdUnit" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">Select Unit</option><option value="Ltr">Litre (Ltr)</option><option value="Kg">Kilogram (Kg)</option><option value="Gram">Gram (g)</option><option value="ml">Millilitre (ml)</option><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option></select></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Package Used per Selling Unit:</label><select id="cosProdPackageId" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">No Package Mapping</option></select></div><div><label class="text-[10px] text-slate-400 block mb-1">Package Qty:</label><input type="number" id="cosProdPackageQty" value="1" min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"></div></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Wholesale Price (₹):</label><input type="number" id="cosProdCostPrice" placeholder="Wholesale Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div><div><label class="text-[10px] text-slate-400 block mb-1">Retail Price (₹):</label><input type="number" id="cosProdSalePrice" placeholder="Retail Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div></div>
+<!-- Multi-Variant Pack Sizes & Custom Rates for Cosmetics -->
+<div class="p-3 bg-slate-900/90 border border-pink-500/40 rounded-xl space-y-2.5">
+    <div class="flex items-center justify-between gap-2">
+        <div>
+            <span class="text-xs font-bold text-pink-300">📦 Pack Sizes & Pricing (മൾട്ടി പാക്ക് വേരിയന്റുകൾ)</span>
+            <p class="text-[10px] text-slate-400">വിവിധ പാക്ക് അളവുകൾ, പാക്കേജിംഗ്, റേറ്റുകൾ ഇവിടെ നൽകാം.</p>
+        </div>
+        <button type="button" onclick="addProductVariantRow('cosmetics')" class="bg-pink-700 hover:bg-pink-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-pink-500/50 shadow shrink-0">+ Add Pack</button>
+    </div>
+    <div id="cosProductVariantsContainer" class="space-y-2"></div>
+    <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-800">
+        <span class="text-[10px] text-slate-400">Quick Presets:</span>
+        <button type="button" onclick="addPresetProductVariant('500 ml Bottle', 500, 'ml', 'cosmetics')" class="text-[10px] bg-slate-800 text-slate-300 hover:text-pink-300 border border-slate-700 px-2 py-0.5 rounded-md transition">+ 500ml</button>
+        <button type="button" onclick="addPresetProductVariant('200 ml Bottle', 200, 'ml', 'cosmetics')" class="text-[10px] bg-slate-800 text-slate-300 hover:text-pink-300 border border-slate-700 px-2 py-0.5 rounded-md transition">+ 200ml</button>
+        <button type="button" onclick="addPresetProductVariant('100 ml Bottle', 100, 'ml', 'cosmetics')" class="text-[10px] bg-slate-800 text-slate-300 hover:text-pink-300 border border-slate-700 px-2 py-0.5 rounded-md transition">+ 100ml</button>
+        <button type="button" onclick="addPresetProductVariant('50 ml Bottle', 50, 'ml', 'cosmetics')" class="text-[10px] bg-slate-800 text-slate-300 hover:text-pink-300 border border-slate-700 px-2 py-0.5 rounded-md transition">+ 50ml</button>
+    </div>
+</div>
+<div class="flex gap-2 pt-1"><button type="submit" id="cosProdSubmitBtn" class="flex-1 bg-pink-600 text-white py-3 rounded-xl font-bold text-sm">Add Product</button><button type="button" onclick="resetCosProductForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm">Clear</button></div></form>
                     </div>
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-pink-800/40 shadow-inner mt-3"><h3 class="font-bold text-pink-300 text-sm mb-3">➕ Add Stock to Existing Product</h3><div class="space-y-2"><label class="text-[10px] text-slate-400 font-semibold">PRODUCT</label><select id="cosAddStockProduct" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 min-h-[48px]"></select><div class="grid grid-cols-[1fr_auto] gap-2"><div><label class="text-[10px] text-slate-400 font-semibold">QUANTITY</label><input type="number" id="cosAddStockQty" placeholder="Enter quantity" min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 min-h-[48px]"></div><div class="flex items-end"><button type="button" onclick="addCosmeticStock()" class="bg-pink-600 text-white px-5 py-3 rounded-xl text-sm font-bold min-h-[48px]">Add</button></div></div></div></div>
                 </div>
@@ -813,6 +851,16 @@
                         <select id="billProductSelect" onchange="fillProductPrice()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500">
                             <option value="">-- Select Product --</option>
                         </select>
+                        <!-- Dynamic Pack Size / Variant Selector -->
+                        <div id="billPackVariantWrapper" class="hidden space-y-1 bg-slate-950/90 p-2.5 rounded-xl border border-amber-500/60 shadow-inner">
+                            <div class="flex justify-between items-center">
+                                <label class="font-bold text-[11px] text-amber-300">📦 Select Pack Size / Packaging:</label>
+                                <span class="text-[10px] text-emerald-400 font-semibold" id="billPackVariantBadge"></span>
+                            </div>
+                            <select id="billPackVariantSelect" onchange="onPackVariantSelected()" class="w-full p-2.5 border border-amber-600/70 rounded-xl text-xs bg-slate-900 text-amber-200 font-bold focus:outline-none focus:border-amber-400">
+                                <option value="">-- Select Pack Size --</option>
+                            </select>
+                        </div>
                         <div class="flex gap-2">
                             <input type="number" id="billQty" placeholder="Enter Quantity" oninput="calculateItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500" min="0" step="any">
                             <select id="billUnitType" onchange="calculateItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500">
@@ -908,6 +956,16 @@
                         <select id="combinedProductSelect" onchange="fillCombinedProductPrice()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-cyan-500">
                             <option value="">-- Select Product --</option>
                         </select>
+                        <!-- Dynamic Pack Size / Variant Selector for Combined Billing -->
+                        <div id="combinedPackVariantWrapper" class="hidden space-y-1 bg-slate-950/90 p-2.5 rounded-xl border border-cyan-500/60 shadow-inner">
+                            <div class="flex justify-between items-center">
+                                <label class="font-bold text-[11px] text-cyan-300">📦 Select Pack Size / Packaging:</label>
+                                <span class="text-[10px] text-emerald-400 font-semibold" id="combinedPackVariantBadge"></span>
+                            </div>
+                            <select id="combinedPackVariantSelect" onchange="onCombinedPackVariantSelected()" class="w-full p-2.5 border border-cyan-600/70 rounded-xl text-xs bg-slate-900 text-cyan-200 font-bold focus:outline-none focus:border-cyan-400">
+                                <option value="">-- Select Pack Size --</option>
+                            </select>
+                        </div>
                         <div class="flex gap-2">
                             <input type="number" id="combinedQty" placeholder="Enter Quantity" oninput="calculateCombinedItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200" min="0" step="any">
                             <select id="combinedUnitType" onchange="calculateCombinedItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200">
@@ -3084,7 +3142,7 @@
         async function downloadBillPDF() {
             if (!activePreviewCustomer) { alert('Bill data not available!'); return; }
             const c = activePreviewCustomer;
-            const rows = (c.items || []).map((item) => `<tr><td style="padding:6px;border:1px solid #ddd">${item.productName || ''}</td><td style="padding:6px;border:1px solid #ddd;text-align:center">${item.qty || 0} ${item.unitType !== 'Standard' ? (item.unitType || '') : ''}</td><td style="padding:6px;border:1px solid #ddd;text-align:center">${Number(item.numberOfUnits || 1)} Units</td><td style="padding:6px;border:1px solid #ddd;text-align:right">₹${Number(item.rate || 0).toFixed(2)}</td><td style="padding:6px;border:1px solid #ddd;text-align:right">₹${Number(item.total || 0).toFixed(2)}</td></tr>`).join('');
+            const rows = (c.items || []).map((item) => `<tr><td style="padding:6px;border:1px solid #ddd">${item.productName || ''}${item.variantName ? ' (' + item.variantName + ')' : ''}</td><td style="padding:6px;border:1px solid #ddd;text-align:center">${item.qty || 0} ${item.unitType !== 'Standard' ? (item.unitType || '') : ''}</td><td style="padding:6px;border:1px solid #ddd;text-align:center">${Number(item.numberOfUnits || 1)} Units</td><td style="padding:6px;border:1px solid #ddd;text-align:right">₹${Number(item.rate || 0).toFixed(2)}</td><td style="padding:6px;border:1px solid #ddd;text-align:right">₹${Number(item.total || 0).toFixed(2)}</td></tr>`).join('');
             const grand = Number(c.grandTotal || 0), paid = Number(c.paidAmount ?? grand), due = Number(c.pendingAmount ?? Math.max(0, grand-paid)), ret = Number(c.excessAmount ?? Math.max(0, paid-grand));
             const wrapper = document.createElement('div');
             wrapper.innerHTML = `<div style="font-family:Arial,sans-serif;background:#fff!important;color:#000!important;padding:8px;width:100%;max-width:none;margin:0;border:3px solid #000!important;border-radius:4px;box-sizing:border-box;font-size:11px;line-height:1.35"><div style="text-align:center;border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:12px"><div style="font-size:20px;font-weight:bold;color:#065f46">FIA CLEAN AND CARE</div><div style="font-size:12px;font-weight:600;color:#333">Wholesale and Retail</div><div style="font-size:11px;color:#333">Edathanattukara</div><div style="font-size:11px;color:#333">Mob:80864 52106</div></div><div style="font-size:12px;margin-bottom:10px"><strong>Bill No:</strong> ${c.billNo || '—'} &nbsp;|&nbsp; <strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}<br><strong>Customer:</strong> ${c.name || ''}</div><div style="border-top:1px solid #000;padding-top:6px;margin-top:6px;margin-bottom:6px;font-size:14px;font-weight:700;letter-spacing:0.3px;color:#000;text-align:center;">PARTICULARS</div><table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px"><thead><tr style="background:#f3f4f6"><th style="padding:6px;border:1px solid #ddd">Product</th><th style="padding:6px;border:1px solid #ddd">Quantity</th><th style="padding:6px;border:1px solid #ddd">Unit</th><th style="padding:6px;border:1px solid #ddd">Price</th><th style="padding:6px;border:1px solid #ddd">Total</th></tr></thead><tbody>${rows}</tbody></table><div style="text-align:right;font-size:12px;line-height:1.6"><div><strong>Grand Total: ₹${grand.toFixed(2)}</strong></div><div style="color:#047857"><strong>Paid: ₹${paid.toFixed(2)}</strong></div>${due>0?`<div style="color:#b91c1c"><strong>Balance Due: ₹${due.toFixed(2)}</strong></div>`:''}${ret>0?`<div style="color:#b45309"><strong>Balance Return: ₹${ret.toFixed(2)}</strong></div>`:''}</div><div style="text-align:center;border-top:1px solid #ddd;margin-top:20px;padding-top:8px;font-size:10px;color:#555">Thank you for your business!</div></div>`;
@@ -3185,9 +3243,137 @@
                 el.innerHTML=opts;
                 el.value=(old && [...el.options].some(o=>String(o.value)===old))?old:'';
             });
+            // Update open variant row package dropdowns if any exist
+            document.querySelectorAll('.var-pkg').forEach(sel => {
+                const oldVal = sel.value;
+                sel.innerHTML = '<option value="">-- Container Package --</option>' + sortByNameAsc(packages).map(p => `<option value="${p.id}">${p.name}${p.size ? ' (' + p.size + ')' : ''} (Stock: ${p.stock})</option>`).join('');
+                if (oldVal && [...sel.options].some(o => o.value === oldVal)) sel.value = oldVal;
+            });
             updateBillQuantityTypeDropdown();
             updateProductDropdown();
             updateCombinedProductSelect();
+        }
+
+        // ================= PACK SIZE & PRICING VARIANT HELPERS =================
+        function addProductVariantRow(target = 'cleaning', data = null) {
+            const containerId = target === 'cosmetics' ? 'cosProductVariantsContainer' : 'productVariantsContainer';
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const v = data || {
+                id: 'var_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                name: '',
+                size: '',
+                unit: target === 'cosmetics' ? 'ml' : 'Ltr',
+                packageId: '',
+                packageName: '',
+                wholesalePrice: '',
+                retailPrice: ''
+            };
+
+            const pkgOptions = '<option value="">-- Container Package --</option>' +
+                sortByNameAsc(packages).map(p => `<option value="${p.id}" ${String(p.id) === String(v.packageId) ? 'selected' : ''}>${p.name}${p.size ? ' (' + p.size + ')' : ''} (Stock: ${p.stock})</option>`).join('');
+
+            const row = document.createElement('div');
+            row.className = 'prod-variant-row bg-slate-950 p-2.5 rounded-xl border border-slate-700/80 space-y-2 shadow-sm';
+            row.dataset.varId = v.id;
+            row.innerHTML = `
+                <div class="flex justify-between items-center gap-2">
+                    <input type="text" class="var-name flex-1 p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs ${target==='cosmetics'?'text-pink-300':'text-emerald-300'} font-bold focus:outline-none" placeholder="Pack Name (e.g. 500 ml Bottle)" value="${String(v.name || '').replace(/"/g, '&quot;')}">
+                    <button type="button" onclick="this.closest('.prod-variant-row').remove()" class="bg-red-950/80 hover:bg-red-900 text-red-300 px-2 py-1 rounded-lg text-[10px] font-bold border border-red-800" title="Delete Variant">✕ Remove</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="flex gap-1">
+                        <input type="number" class="var-size w-3/5 p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none" placeholder="Size" value="${v.size || ''}" min="0" step="any">
+                        <select class="var-unit w-2/5 p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none">
+                            <option value="ml" ${v.unit==='ml'?'selected':''}>ml</option>
+                            <option value="Ltr" ${v.unit==='Ltr'?'selected':''}>Ltr</option>
+                            <option value="g" ${v.unit==='g'?'selected':''}>g</option>
+                            <option value="Kg" ${v.unit==='Kg'?'selected':''}>Kg</option>
+                            <option value="Pcs" ${v.unit==='Pcs'?'selected':''}>Pcs</option>
+                            <option value="Bottle" ${v.unit==='Bottle'?'selected':''}>Bottle</option>
+                        </select>
+                    </div>
+                    <select class="var-pkg w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none">
+                        ${pkgOptions}
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[9px] text-slate-400 block mb-0.5">Wholesale Price (₹):</label>
+                        <input type="number" class="var-wholesale w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-amber-300 font-bold focus:outline-none" placeholder="Wholesale" value="${v.wholesalePrice !== undefined && v.wholesalePrice !== '' ? v.wholesalePrice : ''}" min="0" step="any">
+                    </div>
+                    <div>
+                        <label class="text-[9px] text-slate-400 block mb-0.5">Retail Price (₹):</label>
+                        <input type="number" class="var-retail w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-emerald-400 font-bold focus:outline-none" placeholder="Retail" value="${v.retailPrice !== undefined && v.retailPrice !== '' ? v.retailPrice : ''}" min="0" step="any">
+                    </div>
+                </div>`;
+            container.appendChild(row);
+        }
+
+        function addPresetProductVariant(name, size, unit, target = 'cleaning') {
+            let matchedPkg = null;
+            const normName = name.toLowerCase();
+            const normSize = String(size).toLowerCase();
+            matchedPkg = packages.find(p => {
+                const pn = (p.name || '').toLowerCase();
+                const ps = (p.size || '').toLowerCase();
+                const sizeMatch = pn.includes(normSize) || ps.includes(normSize);
+                const isBottle = normName.includes('bottle') && pn.includes('bottle');
+                const isPouch = normName.includes('pouch') && pn.includes('pouch');
+                const isCan = normName.includes('can') && pn.includes('can');
+                return sizeMatch && (isBottle || isPouch || isCan);
+            }) || packages.find(p => {
+                const pn = (p.name || '').toLowerCase();
+                return pn.includes(normSize);
+            });
+
+            addProductVariantRow(target, {
+                id: 'var_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                name,
+                size,
+                unit,
+                packageId: matchedPkg ? matchedPkg.id : '',
+                packageName: matchedPkg ? matchedPkg.name : '',
+                wholesalePrice: '',
+                retailPrice: ''
+            });
+        }
+
+        function getProductFormVariants(target = 'cleaning') {
+            const containerId = target === 'cosmetics' ? 'cosProductVariantsContainer' : 'productVariantsContainer';
+            const container = document.getElementById(containerId);
+            if (!container) return [];
+            const rows = container.querySelectorAll('.prod-variant-row');
+            const list = [];
+            rows.forEach(r => {
+                const name = r.querySelector('.var-name')?.value.trim();
+                const size = parseFloat(r.querySelector('.var-size')?.value) || 0;
+                const unit = r.querySelector('.var-unit')?.value || 'ml';
+                const pkgSelect = r.querySelector('.var-pkg');
+                const packageId = pkgSelect?.value || '';
+                const pkgOpt = pkgSelect?.selectedOptions?.[0];
+                const packageName = pkgOpt && packageId ? pkgOpt.text.split(' (Stock:')[0].trim() : '';
+                const wholesalePrice = parseFloat(r.querySelector('.var-wholesale')?.value) || 0;
+                const retailPrice = parseFloat(r.querySelector('.var-retail')?.value) || 0;
+                const varId = r.dataset.varId || ('var_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6));
+                if (name && size > 0) {
+                    list.push({ id: varId, name, size, unit, packageId, packageName, wholesalePrice, retailPrice });
+                }
+            });
+            return list;
+        }
+
+        function renderProductVariants(variants, target = 'cleaning') {
+            clearProductVariants(target);
+            if (!Array.isArray(variants)) return;
+            variants.forEach(v => addProductVariantRow(target, v));
+        }
+
+        function clearProductVariants(target = 'cleaning') {
+            const containerId = target === 'cosmetics' ? 'cosProductVariantsContainer' : 'productVariantsContainer';
+            const container = document.getElementById(containerId);
+            if (container) container.innerHTML = '';
         }
         function normalizePackageMapping(packageId, packageQty, packageName){
             const id=String(packageId||'').trim(), qty=Number(packageQty)||0;
@@ -3434,8 +3620,9 @@
             const mapped=normalizePackageMapping(rawPackageId,rawPackageQty,selectedText.split(' (Stock:')[0]);
             const packageId=mapped.packageId, packageQty=mapped.packageQty, packageName=mapped.packageName;
             if(rawPackageId && !packageId){ alert('Selected package was not found. Please refresh the package list and select the package again.'); return; }
-            if(id === "") { products.push({ id: Date.now().toString(), name, barcode, stock, unit, wholesalePrice, retailPrice, packageId, packageQty, packageName }); }
-            else { const idx = products.findIndex(p => String(p.id) === String(id)); if(idx !== -1) products[idx] = { ...products[idx], id, name, barcode, stock, unit, wholesalePrice, retailPrice, packageId, packageQty, packageName }; }
+            const variants = getProductFormVariants('cleaning');
+            if(id === "") { products.push({ id: Date.now().toString(), name, barcode, stock, unit, wholesalePrice, retailPrice, packageId, packageQty, packageName, variants }); }
+            else { const idx = products.findIndex(p => String(p.id) === String(id)); if(idx !== -1) products[idx] = { ...products[idx], id, name, barcode, stock, unit, wholesalePrice, retailPrice, packageId, packageQty, packageName, variants }; }
             syncToFirebase();
             resetProductForm();
             renderProducts();
@@ -3572,11 +3759,15 @@
             if(!container) return;
             container.innerHTML = products.length === 0 ? '<p class="text-xs text-slate-500 text-center py-2">No products added yet.</p>' : '';
             sortByNameAsc(products).forEach((p) => {
+                const variantsBadgeHtml = (p.variants && p.variants.length > 0)
+                    ? `<div class="flex flex-wrap gap-1 mt-1.5">${p.variants.map(v=>`<span class="bg-slate-900 border border-slate-700 text-[10px] px-2 py-0.5 rounded-md text-cyan-300 font-semibold">📦 ${v.name}: ₹${v.retailPrice}</span>`).join('')}</div>`
+                    : '';
                 container.innerHTML += `
                     <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
                         <div class="min-w-0 flex-1 pr-2 break-words">
                             <p class="font-bold text-emerald-300">${p.name} ${p.barcode ? '<span class="text-[10px] text-slate-400">['+p.barcode+']</span>' : ''}</p>
                             <p class="text-slate-400">Stock: <span class="${p.stock <= 5 ? 'text-rose-400 font-bold' : ''}">${p.stock} ${p.unit}</span> | <span class="text-amber-300">W: ₹${p.wholesalePrice}</span> | <span class="text-emerald-400">R: ₹${p.retailPrice}</span></p>
+                            ${variantsBadgeHtml}
                         </div>
                         <div class="flex flex-wrap gap-1 justify-end shrink-0">
                             <button type="button" onclick="viewProduct('${p.id}')" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg border border-blue-800">View</button>
@@ -3602,7 +3793,10 @@
                 document.getElementById('prodUnit').value = p.unit || '';
                 document.getElementById('prodWholesalePrice').value = p.wholesalePrice ?? 0;
                 document.getElementById('prodRetailPrice').value = p.retailPrice ?? 0;
-                updatePackageSelectors(); document.getElementById('prodPackageId').value = p.packageId || ''; document.getElementById('prodPackageQty').value = p.packageQty ?? 1;
+                updatePackageSelectors(); 
+                document.getElementById('prodPackageId').value = p.packageId || ''; 
+                document.getElementById('prodPackageQty').value = p.packageQty ?? 1;
+                renderProductVariants(p.variants || [], 'cleaning');
                 document.getElementById('stockFormTitle').innerText = "Edit Product";
                 document.getElementById('prodSubmitBtn').innerText = "Update Product";
                 setTimeout(() => document.getElementById('stockFormTitle')?.scrollIntoView({behavior:'smooth', block:'start'}), 50);
@@ -3626,7 +3820,9 @@
             document.getElementById('prodId').value = "";
             document.getElementById('stockFormTitle').innerText = "Add New Product";
             document.getElementById('prodSubmitBtn').innerText = "Add Product";
-            if(document.getElementById('prodPackageId')) document.getElementById('prodPackageId').value=''; if(document.getElementById('prodPackageQty')) document.getElementById('prodPackageQty').value='1';
+            if(document.getElementById('prodPackageId')) document.getElementById('prodPackageId').value=''; 
+            if(document.getElementById('prodPackageQty')) document.getElementById('prodPackageQty').value='1';
+            clearProductVariants('cleaning');
         }
 
         function saveDirectCustomer(e) {
@@ -3879,15 +4075,16 @@
 
             if (!name || !unit) return;
             if(rawPackageId && !packageId){ alert('Selected package was not found. Please refresh the package list and select the package again.'); return; }
+            const variants = getProductFormVariants('cosmetics');
             if (id === '') {
                 cosProducts.push({
                     id: 'cp_' + Date.now().toString(),
-                    name, barcode, stock, unit, costPrice, salePrice, packageId, packageQty, packageName
+                    name, barcode, stock, unit, costPrice, salePrice, packageId, packageQty, packageName, variants
                 });
             } else {
                 const idx = cosProducts.findIndex(p => p.id === id);
                 if (idx !== -1) {
-                    cosProducts[idx] = { ...cosProducts[idx], name, barcode, stock, unit, costPrice, salePrice, packageId, packageQty, packageName };
+                    cosProducts[idx] = { ...cosProducts[idx], name, barcode, stock, unit, costPrice, salePrice, packageId, packageQty, packageName, variants };
                 }
             }
             syncToFirebase();
@@ -3930,6 +4127,7 @@
             document.getElementById('cosProdCostPrice').value = p.costPrice ?? 0;
             document.getElementById('cosProdSalePrice').value = p.salePrice ?? 0;
             updatePackageSelectors(); document.getElementById('cosProdPackageId').value=p.packageId||''; document.getElementById('cosProdPackageQty').value=p.packageQty??1;
+            renderProductVariants(p.variants || [], 'cosmetics');
             document.getElementById('cosStockFormTitle').innerText = 'Edit Cosmetic Product';
             document.getElementById('cosProdSubmitBtn').innerText = 'Update Product';
             setTimeout(() => document.getElementById('cosStockFormTitle')?.scrollIntoView({behavior:'smooth', block:'start'}), 50);
@@ -3955,22 +4153,28 @@
                 return;
             }
 
-            container.innerHTML = sortByNameAsc(cosProducts).map(p => `
+            container.innerHTML = sortByNameAsc(cosProducts).map(p => {
+                const variantsBadgeHtml = (p.variants && p.variants.length > 0)
+                    ? `<div class="flex flex-wrap gap-1 mt-1.5">${p.variants.map(v=>`<span class="bg-slate-900 border border-slate-700 text-[10px] px-2 py-0.5 rounded-md text-pink-300 font-semibold">📦 ${v.name}: ₹${v.retailPrice}</span>`).join('')}</div>`
+                    : '';
+                return `
                 <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
                     <div class="min-w-0 flex-1 pr-2 break-words">
-                        <p class="font-bold text-pink-300">${p.name} ${p.barcode ? '<span class="text-[10px] text-slate-400">['+p.barcode+']</span>' : ''}</p>
+                        <strong class="text-pink-400 font-bold">${p.name} ${p.barcode ? '<span class="text-[10px] text-slate-400">['+p.barcode+']</span>' : ''}</strong>
                         <p class="text-slate-400">Stock:
                             <span class="${(parseFloat(p.stock) || 0) <= 5 ? 'text-rose-400 font-bold' : 'text-emerald-300 font-bold'}">${p.stock} ${p.unit}</span>
                             | W: ₹${p.costPrice}
                             | R: ₹${p.salePrice}
                         </p>
+                        ${variantsBadgeHtml}
                     </div>
                     <div class="flex flex-wrap gap-1 justify-end shrink-0">
                         <button type="button" onclick="viewCosProduct('${p.id}')" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg border border-blue-800">View</button>
                         <button type="button" onclick="editCosProduct('${p.id}')" class="bg-slate-800 text-pink-300 px-2 py-1.5 rounded-lg border border-slate-700">Edit</button>
                         <button type="button" onclick="deleteCosProduct('${p.id}')" class="bg-slate-800 text-red-400 px-2 py-1.5 rounded-lg border border-slate-700">Delete</button>
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         }
 
         function resetCosProductForm() {
@@ -3979,7 +4183,9 @@
             document.getElementById('cosProdId').value = '';
             document.getElementById('cosStockFormTitle').innerText = 'Add Cosmetic Product';
             document.getElementById('cosProdSubmitBtn').innerText = 'Add Product';
-            if(document.getElementById('cosProdPackageId')) document.getElementById('cosProdPackageId').value=''; if(document.getElementById('cosProdPackageQty')) document.getElementById('cosProdPackageQty').value='1';
+            if(document.getElementById('cosProdPackageId')) document.getElementById('cosProdPackageId').value=''; 
+            if(document.getElementById('cosProdPackageQty')) document.getElementById('cosProdPackageQty').value='1';
+            clearProductVariants('cosmetics');
         }
 
         function showCosmeticStockList() {
@@ -4076,7 +4282,7 @@
             const productId = document.getElementById('cosSalesStockSelect').value;
             const product = cosProducts.find(p => p.id === productId);
             const factor = getBillingUnitFactor(unitType, product?.unit);
-            const total = qty * factor * numberOfUnits * rate;
+            const total = rate * numberOfUnits;
             document.getElementById('cosSAmount').value = total ? total.toFixed(2) : '';
             calculateCosSalesBalance();
         }
@@ -4166,15 +4372,31 @@
             }
         }
 
-        function onSaleTypeChange() { fillProductPrice(); }
+        function onSaleTypeChange() { 
+            const vWrap = document.getElementById('billPackVariantWrapper');
+            if (vWrap && !vWrap.classList.contains('hidden')) {
+                onPackVariantSelected();
+            } else {
+                fillProductPrice();
+            }
+        }
 
         function fillProductPrice() {
             const select = document.getElementById('billProductSelect');
             const opt = select.options[select.selectedIndex];
-            if(!opt || !opt.value) return;
+            const variantWrapper = document.getElementById('billPackVariantWrapper');
+            const variantSelect = document.getElementById('billPackVariantSelect');
+            const badgeEl = document.getElementById('billPackVariantBadge');
+            if(!opt || !opt.value) {
+                if (variantWrapper) variantWrapper.classList.add('hidden');
+                if (badgeEl) badgeEl.textContent = '';
+                return;
+            }
 
             const isPackage = opt.getAttribute('data-is-package') === 'true';
             if (isPackage) {
+                if (variantWrapper) variantWrapper.classList.add('hidden');
+                if (badgeEl) badgeEl.textContent = '';
                 const pkg = packages.find(p => p.name === opt.value);
                 if (pkg) {
                     const unitEl = document.getElementById('billUnitType');
@@ -4189,17 +4411,41 @@
                     if (qTypeEl) qTypeEl.value = pkg.name;
                     const rateEl = document.getElementById('billRate');
                     if (rateEl && !rateEl.value) rateEl.value = '0';
+                    delete rateEl.dataset.variantId;
                     calculateItemTotal();
                     return;
                 }
             }
 
-            const saleType = document.querySelector('input[name="saleType"]:checked').value;
+            const product = products.find(p => p.name === opt.value);
+
+            // Check if product has pack size variants!
+            if (product && Array.isArray(product.variants) && product.variants.length > 0) {
+                if (variantWrapper && variantSelect) {
+                    variantWrapper.classList.remove('hidden');
+                    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+                    variantSelect.innerHTML = '<option value="">-- Select Pack Size (' + product.variants.length + ' options) --</option>' +
+                        product.variants.map(v => {
+                            const rate = saleType === 'Wholesale' ? v.wholesalePrice : v.retailPrice;
+                            return `<option value="${v.id}">${v.name} (${v.size} ${v.unit}) — ₹${Number(rate||0).toFixed(2)}${v.packageName ? ' [' + v.packageName + ']' : ''}</option>`;
+                        }).join('');
+                    
+                    // Auto-select first variant
+                    variantSelect.selectedIndex = 1;
+                    onPackVariantSelected();
+                    return;
+                }
+            } else {
+                if (variantWrapper) variantWrapper.classList.add('hidden');
+                if (badgeEl) badgeEl.textContent = '';
+                if (variantSelect) variantSelect.innerHTML = '<option value="">-- Select Pack Size --</option>';
+            }
+
+            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
             const rateEl = document.getElementById('billRate');
             const baseRate = parseFloat(saleType === 'Wholesale' ? opt.getAttribute('data-wholesale') : opt.getAttribute('data-retail')) || 0;
             const qty = parseFloat(document.getElementById('billQty')?.value) || 0;
             const unitType = document.getElementById('billUnitType')?.value || '';
-            const product = products.find(p => p.name === opt.value);
 
             // Auto-select mapped package in billQuantityType if available!
             if (product && product.packageId) {
@@ -4214,11 +4460,61 @@
             }
 
             const factor = getBillingUnitFactor(unitType, product?.unit);
-            // Product Master price is the price for the base quantity. Convert it to the
-            // selected selling quantity so the displayed rate is the price of ONE bottle/pack.
             const sellingUnitRate = qty > 0 ? baseRate * factor : baseRate;
             rateEl.value = sellingUnitRate ? sellingUnitRate.toFixed(2) : '';
             rateEl.dataset.autoRate = rateEl.value;
+            delete rateEl.dataset.variantId;
+            calculateItemTotal();
+        }
+
+        function onPackVariantSelected() {
+            const prodSelect = document.getElementById('billProductSelect');
+            const prodName = prodSelect?.value || '';
+            const product = products.find(p => p.name === prodName);
+            const variantSelect = document.getElementById('billPackVariantSelect');
+            const vId = variantSelect?.value;
+            const badgeEl = document.getElementById('billPackVariantBadge');
+            if (!product || !vId) {
+                if (badgeEl) badgeEl.textContent = '';
+                return;
+            }
+            const variant = product.variants?.find(v => String(v.id) === String(vId));
+            if (!variant) return;
+
+            document.getElementById('billQty').value = variant.size;
+            const unitEl = document.getElementById('billUnitType');
+            if (unitEl) {
+                if (![...unitEl.options].some(o => o.value.toLowerCase() === variant.unit.toLowerCase())) {
+                    unitEl.add(new Option(variant.unit, variant.unit));
+                }
+                unitEl.value = variant.unit;
+            }
+            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+            const rate = Number(saleType === 'Wholesale' ? variant.wholesalePrice : variant.retailPrice) || 0;
+            const rateEl = document.getElementById('billRate');
+            rateEl.value = rate ? rate.toFixed(2) : '0';
+            rateEl.dataset.autoRate = rateEl.value;
+            rateEl.dataset.variantId = variant.id;
+
+            // Link package in quantityType
+            const qTypeEl = document.getElementById('billQuantityType');
+            let pkg = null;
+            if (variant.packageId) pkg = packages.find(p => String(p.id) === String(variant.packageId));
+            if (!pkg && variant.packageName) pkg = packages.find(p => String(p.name).toLowerCase() === String(variant.packageName).toLowerCase());
+
+            if (pkg) {
+                if (qTypeEl) {
+                    if (![...qTypeEl.options].some(o => o.value.toLowerCase() === pkg.name.toLowerCase())) {
+                        qTypeEl.add(new Option(pkg.name, pkg.name));
+                    }
+                    qTypeEl.value = pkg.name;
+                }
+                if (badgeEl) badgeEl.innerHTML = `📦 ${pkg.name} (<span class="${Number(pkg.stock)<=5?'text-rose-400 font-bold':'text-emerald-400 font-bold'}">Stock: ${pkg.stock}</span>)`;
+            } else {
+                if (qTypeEl && variant.packageName) qTypeEl.value = variant.packageName;
+                if (badgeEl) badgeEl.textContent = variant.packageName ? `📦 ${variant.packageName}` : '';
+            }
+
             calculateItemTotal();
         }
 
@@ -4268,7 +4564,7 @@
 
         function calculateItemTotal() {
             const qty = parseFloat(document.getElementById('billQty').value) || 0;
-            const rate = parseFloat(document.getElementById('billRate').value) || 0;
+            let rate = parseFloat(document.getElementById('billRate').value) || 0;
             const unitType = document.getElementById('billUnitType').value;
             const quantityType = document.getElementById('billQuantityType')?.value || 'Bottle';
             const numberOfUnits = Math.max(1, parseInt(document.getElementById('billNumberOfUnits')?.value, 10) || 1);
@@ -4280,14 +4576,15 @@
             // with the selected bottle/pack size. Once the user manually changes the rate,
             // that manual rate is treated as the price for ONE bottle/pack.
             const autoRate = parseFloat(document.getElementById('billRate')?.dataset.autoRate);
-            if (qty > 0 && Number.isFinite(autoRate) && Math.abs(rate - autoRate) < 0.000001) {
+            const variantId = document.getElementById('billPackVariantSelect')?.value || document.getElementById('billRate')?.dataset.variantId;
+            if (!variantId && qty > 0 && Number.isFinite(autoRate) && Math.abs(rate - autoRate) < 0.000001) {
                 const baseRate = product
                     ? (document.querySelector('input[name="saleType"]:checked')?.value === 'Wholesale' ? Number(product.wholesalePrice || 0) : Number(product.retailPrice || 0))
                     : 0;
                 const convertedRate = baseRate * factor;
-                if (Number.isFinite(convertedRate)) {
+                if (Number.isFinite(convertedRate) && convertedRate > 0) {
                     rate = convertedRate;
-                    document.getElementById('billRate').value = rate ? rate.toFixed(2) : '';
+                    document.getElementById('billRate').value = rate.toFixed(2);
                     document.getElementById('billRate').dataset.autoRate = document.getElementById('billRate').value;
                 }
             }
@@ -4305,61 +4602,41 @@
         function editBillItem(index) {
             const item = currentBillItems[index];
             if (!item) return;
-            const newQtyRaw = prompt(`Edit quantity for ${item.productName}:`, String(item.qty ?? ''));
-            if (newQtyRaw === null) return;
-            const newQty = parseFloat(newQtyRaw);
-            if (!Number.isFinite(newQty) || newQty <= 0) { alert('Please enter a valid quantity.'); return; }
-            const newUnitsRaw = prompt(`Edit number of units for ${item.productName}:`, String(item.numberOfUnits || 1));
+            const newUnitsRaw = prompt(`Edit number of units/bottles for ${item.productName}${item.variantName ? ' (' + item.variantName + ')' : ''}:`, String(item.numberOfUnits || 1));
             if (newUnitsRaw === null) return;
             const newUnits = Math.max(1, parseInt(newUnitsRaw, 10) || 1);
-            const newRateRaw = prompt(`Edit rate for ${item.productName}:`, String(item.rate ?? ''));
+            const newRateRaw = prompt(`Edit rate per unit for ${item.productName}:`, String(item.rate ?? ''));
             if (newRateRaw === null) return;
             const newRate = parseFloat(newRateRaw);
             if (!Number.isFinite(newRate) || newRate < 0) { alert('Please enter a valid rate.'); return; }
+            
+            const perUnitBulk = (Number(item.stockDeductionQty) || 0) / (Number(item.numberOfUnits) || 1);
+            const newStockDeductionQty = perUnitBulk * newUnits;
+            const newTotal = newRate * newUnits;
+
             const product = products.find(p => p.name === item.productName);
-            const factor = getBillingUnitFactor(item.unitType, product?.unit);
-            const newStockDeductionQty = newQty * factor * newUnits;
-            if (product) {
-                const others = currentBillItems.filter((_, i) => i !== index).reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
+            if (product && !item.isPackage) {
+                const others = currentBillItems.filter((_, i) => i !== index && i.productName === item.productName && !i.isPackage).reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
                 if (newStockDeductionQty + others > Number(product.stock || 0)) {
-                    alert(`Insufficient stock. Available: ${product.stock} ${product.unit}`);
+                    alert(`Insufficient liquid stock for "${product.name}".\nAvailable: ${product.stock} ${product.unit}\nNeeded: ${(newStockDeductionQty + others).toFixed(2)} ${product.unit}`);
                     return;
                 }
             }
-            currentBillItems[index] = { ...item, qty: newQty, numberOfUnits: newUnits, rate: newRate, total: newRate * newUnits, stockDeductionQty: newStockDeductionQty };
+            if (item.packageId) {
+                const pkg = packages.find(p => String(p.id) === String(item.packageId));
+                if (pkg) {
+                    const others = currentBillItems.filter((_, i) => i !== index && String(i.packageId) === String(pkg.id)).reduce((s, i) => s + Number(i.numberOfUnits || 1), 0);
+                    if (newUnits + others > Number(pkg.stock || 0)) {
+                        alert(`Insufficient packaging stock for "${pkg.name}".\nAvailable: ${pkg.stock} ${pkg.unit || 'Pcs'}\nNeeded: ${newUnits + others} ${pkg.unit || 'Pcs'}`);
+                        return;
+                    }
+                }
+            }
+
+            currentBillItems[index] = { ...item, numberOfUnits: newUnits, rate: newRate, total: newTotal, stockDeductionQty: newStockDeductionQty };
             currentBillItems = sortBillItemsAlphabetically(currentBillItems);
             renderBillPreviewInput();
             calculateBalance();
-        }
-
-        function editCosBillItem(index) {
-            const item = currentCosBillItems[index];
-            if (!item) return;
-            const newQtyRaw = prompt(`Edit quantity for ${item.productName}:`, String(item.qty ?? ''));
-            if (newQtyRaw === null) return;
-            const newQty = parseFloat(newQtyRaw);
-            if (!Number.isFinite(newQty) || newQty <= 0) { alert('Please enter a valid quantity.'); return; }
-            const newUnitsRaw = prompt(`Edit number of units for ${item.productName}:`, String(item.numberOfUnits || 1));
-            if (newUnitsRaw === null) return;
-            const newUnits = Math.max(1, parseInt(newUnitsRaw, 10) || 1);
-            const newRateRaw = prompt(`Edit rate for ${item.productName}:`, String(item.rate ?? ''));
-            if (newRateRaw === null) return;
-            const newRate = parseFloat(newRateRaw);
-            if (!Number.isFinite(newRate) || newRate < 0) { alert('Please enter a valid rate.'); return; }
-            const product = cosProducts.find(p => p.id === item.stockId);
-            const factor = getBillingUnitFactor(item.unitType, product?.unit);
-            const newStockDeductionQty = newQty * factor * newUnits;
-            if (product) {
-                const others = currentCosBillItems.filter((_, i) => i !== index).reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
-                if (newStockDeductionQty + others > Number(product.stock || 0)) {
-                    alert(`Insufficient stock. Available: ${product.stock} ${product.unit}`);
-                    return;
-                }
-            }
-            currentCosBillItems[index] = { ...item, qty: newQty, numberOfUnits: newUnits, rate: newRate, total: newQty * factor * newUnits * newRate, stockDeductionQty: newStockDeductionQty };
-            currentCosBillItems = sortBillItemsAlphabetically(currentCosBillItems);
-            renderCosBillPreviewInput();
-            calculateCosSalesBalance();
         }
 
         function addToBillItems() {
@@ -4377,54 +4654,107 @@
             if (isPackage) {
                 const pkg = packages.find(p => p.name === productName);
                 const stockDeductionQty = qty * numberOfUnits;
-                const total = qty * numberOfUnits * rate;
+                const total = numberOfUnits * rate;
                 if (pkg) {
                     const already = currentBillItems.filter(i => i.productName === productName && i.isPackage).reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
                     if (stockDeductionQty + already > Number(pkg.stock || 0)) {
-                        alert(`Insufficient package stock. Available: ${pkg.stock} ${pkg.unit || 'Pcs'}`);
+                        alert(`Insufficient package stock for "${pkg.name}".\nAvailable: ${pkg.stock} ${pkg.unit || 'Pcs'}\nNeeded: ${stockDeductionQty + already} ${pkg.unit || 'Pcs'}`);
                         return;
                     }
                 }
-                currentBillItems.push({ productName, qty, unitType, quantityType, numberOfUnits, rate, total, stockDeductionQty, isPackage: true, packageId: pkg?.id || '', packageQty: 1 });
-                currentBillItems = sortBillItemsAlphabetically(currentBillItems);
-                document.getElementById('billQty').value = '';
-                document.getElementById('billRate').value = '';
-                document.getElementById('billCalculatedTotal').value = '';
-                document.getElementById('billProductSelect').value = '';
-                document.getElementById('billNumberOfUnits').value = '1';
-                renderBillPreviewInput();
-                calculateBalance();
+                currentBillItems.push({ productName, qty, unitType, quantityType, numberOfUnits, rate, total, stockDeductionQty, isPackage: true, packageId: pkg?.id || '', packageQty: 1, packageName: pkg?.name || productName });
+                finishAddBillItem();
                 return;
             }
 
             const product = products.find(p => p.name === productName);
-            const factor = getBillingUnitFactor(unitType, product?.unit);
-            const stockDeductionQty = qty * factor * numberOfUnits;
-            const total = qty * factor * numberOfUnits * rate;
-            let packageInfo = getProductPackageInfo(product);
-            if (!packageInfo && quantityType) {
-                const qNorm = quantityType.trim().toLowerCase();
-                const matchedPkg = packages.find(p => (p.name || '').trim().toLowerCase() === qNorm);
-                if (matchedPkg) {
-                    packageInfo = { id: matchedPkg.id, qty: 1, pkg: matchedPkg };
+            const variantId = document.getElementById('billPackVariantSelect')?.value || document.getElementById('billRate')?.dataset.variantId || '';
+            const variant = product?.variants?.find(v => String(v.id) === String(variantId));
+
+            let stockDeductionQty = 0;
+            let packageInfo = null;
+            let variantName = '';
+
+            if (variant) {
+                variantName = variant.name;
+                const factor = getBillingUnitFactor(variant.unit, product?.unit);
+                stockDeductionQty = variant.size * factor * numberOfUnits;
+                
+                // Package resolution for this variant
+                if (variant.packageId) {
+                    const pkg = packages.find(p => String(p.id) === String(variant.packageId));
+                    if (pkg) packageInfo = { id: pkg.id, qty: 1, pkg, name: pkg.name };
+                }
+                if (!packageInfo && variant.packageName) {
+                    const pkg = packages.find(p => p.name.toLowerCase() === variant.packageName.toLowerCase());
+                    if (pkg) packageInfo = { id: pkg.id, qty: 1, pkg, name: pkg.name };
+                    else packageInfo = { id: '', qty: 1, pkg: null, name: variant.packageName };
+                }
+            } else {
+                const factor = getBillingUnitFactor(unitType, product?.unit);
+                stockDeductionQty = qty * factor * numberOfUnits;
+                packageInfo = getProductPackageInfo(product);
+                if (!packageInfo && quantityType) {
+                    const qNorm = quantityType.trim().toLowerCase();
+                    const matchedPkg = packages.find(p => (p.name || '').trim().toLowerCase() === qNorm);
+                    if (matchedPkg) {
+                        packageInfo = { id: matchedPkg.id, qty: 1, pkg: matchedPkg, name: matchedPkg.name };
+                    }
                 }
             }
 
+            const total = numberOfUnits * rate;
+
+            // Check bulk product stock
             if (product) {
                 const already = currentBillItems.filter(i => i.productName === productName && !i.isPackage).reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
                 if (stockDeductionQty + already > Number(product.stock || 0)) {
-                    alert(`Insufficient stock. Available: ${product.stock} ${product.unit}`);
+                    alert(`Insufficient liquid/bulk stock for "${product.name}".\nAvailable: ${product.stock} ${product.unit}\nNeeded: ${(stockDeductionQty + already).toFixed(2)} ${product.unit}`);
                     return;
                 }
             }
 
-            currentBillItems.push({ productName, qty, unitType, quantityType, numberOfUnits, rate, total, stockDeductionQty, isPackage: false, packageId:packageInfo?.id||'', packageQty:packageInfo?.qty||0 });
+            // Check packaging container stock
+            if (packageInfo && packageInfo.pkg) {
+                const pkg = packageInfo.pkg;
+                const alreadyPkg = currentBillItems.filter(i => String(i.packageId) === String(pkg.id)).reduce((sum, i) => sum + Number(i.numberOfUnits || 1), 0);
+                if (numberOfUnits + alreadyPkg > Number(pkg.stock || 0)) {
+                    alert(`Insufficient packaging stock for container "${pkg.name}".\nAvailable: ${pkg.stock} ${pkg.unit || 'Pcs'}\nNeeded: ${numberOfUnits + alreadyPkg} ${pkg.unit || 'Pcs'}`);
+                    return;
+                }
+            }
+
+            currentBillItems.push({
+                productName,
+                variantId: variant?.id || '',
+                variantName: variantName || '',
+                qty,
+                unitType,
+                quantityType: packageInfo?.name || quantityType,
+                numberOfUnits,
+                rate,
+                total,
+                stockDeductionQty,
+                isPackage: false,
+                packageId: packageInfo?.id || '',
+                packageQty: 1,
+                packageName: packageInfo?.name || ''
+            });
+
+            finishAddBillItem();
+        }
+
+        function finishAddBillItem() {
             currentBillItems = sortBillItemsAlphabetically(currentBillItems);
             document.getElementById('billQty').value = '';
             document.getElementById('billRate').value = '';
             document.getElementById('billCalculatedTotal').value = '';
             document.getElementById('billProductSelect').value = '';
             document.getElementById('billNumberOfUnits').value = '1';
+            const vWrap = document.getElementById('billPackVariantWrapper');
+            if (vWrap) vWrap.classList.add('hidden');
+            const vBadge = document.getElementById('billPackVariantBadge');
+            if (vBadge) vBadge.textContent = '';
             renderBillPreviewInput();
             calculateBalance();
         }
@@ -4437,20 +4767,25 @@
             currentBillItems = sortBillItemsAlphabetically(currentBillItems);
             currentBillItems.forEach((item, index) => {
                 grandTotal += Number(item.total || 0);
+                const displayName = item.variantName ? `${item.productName} <span class="text-cyan-400 font-semibold text-[11px]">(${item.variantName})</span>` : item.productName;
                 container.innerHTML += `
                     <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
                         <div class="hidden sm:grid sm:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
-                            <span class="font-semibold truncate">${item.productName}</span><span>${item.qty} ${item.unitType || ''}</span><span>${item.numberOfUnits || 1} Pcs</span><span>₹${Number(item.rate).toFixed(2)}</span><strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
+                            <span class="font-semibold truncate">${displayName}</span>
+                            <span>${item.qty} ${item.unitType || ''}</span>
+                            <span>${item.numberOfUnits || 1} ${item.quantityType || 'Pcs'}</span>
+                            <span>₹${Number(item.rate).toFixed(2)}</span>
+                            <strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
                             <button type="button" onclick="editBillItem(${index})" class="text-amber-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
                             <button type="button" onclick="currentBillItems.splice(${index},1);renderBillPreviewInput();calculateBalance();" class="text-red-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
                         </div>
                         <div class="sm:hidden flex flex-col gap-1.5">
                             <div class="flex justify-between items-start gap-2">
-                                <span class="font-bold text-white leading-snug break-words flex-1">${item.productName}</span>
+                                <span class="font-bold text-white leading-snug break-words flex-1">${displayName}</span>
                                 <strong class="text-emerald-400 text-sm whitespace-nowrap shrink-0">₹${Number(item.total).toFixed(2)}</strong>
                             </div>
                             <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
-                                <span>${item.qty} ${item.unitType || ''} × ${item.numberOfUnits || 1} Pcs @ ₹${Number(item.rate).toFixed(2)}</span>
+                                <span>${item.qty} ${item.unitType || ''} × ${item.numberOfUnits || 1} ${item.quantityType || 'Units'} @ ₹${Number(item.rate).toFixed(2)}</span>
                                 <div class="flex items-center gap-1.5 shrink-0">
                                     <button type="button" onclick="editBillItem(${index})" class="px-2.5 py-1 rounded-lg bg-amber-950/60 text-amber-300 border border-amber-800/60 font-bold text-[10px]">✎ Edit</button>
                                     <button type="button" onclick="currentBillItems.splice(${index},1);renderBillPreviewInput();calculateBalance();" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
@@ -4494,36 +4829,300 @@
             return {category:parts[0],name:parts.slice(1).join('::')};
         }
         function fillCombinedProductPrice(){
-            const o=document.getElementById('combinedProductSelect')?.selectedOptions?.[0]; if(!o)return;
-            const type=document.querySelector('input[name="combinedSaleType"]:checked')?.value||'Retail';
-            document.getElementById('combinedUnitType').value=o.dataset.unit||'Pcs';
-            document.getElementById('combinedRate').value=Number(type==='Wholesale'?o.dataset.wholesale:o.dataset.retail||0).toFixed(2);
+            const o = document.getElementById('combinedProductSelect')?.selectedOptions?.[0]; 
+            const variantWrapper = document.getElementById('combinedPackVariantWrapper');
+            const variantSelect = document.getElementById('combinedPackVariantSelect');
+            const badgeEl = document.getElementById('combinedPackVariantBadge');
+
+            if(!o || !o.value) {
+                if (variantWrapper) variantWrapper.classList.add('hidden');
+                if (badgeEl) badgeEl.textContent = '';
+                return;
+            }
+
+            const selected = getCombinedSelected();
+            const product = selected ? combinedStockRecord({category: selected.category, productName: selected.name}) : null;
+
+            // Check if product has pack size variants!
+            if (product && Array.isArray(product.variants) && product.variants.length > 0) {
+                if (variantWrapper && variantSelect) {
+                    variantWrapper.classList.remove('hidden');
+                    const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
+                    variantSelect.innerHTML = '<option value="">-- Select Pack Size (' + product.variants.length + ' options) --</option>' +
+                        product.variants.map(v => {
+                            const rate = saleType === 'Wholesale' ? v.wholesalePrice : v.retailPrice;
+                            return `<option value="${v.id}">${v.name} (${v.size} ${v.unit}) — ₹${Number(rate||0).toFixed(2)}${v.packageName ? ' [' + v.packageName + ']' : ''}</option>`;
+                        }).join('');
+                    
+                    // Auto-select first variant
+                    variantSelect.selectedIndex = 1;
+                    onCombinedPackVariantSelected();
+                    return;
+                }
+            } else {
+                if (variantWrapper) variantWrapper.classList.add('hidden');
+                if (badgeEl) badgeEl.textContent = '';
+                if (variantSelect) variantSelect.innerHTML = '<option value="">-- Select Pack Size --</option>';
+            }
+
+            const type = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
+            const unitEl = document.getElementById('combinedUnitType');
+            if (unitEl) unitEl.value = o.dataset.unit || product?.unit || 'Pcs';
+            const rateEl = document.getElementById('combinedRate');
+            const baseRate = Number(type === 'Wholesale' ? o.dataset.wholesale : o.dataset.retail || 0);
+            if (rateEl) {
+                rateEl.value = baseRate ? baseRate.toFixed(2) : '0';
+                rateEl.dataset.autoRate = rateEl.value;
+                delete rateEl.dataset.variantId;
+            }
             calculateCombinedItemTotal();
         }
-        function onCombinedSaleTypeChange(){ fillCombinedProductPrice(); }
-        function calculateCombinedItemTotal(){ const qty=parseFloat(document.getElementById('combinedQty')?.value)||0, u=Math.max(1,parseInt(document.getElementById('combinedNumberOfUnits')?.value,10)||1), r=parseFloat(document.getElementById('combinedRate')?.value)||0, unitType=document.getElementById('combinedUnitType')?.value||'Pcs', selected=getCombinedSelected(), product=selected?combinedStockRecord({category:selected.category,productName:selected.name}):null, factor=getBillingUnitFactor(unitType,product?.unit); const el=document.getElementById('combinedCalculatedTotal'); if(el)el.value=(qty*factor*u*r).toFixed(2); }
+
+        function onCombinedPackVariantSelected() {
+            const selected = getCombinedSelected();
+            const product = selected ? combinedStockRecord({category: selected.category, productName: selected.name}) : null;
+            const variantSelect = document.getElementById('combinedPackVariantSelect');
+            const vId = variantSelect?.value;
+            const badgeEl = document.getElementById('combinedPackVariantBadge');
+            if (!product || !vId) {
+                if (badgeEl) badgeEl.textContent = '';
+                return;
+            }
+            const variant = product.variants?.find(v => String(v.id) === String(vId));
+            if (!variant) return;
+
+            const qtyEl = document.getElementById('combinedQty');
+            if (qtyEl) qtyEl.value = variant.size;
+
+            const unitEl = document.getElementById('combinedUnitType');
+            if (unitEl) {
+                if (![...unitEl.options].some(o => o.value.toLowerCase() === variant.unit.toLowerCase())) {
+                    unitEl.add(new Option(variant.unit, variant.unit));
+                }
+                unitEl.value = variant.unit;
+            }
+
+            const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
+            const rate = Number(saleType === 'Wholesale' ? variant.wholesalePrice : variant.retailPrice) || 0;
+            const rateEl = document.getElementById('combinedRate');
+            if (rateEl) {
+                rateEl.value = rate ? rate.toFixed(2) : '0';
+                rateEl.dataset.autoRate = rateEl.value;
+                rateEl.dataset.variantId = variant.id;
+            }
+
+            // Link package container
+            let pkg = null;
+            if (variant.packageId) pkg = packages.find(p => String(p.id) === String(variant.packageId));
+            if (!pkg && variant.packageName) pkg = packages.find(p => String(p.name).toLowerCase() === String(variant.packageName).toLowerCase());
+
+            if (pkg) {
+                if (badgeEl) badgeEl.innerHTML = `📦 ${pkg.name} (<span class="${Number(pkg.stock)<=5?'text-rose-400 font-bold':'text-emerald-400 font-bold'}">Stock: ${pkg.stock}</span>)`;
+            } else {
+                if (badgeEl) badgeEl.textContent = variant.packageName ? `📦 ${variant.packageName}` : '';
+            }
+
+            calculateCombinedItemTotal();
+        }
+
+        function onCombinedSaleTypeChange() {
+            const variantWrapper = document.getElementById('combinedPackVariantWrapper');
+            const variantSelect = document.getElementById('combinedPackVariantSelect');
+            if (variantWrapper && !variantWrapper.classList.contains('hidden') && variantSelect && variantSelect.value) {
+                const selected = getCombinedSelected();
+                const product = selected ? combinedStockRecord({category: selected.category, productName: selected.name}) : null;
+                const variant = product?.variants?.find(v => String(v.id) === String(variantSelect.value));
+                if (variant) {
+                    const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
+                    const rate = Number(saleType === 'Wholesale' ? variant.wholesalePrice : variant.retailPrice) || 0;
+                    const rateEl = document.getElementById('combinedRate');
+                    if (rateEl) {
+                        rateEl.value = rate ? rate.toFixed(2) : '0';
+                        rateEl.dataset.autoRate = rateEl.value;
+                    }
+                    calculateCombinedItemTotal();
+                    return;
+                }
+            }
+            fillCombinedProductPrice();
+        }
+
+        function calculateCombinedItemTotal() {
+            const qty = parseFloat(document.getElementById('combinedQty')?.value) || 0;
+            let rate = parseFloat(document.getElementById('combinedRate')?.value) || 0;
+            const u = Math.max(1, parseInt(document.getElementById('combinedNumberOfUnits')?.value, 10) || 1);
+            const unitType = document.getElementById('combinedUnitType')?.value || 'Pcs';
+            const selected = getCombinedSelected();
+            const product = selected ? combinedStockRecord({category: selected.category, productName: selected.name}) : null;
+            const factor = getBillingUnitFactor(unitType, product?.unit);
+
+            const autoRate = parseFloat(document.getElementById('combinedRate')?.dataset.autoRate);
+            const variantId = document.getElementById('combinedPackVariantSelect')?.value || document.getElementById('combinedRate')?.dataset.variantId;
+            if (!variantId && qty > 0 && Number.isFinite(autoRate) && Math.abs(rate - autoRate) < 0.000001) {
+                const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
+                const baseRate = product ? (saleType === 'Wholesale' ? Number(product.wholesalePrice || 0) : Number(product.retailPrice || 0)) : 0;
+                const convertedRate = baseRate * factor;
+                if (Number.isFinite(convertedRate) && convertedRate > 0) {
+                    rate = convertedRate;
+                    document.getElementById('combinedRate').value = rate.toFixed(2);
+                    document.getElementById('combinedRate').dataset.autoRate = document.getElementById('combinedRate').value;
+                }
+            }
+
+            const total = rate * u;
+            const el = document.getElementById('combinedCalculatedTotal');
+            if (el) el.value = total ? total.toFixed(2) : '';
+        }
+
         function combinedStockRecord(item){ 
             const cat = item ? (item.combinedCategory || item.category) : ''; 
             if (cat === 'Cosmetics') return cosProducts.find(p => p.name === item.productName);
             if (cat === 'Package') return packages.find(p => p.name === item.productName);
             return products.find(p => p.name === item.productName); 
         }
-        function addToCombinedBill(){
-            const selected=getCombinedSelected(), qty=parseFloat(document.getElementById('combinedQty')?.value), rate=parseFloat(document.getElementById('combinedRate')?.value), unitType=document.getElementById('combinedUnitType')?.value||'Pcs', numberOfUnits=Math.max(1,parseInt(document.getElementById('combinedNumberOfUnits')?.value,10)||1);
-            if(!selected||!Number.isFinite(qty)||qty<=0||!Number.isFinite(rate)){alert('Please select product, quantity, and rate.');return;}
-            const product=combinedStockRecord({category:selected.category,productName:selected.name}); const factor=getBillingUnitFactor(unitType,product?.unit); const stockDeductionQty=qty*factor*numberOfUnits; const packageInfo=getProductPackageInfo(product);
-            const already=currentBillItems.filter(i=>i.combinedCategory===selected.category&&i.productName===selected.name).reduce((s,i)=>s+Number(i.stockDeductionQty||0),0);
-            if(product&&stockDeductionQty+already>Number(product.stock||0)){alert(`Insufficient stock. Available: ${product.stock} ${product.unit}`);return;}
-            const quantityType=document.getElementById('combinedQuantityType')?.value || 'Bottle'; currentBillItems.push({productName:selected.name,qty,unitType,quantityType,numberOfUnits,rate,total:qty*factor*numberOfUnits*rate,stockDeductionQty,combinedCategory:selected.category, packageId:packageInfo?.id||'', packageQty:packageInfo?.qty||0}); currentBillItems=sortBillItemsAlphabetically(currentBillItems); renderCombinedBillItems();
-            ['combinedQty','combinedRate','combinedCalculatedTotal'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';}); document.getElementById('combinedProductSelect').value=''; document.getElementById('combinedNumberOfUnits').value='1'; calculateCombinedBalance();
+
+        function addToCombinedBill() {
+            const selected = getCombinedSelected();
+            const qty = parseFloat(document.getElementById('combinedQty')?.value);
+            const rate = parseFloat(document.getElementById('combinedRate')?.value);
+            const unitType = document.getElementById('combinedUnitType')?.value || 'Pcs';
+            const numberOfUnits = Math.max(1, parseInt(document.getElementById('combinedNumberOfUnits')?.value, 10) || 1);
+
+            if (!selected || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(rate)) {
+                alert('Please select product, quantity, and rate.');
+                return;
+            }
+
+            const product = combinedStockRecord({category: selected.category, productName: selected.name});
+            const isPackage = selected.category === 'Package';
+
+            if (isPackage) {
+                const pkg = packages.find(p => p.name === selected.name);
+                const stockDeductionQty = qty * numberOfUnits;
+                const total = numberOfUnits * rate;
+                if (pkg) {
+                    const already = currentBillItems.filter(i => i.productName === selected.name && i.combinedCategory === 'Package').reduce((s, i) => s + Number(i.stockDeductionQty || 0), 0);
+                    if (stockDeductionQty + already > Number(pkg.stock || 0)) {
+                        alert(`Insufficient package stock for "${pkg.name}".\nAvailable: ${pkg.stock} ${pkg.unit || 'Pcs'}\nNeeded: ${stockDeductionQty + already} ${pkg.unit || 'Pcs'}`);
+                        return;
+                    }
+                }
+                currentBillItems.push({
+                    productName: selected.name,
+                    qty,
+                    unitType,
+                    quantityType: 'Pcs',
+                    numberOfUnits,
+                    rate,
+                    total,
+                    stockDeductionQty,
+                    combinedCategory: 'Package',
+                    isPackage: true,
+                    packageId: pkg?.id || '',
+                    packageQty: 1,
+                    packageName: pkg?.name || selected.name
+                });
+                finishAddCombinedItem();
+                return;
+            }
+
+            const variantId = document.getElementById('combinedPackVariantSelect')?.value || document.getElementById('combinedRate')?.dataset.variantId || '';
+            const variant = product?.variants?.find(v => String(v.id) === String(variantId));
+
+            let stockDeductionQty = 0;
+            let packageInfo = null;
+            let variantName = '';
+
+            if (variant) {
+                variantName = variant.name;
+                const factor = getBillingUnitFactor(variant.unit, product?.unit);
+                stockDeductionQty = variant.size * factor * numberOfUnits;
+
+                if (variant.packageId) {
+                    const pkg = packages.find(p => String(p.id) === String(variant.packageId));
+                    if (pkg) packageInfo = { id: pkg.id, qty: 1, pkg, name: pkg.name };
+                }
+                if (!packageInfo && variant.packageName) {
+                    const pkg = packages.find(p => p.name.toLowerCase() === variant.packageName.toLowerCase());
+                    if (pkg) packageInfo = { id: pkg.id, qty: 1, pkg, name: pkg.name };
+                    else packageInfo = { id: '', qty: 1, pkg: null, name: variant.packageName };
+                }
+            } else {
+                const factor = getBillingUnitFactor(unitType, product?.unit);
+                stockDeductionQty = qty * factor * numberOfUnits;
+                packageInfo = getProductPackageInfo(product);
+            }
+
+            const total = numberOfUnits * rate;
+
+            // Check bulk product stock
+            if (product) {
+                const already = currentBillItems.filter(i => i.productName === selected.name && i.combinedCategory === selected.category && !i.isPackage).reduce((s, i) => s + Number(i.stockDeductionQty || 0), 0);
+                if (stockDeductionQty + already > Number(product.stock || 0)) {
+                    alert(`Insufficient bulk stock for "${product.name}".\nAvailable: ${product.stock} ${product.unit}\nNeeded: ${(stockDeductionQty + already).toFixed(2)} ${product.unit}`);
+                    return;
+                }
+            }
+
+            // Check packaging container stock
+            if (packageInfo && packageInfo.pkg) {
+                const pkg = packageInfo.pkg;
+                const alreadyPkg = currentBillItems.filter(i => String(i.packageId) === String(pkg.id)).reduce((s, i) => s + Number(i.numberOfUnits || 1), 0);
+                if (numberOfUnits + alreadyPkg > Number(pkg.stock || 0)) {
+                    alert(`Insufficient packaging stock for container "${pkg.name}".\nAvailable: ${pkg.stock} ${pkg.unit || 'Pcs'}\nNeeded: ${numberOfUnits + alreadyPkg} ${pkg.unit || 'Pcs'}`);
+                    return;
+                }
+            }
+
+            currentBillItems.push({
+                productName: selected.name,
+                variantId: variant?.id || '',
+                variantName: variantName || '',
+                qty,
+                unitType,
+                quantityType: packageInfo?.name || 'Bottle',
+                numberOfUnits,
+                rate,
+                total,
+                stockDeductionQty,
+                combinedCategory: selected.category,
+                isPackage: false,
+                packageId: packageInfo?.id || '',
+                packageQty: 1,
+                packageName: packageInfo?.name || ''
+            });
+
+            finishAddCombinedItem();
         }
-        function renderCombinedBillItems(){
-            const c=document.getElementById('combinedBillItemsPreview'); if(!c)return; currentBillItems=sortBillItemsAlphabetically(currentBillItems); let total=0;
-            c.innerHTML=currentBillItems.map((item,i)=>{
-                total+=Number(item.total||0);
+
+        function finishAddCombinedItem() {
+            currentBillItems = sortBillItemsAlphabetically(currentBillItems);
+            renderCombinedBillItems();
+            ['combinedQty', 'combinedRate', 'combinedCalculatedTotal'].forEach(id => {
+                const e = document.getElementById(id);
+                if (e) e.value = '';
+            });
+            const sel = document.getElementById('combinedProductSelect');
+            if (sel) sel.value = '';
+            const variantWrapper = document.getElementById('combinedPackVariantWrapper');
+            if (variantWrapper) variantWrapper.classList.add('hidden');
+            const badgeEl = document.getElementById('combinedPackVariantBadge');
+            if (badgeEl) badgeEl.textContent = '';
+            document.getElementById('combinedNumberOfUnits').value = '1';
+            calculateCombinedBalance();
+        }
+
+        function renderCombinedBillItems() {
+            const c = document.getElementById('combinedBillItemsPreview');
+            if (!c) return;
+            currentBillItems = sortBillItemsAlphabetically(currentBillItems);
+            let total = 0;
+            c.innerHTML = currentBillItems.map((item, i) => {
+                total += Number(item.total || 0);
+                const displayName = item.variantName ? `${item.productName} <span class="text-cyan-400 font-semibold text-[11px]">(${item.variantName})</span>` : item.productName;
                 return `<div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
                     <div class="hidden sm:grid sm:grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
-                        <span class="font-semibold truncate">${item.productName} <small class="text-cyan-400">(${item.combinedCategory||''})</small></span>
+                        <span class="font-semibold truncate">${displayName} <small class="text-cyan-400">(${item.combinedCategory||''})</small></span>
                         <span>${item.qty} ${item.unitType||''}</span>
                         <span>${item.numberOfUnits||1}</span>
                         <span>₹${Number(item.rate||0).toFixed(2)}</span>
@@ -4533,7 +5132,7 @@
                     </div>
                     <div class="sm:hidden flex flex-col gap-1.5">
                         <div class="flex justify-between items-start gap-2">
-                            <span class="font-bold text-white leading-snug break-words flex-1">${item.productName} <small class="text-cyan-400">(${item.combinedCategory||''})</small></span>
+                            <span class="font-bold text-white leading-snug break-words flex-1">${displayName} <small class="text-cyan-400">(${item.combinedCategory||''})</small></span>
                             <strong class="text-emerald-400 text-sm whitespace-nowrap shrink-0">₹${Number(item.total||0).toFixed(2)}</strong>
                         </div>
                         <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
@@ -4545,14 +5144,65 @@
                         </div>
                     </div>
                 </div>`;
-            }).join('')+(currentBillItems.length?`<div class="text-right font-bold text-cyan-300 pt-1">Grand Total: ₹${total.toFixed(2)}</div>`:''); calculateCombinedBalance();
+            }).join('') + (currentBillItems.length ? `<div class="text-right font-bold text-cyan-300 pt-1">Grand Total: ₹${total.toFixed(2)}</div>` : '');
+            calculateCombinedBalance();
         }
-        function editCombinedBillItem(index){
-            const item=currentBillItems[index]; if(!item)return; const q=prompt(`Edit quantity for ${item.productName}:`,String(item.qty??'')); if(q===null)return; const qty=parseFloat(q); if(!Number.isFinite(qty)||qty<=0){alert('Invalid quantity.');return;} const u=prompt(`Edit number of units for ${item.productName}:`,String(item.numberOfUnits||1)); if(u===null)return; const units=Math.max(1,parseInt(u,10)||1); const r=prompt(`Edit rate for ${item.productName}:`,String(item.rate??'')); if(r===null)return; const rate=parseFloat(r); if(!Number.isFinite(rate)||rate<0){alert('Invalid rate.');return;} const product=combinedStockRecord(item), factor=getBillingUnitFactor(item.unitType,product?.unit), need=qty*factor*units, other=currentBillItems.reduce((s,x,i)=>i===index?s:s+Number(x.productName===item.productName&&x.combinedCategory===item.combinedCategory?x.stockDeductionQty||0:0),0); if(product&&need+other>Number(product.stock||0)){alert(`Insufficient stock. Available: ${product.stock} ${product.unit}`);return;} currentBillItems[index]={...item,qty,numberOfUnits:units,rate,total:qty*factor*units*rate,stockDeductionQty:need}; currentBillItems=sortBillItemsAlphabetically(currentBillItems); renderCombinedBillItems();
+
+        function editCombinedBillItem(index) {
+            const item = currentBillItems[index];
+            if (!item) return;
+            const newUnitsRaw = prompt(`Edit number of units/bottles for ${item.productName}${item.variantName ? ' (' + item.variantName + ')' : ''}:`, String(item.numberOfUnits || 1));
+            if (newUnitsRaw === null) return;
+            const newUnits = Math.max(1, parseInt(newUnitsRaw, 10) || 1);
+            const newRateRaw = prompt(`Edit rate per unit for ${item.productName}:`, String(item.rate ?? ''));
+            if (newRateRaw === null) return;
+            const newRate = parseFloat(newRateRaw);
+            if (!Number.isFinite(newRate) || newRate < 0) { alert('Please enter a valid rate.'); return; }
+
+            const perUnitBulk = (Number(item.stockDeductionQty) || 0) / (Number(item.numberOfUnits) || 1);
+            const newStockDeductionQty = perUnitBulk * newUnits;
+            const newTotal = newRate * newUnits;
+
+            const product = combinedStockRecord(item);
+            if (product && !item.isPackage) {
+                const others = currentBillItems.filter((_, i) => i !== index && _.productName === item.productName && _.combinedCategory === item.combinedCategory && !_.isPackage).reduce((s, x) => s + Number(x.stockDeductionQty || 0), 0);
+                if (newStockDeductionQty + others > Number(product.stock || 0)) {
+                    alert(`Insufficient stock for "${product.name}".\nAvailable: ${product.stock} ${product.unit}\nNeeded: ${(newStockDeductionQty + others).toFixed(2)} ${product.unit}`);
+                    return;
+                }
+            }
+            if (item.packageId) {
+                const pkg = packages.find(p => String(p.id) === String(item.packageId));
+                if (pkg) {
+                    const others = currentBillItems.filter((_, i) => i !== index && String(_.packageId) === String(pkg.id)).reduce((s, x) => s + Number(x.numberOfUnits || 1), 0);
+                    if (newUnits + others > Number(pkg.stock || 0)) {
+                        alert(`Insufficient packaging stock for container "${pkg.name}".\nAvailable: ${pkg.stock} ${pkg.unit || 'Pcs'}\nNeeded: ${newUnits + others} ${pkg.unit || 'Pcs'}`);
+                        return;
+                    }
+                }
+            }
+
+            currentBillItems[index] = { ...item, numberOfUnits: newUnits, rate: newRate, total: newTotal, stockDeductionQty: newStockDeductionQty };
+            currentBillItems = sortBillItemsAlphabetically(currentBillItems);
+            renderCombinedBillItems();
+            calculateCombinedBalance();
         }
+
         function calculateCombinedBalance(){ const total=currentBillItems.reduce((s,i)=>s+Number(i.total||0),0), paid=parseFloat(document.getElementById('combinedPaidAmt')?.value)||0, bal=total-paid, due=Math.max(0,bal), excess=Math.max(0,-bal); const f=document.getElementById('combinedPendingAmt'),st=document.getElementById('combinedBalanceStatus'); if(f)f.value=due.toFixed(2); if(st){st.textContent=bal>0?'BALANCE DUE: ₹'+due.toFixed(2):bal<0?'BALANCE RETURN: ₹'+excess.toFixed(2):'PAID IN FULL — BALANCE: ₹0.00';st.className='text-[10px] font-bold mt-1 text-right '+(bal>0?'text-rose-400':bal<0?'text-amber-300':'text-emerald-400');}}
         function getNextCombinedBillNumber(){const max=customers.reduce((m,c)=>{if(c?.billType!=='Combined')return m;const n=parseInt(String(c.billNo||'').match(/(\d+)$/)?.[1]||0,10);return Math.max(m,n)},0);return 'COM-'+String(max+1).padStart(4,'0');}
-        function resetCombinedBillForm(focus=true){ const f=document.getElementById('combinedBillingForm'); if(!f)return; f.reset(); document.getElementById('combinedBillIndex').value='-1'; document.getElementById('combinedBillNumberDisplay').textContent=getNextCombinedBillNumber(); currentBillItems=[]; renderCombinedBillItems(); if(focus)setTimeout(()=>document.getElementById('combinedCustomerName')?.focus(),80); }
+        function resetCombinedBillForm(focus=true){ 
+            const f=document.getElementById('combinedBillingForm'); if(!f)return; 
+            f.reset(); 
+            document.getElementById('combinedBillIndex').value='-1'; 
+            document.getElementById('combinedBillNumberDisplay').textContent=getNextCombinedBillNumber(); 
+            currentBillItems=[]; 
+            renderCombinedBillItems(); 
+            const variantWrapper = document.getElementById('combinedPackVariantWrapper');
+            if (variantWrapper) variantWrapper.classList.add('hidden');
+            const badgeEl = document.getElementById('combinedPackVariantBadge');
+            if (badgeEl) badgeEl.textContent = '';
+            if(focus)setTimeout(()=>document.getElementById('combinedCustomerName')?.focus(),80); 
+        }
         function saveCombinedBill(e){
             e.preventDefault(); const idx=parseInt(document.getElementById('combinedBillIndex').value,10); const name=document.getElementById('combinedCustomerName').value.trim(),phone=document.getElementById('combinedCustomerPhone').value.trim(),saleType=document.querySelector('input[name="combinedSaleType"]:checked')?.value||'Retail'; if(!name||!currentBillItems.length){alert('Please enter customer and add at least one item.');return;}
             if(idx>=0&&customers[idx]?.items){restorePackageStock(customers[idx].items);customers[idx].items.forEach(old=>{const p=combinedStockRecord(old);if(p)p.stock+=Number(old.stockDeductionQty||old.qty||0);});}
@@ -4773,7 +5423,7 @@
         function previewBill(index) {
             const c = customers[index];
             activePreviewCustomer = c;
-            let itemsRows = sortBillItemsAlphabetically(c.items || []).map((item) => `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${item.productName}${c.billType==='Combined' ? ` <small style="color:#0891b2">(${item.combinedCategory||''})</small>` : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${item.qty} ${item.unitType !== 'Standard' ? item.unitType : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${Number(item.numberOfUnits || 1)} Units</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.rate || 0).toFixed(2)}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.total).toFixed(2)}</td></tr>`).join('');
+            let itemsRows = sortBillItemsAlphabetically(c.items || []).map((item) => `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${item.productName}${item.variantName ? ' (' + item.variantName + ')' : ''}${c.billType==='Combined' ? ` <small style="color:#0891b2">(${item.combinedCategory||''})</small>` : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${item.qty} ${item.unitType !== 'Standard' ? item.unitType : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${Number(item.numberOfUnits || 1)} Units</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.rate || 0).toFixed(2)}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.total).toFixed(2)}</td></tr>`).join('');
 
             const grandVal = Number(c.grandTotal || 0);
             const paidVal = c.paidAmount !== undefined ? Number(c.paidAmount) : grandVal;
@@ -4828,7 +5478,7 @@
         function sendBillViaWhatsApp() {
             if(!activePreviewCustomer) return;
             const c = activePreviewCustomer;
-            let itemsText = (c.items || []).map((i, idx) => `${idx + 1}. *${i.productName}* | ${i.qty} ${i.unitType !== 'Standard' ? i.unitType : ''} | ${Number(i.numberOfUnits || 1)} Pcs | ₹${Number(i.rate || 0).toFixed(2)} | ₹${Number(i.total || 0).toFixed(2)}`).join('\n');
+            let itemsText = (c.items || []).map((i, idx) => `${idx + 1}. *${i.productName}${i.variantName ? ' (' + i.variantName + ')' : ''}* | ${i.qty} ${i.unitType !== 'Standard' ? i.unitType : ''} | ${Number(i.numberOfUnits || 1)} Pcs | ₹${Number(i.rate || 0).toFixed(2)} | ₹${Number(i.total || 0).toFixed(2)}`).join('\n');
             const paidVal = c.paidAmount !== undefined ? c.paidAmount : c.grandTotal;
             const pendingVal = c.pendingAmount !== undefined ? c.pendingAmount : 0;
             
@@ -5216,6 +5866,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                 date: sale.date,
                 items: norm.items.map(i => ({
                     productName: i.productName,
+                    variantName: i.variantName || '',
                     qty: i.qty,
                     unitType: i.unitType,
                     numberOfUnits: Number(i.numberOfUnits || 1),
@@ -5229,7 +5880,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             };
 
             const itemsRows = sortBillItemsAlphabetically(norm.items).map((item) =>
-                `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${item.productName}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${item.qty} ${item.unitType !== 'Standard' ? item.unitType : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${Number(item.numberOfUnits || 1)} Units</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.rate||0).toFixed(2)}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.total||0).toFixed(2)}</td></tr>`
+                `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${item.productName}${item.variantName ? ' (' + item.variantName + ')' : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${item.qty} ${item.unitType !== 'Standard' ? item.unitType : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${Number(item.numberOfUnits || 1)} Units</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.rate||0).toFixed(2)}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.total||0).toFixed(2)}</td></tr>`
             ).join('');
 
             const billHTML = `
@@ -5299,12 +5950,22 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function viewProduct(id) {
             const p = products.find(x => x.id === id);
             if (!p) return;
-            showRecordView('Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Wholesale:</b> ₹${p.wholesalePrice}</p><p><b>Retail:</b> ₹${p.retailPrice}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editProduct('${p.id}');" class="bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteProduct('${p.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+            const variantsHtml = (p.variants && p.variants.length > 0)
+                ? `<div class="mt-3 pt-2 border-t border-slate-800"><p class="font-bold text-amber-300 text-xs mb-1.5">📦 Configured Pack Sizes & Rates:</p><div class="space-y-1.5">` +
+                  p.variants.map(v => `<div class="bg-slate-900/80 p-2 rounded-lg text-xs flex justify-between items-center border border-slate-800"><div><span class="font-bold text-white">${v.name}</span> <span class="text-slate-400">(${v.size} ${v.unit}${v.packageName ? ' • ' + v.packageName : ''})</span></div><div class="text-right">W: <span class="text-amber-300 font-bold">₹${v.wholesalePrice}</span> | R: <span class="text-emerald-400 font-bold">₹${v.retailPrice}</span></div></div>`).join('') +
+                  `</div></div>`
+                : '';
+            showRecordView('Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Base Wholesale:</b> ₹${p.wholesalePrice}</p><p><b>Base Retail:</b> ₹${p.retailPrice}</p>${p.packageName ? `<p><b>Default Package:</b> ${p.packageName}</p>` : ''}${variantsHtml}</div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editProduct('${p.id}');" class="bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteProduct('${p.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
         }
         function viewCosProduct(id) {
             const p = cosProducts.find(x => x.id === id);
             if (!p) return;
-            showRecordView('Cosmetic Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Cost Price:</b> ₹${p.costPrice}</p><p><b>Sale Price:</b> ₹${p.salePrice}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editCosProduct('${p.id}');" class="bg-slate-800 text-pink-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteCosProduct('${p.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+            const variantsHtml = (p.variants && p.variants.length > 0)
+                ? `<div class="mt-3 pt-2 border-t border-slate-800"><p class="font-bold text-pink-300 text-xs mb-1.5">📦 Configured Pack Sizes & Rates:</p><div class="space-y-1.5">` +
+                  p.variants.map(v => `<div class="bg-slate-900/80 p-2 rounded-lg text-xs flex justify-between items-center border border-slate-800"><div><span class="font-bold text-white">${v.name}</span> <span class="text-slate-400">(${v.size} ${v.unit}${v.packageName ? ' • ' + v.packageName : ''})</span></div><div class="text-right">W: <span class="text-pink-300 font-bold">₹${v.wholesalePrice !== undefined ? v.wholesalePrice : v.costPrice}</span> | R: <span class="text-emerald-400 font-bold">₹${v.retailPrice !== undefined ? v.retailPrice : v.salePrice}</span></div></div>`).join('') +
+                  `</div></div>`
+                : '';
+            showRecordView('Cosmetic Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Base Wholesale:</b> ₹${p.costPrice}</p><p><b>Base Retail:</b> ₹${p.salePrice}</p>${p.packageName ? `<p><b>Default Package:</b> ${p.packageName}</p>` : ''}${variantsHtml}</div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editCosProduct('${p.id}');" class="bg-slate-800 text-pink-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteCosProduct('${p.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
         }
         function viewPackage(id) {
             const x = packages.find(p => p.id === id);
