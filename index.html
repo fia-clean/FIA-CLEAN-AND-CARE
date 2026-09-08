@@ -1650,24 +1650,62 @@
 
         const myFiaClientId = 'client_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
         let deletedRecordIds = new Set();
+
+        function sanitizeTombstoneKey(k) {
+            if (!k) return null;
+            const str = String(k).trim().toLowerCase();
+            // Legacy name keys like 'cust_test 1', 'cust_shidu', 'cust_kutty' should never blacklist customer names.
+            // Valid tombstone IDs are:
+            // - Bill numbers (cln-..., cos-...)
+            // - Numeric timestamps (1788831979211)
+            // - Prefixed IDs with timestamps (cust_1788..., purch_..., exp_..., cospurch_..., cossale_..., ret_...)
+            if (str.startsWith('cust_') && !/^cust_\d{10,}/.test(str)) {
+                return null; // legacy name string - ignore!
+            }
+            return str;
+        }
+
         try {
             const savedDeleted = localStorage.getItem('fia_deleted_ids') || localStorage.getItem('fia_deleted_keys');
             if (savedDeleted) {
                 const parsed = JSON.parse(savedDeleted);
                 if (Array.isArray(parsed)) {
-                    deletedRecordIds = new Set(parsed.map(x => String(x).trim().toLowerCase()));
+                    parsed.forEach(x => {
+                        const clean = sanitizeTombstoneKey(x);
+                        if (clean) deletedRecordIds.add(clean);
+                    });
                 }
             }
         } catch(e) {}
 
         function markIdDeleted(id) {
             if (!id) return;
-            const cleanId = String(id).trim().toLowerCase();
+            const cleanId = sanitizeTombstoneKey(id);
             if (!cleanId) return;
             deletedRecordIds.add(cleanId);
             try {
                 localStorage.setItem('fia_deleted_ids', JSON.stringify(Array.from(deletedRecordIds)));
             } catch(e) {}
+        }
+
+        function unmarkIdDeleted(id) {
+            if (!id) return;
+            const rawId = String(id).trim().toLowerCase();
+            let changed = false;
+            if (deletedRecordIds.has(rawId)) {
+                deletedRecordIds.delete(rawId);
+                changed = true;
+            }
+            const cleanId = sanitizeTombstoneKey(id);
+            if (cleanId && deletedRecordIds.has(cleanId)) {
+                deletedRecordIds.delete(cleanId);
+                changed = true;
+            }
+            if (changed) {
+                try {
+                    localStorage.setItem('fia_deleted_ids', JSON.stringify(Array.from(deletedRecordIds)));
+                } catch(e) {}
+            }
         }
 
         function isIdDeleted(id) {
@@ -1679,16 +1717,12 @@
             if (!item) return;
             if (item.id) markIdDeleted(item.id);
             if (item.billNo) markIdDeleted(item.billNo);
-            if (type === 'customer' && !item.billNo && item.name) {
-                markIdDeleted('cust_' + String(item.name).trim().toLowerCase());
-            }
         }
 
         function isRecordDeleted(type, item) {
             if (!item) return false;
             if (item.id && isIdDeleted(item.id)) return true;
             if (item.billNo && isIdDeleted(item.billNo)) return true;
-            if (type === 'customer' && !item.billNo && item.name && isIdDeleted('cust_' + String(item.name).trim().toLowerCase())) return true;
             return false;
         }
 
@@ -1742,9 +1776,12 @@
                         return;
                     }
 
-                    // 1. Sync remote tombstone deleted IDs into local tombstones
+                    // 1. Sync remote tombstone deleted IDs into local tombstones (sanitizing legacy names)
                     const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
-                    remoteDeleted.forEach(k => { if (k) deletedRecordIds.add(String(k).trim().toLowerCase()); });
+                    remoteDeleted.forEach(k => {
+                        const cleanKey = sanitizeTombstoneKey(k);
+                        if (cleanKey) deletedRecordIds.add(cleanKey);
+                    });
                     try {
                         localStorage.setItem('fia_deleted_ids', JSON.stringify(Array.from(deletedRecordIds)));
                     } catch(e) {}
@@ -1760,7 +1797,6 @@
                         if (!c) return true;
                         if (c.billNo && isIdDeleted(c.billNo)) return true;
                         if (c.id && isIdDeleted(c.id)) return true;
-                        if (!c.billNo && c.name && isIdDeleted('cust_' + String(c.name).trim().toLowerCase())) return true;
                         return false;
                     };
 
@@ -1775,137 +1811,23 @@
                     const cloudPackages = (Array.isArray(data.packages) ? data.packages : Object.entries(data.packages || {}).map(([k, v]) => ({ ...(v || {}), id: String((v && v.id) || k) }))).filter(p => !isItemDeleted(p));
                     const cloudStockReturns = (Array.isArray(data.stockReturns) ? data.stockReturns : Object.values(data.stockReturns || {})).filter(r => !isItemDeleted(r));
 
-                    // 3. Purge any deleted items from local memory immediately!
-                    products = (products || []).filter(p => !isItemDeleted(p));
-                    cosProducts = (cosProducts || []).filter(p => !isItemDeleted(p));
-                    customers = (customers || []).filter(c => !isCustItemDeleted(c));
-                    purchases = (purchases || []).filter(p => !isItemDeleted(p));
-                    expenses = (expenses || []).filter(e => !isItemDeleted(e));
-                    cosPurchases = (cosPurchases || []).filter(p => !isItemDeleted(p));
-                    cosSales = (cosSales || []).filter(s => !isItemDeleted(s));
-                    packages = (packages || []).filter(p => !isItemDeleted(p));
-                    stockReturns = (stockReturns || []).filter(r => !isItemDeleted(r));
-
-                    // 4. Memory Recall Fix:
-                    // If this device was online and has NO pending offline writes, Cloud is the authoritative truth!
-                    // Do NOT reverse-merge deleted items from memory back into Cloud!
-                    const hasPendingOfflineSync = localStorage.getItem('fia_has_pending_sync') === 'true';
-
-                    if (!hasPendingOfflineSync) {
-                        products = cloudProducts;
-                        cosProducts = cloudCosProducts;
-                        customers = cloudCustomers;
-                        purchases = cloudPurchases;
-                        expenses = cloudExpenses;
-                        cosPurchases = cloudCosPurchases;
-                        cosSales = cloudCosSales;
-                        packages = cloudPackages;
-                        stockReturns = cloudStockReturns;
-                    } else {
-                        // Device was offline when changes occurred: merge ONLY un-deleted offline additions
-                        let hasNewLocalData = false;
-
-                        const prodMap = new Map();
-                        cloudProducts.forEach(p => { if (p && p.id) prodMap.set(String(p.id), p); });
-                        products.forEach(p => {
-                            if (p && p.id && !isItemDeleted(p) && !prodMap.has(String(p.id))) {
-                                prodMap.set(String(p.id), p);
-                                hasNewLocalData = true;
-                            }
-                        });
-                        products = Array.from(prodMap.values());
-
-                        const cosProdMap = new Map();
-                        cloudCosProducts.forEach(p => { if (p && p.id) cosProdMap.set(String(p.id), p); });
-                        cosProducts.forEach(p => {
-                            if (p && p.id && !isItemDeleted(p) && !cosProdMap.has(String(p.id))) {
-                                cosProdMap.set(String(p.id), p);
-                                hasNewLocalData = true;
-                            }
-                        });
-                        cosProducts = Array.from(cosProdMap.values());
-
-                        const pkgMap = new Map();
-                        cloudPackages.forEach(p => { if (p && p.id) pkgMap.set(String(p.id), p); });
-                        packages.forEach(p => {
-                            if (p && p.id && !isItemDeleted(p) && !pkgMap.has(String(p.id))) {
-                                pkgMap.set(String(p.id), p);
-                                hasNewLocalData = true;
-                            }
-                        });
-                        packages = Array.from(pkgMap.values());
-
-                        const custMap = new Map();
-                        cloudCustomers.forEach(c => {
-                            if (c && c.name) {
-                                const key = (c.billNo ? c.billNo + '::' : 'dir::') + c.name.trim().toLowerCase();
-                                custMap.set(key, c);
-                            }
-                        });
-                        customers.forEach(localC => {
-                            if (localC && localC.name && !isCustItemDeleted(localC)) {
-                                const key = (localC.billNo ? localC.billNo + '::' : 'dir::') + localC.name.trim().toLowerCase();
-                                if (!custMap.has(key)) {
-                                    custMap.set(key, localC);
-                                    hasNewLocalData = true;
-                                }
-                            }
-                        });
-                        customers = Array.from(custMap.values());
-
-                        const purchMap = new Map();
-                        cloudPurchases.forEach(p => { if (p && p.id) purchMap.set(String(p.id), p); });
-                        purchases.forEach(p => {
-                            if (p && p.id && !isItemDeleted(p) && !purchMap.has(String(p.id))) {
-                                purchMap.set(String(p.id), p);
-                                hasNewLocalData = true;
-                            }
-                        });
-                        purchases = Array.from(purchMap.values());
-
-                        const expMap = new Map();
-                        cloudExpenses.forEach(e => { if (e && e.id) expMap.set(String(e.id), e); });
-                        expenses.forEach(e => {
-                            if (e && e.id && !isItemDeleted(e) && !expMap.has(String(e.id))) {
-                                expMap.set(String(e.id), e);
-                                hasNewLocalData = true;
-                            }
-                        });
-                        expenses = Array.from(expMap.values());
-
-                        const cosPurchMap = new Map();
-                        cloudCosPurchases.forEach(p => { if (p && p.id) cosPurchMap.set(String(p.id), p); });
-                        cosPurchases.forEach(p => {
-                            if (p && p.id && !isItemDeleted(p) && !cosPurchMap.has(String(p.id))) {
-                                cosPurchMap.set(String(p.id), p);
-                                hasNewLocalData = true;
-                            }
-                        });
-                        cosPurchases = Array.from(cosPurchMap.values());
-
-                        const cosSaleMap = new Map();
-                        cloudCosSales.forEach(s => { if (s && (s.billNo || s.id)) cosSaleMap.set(String(s.billNo || s.id), s); });
-                        cosSales.forEach(s => {
-                            const sid = String(s.billNo || s.id || '');
-                            if (sid && !isItemDeleted(s) && !cosSaleMap.has(sid)) {
-                                cosSaleMap.set(sid, s);
-                                hasNewLocalData = true;
-                            }
-                        });
-                        cosSales = Array.from(cosSaleMap.values());
-
-                        if (hasNewLocalData) {
-                            syncToFirebase();
-                        } else {
-                            localStorage.removeItem('fia_has_pending_sync');
-                        }
-                    }
+                    // 3. Realtime Synchronisation: Cloud is authoritative truth
+                    products = cloudProducts;
+                    cosProducts = cloudCosProducts;
+                    customers = cloudCustomers;
+                    purchases = cloudPurchases;
+                    expenses = cloudExpenses;
+                    cosPurchases = cloudCosPurchases;
+                    cosSales = cloudCosSales;
+                    packages = cloudPackages;
+                    stockReturns = cloudStockReturns;
 
                     clearedDayBookEntries = Array.isArray(data.clearedDayBookEntries) ? data.clearedDayBookEntries : Object.values(data.clearedDayBookEntries || []);
                     dayBookOpeningBalance = Number(data.dayBookOpeningBalance || dayBookOpeningBalance || 0);
                     dayBookOpeningExpense = Number(data.dayBookOpeningExpense || dayBookOpeningExpense || 0);
                     appPin = data.appPin || appPin || "1234";
 
+                    localStorage.removeItem('fia_has_pending_sync');
                     saveLocalStateSafely();
                     isFirebaseConnected = true;
                     updateSyncStatus(true, 'Cloud Data Synchronized');
@@ -2150,7 +2072,6 @@
                 if (!c) return true;
                 if (c.billNo && isIdDeleted(c.billNo)) return true;
                 if (c.id && isIdDeleted(c.id)) return true;
-                if (!c.billNo && c.name && isIdDeleted('cust_' + String(c.name).trim().toLowerCase())) return true;
                 return false;
             };
 
@@ -2168,8 +2089,8 @@
                 dayBookOpeningBalance: Number(dayBookOpeningBalance || 0),
                 dayBookOpeningExpense: Number(dayBookOpeningExpense || 0),
                 appPin: appPin || "1234",
-                _deletedIds: Array.from(deletedRecordIds).slice(-1500),
-                _deletedKeys: Array.from(deletedRecordIds).slice(-1500),
+                _deletedIds: Array.from(deletedRecordIds).map(sanitizeTombstoneKey).filter(Boolean).slice(-1500),
+                _deletedKeys: Array.from(deletedRecordIds).map(sanitizeTombstoneKey).filter(Boolean).slice(-1500),
                 _meta: {
                     clientId: myFiaClientId,
                     updatedAt: Date.now()
@@ -3553,14 +3474,54 @@
             const name = document.getElementById('directCustName').value.trim();
             const phone = document.getElementById('directCustPhone').value.trim();
 
-            if (!name) return;
+            if (!name) {
+                alert("Please enter a customer name.");
+                return;
+            }
+
+            const cleanNameKey = name.toLowerCase();
+
+            // Unmark any legacy tombstone matching this name
+            unmarkIdDeleted('cust_' + cleanNameKey);
 
             if (originalIndex === -1) {
-                const custId = 'cust_' + name.trim().toLowerCase();
-                customers.push({ id: custId, name, phone, saleType: 'Retail', items: [], grandTotal: 0, paidAmount: 0, pendingAmount: 0, date: new Date().toISOString().split('T')[0], savedAt: Date.now() });
+                // Check if an existing directory customer already exists with this name (case-insensitive)
+                const existingIdx = customers.findIndex(c => c && !c.billNo && String(c.name || '').trim().toLowerCase() === cleanNameKey);
+                if (existingIdx !== -1) {
+                    customers[existingIdx].name = name;
+                    customers[existingIdx].phone = phone;
+                    customers[existingIdx].savedAt = Date.now();
+                    if (customers[existingIdx].id) unmarkIdDeleted(customers[existingIdx].id);
+                } else {
+                    const custId = 'cust_' + Date.now().toString() + '_' + Math.random().toString(36).slice(2, 7);
+                    unmarkIdDeleted(custId);
+                    customers.push({
+                        id: custId,
+                        name: name,
+                        phone: phone,
+                        saleType: 'Retail',
+                        items: [],
+                        grandTotal: 0,
+                        paidAmount: 0,
+                        pendingAmount: 0,
+                        date: new Date().toISOString().split('T')[0],
+                        savedAt: Date.now()
+                    });
+                }
             } else {
-                const oldName = customers[originalIndex].name;
-                customers.forEach(c => { if (c.name === oldName) { c.name = name; c.phone = phone; c.savedAt = Date.now(); } });
+                const oldCustomer = customers[originalIndex];
+                if (oldCustomer) {
+                    const oldName = oldCustomer.name;
+                    if (oldCustomer.id) unmarkIdDeleted(oldCustomer.id);
+                    customers.forEach(c => {
+                        if (c && String(c.name || '').trim().toLowerCase() === String(oldName || '').trim().toLowerCase()) {
+                            c.name = name;
+                            c.phone = phone;
+                            c.savedAt = Date.now();
+                            if (c.id) unmarkIdDeleted(c.id);
+                        }
+                    });
+                }
             }
 
             syncToFirebase();
@@ -3568,12 +3529,13 @@
             renderCustomers();
             updateCustomerDropdown();
             updateCosCustomerDropdown();
+            alert(`Customer "${name}" saved successfully!`);
         }
 
         function editCustomerProfile(name, phone) {
             document.getElementById('directCustName').value = name;
-            document.getElementById('directCustPhone').value = phone !== 'undefined' ? phone : '';
-            const idx = customers.findIndex(c => c.name === name);
+            document.getElementById('directCustPhone').value = (phone !== 'undefined' && phone !== 'No Phone') ? phone : '';
+            const idx = customers.findIndex(c => c && c.name === name);
             document.getElementById('directCustOriginalIndex').value = idx;
             document.getElementById('custMgrTitle').innerText = "Edit Customer";
             document.getElementById('directCustSubmitBtn').innerText = "Update Customer";
@@ -3587,7 +3549,7 @@
             const targetName = String(name).trim();
             if (confirm(`Are you sure you want to delete customer "${targetName}"?`)) {
                 const key = targetName.toLowerCase();
-                markIdDeleted('cust_' + key);
+                // Mark only the specific record IDs as deleted (never blacklist name string)
                 customers.forEach(c => {
                     if (c && String(c.name || '').trim().toLowerCase() === key) {
                         if (c.billNo) markIdDeleted(c.billNo);
@@ -3597,6 +3559,7 @@
                 customers = customers.filter(c => !c || !c.name || String(c.name).trim().toLowerCase() !== key);
                 syncToFirebase();
                 renderAll();
+                alert(`Customer "${targetName}" deleted successfully!`);
             }
         }
 
@@ -3610,7 +3573,7 @@
             
             const q = (document.getElementById('customerDirectorySearch')?.value || '').trim().toLowerCase();
             const filteredNames = uniqueNames.filter(name => {
-                const cObj = customers.find(c => c && c.name === name);
+                const cObj = customers.find(c => c && c.name === name && c.phone) || customers.find(c => c && c.name === name);
                 const phone = cObj ? String(cObj.phone || '') : '';
                 return !q || String(name).toLowerCase().includes(q) || phone.toLowerCase().includes(q);
             });
@@ -3618,8 +3581,10 @@
             container.innerHTML = filteredNames.length === 0 ? '<p class="text-xs text-slate-500 text-center py-2">No customers found.</p>' : '';
 
             filteredNames.sort().forEach(name => {
-                let cObj = customers.find(c => c && c.name === name);
+                let cObj = customers.find(c => c && c.name === name && c.phone) || customers.find(c => c && c.name === name);
                 let phone = cObj ? cObj.phone : '';
+                const safeName = String(name).replace(/'/g, "\\'");
+                const safePhone = String(phone || '').replace(/'/g, "\\'");
                 container.innerHTML += `
                     <div class="flex justify-between items-center bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs">
                         <div class="min-w-0 flex-1 pr-2 break-words">
@@ -3627,9 +3592,9 @@
                             <p class="text-slate-400 text-[11px]">Phone: ${phone || 'No Phone'}</p>
                         </div>
                         <div class="flex gap-1 shrink-0">
-                            <button type="button" onclick="viewCustomerProfile('${name}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 hover:bg-blue-800 font-bold">View</button>
-                            <button type="button" onclick="editCustomerProfile('${name}', '${phone}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Edit</button>
-                            <button type="button" onclick="deleteDirectCustomer('${name}')" class="bg-slate-800 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Delete</button>
+                            <button type="button" onclick="viewCustomerProfile('${safeName}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 hover:bg-blue-800 font-bold">View</button>
+                            <button type="button" onclick="editCustomerProfile('${safeName}', '${safePhone}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Edit</button>
+                            <button type="button" onclick="deleteDirectCustomer('${safeName}')" class="bg-slate-800 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Delete</button>
                         </div>
                     </div>`;
             });
@@ -4408,7 +4373,11 @@
             const excessAmount = Math.max(0, safePaidAmount - grandTotal);
             const paymentMode = document.getElementById('billPaymentMode')?.value || 'Cash';
             let billNo = (index >= 0 && customers[index]?.billNo) || getNextBillNumber();
-            const customerData = { billNo, name, phone, saleType, paymentMode, items: sortBillItemsAlphabetically(currentBillItems).map(i => ({...i})), grandTotal, paidAmount: safePaidAmount, pendingAmount, excessAmount, date: (index >= 0 && customers[index]?.date) || new Date().toISOString().split('T')[0] };
+            const billId = (index >= 0 && customers[index]?.id) || ('bill_' + billNo);
+            unmarkIdDeleted(billNo);
+            unmarkIdDeleted(billId);
+            unmarkIdDeleted('cust_' + name.toLowerCase());
+            const customerData = { id: billId, billNo, name, phone, saleType, paymentMode, items: sortBillItemsAlphabetically(currentBillItems).map(i => ({...i})), grandTotal, paidAmount: safePaidAmount, pendingAmount, excessAmount, date: (index >= 0 && customers[index]?.date) || new Date().toISOString().split('T')[0], savedAt: Date.now() };
 
             let savedIndex = index === -1 ? customers.push(customerData) - 1 : (customers[index] = customerData, index);
 
@@ -4932,13 +4901,19 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             const pendingAmount = Math.max(0, grandTotal - paidAmount);
             const excessAmount = Math.max(0, paidAmount - grandTotal);
             const billNo = (idx >= 0 && cosSales[idx]?.billNo) || getNextCosBillNumber();
+            const cosBillId = (idx >= 0 && cosSales[idx]?.id) || ('cossale_' + billNo);
+            unmarkIdDeleted(billNo);
+            unmarkIdDeleted(cosBillId);
+            unmarkIdDeleted('cust_' + customer.toLowerCase());
             const bill = {
+                id: cosBillId,
                 billNo,
                 name: 'Cosmetics',
                 customer, phone, saleType, paymentMode,
                 items: sortBillItemsAlphabetically(currentCosBillItems).map(i => ({...i})),
                 grandTotal, paidAmount, pendingAmount, excessAmount,
-                date: (idx >= 0 && cosSales[idx]?.date) || new Date().toISOString().split('T')[0]
+                date: (idx >= 0 && cosSales[idx]?.date) || new Date().toISOString().split('T')[0],
+                savedAt: Date.now()
             };
 
             const savedIndex = idx >= 0 ? (cosSales[idx] = {...(cosSales[idx] || {}), ...bill}, idx) : (cosSales.push(bill) - 1);
