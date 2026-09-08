@@ -4027,22 +4027,9 @@
             let html = '<option value="">-- Select Product --</option>';
 
             const sortedProds = sortByNameAsc(products || []);
-            if (sortedProds.length > 0) {
-                html += '<optgroup label="🧹 Cleaning Products">';
-                sortedProds.forEach(p => {
-                    html += `<option value="${p.name.replace(/"/g, '&quot;')}" data-wholesale="${p.wholesalePrice}" data-retail="${p.retailPrice}" data-stock="${p.stock}" data-unit="${p.unit}" data-pkg-id="${p.packageId || ''}" data-pkg-name="${(p.packageName || '').replace(/"/g, '&quot;')}" data-pkg-qty="${p.packageQty || 1}">${p.name} (Stock: ${p.stock} ${p.unit})</option>`;
-                });
-                html += '</optgroup>';
-            }
-
-            const sortedPkgs = sortByNameAsc(packages || []);
-            if (sortedPkgs.length > 0) {
-                html += '<optgroup label="🧴 Package Items (Soap Box, Box, Piece, Sticker, etc.)">';
-                sortedPkgs.forEach(pkg => {
-                    html += `<option value="${pkg.name.replace(/"/g, '&quot;')}" data-is-package="true" data-pkg-id="${pkg.id}" data-wholesale="0" data-retail="0" data-stock="${pkg.stock}" data-unit="${pkg.unit || 'Pcs'}">${pkg.name}${pkg.size ? ' (' + pkg.size + ')' : ''} (Stock: ${pkg.stock} ${pkg.unit || 'Pcs'})</option>`;
-                });
-                html += '</optgroup>';
-            }
+            sortedProds.forEach(p => {
+                html += `<option value="${p.name.replace(/"/g, '&quot;')}" data-wholesale="${p.wholesalePrice}" data-retail="${p.retailPrice}" data-stock="${p.stock}" data-unit="${p.unit}" data-pkg-id="${p.packageId || ''}" data-pkg-name="${(p.packageName || '').replace(/"/g, '&quot;')}" data-pkg-qty="${p.packageQty || 1}">${p.name} (Stock: ${p.stock} ${p.unit})</option>`;
+            });
 
             select.innerHTML = html;
             if (currentVal && [...select.options].some(o => o.value === currentVal)) {
@@ -4836,11 +4823,10 @@
             const select=document.getElementById('combinedProductSelect'); if(!select)return;
             const rows=[
                 ...products.map(p=>({category:'Cleaning',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'',wholesale:Number(p.wholesalePrice)||0,retail:Number(p.retailPrice)||0})),
-                ...cosProducts.map(p=>({category:'Cosmetics',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'',wholesale:Number(p.wholesalePrice||p.salePrice)||0,retail:Number(p.retailPrice||p.salePrice)||0})),
-                ...packages.map(p=>({category:'Package',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'Pcs',wholesale:0,retail:0,size:p.size||''}))
+                ...cosProducts.map(p=>({category:'Cosmetics',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'',wholesale:Number(p.wholesalePrice||p.salePrice)||0,retail:Number(p.retailPrice||p.salePrice)||0}))
             ].sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base',numeric:true}));
             const current=select.value;
-            select.innerHTML='<option value="">-- Select Product --</option>'+rows.map((r,i)=>`<option value="${r.category}::${String(r.name).replace(/"/g,'&quot;')}" data-category="${r.category}" data-name="${String(r.name).replace(/"/g,'&quot;')}" data-stock="${r.stock}" data-unit="${r.unit}" data-wholesale="${r.wholesale}" data-retail="${r.retail}">${r.name}${r.size ? ' (' + r.size + ')' : ''} — ${r.category} (Stock: ${r.stock} ${r.unit})</option>`).join('');
+            select.innerHTML='<option value="">-- Select Product --</option>'+rows.map((r,i)=>`<option value="${r.category}::${String(r.name).replace(/"/g,'&quot;')}" data-category="${r.category}" data-name="${String(r.name).replace(/"/g,'&quot;')}" data-stock="${r.stock}" data-unit="${r.unit}" data-wholesale="${r.wholesale}" data-retail="${r.retail}">${r.name} — ${r.category} (Stock: ${r.stock} ${r.unit})</option>`).join('');
             if(current)select.value=current;
         }
         function getCombinedSelected(){
