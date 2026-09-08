@@ -209,6 +209,71 @@
                 flex-direction: column !important;
                 gap: 8px !important;
             }
+
+            /* Enhanced Mobile Readability for Smartphone Viewports */
+            input, select, textarea {
+                font-size: 15.5px !important;
+                line-height: 1.4 !important;
+            }
+            
+            label {
+                font-size: 12.5px !important;
+                line-height: 1.35 !important;
+            }
+
+            .text-\[9px\] {
+                font-size: 11.5px !important;
+            }
+            .text-\[10px\] {
+                font-size: 12.5px !important;
+            }
+            .text-\[11px\] {
+                font-size: 13.5px !important;
+            }
+            .text-xs {
+                font-size: 14px !important;
+                line-height: 1.4 !important;
+            }
+            .text-sm {
+                font-size: 15px !important;
+            }
+
+            /* View tables and records on phone */
+            table th, table td {
+                font-size: 12.5px !important;
+                padding-top: 8px !important;
+                padding-bottom: 8px !important;
+            }
+
+            /* Item card buttons (Add, View, Edit, Delete) */
+            button.text-\[10px\], .text-\[10px\] button {
+                font-size: 12px !important;
+                padding: 6px 10px !important;
+            }
+
+            /* Billing preview and customer list items */
+            #currentBillItemsPreview, #cosCurrentBillItemsPreview, #combinedBillItemsPreview,
+            #productListContainer, #cosProductListContainer, #packageListContainer, #directCustomerListContainer,
+            #recentTransactionsList, #salesHistoryContainer {
+                font-size: 13.5px !important;
+            }
+        }
+
+        /* ===== GLOBAL ACCESSIBILITY & FONT SIZE BASE ENHANCEMENT ===== */
+        input, select, textarea {
+            font-size: 14.5px !important;
+        }
+        .text-\[9px\] {
+            font-size: 11px !important;
+        }
+        .text-\[10px\] {
+            font-size: 12px !important;
+        }
+        .text-\[11px\] {
+            font-size: 13px !important;
+        }
+        .text-xs {
+            font-size: 13.5px !important;
         }
 
         @media print {
@@ -3084,6 +3149,34 @@
             document.body.removeChild(link);
         }
 
+        function updateBillQuantityTypeDropdown() {
+            const qSelect = document.getElementById('billQuantityType');
+            if (!qSelect) return;
+            const currentVal = qSelect.value;
+            const standardTypes = ['Bottle', 'Pack', 'Box', 'Piece', 'Sticker', 'Roll', 'Other'];
+            const pkgNames = (packages || []).map(p => (p.name || '').trim()).filter(Boolean);
+            let html = '';
+            if (pkgNames.length > 0) {
+                html += '<optgroup label="🧴 Package Items from Stock">';
+                pkgNames.forEach(name => {
+                    const pkg = packages.find(p => (p.name || '').trim() === name);
+                    html += `<option value="${name.replace(/"/g, '&quot;')}">${name}${pkg?.size ? ' (' + pkg.size + ')' : ''}</option>`;
+                });
+                html += '</optgroup>';
+            }
+            html += '<optgroup label="Standard Packaging">';
+            standardTypes.forEach(t => {
+                if (!pkgNames.includes(t)) {
+                    html += `<option value="${t}">${t}</option>`;
+                }
+            });
+            html += '</optgroup>';
+            qSelect.innerHTML = html;
+            if (currentVal && [...qSelect.options].some(o => o.value === currentVal)) {
+                qSelect.value = currentVal;
+            }
+        }
+
         function updatePackageSelectors(){
             const opts='<option value="">No Package Mapping</option>'+sortByNameAsc(packages).map(x=>`<option value="${String(x.id)}">${x.name}${x.size?' — '+x.size:''} (Stock: ${x.stock} ${x.unit||'Pcs'})</option>`).join('');
             ['prodPackageId','cosProdPackageId'].forEach(id=>{
@@ -3092,6 +3185,9 @@
                 el.innerHTML=opts;
                 el.value=(old && [...el.options].some(o=>String(o.value)===old))?old:'';
             });
+            updateBillQuantityTypeDropdown();
+            updateProductDropdown();
+            updateCombinedProductSelect();
         }
         function normalizePackageMapping(packageId, packageQty, packageName){
             const id=String(packageId||'').trim(), qty=Number(packageQty)||0;
@@ -3103,11 +3199,58 @@
             return pkg&&qty>0?{packageId:String(pkg.id),packageQty:qty,packageName:String(pkg.name||'')}:{packageId:'',packageQty:0,packageName:''};
         }
         function savePackage(e){
-            e.preventDefault(); const id=document.getElementById('packageId').value, name=document.getElementById('packageName').value.trim(), size=document.getElementById('packageSize').value.trim(), unit=document.getElementById('packageUnit').value, stock=parseFloat(document.getElementById('packageStock').value)||0;
-            if(!name)return; const data={id:id||'pkg_'+Date.now(),name,size,unit,stock}; if(id){const i=packages.findIndex(x=>x.id===id);if(i>=0)packages[i]={...packages[i],...data};else packages.push(data);}else packages.push(data);
-            syncToFirebase(); resetPackageForm(); renderPackages(); updatePackageSelectors();
+            e.preventDefault(); 
+            const id=document.getElementById('packageId').value;
+            const name=document.getElementById('packageName').value.trim();
+            const size=document.getElementById('packageSize').value.trim();
+            const unit=document.getElementById('packageUnit').value;
+            const stock=parseFloat(document.getElementById('packageStock').value)||0;
+            if(!name) return; 
+            const data={id:id||'pkg_'+Date.now(), name, size, unit, stock}; 
+            if(id){
+                const i=packages.findIndex(x=>String(x.id)===String(id));
+                if(i>=0) packages[i]={...packages[i],...data};
+                else packages.push(data);
+            } else {
+                packages.push(data);
+            }
+            syncToFirebase(); 
+            resetPackageForm(); 
+            renderPackages(); 
+            updatePackageSelectors();
+            updateProductDropdown();
+            updateCombinedProductSelect();
         }
-        function resetPackageForm(){const f=document.getElementById('packageForm');if(f)f.reset();document.getElementById('packageId').value='';document.getElementById('packageSubmitBtn').textContent='Add Package';document.getElementById('packageUnit').value='Pcs';}
+        function resetPackageForm(){
+            const f=document.getElementById('packageForm');
+            if(f) f.reset();
+            document.getElementById('packageId').value='';
+            const btn=document.getElementById('packageSubmitBtn');
+            if(btn) btn.textContent='Add Package';
+            const title = document.querySelector('#stockPackageArea h2');
+            if (title) title.textContent = '🧴 Package / Packaging Stock';
+            document.getElementById('packageUnit').value='Pcs';
+        }
+        function editPackage(id){
+            const pkg = packages.find(x => String(x.id) === String(id));
+            if(!pkg) return;
+            switchTab('stock', false);
+            switchStockTopTab('package');
+            switchPackageView('list');
+            document.getElementById('packageId').value = pkg.id;
+            document.getElementById('packageName').value = pkg.name || '';
+            document.getElementById('packageSize').value = pkg.size || '';
+            document.getElementById('packageUnit').value = pkg.unit || 'Pcs';
+            document.getElementById('packageStock').value = pkg.stock ?? 0;
+            const btn = document.getElementById('packageSubmitBtn');
+            if(btn) btn.textContent = 'Update Package';
+            setTimeout(() => {
+                const title = document.querySelector('#stockPackageArea h2');
+                if (title) title.textContent = '✏️ Edit Package Item';
+                document.getElementById('packageForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.getElementById('packageName')?.focus();
+            }, 50);
+        }
         function deletePackage(id){
             if(!id) return;
             const pkg = packages.find(x => String(x.id) === String(id));
@@ -3145,6 +3288,10 @@
         }
         function resolvePackageInfoForItem(item){
             if(!item) return null;
+            if (item.isPackage) {
+                const pkg = packages.find(x => String(x.id) === String(item.packageId) || x.name === item.productName);
+                if (pkg) return { id: pkg.id, qty: 1, pkg, product: null };
+            }
             let product=null;
             const category=String(item.combinedCategory||item.category||'Cleaning');
             if(item.stockId){
@@ -3165,8 +3312,13 @@
             if(!pkg && packageName) pkg=packages.find(x=>String(x.name||'').trim().toLowerCase()===packageName)||null;
             if(pkg && packageQty>0) return {id:pkg.id,qty:packageQty,pkg,product};
 
-            // Automatic matching from the BILL. Package section remains unchanged.
+            // Direct match by quantityType (e.g. "Soap Box", "Box", "Piece", "Sticker")
             const sellingType=String(item.quantityType||'').trim().toLowerCase();
+            if (sellingType) {
+                const directPkg = packages.find(x => String(x.name || '').trim().toLowerCase() === sellingType);
+                if (directPkg) return { id: directPkg.id, qty: 1, pkg: directPkg, product };
+            }
+
             const qty=Number(item.qty)||0;
             const unitType=String(item.unitType||'').trim().toLowerCase();
             const productName=String(item.productName||product?.name||'').trim().toLowerCase();
@@ -3206,6 +3358,9 @@
                 if(typeOk || pcsFallback) score=40;
                 else return {...x,score:-1};
 
+                // Exact or direct package name match
+                if (pn === sellingType || pn === typeWord) score += 200;
+
                 // Exact fill-size match, from either Package Size or Package Item Name.
                 if(ps && ps.n===billSize.n && ps.u===billSize.u) score+=300;
                 if(pnSize && pnSize.n===billSize.n && pnSize.u===billSize.u) score+=260;
@@ -3238,10 +3393,16 @@
             const missing=[];
             (items||[]).forEach(item=>{
                 const info=resolvePackageInfoForItem(item);
-                if(info) need[info.id]=(need[info.id]||0)+info.qty*getPackageSellingUnits(item);
-                else missing.push(item?.productName||'Unknown Product');
+                if(info) {
+                    need[info.id]=(need[info.id]||0)+info.qty*getPackageSellingUnits(item);
+                } else {
+                    const hasPackageIntent = item?.packageId || item?.isPackage || (item?.quantityType && item.quantityType !== 'General' && item.quantityType !== 'Other');
+                    if(hasPackageIntent && packages.length > 0) {
+                        missing.push(item?.productName||'Unknown Product');
+                    }
+                }
             });
-            // If a product is mapped to a package, deduction is mandatory. Do not silently skip it.
+            // If a product has a package mapping or explicit package type, deduction is mandatory.
             if(missing.length){
                 return {ok:false,missing:true,products:[...new Set(missing)]};
             }
@@ -3673,10 +3834,32 @@
         function updateProductDropdown() {
             const select = document.getElementById('billProductSelect');
             if(!select) return;
-            select.innerHTML = '<option value="">-- Select Product --</option>';
-            sortByNameAsc(products).forEach(p => {
-                select.innerHTML += `<option value="${p.name}" data-wholesale="${p.wholesalePrice}" data-retail="${p.retailPrice}" data-stock="${p.stock}" data-unit="${p.unit}">${p.name} (Stock: ${p.stock} ${p.unit})</option>`;
-            });
+            const currentVal = select.value;
+            let html = '<option value="">-- Select Product --</option>';
+
+            const sortedProds = sortByNameAsc(products || []);
+            if (sortedProds.length > 0) {
+                html += '<optgroup label="🧹 Cleaning Products">';
+                sortedProds.forEach(p => {
+                    html += `<option value="${p.name.replace(/"/g, '&quot;')}" data-wholesale="${p.wholesalePrice}" data-retail="${p.retailPrice}" data-stock="${p.stock}" data-unit="${p.unit}" data-pkg-id="${p.packageId || ''}" data-pkg-name="${(p.packageName || '').replace(/"/g, '&quot;')}" data-pkg-qty="${p.packageQty || 1}">${p.name} (Stock: ${p.stock} ${p.unit})</option>`;
+                });
+                html += '</optgroup>';
+            }
+
+            const sortedPkgs = sortByNameAsc(packages || []);
+            if (sortedPkgs.length > 0) {
+                html += '<optgroup label="🧴 Package Items (Soap Box, Box, Piece, Sticker, etc.)">';
+                sortedPkgs.forEach(pkg => {
+                    html += `<option value="${pkg.name.replace(/"/g, '&quot;')}" data-is-package="true" data-pkg-id="${pkg.id}" data-wholesale="0" data-retail="0" data-stock="${pkg.stock}" data-unit="${pkg.unit || 'Pcs'}">${pkg.name}${pkg.size ? ' (' + pkg.size + ')' : ''} (Stock: ${pkg.stock} ${pkg.unit || 'Pcs'})</option>`;
+                });
+                html += '</optgroup>';
+            }
+
+            select.innerHTML = html;
+            if (currentVal && [...select.options].some(o => o.value === currentVal)) {
+                select.value = currentVal;
+            }
+            updateBillQuantityTypeDropdown();
         }
 
         function saveCosProduct(e) {
@@ -3988,13 +4171,48 @@
         function fillProductPrice() {
             const select = document.getElementById('billProductSelect');
             const opt = select.options[select.selectedIndex];
-            if(!opt.value) return;
+            if(!opt || !opt.value) return;
+
+            const isPackage = opt.getAttribute('data-is-package') === 'true';
+            if (isPackage) {
+                const pkg = packages.find(p => p.name === opt.value);
+                if (pkg) {
+                    const unitEl = document.getElementById('billUnitType');
+                    if (unitEl) {
+                        const u = pkg.unit || 'Pcs';
+                        if (![...unitEl.options].some(o => o.value.toLowerCase() === u.toLowerCase())) {
+                            unitEl.add(new Option(u, u));
+                        }
+                        unitEl.value = u;
+                    }
+                    const qTypeEl = document.getElementById('billQuantityType');
+                    if (qTypeEl) qTypeEl.value = pkg.name;
+                    const rateEl = document.getElementById('billRate');
+                    if (rateEl && !rateEl.value) rateEl.value = '0';
+                    calculateItemTotal();
+                    return;
+                }
+            }
+
             const saleType = document.querySelector('input[name="saleType"]:checked').value;
             const rateEl = document.getElementById('billRate');
             const baseRate = parseFloat(saleType === 'Wholesale' ? opt.getAttribute('data-wholesale') : opt.getAttribute('data-retail')) || 0;
             const qty = parseFloat(document.getElementById('billQty')?.value) || 0;
             const unitType = document.getElementById('billUnitType')?.value || '';
             const product = products.find(p => p.name === opt.value);
+
+            // Auto-select mapped package in billQuantityType if available!
+            if (product && product.packageId) {
+                const mappedPkg = packages.find(p => String(p.id) === String(product.packageId));
+                if (mappedPkg) {
+                    const qTypeEl = document.getElementById('billQuantityType');
+                    if (qTypeEl) qTypeEl.value = mappedPkg.name;
+                }
+            } else if (product && product.packageName) {
+                const qTypeEl = document.getElementById('billQuantityType');
+                if (qTypeEl) qTypeEl.value = product.packageName;
+            }
+
             const factor = getBillingUnitFactor(unitType, product?.unit);
             // Product Master price is the price for the base quantity. Convert it to the
             // selected selling quantity so the displayed rate is the price of ONE bottle/pack.
@@ -4145,28 +4363,62 @@
         }
 
         function addToBillItems() {
-            const productName = document.getElementById('billProductSelect').value;
+            const select = document.getElementById('billProductSelect');
+            const opt = select ? select.options[select.selectedIndex] : null;
+            const productName = select ? select.value : '';
+            const isPackage = opt?.getAttribute('data-is-package') === 'true';
             const qty = parseFloat(document.getElementById('billQty').value);
             const rate = parseFloat(document.getElementById('billRate').value);
             const unitType = document.getElementById('billUnitType').value;
             const quantityType = document.getElementById('billQuantityType')?.value || 'Bottle';
             const numberOfUnits = Math.max(1, parseInt(document.getElementById('billNumberOfUnits')?.value, 10) || 1);
             if(!productName || isNaN(qty) || qty <= 0 || isNaN(rate)) { alert("Please select product, quantity, and rate."); return; }
+
+            if (isPackage) {
+                const pkg = packages.find(p => p.name === productName);
+                const stockDeductionQty = qty * numberOfUnits;
+                const total = qty * numberOfUnits * rate;
+                if (pkg) {
+                    const already = currentBillItems.filter(i => i.productName === productName && i.isPackage).reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
+                    if (stockDeductionQty + already > Number(pkg.stock || 0)) {
+                        alert(`Insufficient package stock. Available: ${pkg.stock} ${pkg.unit || 'Pcs'}`);
+                        return;
+                    }
+                }
+                currentBillItems.push({ productName, qty, unitType, quantityType, numberOfUnits, rate, total, stockDeductionQty, isPackage: true, packageId: pkg?.id || '', packageQty: 1 });
+                currentBillItems = sortBillItemsAlphabetically(currentBillItems);
+                document.getElementById('billQty').value = '';
+                document.getElementById('billRate').value = '';
+                document.getElementById('billCalculatedTotal').value = '';
+                document.getElementById('billProductSelect').value = '';
+                document.getElementById('billNumberOfUnits').value = '1';
+                renderBillPreviewInput();
+                calculateBalance();
+                return;
+            }
+
             const product = products.find(p => p.name === productName);
             const factor = getBillingUnitFactor(unitType, product?.unit);
             const stockDeductionQty = qty * factor * numberOfUnits;
             const total = qty * factor * numberOfUnits * rate;
-            const packageInfo=getProductPackageInfo(product);
+            let packageInfo = getProductPackageInfo(product);
+            if (!packageInfo && quantityType) {
+                const qNorm = quantityType.trim().toLowerCase();
+                const matchedPkg = packages.find(p => (p.name || '').trim().toLowerCase() === qNorm);
+                if (matchedPkg) {
+                    packageInfo = { id: matchedPkg.id, qty: 1, pkg: matchedPkg };
+                }
+            }
 
             if (product) {
-                const already = currentBillItems.filter(i => i.productName === productName).reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
+                const already = currentBillItems.filter(i => i.productName === productName && !i.isPackage).reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
                 if (stockDeductionQty + already > Number(product.stock || 0)) {
                     alert(`Insufficient stock. Available: ${product.stock} ${product.unit}`);
                     return;
                 }
             }
 
-            currentBillItems.push({ productName, qty, unitType, quantityType, numberOfUnits, rate, total, stockDeductionQty, packageId:packageInfo?.id||'', packageQty:packageInfo?.qty||0 });
+            currentBillItems.push({ productName, qty, unitType, quantityType, numberOfUnits, rate, total, stockDeductionQty, isPackage: false, packageId:packageInfo?.id||'', packageQty:packageInfo?.qty||0 });
             currentBillItems = sortBillItemsAlphabetically(currentBillItems);
             document.getElementById('billQty').value = '';
             document.getElementById('billRate').value = '';
@@ -4228,9 +4480,13 @@
         }
         function updateCombinedProductSelect(){
             const select=document.getElementById('combinedProductSelect'); if(!select)return;
-            const rows=[...products.map(p=>({category:'Cleaning',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'',wholesale:Number(p.wholesalePrice)||0,retail:Number(p.retailPrice)||0})),...cosProducts.map(p=>({category:'Cosmetics',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'',wholesale:Number(p.wholesalePrice||p.salePrice)||0,retail:Number(p.retailPrice||p.salePrice)||0}))].sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base',numeric:true}));
+            const rows=[
+                ...products.map(p=>({category:'Cleaning',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'',wholesale:Number(p.wholesalePrice)||0,retail:Number(p.retailPrice)||0})),
+                ...cosProducts.map(p=>({category:'Cosmetics',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'',wholesale:Number(p.wholesalePrice||p.salePrice)||0,retail:Number(p.retailPrice||p.salePrice)||0})),
+                ...packages.map(p=>({category:'Package',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'Pcs',wholesale:0,retail:0,size:p.size||''}))
+            ].sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base',numeric:true}));
             const current=select.value;
-            select.innerHTML='<option value="">-- Select Product --</option>'+rows.map((r,i)=>`<option value="${r.category}::${String(r.name).replace(/"/g,'&quot;')}" data-category="${r.category}" data-name="${String(r.name).replace(/"/g,'&quot;')}" data-stock="${r.stock}" data-unit="${r.unit}" data-wholesale="${r.wholesale}" data-retail="${r.retail}">${r.name} — ${r.category} (Stock: ${r.stock} ${r.unit})</option>`).join('');
+            select.innerHTML='<option value="">-- Select Product --</option>'+rows.map((r,i)=>`<option value="${r.category}::${String(r.name).replace(/"/g,'&quot;')}" data-category="${r.category}" data-name="${String(r.name).replace(/"/g,'&quot;')}" data-stock="${r.stock}" data-unit="${r.unit}" data-wholesale="${r.wholesale}" data-retail="${r.retail}">${r.name}${r.size ? ' (' + r.size + ')' : ''} — ${r.category} (Stock: ${r.stock} ${r.unit})</option>`).join('');
             if(current)select.value=current;
         }
         function getCombinedSelected(){
@@ -4246,7 +4502,12 @@
         }
         function onCombinedSaleTypeChange(){ fillCombinedProductPrice(); }
         function calculateCombinedItemTotal(){ const qty=parseFloat(document.getElementById('combinedQty')?.value)||0, u=Math.max(1,parseInt(document.getElementById('combinedNumberOfUnits')?.value,10)||1), r=parseFloat(document.getElementById('combinedRate')?.value)||0, unitType=document.getElementById('combinedUnitType')?.value||'Pcs', selected=getCombinedSelected(), product=selected?combinedStockRecord({category:selected.category,productName:selected.name}):null, factor=getBillingUnitFactor(unitType,product?.unit); const el=document.getElementById('combinedCalculatedTotal'); if(el)el.value=(qty*factor*u*r).toFixed(2); }
-        function combinedStockRecord(item){ const cat = item ? (item.combinedCategory || item.category) : ''; return cat==='Cosmetics'?cosProducts.find(p=>p.name===item.productName):products.find(p=>p.name===item.productName); }
+        function combinedStockRecord(item){ 
+            const cat = item ? (item.combinedCategory || item.category) : ''; 
+            if (cat === 'Cosmetics') return cosProducts.find(p => p.name === item.productName);
+            if (cat === 'Package') return packages.find(p => p.name === item.productName);
+            return products.find(p => p.name === item.productName); 
+        }
         function addToCombinedBill(){
             const selected=getCombinedSelected(), qty=parseFloat(document.getElementById('combinedQty')?.value), rate=parseFloat(document.getElementById('combinedRate')?.value), unitType=document.getElementById('combinedUnitType')?.value||'Pcs', numberOfUnits=Math.max(1,parseInt(document.getElementById('combinedNumberOfUnits')?.value,10)||1);
             if(!selected||!Number.isFinite(qty)||qty<=0||!Number.isFinite(rate)){alert('Please select product, quantity, and rate.');return;}
@@ -4349,21 +4610,38 @@
                 restorePackageStock(oldBill.items || []);
                 if(oldBill.items) {
                     oldBill.items.forEach(oldItem => {
-                        const p = products.find(prod => prod.name === oldItem.productName);
-                        if(p) p.stock += (oldItem.stockDeductionQty || oldItem.qty || 0);
+                        if (!oldItem.isPackage) {
+                            const p = products.find(prod => prod.name === oldItem.productName);
+                            if(p) p.stock += (oldItem.stockDeductionQty || oldItem.qty || 0);
+                        }
                     });
                 }
             }
 
             currentBillItems.forEach(item => {
-                const p = products.find(prod => prod.name === item.productName);
-                if(p) p.stock -= item.stockDeductionQty;
+                if (!item.isPackage) {
+                    const p = products.find(prod => prod.name === item.productName);
+                    if(p) p.stock -= item.stockDeductionQty;
+                }
             });
             const packageDeduction=checkAndDeductPackageStock(currentBillItems);
             if(!packageDeduction.ok){
-                currentBillItems.forEach(item=>{const p=products.find(prod=>prod.name===item.productName);if(p)p.stock+=Number(item.stockDeductionQty||0);});
-                if(index!==-1 && oldBill){restorePackageStock(oldBill.items||[]);(oldBill.items||[]).forEach(item=>{const p=products.find(prod=>prod.name===item.productName);if(p)p.stock-=Number(item.stockDeductionQty||item.qty||0);});}
-                if(packageDeduction.missing){ alert(`Packaging item not found for: ${packageDeduction.products.join(', ')}. Please add the matching Bottle/Pack item in Stock → Package.`); } else { alert(`Insufficient package stock for ${packageDeduction.pkg?.name||'packaging item'}. Available: ${packageDeduction.pkg?.stock||0}`); } return;
+                currentBillItems.forEach(item=>{
+                    if (!item.isPackage) {
+                        const p=products.find(prod=>prod.name===item.productName);
+                        if(p)p.stock+=Number(item.stockDeductionQty||0);
+                    }
+                });
+                if(index!==-1 && oldBill){
+                    restorePackageStock(oldBill.items||[]);
+                    (oldBill.items||[]).forEach(item=>{
+                        if (!item.isPackage) {
+                            const p=products.find(prod=>prod.name===item.productName);
+                            if(p)p.stock-=Number(item.stockDeductionQty||item.qty||0);
+                        }
+                    });
+                }
+                if(packageDeduction.missing){ alert(`Packaging item not found for: ${packageDeduction.products.join(', ')}. Please add the matching item in Stock → Package.`); } else { alert(`Insufficient package stock for ${packageDeduction.pkg?.name||'packaging item'}. Available: ${packageDeduction.pkg?.stock||0}`); } return;
             }
 
             const grandTotal = currentBillItems.reduce((sum, i) => sum + Number(i.total || 0), 0);
