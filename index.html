@@ -684,37 +684,60 @@
         </div>
 
             <div id="stockPackageArea" class="hidden space-y-4">
-                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner">
-                    <div class="flex justify-between items-center mb-3 gap-2">
-                        <div><h2 class="font-bold text-cyan-300 text-sm">🧴 Package / Packaging Stock</h2><p class="text-[10px] text-slate-500">Bottles, caps, labels, boxes and other packaging items</p></div>
-                        <button type="button" onclick="switchPackageView('report')" class="shrink-0 bg-slate-800 text-cyan-300 border border-cyan-800/50 px-2.5 py-1.5 rounded-lg text-[10px] font-bold">📊 Consolidated</button>
-                    </div>
-                    <form id="packageForm" class="space-y-3" onsubmit="savePackage(event)">
-                        <input type="hidden" id="packageId" value="">
-                        <input type="text" id="packageName" placeholder="Package Item Name (e.g. Dishwash Bottle)" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100">
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" id="packageSize" placeholder="Size (e.g. 300 ml)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100">
-                            <select id="packageUnit" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option><option value="Box">Box</option><option value="Roll">Roll</option><option value="Other">Other</option></select>
+                <!-- Package Stock Action Tabs -->
+                <div class="stock-action-grid grid grid-cols-3 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1.5 mb-3">
+                    <button type="button" onclick="switchPackageActionTab('add')" id="pkgStockAddTab" class="flex-1 py-2 text-center text-xs font-bold bg-cyan-700 text-white rounded-xl shadow-md transition">➕ Add Package</button>
+                    <button type="button" onclick="switchPackageActionTab('view')" id="pkgStockViewTab" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">👁️ View Packages</button>
+                    <button type="button" onclick="switchPackageActionTab('consolidated')" id="pkgStockConsolidatedTab" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">📊 Consolidated</button>
+                </div>
+
+                <!-- Package: ADD TAB -->
+                <div id="pkgStockAddContent">
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner">
+                        <div class="flex justify-between items-center mb-3 gap-2">
+                            <div><h2 class="font-bold text-cyan-300 text-sm">🧴 Add Package Item</h2><p class="text-[10px] text-slate-500">Bottles, caps, labels, boxes and other packaging items</p></div>
                         </div>
-                        <input type="number" id="packageStock" placeholder="Current Stock" required min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100">
-                        <div class="flex gap-2"><button type="submit" id="packageSubmitBtn" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-3 rounded-xl font-bold text-sm shadow-md">💾 Save Package</button><button type="button" onclick="resetPackageForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm border border-slate-700">Clear</button></div>
-                    </form>
-                </div>
-                <div id="packageListArea" class="bg-slate-950/60 p-4 rounded-2xl border border-cyan-800/40 shadow-inner">
-                    <div class="flex justify-between items-center mb-2"><h3 class="font-bold text-cyan-300 text-sm">Package Stock List</h3><span class="text-[10px] text-slate-500">Edit / Delete available</span></div>
-                    <div id="packageListContainer" class="space-y-2.5"></div>
-                </div>
-                <div id="packageReportArea" class="hidden bg-slate-950/60 p-4 rounded-2xl border border-cyan-800/40 shadow-inner">
-                    <div class="flex justify-between items-center mb-3 gap-2"><h3 class="font-bold text-cyan-300 text-sm">📊 Package Consolidated Report</h3><button type="button" onclick="switchPackageView('list')" class="bg-slate-800 text-slate-300 px-2.5 py-1.5 rounded-lg text-[10px] font-bold">← Package Stock</button></div>
-                    <div id="packageReportSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3"></div>
-                    <div class="w-full min-w-0 overflow-x-auto border border-slate-800 rounded-xl table-scroll-wrapper">
-                        <table class="w-full min-w-[480px] text-[10px]">
-                            <thead class="bg-slate-900 text-slate-400"><tr><th class="p-2 text-left">#</th><th class="p-2 text-left">Package Item</th><th class="p-2 text-left">Size</th><th class="p-2 text-right">Stock</th><th class="p-2 text-left">Unit</th><th class="p-2 text-left">Status</th></tr></thead>
-                            <tbody id="packageReportTableBody"></tbody>
-                        </table>
+                        <form id="packageForm" class="space-y-3" onsubmit="savePackage(event)">
+                            <input type="hidden" id="packageId" value="">
+                            <input type="text" id="packageName" placeholder="Package Item Name (e.g. Dishwash Bottle)" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-cyan-500">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="packageSize" placeholder="Size (e.g. 300 ml)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-cyan-500">
+                                <select id="packageUnit" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-cyan-500"><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option><option value="Box">Box</option><option value="Roll">Roll</option><option value="Other">Other</option></select>
+                            </div>
+                            <input type="number" id="packageStock" placeholder="Current Stock" required min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-cyan-500">
+                            <div class="flex gap-2"><button type="submit" id="packageSubmitBtn" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-3 rounded-xl font-bold text-sm shadow-md">💾 Save Package</button><button type="button" onclick="resetPackageForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm border border-slate-700">Clear</button></div>
+                        </form>
                     </div>
-                    <div class="text-[9px] text-slate-500 mt-1 sm:hidden">↔️ Swipe sideways to view all columns</div>
-                    <div id="packageReportUnitTotals" class="mt-3 space-y-1"></div>
+                </div>
+
+                <!-- Package: VIEW TAB -->
+                <div id="pkgStockViewContent" class="hidden">
+                    <div id="packageListArea" class="bg-slate-950/60 p-4 rounded-2xl border border-cyan-800/40 shadow-inner">
+                        <div class="flex justify-between items-center mb-3">
+                            <div><h3 class="font-bold text-cyan-300 text-sm">Package Stock List</h3><span class="text-[10px] text-slate-500">View, Edit, or Delete packaging items</span></div>
+                            <button type="button" onclick="switchPackageActionTab('add')" class="bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-700 px-3 py-1.5 rounded-xl text-xs font-bold">➕ Add New</button>
+                        </div>
+                        <div id="packageListContainer" class="space-y-2.5"></div>
+                    </div>
+                </div>
+
+                <!-- Package: CONSOLIDATED REPORT TAB -->
+                <div id="pkgStockConsolidatedContent" class="hidden">
+                    <div id="packageReportArea" class="bg-slate-950/60 p-4 rounded-2xl border border-cyan-800/40 shadow-inner">
+                        <div class="flex justify-between items-center mb-3 gap-2">
+                            <div><h3 class="font-bold text-cyan-300 text-sm">📊 Package Consolidated Report</h3><p class="text-[10px] text-slate-500">Complete summary of packaging stock and units</p></div>
+                            <button type="button" onclick="renderPackageConsolidationReport()" class="bg-slate-800 text-cyan-300 border border-cyan-800/50 px-2.5 py-1.5 rounded-lg text-[10px] font-bold">↻ Refresh</button>
+                        </div>
+                        <div id="packageReportSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3"></div>
+                        <div class="w-full min-w-0 overflow-x-auto border border-slate-800 rounded-xl table-scroll-wrapper">
+                            <table class="w-full min-w-[480px] text-[10px]">
+                                <thead class="bg-slate-900 text-slate-400"><tr><th class="p-2 text-left">#</th><th class="p-2 text-left">Package Item</th><th class="p-2 text-left">Size</th><th class="p-2 text-right">Stock</th><th class="p-2 text-left">Unit</th><th class="p-2 text-left">Status</th></tr></thead>
+                                <tbody id="packageReportTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="text-[9px] text-slate-500 mt-1 sm:hidden">↔️ Swipe sideways to view all columns</div>
+                        <div id="packageReportUnitTotals" class="mt-3 space-y-1"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2512,8 +2535,24 @@
         function switchStockTopTab(tab) {
             const productArea=document.getElementById('stockProductArea'), packageArea=document.getElementById('stockPackageArea');
             const p=document.getElementById('stockTopProduct'), q=document.getElementById('stockTopPackage');
-            if(tab==='package'){ productArea?.classList.add('hidden'); packageArea?.classList.remove('hidden'); p?.classList.remove('bg-emerald-700','text-white','shadow-md'); p?.classList.add('text-slate-400'); q?.classList.add('bg-cyan-700','text-white','shadow-md'); q?.classList.remove('text-slate-400'); renderPackages(); updatePackageSelectors(); }
-            else { packageArea?.classList.add('hidden'); productArea?.classList.remove('hidden'); q?.classList.remove('bg-cyan-700','text-white','shadow-md'); q?.classList.add('text-slate-400'); p?.classList.add('bg-emerald-700','text-white','shadow-md'); p?.classList.remove('text-slate-400'); }
+            if(tab==='package'){
+                productArea?.classList.add('hidden');
+                packageArea?.classList.remove('hidden');
+                p?.classList.remove('bg-emerald-700','text-white','shadow-md');
+                p?.classList.add('text-slate-400');
+                q?.classList.add('bg-cyan-700','text-white','shadow-md');
+                q?.classList.remove('text-slate-400');
+                renderPackages();
+                updatePackageSelectors();
+                switchPackageActionTab(packages && packages.length > 0 ? 'view' : 'add');
+            } else {
+                packageArea?.classList.add('hidden');
+                productArea?.classList.remove('hidden');
+                q?.classList.remove('bg-cyan-700','text-white','shadow-md');
+                q?.classList.add('text-slate-400');
+                p?.classList.add('bg-emerald-700','text-white','shadow-md');
+                p?.classList.remove('text-slate-400');
+            }
         }
 
         function switchStockSubTab(tab) {
@@ -3377,6 +3416,45 @@
             }
             return pkg&&qty>0?{packageId:String(pkg.id),packageQty:qty,packageName:String(pkg.name||'')}:{packageId:'',packageQty:0,packageName:''};
         }
+        function switchPackageActionTab(tab) {
+            const addContent = document.getElementById('pkgStockAddContent');
+            const viewContent = document.getElementById('pkgStockViewContent');
+            const consContent = document.getElementById('pkgStockConsolidatedContent');
+            const addTab = document.getElementById('pkgStockAddTab');
+            const viewTab = document.getElementById('pkgStockViewTab');
+            const consTab = document.getElementById('pkgStockConsolidatedTab');
+
+            [addContent, viewContent, consContent].forEach(el => el && el.classList.add('hidden'));
+            [addTab, viewTab, consTab].forEach(btn => {
+                if (btn) {
+                    btn.classList.remove('bg-cyan-700', 'text-white', 'shadow-md');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+
+            if (tab === 'view') {
+                if (viewContent) viewContent.classList.remove('hidden');
+                if (viewTab) {
+                    viewTab.classList.add('bg-cyan-700', 'text-white', 'shadow-md');
+                    viewTab.classList.remove('text-slate-400');
+                }
+                renderPackages();
+            } else if (tab === 'consolidated') {
+                if (consContent) consContent.classList.remove('hidden');
+                if (consTab) {
+                    consTab.classList.add('bg-cyan-700', 'text-white', 'shadow-md');
+                    consTab.classList.remove('text-slate-400');
+                }
+                renderPackageConsolidationReport();
+            } else {
+                if (addContent) addContent.classList.remove('hidden');
+                if (addTab) {
+                    addTab.classList.add('bg-cyan-700', 'text-white', 'shadow-md');
+                    addTab.classList.remove('text-slate-400');
+                }
+            }
+        }
+
         function savePackage(e){
             e.preventDefault(); 
             const id=document.getElementById('packageId').value;
@@ -3399,6 +3477,7 @@
             updatePackageSelectors();
             updateProductDropdown();
             updateCombinedProductSelect();
+            switchPackageActionTab('view');
         }
         function resetPackageForm(){
             const f=document.getElementById('packageForm');
@@ -3406,8 +3485,8 @@
             document.getElementById('packageId').value='';
             const btn=document.getElementById('packageSubmitBtn');
             if(btn) btn.textContent='💾 Save Package';
-            const title = document.querySelector('#stockPackageArea h2');
-            if (title) title.textContent = '🧴 Package / Packaging Stock';
+            const title = document.querySelector('#pkgStockAddContent h2');
+            if (title) title.textContent = '🧴 Add Package Item';
             document.getElementById('packageUnit').value='Pcs';
         }
         function editPackage(id){
@@ -3415,7 +3494,7 @@
             if(!pkg) return;
             switchTab('stock', false);
             switchStockTopTab('package');
-            switchPackageView('list');
+            switchPackageActionTab('add');
             document.getElementById('packageId').value = pkg.id;
             document.getElementById('packageName').value = pkg.name || '';
             document.getElementById('packageSize').value = pkg.size || '';
@@ -3424,7 +3503,7 @@
             const btn = document.getElementById('packageSubmitBtn');
             if(btn) btn.textContent = '💾 Update Package';
             setTimeout(() => {
-                const title = document.querySelector('#stockPackageArea h2');
+                const title = document.querySelector('#pkgStockAddContent h2');
                 if (title) title.textContent = '✏️ Edit Package Item';
                 document.getElementById('packageForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 document.getElementById('packageName')?.focus();
@@ -3441,17 +3520,34 @@
             cosProducts.forEach(p => { if(String(p.packageId) === String(id)){ p.packageId=''; p.packageQty=0; } });
             syncToFirebase();
             renderAll();
+            renderPackages();
+            switchPackageActionTab('view');
         }
-        function addPackageStock(id,qty){const x=packages.find(p=>p.id===id);if(!x||!(qty>0))return;x.stock=(Number(x.stock)||0)+qty;syncToFirebase();renderPackages();updatePackageSelectors();}
+        function addPackageStock(id,qty){const x=packages.find(p=>String(p.id)===String(id));if(!x||!(qty>0))return;x.stock=(Number(x.stock)||0)+qty;syncToFirebase();renderPackages();updatePackageSelectors();}
         function renderPackages(){
             const c=document.getElementById('packageListContainer');
             if(!c) return;
-            c.innerHTML=sortByNameAsc(packages).map(x=>`<div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row justify-between gap-2 items-start sm:items-center"><div class="min-w-0 flex-1"><div class="font-bold text-cyan-300 text-xs break-words">${x.name}</div><div class="text-[10px] text-slate-500">${x.size||'—'} • ${x.unit||'Pcs'}</div></div><div class="text-left sm:text-right w-full sm:w-auto flex flex-row sm:flex-col justify-between sm:justify-end items-center sm:items-end gap-2"><div class="font-extrabold ${(Number(x.stock)||0)<=5?'text-rose-300':'text-white'} text-sm">${Number(x.stock)||0}</div><div class="flex gap-1 items-center"><input id="pkgAdd_${x.id}" type="number" min="0" step="any" placeholder="+Stock" class="w-16 px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-[10px] text-white"><button type="button" onclick="addPackageStock('${x.id}',parseFloat(document.getElementById('pkgAdd_${x.id}').value)||0);document.getElementById('pkgAdd_${x.id}').value=''" class="bg-cyan-900 text-cyan-200 px-2 py-1 rounded-lg text-[10px]">Add</button><button type="button" onclick="viewPackage('${x.id}')" class="bg-blue-900 text-blue-200 px-2 py-1 rounded-lg text-[10px]">View</button><button type="button" onclick="editPackage('${x.id}')" class="bg-slate-800 text-amber-300 px-2 py-1 rounded-lg text-[10px]">Edit</button><button type="button" onclick="deletePackage('${x.id}')" class="bg-slate-800 text-red-300 px-2 py-1 rounded-lg text-[10px]">Delete</button></div></div></div>`).join('')||'<p class="text-xs text-slate-500 text-center py-6">No package items added yet.</p>';
+            c.innerHTML=sortByNameAsc(packages).map(x=>`
+                <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                    <div class="min-w-0 flex-1 pr-2 break-words">
+                        <p class="font-bold text-cyan-300 text-sm">${x.name}</p>
+                        <p class="text-slate-400 mt-1">Size: <span class="text-slate-200">${x.size||'—'}</span> | Unit: <span class="text-slate-200">${x.unit||'Pcs'}</span> | Stock: <span class="${(Number(x.stock)||0)<=5?'text-rose-400 font-bold':'text-emerald-300 font-bold'}">${x.stock ?? 0}</span></p>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 items-center justify-end shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
+                        <div class="flex items-center gap-1 mr-1">
+                            <input id="pkgAdd_${x.id}" type="number" min="0" step="any" placeholder="+Qty" class="w-14 px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            <button type="button" onclick="addPackageStock('${x.id}',parseFloat(document.getElementById('pkgAdd_${x.id}').value)||0);document.getElementById('pkgAdd_${x.id}').value=''" class="bg-cyan-900/80 hover:bg-cyan-800 text-cyan-200 px-2 py-1.5 rounded-lg border border-cyan-700 text-xs font-semibold">+Stock</button>
+                        </div>
+                        <button type="button" onclick="viewPackage('${x.id}')" class="bg-blue-900 hover:bg-blue-800 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 font-bold text-xs">👁️ View</button>
+                        <button type="button" onclick="editPackage('${x.id}')" class="bg-slate-800 hover:bg-slate-700 text-amber-300 px-2.5 py-1.5 rounded-lg border border-slate-700 font-bold text-xs">✏️ Edit</button>
+                        <button type="button" onclick="deletePackage('${x.id}')" class="bg-slate-800 hover:bg-slate-700 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 font-bold text-xs">🗑️ Delete</button>
+                    </div>
+                </div>`).join('')||'<p class="text-xs text-slate-500 text-center py-6">No package items added yet.</p>';
             renderPackageConsolidationReport();
             checkLowStockAlerts();
             updateDashboard();
         }
-        function switchPackageView(view){const list=document.getElementById('packageListArea'),report=document.getElementById('packageReportArea');if(!list||!report)return;if(view==='report'){list.classList.add('hidden');report.classList.remove('hidden');renderPackageConsolidationReport();}else{report.classList.add('hidden');list.classList.remove('hidden');}}
+        function switchPackageView(view){if(view==='report'){switchPackageActionTab('consolidated');}else{switchPackageActionTab('view');}}
         function renderPackageConsolidationReport(){const rows=sortByNameAsc(packages||[]).map(p=>({name:p.name||'',size:p.size||'',stock:Number(p.stock)||0,unit:p.unit||'Pcs'}));const summary=[['Total Items',rows.length],['Total Stock',rows.reduce((s,r)=>s+r.stock,0)],['Low Stock',rows.filter(r=>r.stock<=5).length],['Units Used',new Set(rows.map(r=>r.unit).filter(Boolean)).size]];const sh=document.getElementById('packageReportSummary');if(sh)sh.innerHTML=summary.map(([l,v])=>`<div class="bg-slate-900 rounded-lg p-3"><div class="text-[10px] text-slate-400">${l}</div><b class="text-sm text-white">${v}</b></div>`).join('');const tb=document.getElementById('packageReportTableBody');if(tb)tb.innerHTML=rows.length?rows.map((r,i)=>`<tr class="border-t border-slate-800"><td class="p-2 text-slate-500">${i+1}</td><td class="p-2 text-cyan-300 font-semibold">${r.name||'—'}</td><td class="p-2 text-slate-400">${r.size||'—'}</td><td class="p-2 text-right font-bold ${r.stock<=5?'text-rose-300':'text-white'}">${r.stock}</td><td class="p-2 text-slate-300">${r.unit}</td><td class="p-2 ${r.stock<=5?'text-rose-300':'text-emerald-300'}">${r.stock<=5?'LOW STOCK':'OK'}</td></tr>`).join(''):'<tr><td colspan="6" class="p-5 text-center text-slate-500">No package items found.</td></tr>';const um={};rows.forEach(r=>um[r.unit]=(um[r.unit]||0)+r.stock);const uh=document.getElementById('packageReportUnitTotals');if(uh)uh.innerHTML=Object.entries(um).sort((a,b)=>a[0].localeCompare(b[0])).map(([u,t])=>`<div class="flex justify-between bg-slate-900/70 border border-slate-800 rounded-lg px-3 py-2 text-[11px]"><span class="text-slate-400">Total ${u}</span><b class="text-slate-200">${t}</b></div>`).join('')||'<div class="text-[10px] text-slate-500">No stock data.</div>';}
         function getProductPackageInfo(product){
             if(!product) return null;
@@ -5973,7 +6069,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             showRecordView('Cosmetic Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Base Wholesale:</b> ₹${p.costPrice}</p><p><b>Base Retail:</b> ₹${p.salePrice}</p>${p.packageName ? `<p><b>Default Package:</b> ${p.packageName}</p>` : ''}${variantsHtml}</div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editCosProduct('${p.id}');" class="bg-slate-800 text-pink-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteCosProduct('${p.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
         }
         function viewPackage(id) {
-            const x = packages.find(p => p.id === id);
+            const x = packages.find(p => String(p.id) === String(id));
             if (!x) return;
             showRecordView('Package Item Details', `<div class="space-y-2"><p><b>Package Name:</b> ${x.name}</p><p><b>Size / Volume:</b> ${x.size || '—'}</p><p><b>Unit:</b> ${x.unit || 'Pcs'}</p><p><b>Available Stock:</b> <span class="${(Number(x.stock)||0)<=5?'text-rose-400 font-bold':'text-emerald-300 font-bold'}">${x.stock ?? 0}</span></p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editPackage('${x.id}');" class="bg-slate-800 text-amber-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deletePackage('${x.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
         }
