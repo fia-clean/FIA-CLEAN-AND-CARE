@@ -4355,10 +4355,7 @@
             const rate = parseFloat(document.getElementById('cosSUnitPrice').value) || 0;
             const unitType = document.getElementById('cosSUnit').value;
             const numberOfUnits = Math.max(1, parseInt(document.getElementById('cosSNumberOfUnits')?.value, 10) || 1);
-            const productId = document.getElementById('cosSalesStockSelect').value;
-            const product = cosProducts.find(p => p.id === productId);
-            const factor = getBillingUnitFactor(unitType, product?.unit);
-            const total = (qty > 0 ? (qty * factor) : 1) * numberOfUnits * rate;
+            const total = numberOfUnits * rate;
             document.getElementById('cosSAmount').value = total ? total.toFixed(2) : '';
             calculateCosSalesBalance();
         }
@@ -4376,7 +4373,7 @@
             }
             const factor = getBillingUnitFactor(unitType, product.unit);
             const stockDeductionQty = (qty > 0 ? qty : 1) * factor * numberOfUnits;
-            const total = stockDeductionQty * rate;
+            const total = numberOfUnits * rate;
             const packageInfo=getProductPackageInfo(product);
             const already = currentCosBillItems.filter(i => i.stockId === productId).reduce((s, i) => s + Number(i.stockDeductionQty || 0), 0);
             if (stockDeductionQty + already > Number(product.stock || 0)) {
@@ -4485,15 +4482,31 @@
             }
         }
 
+        function parsePackageVolume(sizeStr, nameStr) {
+            const s = (String(sizeStr || '') + ' ' + String(nameStr || '')).trim();
+            const m = s.match(/(\d+(?:\.\d+)?)\s*(ml|millilitre|l|ltr|litre|liter|kg|kilogram|g|gm|gram)/i);
+            if (m) {
+                const val = parseFloat(m[1]);
+                const u = m[2].toLowerCase();
+                if (['l','ltr','litre','liter'].includes(u)) return { size: val, unit: 'Litre' };
+                if (['ml','millilitre'].includes(u)) return { size: val, unit: 'ml' };
+                if (['kg','kilogram'].includes(u)) return { size: val, unit: 'Kg' };
+                if (['g','gm','gram'].includes(u)) return { size: val, unit: 'Gram' };
+            }
+            return null;
+        }
+
         function fillProductPrice() {
             const select = document.getElementById('billProductSelect');
-            const opt = select.options[select.selectedIndex];
+            const opt = select ? select.options[select.selectedIndex] : null;
             const variantWrapper = document.getElementById('billPackVariantWrapper');
             const variantSelect = document.getElementById('billPackVariantSelect');
             const badgeEl = document.getElementById('billPackVariantBadge');
             if(!opt || !opt.value) {
                 if (variantWrapper) variantWrapper.classList.add('hidden');
                 if (badgeEl) badgeEl.textContent = '';
+                document.getElementById('billRate').value = '';
+                document.getElementById('billCalculatedTotal').value = '';
                 return;
             }
 
@@ -4516,18 +4529,22 @@
                     const rateEl = document.getElementById('billRate');
                     if (rateEl && !rateEl.value) rateEl.value = '0';
                     delete rateEl.dataset.variantId;
+                    delete rateEl.dataset.defaultPkgId;
                     calculateItemTotal();
                     return;
                 }
             }
 
             const product = products.find(p => p.name === opt.value);
+            if (!product) return;
 
-            // Check if product has pack size variants!
-            if (product && Array.isArray(product.variants) && product.variants.length > 0) {
+            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+            const baseRate = parseFloat(saleType === 'Wholesale' ? opt.getAttribute('data-wholesale') : opt.getAttribute('data-retail')) || 0;
+
+            // 1. Check if product has pack size variants configured
+            if (Array.isArray(product.variants) && product.variants.length > 0) {
                 if (variantWrapper && variantSelect) {
                     variantWrapper.classList.remove('hidden');
-                    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
                     variantSelect.innerHTML = '<option value="">-- Select Pack Size (' + product.variants.length + ' options) --</option>' +
                         product.variants.map(v => {
                             const rate = saleType === 'Wholesale' ? v.wholesalePrice : v.retailPrice;
@@ -4539,33 +4556,75 @@
                     onPackVariantSelected();
                     return;
                 }
-            } else {
-                if (variantWrapper) variantWrapper.classList.add('hidden');
-                if (badgeEl) badgeEl.textContent = '';
-                if (variantSelect) variantSelect.innerHTML = '<option value="">-- Select Pack Size --</option>';
             }
 
-            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
-            const rateEl = document.getElementById('billRate');
-            const baseRate = parseFloat(saleType === 'Wholesale' ? opt.getAttribute('data-wholesale') : opt.getAttribute('data-retail')) || 0;
-            const qty = parseFloat(document.getElementById('billQty')?.value) || 0;
-            const unitType = document.getElementById('billUnitType')?.value || '';
+            // 2. If NO multi-variants, check if product has a mapped package (e.g. 100 ml Bottle, 500 ml Bottle)
+            let mappedPkg = null;
+            if (product.packageId) {
+                mappedPkg = packages.find(p => String(p.id) === String(product.packageId));
+            }
+            if (!mappedPkg && product.packageName) {
+                mappedPkg = packages.find(p => String(p.name).toLowerCase() === String(product.packageName).toLowerCase());
+            }
 
-            // Auto-select mapped package in billQuantityType if available!
-            if (product && product.packageId) {
-                const mappedPkg = packages.find(p => String(p.id) === String(product.packageId));
-                if (mappedPkg) {
-                    const qTypeEl = document.getElementById('billQuantityType');
-                    if (qTypeEl) qTypeEl.value = mappedPkg.name;
+            if (mappedPkg) {
+                if (variantWrapper && variantSelect) {
+                    variantWrapper.classList.remove('hidden');
+                    if (badgeEl) badgeEl.innerHTML = `📦 ${mappedPkg.name} (<span class="${Number(mappedPkg.stock)<=5?'text-rose-400 font-bold':'text-emerald-400 font-bold'}">Stock: ${mappedPkg.stock}</span>)`;
+                    variantSelect.innerHTML = `<option value="default_pkg">${mappedPkg.name}${mappedPkg.size ? ' (' + mappedPkg.size + ')' : ''} — ₹${baseRate.toFixed(2)} [Default Pack]</option>`;
+                    variantSelect.selectedIndex = 0;
                 }
-            } else if (product && product.packageName) {
+
+                const parsed = parsePackageVolume(mappedPkg.size, mappedPkg.name);
+                if (parsed) {
+                    document.getElementById('billQty').value = parsed.size;
+                    const unitEl = document.getElementById('billUnitType');
+                    if (unitEl) {
+                        if (![...unitEl.options].some(o => o.value.toLowerCase() === parsed.unit.toLowerCase())) {
+                            unitEl.add(new Option(parsed.unit, parsed.unit));
+                        }
+                        unitEl.value = parsed.unit;
+                    }
+                } else {
+                    document.getElementById('billQty').value = 1;
+                    const unitEl = document.getElementById('billUnitType');
+                    if (unitEl) unitEl.value = product.unit || 'Bottle';
+                }
+
                 const qTypeEl = document.getElementById('billQuantityType');
-                if (qTypeEl) qTypeEl.value = product.packageName;
+                if (qTypeEl) {
+                    if (![...qTypeEl.options].some(o => o.value.toLowerCase() === mappedPkg.name.toLowerCase())) {
+                        qTypeEl.add(new Option(mappedPkg.name, mappedPkg.name));
+                    }
+                    qTypeEl.value = mappedPkg.name;
+                }
+
+                const rateEl = document.getElementById('billRate');
+                rateEl.value = baseRate ? baseRate.toFixed(2) : '';
+                rateEl.dataset.autoRate = rateEl.value;
+                rateEl.dataset.defaultPkgId = mappedPkg.id;
+                delete rateEl.dataset.variantId;
+                calculateItemTotal();
+                return;
             }
 
+            // 3. Fallback: product without variants and without package
+            if (variantWrapper) variantWrapper.classList.add('hidden');
+            if (badgeEl) badgeEl.textContent = '';
+            if (variantSelect) variantSelect.innerHTML = '<option value="">-- Select Pack Size --</option>';
+
+            const unitEl = document.getElementById('billUnitType');
+            if (unitEl && product.unit) {
+                if (![...unitEl.options].some(o => o.value.toLowerCase() === product.unit.toLowerCase())) {
+                    unitEl.add(new Option(product.unit, product.unit));
+                }
+                unitEl.value = product.unit;
+            }
+            const rateEl = document.getElementById('billRate');
             rateEl.value = baseRate ? baseRate.toFixed(2) : '';
             rateEl.dataset.autoRate = rateEl.value;
             delete rateEl.dataset.variantId;
+            delete rateEl.dataset.defaultPkgId;
             calculateItemTotal();
         }
 
@@ -4580,6 +4639,33 @@
                 if (badgeEl) badgeEl.textContent = '';
                 return;
             }
+
+            if (vId === 'default_pkg') {
+                let mappedPkg = null;
+                if (product.packageId) mappedPkg = packages.find(p => String(p.id) === String(product.packageId));
+                if (!mappedPkg && product.packageName) mappedPkg = packages.find(p => String(p.name).toLowerCase() === String(product.packageName).toLowerCase());
+
+                const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+                const rate = Number(saleType === 'Wholesale' ? product.wholesalePrice : product.retailPrice) || 0;
+                const rateEl = document.getElementById('billRate');
+                rateEl.value = rate ? rate.toFixed(2) : '0';
+                rateEl.dataset.autoRate = rateEl.value;
+                rateEl.dataset.defaultPkgId = mappedPkg?.id || '';
+                delete rateEl.dataset.variantId;
+
+                const parsed = parsePackageVolume(mappedPkg?.size, mappedPkg?.name);
+                if (parsed) {
+                    document.getElementById('billQty').value = parsed.size;
+                    const unitEl = document.getElementById('billUnitType');
+                    if (unitEl) unitEl.value = parsed.unit;
+                }
+                if (mappedPkg && badgeEl) {
+                    badgeEl.innerHTML = `📦 ${mappedPkg.name} (<span class="${Number(mappedPkg.stock)<=5?'text-rose-400 font-bold':'text-emerald-400 font-bold'}">Stock: ${mappedPkg.stock}</span>)`;
+                }
+                calculateItemTotal();
+                return;
+            }
+
             const variant = product.variants?.find(v => String(v.id) === String(vId));
             if (!variant) return;
 
@@ -4597,6 +4683,7 @@
             rateEl.value = rate ? rate.toFixed(2) : '0';
             rateEl.dataset.autoRate = rateEl.value;
             rateEl.dataset.variantId = variant.id;
+            delete rateEl.dataset.defaultPkgId;
 
             // Link package in quantityType
             const qTypeEl = document.getElementById('billQuantityType');
@@ -4690,10 +4777,9 @@
                 }
             }
 
-            // If a variant is selected: rate is the price of that bottle/pack -> total = rate * numberOfUnits.
-            // If NO variant is selected (e.g. Detergent Liquid 5 Ltr × 2 bottles @ ₹70/Ltr):
-            // total = qty * factor * numberOfUnits * rate = ₹700.
-            const total = variantId ? (rate * numberOfUnits) : (qty * factor * numberOfUnits * rate);
+            // In commercial billing, Rate is the price per bottle / pack / selling unit.
+            // Total = rate * numberOfUnits (e.g. 10 bottles @ ₹37 = ₹370, 2 bottles @ ₹70 = ₹140).
+            const total = rate * numberOfUnits;
             document.getElementById('billCalculatedTotal').value = total ? total.toFixed(2) : '';
         }
 
@@ -4714,7 +4800,7 @@
             
             const perUnitBulk = (Number(item.stockDeductionQty) || 0) / (Number(item.numberOfUnits) || 1);
             const newStockDeductionQty = perUnitBulk * newUnits;
-            const newTotal = item.variantId ? (newRate * newUnits) : (newStockDeductionQty * newRate);
+            const newTotal = newUnits * newRate;
 
             const product = products.find(p => p.name === item.productName);
             if (product && !item.isPackage) {
@@ -4794,7 +4880,7 @@
                 }
             } else {
                 const factor = getBillingUnitFactor(unitType, product?.unit);
-                stockDeductionQty = qty * factor * numberOfUnits;
+                stockDeductionQty = (qty > 0 ? qty : 1) * factor * numberOfUnits;
                 packageInfo = getProductPackageInfo(product);
                 if (!packageInfo && quantityType) {
                     const qNorm = quantityType.trim().toLowerCase();
@@ -4803,9 +4889,12 @@
                         packageInfo = { id: matchedPkg.id, qty: 1, pkg: matchedPkg, name: matchedPkg.name };
                     }
                 }
+                if (packageInfo && packageInfo.name) {
+                    variantName = packageInfo.name;
+                }
             }
 
-            const total = variant ? (numberOfUnits * rate) : (stockDeductionQty * rate);
+            const total = numberOfUnits * rate;
 
             // Check bulk product stock
             if (product) {
@@ -4944,7 +5033,7 @@
             const selected = getCombinedSelected();
             const product = selected ? combinedStockRecord({category: selected.category, productName: selected.name}) : null;
 
-            // Check if product has pack size variants!
+            // 1. Check if product has pack size variants!
             if (product && Array.isArray(product.variants) && product.variants.length > 0) {
                 if (variantWrapper && variantSelect) {
                     variantWrapper.classList.remove('hidden');
@@ -4960,21 +5049,64 @@
                     onCombinedPackVariantSelected();
                     return;
                 }
-            } else {
-                if (variantWrapper) variantWrapper.classList.add('hidden');
-                if (badgeEl) badgeEl.textContent = '';
-                if (variantSelect) variantSelect.innerHTML = '<option value="">-- Select Pack Size --</option>';
+            }
+
+            // 2. If NO multi-variants, check if product has mapped package
+            let mappedPkg = null;
+            if (product?.packageId) {
+                mappedPkg = packages.find(p => String(p.id) === String(product.packageId));
+            }
+            if (!mappedPkg && product?.packageName) {
+                mappedPkg = packages.find(p => String(p.name).toLowerCase() === String(product.packageName).toLowerCase());
             }
 
             const type = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
+            const baseRate = Number(type === 'Wholesale' ? o.dataset.wholesale : o.dataset.retail || 0);
+
+            if (mappedPkg) {
+                if (variantWrapper && variantSelect) {
+                    variantWrapper.classList.remove('hidden');
+                    if (badgeEl) badgeEl.innerHTML = `📦 ${mappedPkg.name} (<span class="${Number(mappedPkg.stock)<=5?'text-rose-400 font-bold':'text-emerald-400 font-bold'}">Stock: ${mappedPkg.stock}</span>)`;
+                    variantSelect.innerHTML = `<option value="default_pkg">${mappedPkg.name}${mappedPkg.size ? ' (' + mappedPkg.size + ')' : ''} — ₹${baseRate.toFixed(2)} [Default Pack]</option>`;
+                    variantSelect.selectedIndex = 0;
+                }
+
+                const parsed = parsePackageVolume(mappedPkg.size, mappedPkg.name);
+                const qtyEl = document.getElementById('combinedQty');
+                if (qtyEl) qtyEl.value = parsed ? parsed.size : 1;
+                const unitEl = document.getElementById('combinedUnitType');
+                if (unitEl) {
+                    const u = parsed ? parsed.unit : (o.dataset.unit || product?.unit || 'Bottle');
+                    if (![...unitEl.options].some(x => x.value.toLowerCase() === u.toLowerCase())) {
+                        unitEl.add(new Option(u, u));
+                    }
+                    unitEl.value = u;
+                }
+
+                const rateEl = document.getElementById('combinedRate');
+                if (rateEl) {
+                    rateEl.value = baseRate ? baseRate.toFixed(2) : '0';
+                    rateEl.dataset.autoRate = rateEl.value;
+                    rateEl.dataset.defaultPkgId = mappedPkg.id;
+                    delete rateEl.dataset.variantId;
+                }
+                calculateCombinedItemTotal();
+                return;
+            }
+
+            // 3. Fallback: neither variants nor mapped package
+            if (variantWrapper) variantWrapper.classList.add('hidden');
+            if (badgeEl) badgeEl.textContent = '';
+            if (variantSelect) variantSelect.innerHTML = '<option value="">-- Select Pack Size --</option>';
+
             const unitEl = document.getElementById('combinedUnitType');
             if (unitEl) unitEl.value = o.dataset.unit || product?.unit || 'Pcs';
             const rateEl = document.getElementById('combinedRate');
-            const baseRate = Number(type === 'Wholesale' ? o.dataset.wholesale : o.dataset.retail || 0);
             if (rateEl) {
                 rateEl.value = baseRate ? baseRate.toFixed(2) : '0';
                 rateEl.dataset.autoRate = rateEl.value;
                 delete rateEl.dataset.variantId;
+                delete rateEl.dataset.defaultPkgId;
             }
             calculateCombinedItemTotal();
         }
@@ -4989,6 +5121,34 @@
                 if (badgeEl) badgeEl.textContent = '';
                 return;
             }
+
+            if (vId === 'default_pkg') {
+                let mappedPkg = null;
+                if (product.packageId) mappedPkg = packages.find(p => String(p.id) === String(product.packageId));
+                if (!mappedPkg && product.packageName) mappedPkg = packages.find(p => String(p.name).toLowerCase() === String(product.packageName).toLowerCase());
+
+                const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
+                const rate = Number(saleType === 'Wholesale' ? (product.wholesalePrice || product.costPrice) : (product.retailPrice || product.salePrice)) || 0;
+                const rateEl = document.getElementById('combinedRate');
+                if (rateEl) {
+                    rateEl.value = rate ? rate.toFixed(2) : '0';
+                    rateEl.dataset.autoRate = rateEl.value;
+                    rateEl.dataset.defaultPkgId = mappedPkg?.id || '';
+                    delete rateEl.dataset.variantId;
+                }
+
+                const parsed = parsePackageVolume(mappedPkg?.size, mappedPkg?.name);
+                const qtyEl = document.getElementById('combinedQty');
+                if (qtyEl) qtyEl.value = parsed ? parsed.size : 1;
+                const unitEl = document.getElementById('combinedUnitType');
+                if (unitEl && parsed) unitEl.value = parsed.unit;
+                if (mappedPkg && badgeEl) {
+                    badgeEl.innerHTML = `📦 ${mappedPkg.name} (<span class="${Number(mappedPkg.stock)<=5?'text-rose-400 font-bold':'text-emerald-400 font-bold'}">Stock: ${mappedPkg.stock}</span>)`;
+                }
+                calculateCombinedItemTotal();
+                return;
+            }
+
             const variant = product.variants?.find(v => String(v.id) === String(vId));
             if (!variant) return;
 
@@ -5010,6 +5170,7 @@
                 rateEl.value = rate ? rate.toFixed(2) : '0';
                 rateEl.dataset.autoRate = rateEl.value;
                 rateEl.dataset.variantId = variant.id;
+                delete rateEl.dataset.defaultPkgId;
             }
 
             // Link package container
@@ -5049,20 +5210,17 @@
         }
 
         function calculateCombinedItemTotal() {
-            const qty = parseFloat(document.getElementById('combinedQty')?.value) || 0;
             let rate = parseFloat(document.getElementById('combinedRate')?.value) || 0;
             const u = Math.max(1, parseInt(document.getElementById('combinedNumberOfUnits')?.value, 10) || 1);
-            const unitType = document.getElementById('combinedUnitType')?.value || 'Pcs';
             const selected = getCombinedSelected();
             const product = selected ? combinedStockRecord({category: selected.category, productName: selected.name}) : null;
-            const factor = getBillingUnitFactor(unitType, product?.unit);
 
             const autoRate = parseFloat(document.getElementById('combinedRate')?.dataset.autoRate);
             const variantId = document.getElementById('combinedPackVariantSelect')?.value || document.getElementById('combinedRate')?.dataset.variantId;
             const isPackage = selected?.category === 'Package';
             if (!variantId && !isPackage && Number.isFinite(autoRate) && Math.abs(rate - autoRate) < 0.000001) {
                 const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
-                const baseRate = product ? (saleType === 'Wholesale' ? Number(product.wholesalePrice || 0) : Number(product.retailPrice || 0)) : 0;
+                const baseRate = product ? (saleType === 'Wholesale' ? Number(product.wholesalePrice || product.costPrice || 0) : Number(product.retailPrice || product.salePrice || 0)) : 0;
                 if (baseRate > 0) {
                     rate = baseRate;
                     document.getElementById('combinedRate').value = rate.toFixed(2);
@@ -5070,7 +5228,7 @@
                 }
             }
 
-            const total = (variantId || isPackage) ? (rate * u) : (qty * factor * u * rate);
+            const total = rate * u;
             const el = document.getElementById('combinedCalculatedTotal');
             if (el) el.value = total ? total.toFixed(2) : '';
         }
@@ -5150,11 +5308,14 @@
                 }
             } else {
                 const factor = getBillingUnitFactor(unitType, product?.unit);
-                stockDeductionQty = qty * factor * numberOfUnits;
+                stockDeductionQty = (qty > 0 ? qty : 1) * factor * numberOfUnits;
                 packageInfo = getProductPackageInfo(product);
+                if (packageInfo && packageInfo.name) {
+                    variantName = packageInfo.name;
+                }
             }
 
-            const total = variant ? (numberOfUnits * rate) : (stockDeductionQty * rate);
+            const total = numberOfUnits * rate;
 
             // Check bulk product stock
             if (product) {
@@ -5262,7 +5423,7 @@
 
             const perUnitBulk = (Number(item.stockDeductionQty) || 0) / (Number(item.numberOfUnits) || 1);
             const newStockDeductionQty = perUnitBulk * newUnits;
-            const newTotal = (item.variantId || item.isPackage) ? (newRate * newUnits) : (newStockDeductionQty * newRate);
+            const newTotal = newUnits * newRate;
 
             const product = combinedStockRecord(item);
             if (product && !item.isPackage) {
