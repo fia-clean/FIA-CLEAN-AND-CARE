@@ -3128,8 +3128,9 @@
                 return `<tr><td style="padding:6px;border:1px solid #ddd;font-weight:bold;text-align:left">${cleanName}</td><td style="padding:6px;border:1px solid #ddd;text-align:center">${qtyText}</td><td style="padding:6px;border:1px solid #ddd;text-align:center;font-weight:bold">${unitCount}</td><td style="padding:6px;border:1px solid #ddd;text-align:right">${rateText}</td><td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${totalText}</td></tr>`;
             }).join('');
             const grand = Number(c.grandTotal || 0), paid = Number(c.paidAmount ?? grand), due = Number(c.pendingAmount ?? Math.max(0, grand-paid)), ret = Number(c.excessAmount ?? Math.max(0, paid-grand));
+            const isWholesale = ((c.saleType || 'Retail').toUpperCase() === 'WHOLESALE');
             const wrapper = document.createElement('div');
-            wrapper.innerHTML = `<div style="font-family:Arial,sans-serif;background:#fff!important;color:#000!important;padding:8px;width:100%;max-width:none;margin:0;border:3px solid #000!important;border-radius:4px;box-sizing:border-box;font-size:11px;line-height:1.35"><div style="text-align:center;border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:12px"><div style="font-size:20px;font-weight:bold;color:#065f46">FIA CLEAN AND CARE</div><div style="font-size:12px;font-weight:600;color:#333">Wholesale and Retail</div><div style="font-size:11px;color:#333">Edathanattukara</div><div style="font-size:11px;color:#333">Mob:80864 52106</div></div><div style="font-size:12px;margin-bottom:10px"><strong>Bill No:</strong> ${c.billNo || '—'} &nbsp;|&nbsp; <strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}<br><strong>Customer:</strong> ${c.name || ''}</div><div style="border-top:1px solid #000;padding-top:6px;margin-top:6px;margin-bottom:6px;font-size:14px;font-weight:700;letter-spacing:0.3px;color:#000;text-align:center;">PARTICULARS</div><table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px"><thead><tr style="background:#f3f4f6"><th style="padding:6px;border:1px solid #ddd">Product</th><th style="padding:6px;border:1px solid #ddd">Quantity</th><th style="padding:6px;border:1px solid #ddd">Unit</th><th style="padding:6px;border:1px solid #ddd">Price</th><th style="padding:6px;border:1px solid #ddd">Total</th></tr></thead><tbody>${rows}</tbody></table><div style="text-align:right;font-size:12px;line-height:1.6"><div><strong>Grand Total: ₹${grand.toFixed(2)}</strong></div><div style="color:#047857"><strong>Paid: ₹${paid.toFixed(2)}</strong></div>${due>0?`<div style="color:#b91c1c"><strong>Balance Due: ₹${due.toFixed(2)}</strong></div>`:''}${ret>0?`<div style="color:#b45309"><strong>Balance Return: ₹${ret.toFixed(2)}</strong></div>`:''}</div><div style="text-align:center;border-top:1px solid #ddd;margin-top:20px;padding-top:8px;font-size:10px;color:#555">Thank you for your business!</div></div>`;
+            wrapper.innerHTML = `<div style="font-family:Arial,sans-serif;background:#fff!important;color:#000!important;padding:8px;width:100%;max-width:none;margin:0;border:3px solid #000!important;border-radius:4px;box-sizing:border-box;font-size:11px;line-height:1.35"><div style="text-align:center;border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:12px"><div style="font-size:20px;font-weight:bold;color:#065f46">FIA CLEAN AND CARE</div><div style="font-size:11px;font-weight:bold;color:#000;margin:1px 0;">EDATHANATTUKARA</div><div style="font-size:11px;font-weight:bold;color:#000;margin:1px 0;">MOB: 8086452106</div><div style="margin:4px 0;"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:10px;${isWholesale ? 'background:#fef3c7;color:#92400e;border:1px solid #f59e0b;' : 'background:#ecfdf5;color:#065f46;border:1px solid #10b981;'}">${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}</span></div></div><div style="font-size:12px;margin-bottom:10px"><strong>Bill No:</strong> ${c.billNo || '—'} &nbsp;|&nbsp; <strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}<br><strong>Customer:</strong> ${c.name || ''}</div><div style="border-top:1px solid #000;padding-top:6px;margin-top:6px;margin-bottom:6px;font-size:14px;font-weight:700;letter-spacing:0.3px;color:#000;text-align:center;">PARTICULARS</div><table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px"><thead><tr style="background:#f3f4f6"><th style="padding:6px;border:1px solid #ddd">Product</th><th style="padding:6px;border:1px solid #ddd">Quantity</th><th style="padding:6px;border:1px solid #ddd">Unit</th><th style="padding:6px;border:1px solid #ddd">Price</th><th style="padding:6px;border:1px solid #ddd">Total</th></tr></thead><tbody>${rows}</tbody></table><div style="text-align:right;font-size:12px;line-height:1.6"><div><strong>Grand Total: ₹${grand.toFixed(2)}</strong></div><div style="color:#047857"><strong>Paid: ₹${paid.toFixed(2)}</strong></div>${due>0?`<div style="color:#b91c1c"><strong>Balance Due: ₹${due.toFixed(2)}</strong></div>`:''}${ret>0?`<div style="color:#b45309"><strong>Balance Return: ₹${ret.toFixed(2)}</strong></div>`:''}</div><div style="text-align:center;border-top:1px solid #ddd;margin-top:20px;padding-top:8px;font-size:10px;color:#555">Thank you for your business!</div></div>`;
             const filename = `FIA_BILL_${String(c.billNo || c.name || 'bill').replace(/[^a-z0-9_-]+/gi,'_')}.pdf`;
             await fiaDownloadPDFElement(wrapper.firstElementChild, filename, 'Bill');
         }
@@ -6195,10 +6196,10 @@
             const billHTML = `
                 <div style="font-family: Arial; color: #000000 !important; background-color: #ffffff !important; padding: 10px;">
                     <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 10px;">
-                        <h2 style="margin:0; color: #065f46; font-size: 16px;">FIA CLEAN AND CARE</h2>
-                        <div style="margin:2px 0;"><span style="display:inline-block; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px; ${isWholesale ? 'background:#fef3c7; color:#92400e; border:1px solid #f59e0b;' : 'background:#ecfdf5; color:#065f46; border:1px solid #10b981;'}">${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}</span></div>
-                        <div style="margin:1px 0; font-size: 11px; color: #000000 !important;">Edathanattukara</div>
-                        <div style="margin:1px 0; font-size: 11px; color: #000000 !important;">Mob:80864 52106</div>
+                        <h2 style="margin:0; color: #065f46; font-size: 16px; font-weight: bold;">FIA CLEAN AND CARE</h2>
+                        <div style="margin:2px 0; font-size: 11px; font-weight: bold; color: #000000 !important;">EDATHANATTUKARA</div>
+                        <div style="margin:2px 0; font-size: 11px; font-weight: bold; color: #000000 !important;">MOB: 8086452106</div>
+                        <div style="margin:4px 0;"><span style="display:inline-block; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px; ${isWholesale ? 'background:#fef3c7; color:#92400e; border:1px solid #f59e0b;' : 'background:#ecfdf5; color:#065f46; border:1px solid #10b981;'}">${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}</span></div>
                     </div>
                     <p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Bill No:</strong> ${c.billNo || '—'} &nbsp; | &nbsp; <strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}</p><p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Customer:</strong> ${c.name}</p>
                     <p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Mobile:</strong> ${c.phone || '—'}</p>
@@ -6277,7 +6278,7 @@
             const excessVal = Number(c.excessAmount || 0);
             const dueLine = Number(pendingVal) > 0 ? `*Balance Due:* ₹${Number(pendingVal).toFixed(2)}\n` : '';
             const returnLine = excessVal > 0 ? `*Balance Return:* ₹${excessVal.toFixed(2)}\n` : '';
-            let msg = `*FIA CLEAN AND CARE*\n*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n*Edathanattukara*\n*Mob:80864 52106*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${c.name}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}${returnLine}\n_Thank you for your business!_`;
+            let msg = `*FIA CLEAN AND CARE*\n*EDATHANATTUKARA*\n*MOB: 8086452106*\n*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${c.name}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}${returnLine}\n_Thank you for your business!_`;
             
             history.pushState({ loggedIn: true, tab: 'billing' }, "", "#billing");
             
@@ -6655,6 +6656,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
 
         function previewCosSaleBill(sale) {
             const norm = normalizeCosSale(sale);
+            const isWholesale = (norm.saleType || '').toUpperCase() === 'WHOLESALE';
             activePreviewCustomer = {
                 name: sale.customer || '',
                 billNo: sale.billNo || 'COS-0001',
@@ -6686,10 +6688,10 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             const billHTML = `
                 <div style="font-family: Arial; color: #000000 !important; background-color: #ffffff !important; padding: 10px;">
                     <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 10px;">
-                        <h2 style="margin:0; color: #db2777; font-size: 16px;">FIA CLEAN AND CARE</h2>
-                        <div style="margin:1px 0; font-size: 11px; font-weight:600; color: #000000 !important;">Wholesale and Retail</div>
-                        <div style="margin:1px 0; font-size: 11px; color: #000000 !important;">Edathanattukara</div>
-                        <div style="margin:1px 0; font-size: 11px; color: #000000 !important;">Mob:80864 52106</div>
+                        <h2 style="margin:0; color: #db2777; font-size: 16px; font-weight: bold;">FIA CLEAN AND CARE</h2>
+                        <div style="margin:2px 0; font-size: 11px; font-weight: bold; color: #000000 !important;">EDATHANATTUKARA</div>
+                        <div style="margin:2px 0; font-size: 11px; font-weight: bold; color: #000000 !important;">MOB: 8086452106</div>
+                        <div style="margin:4px 0;"><span style="display:inline-block; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px; ${isWholesale ? 'background:#fef3c7; color:#92400e; border:1px solid #f59e0b;' : 'background:#ecfdf5; color:#065f46; border:1px solid #10b981;'}">${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}</span></div>
                     </div>
                     <p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Bill No:</strong> ${sale.billNo || 'COS-0001'} &nbsp; | &nbsp; <strong>Date:</strong> ${formatDateDDMMYYYY(sale.date)}</p>
                     <p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Customer:</strong> ${sale.customer || ''}</p>
@@ -7489,7 +7491,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=24')
+                navigator.serviceWorker.register('./sw.js?v=25')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

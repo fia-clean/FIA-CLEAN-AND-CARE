@@ -25,6 +25,9 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
       format: 'a4',
     });
 
+    const isWholesale = (record.saleType || '').toLowerCase() === 'wholesale';
+    const invoiceTypeLabel = isWholesale ? 'WHOLESALE INVOICE' : 'RETAIL INVOICE';
+
     // Header Brand
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(15);
@@ -34,26 +37,21 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85); // #334155
-    doc.text('Wholesale and Retail', 105, 20.5, { align: 'center' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(71, 85, 105); // #475569
-    doc.text('Edathanattukara', 105, 25.5, { align: 'center' });
+    doc.text('EDATHANATTUKARA', 105, 20.5, { align: 'center' });
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(15, 23, 42);
-    doc.text('Mob:8086452106', 105, 30.5, { align: 'center' });
+    doc.text('MOB: 8086452106', 105, 25.5, { align: 'center' });
 
-    // CASH BILL badge
-    doc.setFillColor(241, 245, 249);
-    doc.setDrawColor(203, 213, 225);
-    doc.roundedRect(85, 33.5, 40, 5.5, 1.5, 1.5, 'FD');
+    // Badge
+    doc.setFillColor(isWholesale ? 254 : 236, isWholesale ? 243 : 253, isWholesale ? 199 : 245);
+    doc.setDrawColor(isWholesale ? 245 : 16, isWholesale ? 158 : 185, isWholesale ? 11 : 129);
+    doc.roundedRect(77.5, 28.5, 55, 5.5, 1.5, 1.5, 'FD');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.setTextColor(15, 23, 42);
-    doc.text('CASH BILL', 105, 37.3, { align: 'center' });
+    doc.setTextColor(isWholesale ? 146 : 6, isWholesale ? 64 : 95, isWholesale ? 14 : 70);
+    doc.text(invoiceTypeLabel, 105, 32.3, { align: 'center' });
 
     // Line separator
     doc.setDrawColor(226, 232, 240);
@@ -479,17 +477,24 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
             <h2 className="text-xl sm:text-2xl font-black text-indigo-950 tracking-tight uppercase">
               FIA CLEAN AND CARE
             </h2>
-            <p className="text-xs sm:text-sm text-slate-800 font-bold">
-              Wholesale and Retail
+            <p className="text-xs sm:text-sm text-slate-800 font-bold uppercase">
+              EDATHANATTUKARA
             </p>
-            <p className="text-xs text-slate-600 font-medium">
-              Edathanattukara
+            <p className="text-xs font-mono font-bold text-slate-800 uppercase">
+              MOB: 8086452106
             </p>
-            <p className="text-xs font-mono font-bold text-slate-800">
-              Mob:8086452106
-            </p>
-            <div className="inline-block mt-1 text-[10px] uppercase tracking-widest font-mono font-bold bg-slate-100 text-slate-900 px-3.5 py-0.5 rounded border border-slate-300">
-              CASH BILL
+            <div className="inline-block mt-1">
+              <span
+                className={`text-[10px] uppercase tracking-widest font-mono font-bold px-3.5 py-0.5 rounded border ${
+                  (sale.saleType || '').toLowerCase() === 'wholesale'
+                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                    : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                }`}
+              >
+                {(sale.saleType || '').toLowerCase() === 'wholesale'
+                  ? 'WHOLESALE INVOICE'
+                  : 'RETAIL INVOICE'}
+              </span>
             </div>
           </div>
 

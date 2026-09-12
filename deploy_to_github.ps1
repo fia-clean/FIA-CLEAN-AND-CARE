@@ -11,7 +11,7 @@ Write-Host "Adding modified files..." -ForegroundColor Yellow
 git add index.html sw.js src/ deploy_to_github.bat deploy_to_github.ps1
 
 Write-Host "Committing changes..." -ForegroundColor Yellow
-git commit -m "fix: 5-column clean bill invoice formatting, automatic wholesale rate auto-apply, and SW v24 cache refresh"
+git commit -m "fix: Update invoice header to FIA CLEAN AND CARE, EDATHANATTUKARA, MOB: 8086452106, WHOLESALE/RETAIL INVOICE and SW v25 cache refresh"
 
 Write-Host "Pushing to GitHub origin main..." -ForegroundColor Yellow
 git push origin main

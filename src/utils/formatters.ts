@@ -127,9 +127,9 @@ export function createWhatsAppBillMessage(sale: SaleRecord): string {
 
   return (
     `*FIA CLEAN AND CARE*\n` +
-    `*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n` +
-    `*Edathanattukara*\n` +
-    `*Mob:80864 52106*\n\n` +
+    `*EDATHANATTUKARA*\n` +
+    `*MOB: 8086452106*\n` +
+    `*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n\n` +
     `*Bill No:* #${sale.billNo}\n` +
     `*Customer:* ${sale.name}\n` +
     `*Date:* ${formatDateDDMMYYYY(sale.date)}\n` +
