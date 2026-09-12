@@ -17,6 +17,7 @@ import {
   formatCurrency,
   generateNextBillNo,
   getTodayDateString,
+  getCleanInvoiceProductName,
 } from '../utils/formatters';
 
 interface BillingProps {
@@ -912,7 +913,7 @@ export const Billing: React.FC<BillingProps> = ({
                       <tr key={item.id} className="hover:bg-slate-50/60">
                         <td className="p-2.5 font-mono text-slate-400">{idx + 1}</td>
                         <td className="p-2.5 font-semibold text-slate-800">
-                          {item.productName}
+                          {getCleanInvoiceProductName(item.productName)}
                         </td>
                         <td className="p-2.5 font-mono text-slate-600">{item.unitType}</td>
                         <td className="p-2.5 text-center font-mono font-bold">{item.qty}</td>

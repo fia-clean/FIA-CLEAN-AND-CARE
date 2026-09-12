@@ -95,14 +95,25 @@ export function formatPackDisplay(item: {
   return item.unitType || '—';
 }
 
+export function getCleanInvoiceProductName(name: string): string {
+  if (!name) return '';
+  return String(name)
+    .replace(/\s*\(\s*\d+(?:\.\d+)?\s*(?:ml|millilitre|l|ltr|litre|liter|kg|kilogram|g|gm|gram|pcs|pc|bottle|pack)[^)]*\)/gi, '')
+    .replace(/\s*\(\s*(?:bottle|pack|pcs|standard)[^)]*\)/gi, '')
+    .trim();
+}
+
 export function createWhatsAppBillMessage(sale: SaleRecord): string {
+  const isWholesale = (sale.saleType || '').toLowerCase() === 'wholesale';
   const itemsText = sale.items
-    .map(
-      (item, idx) =>
-        `${idx + 1}. *${item.productName}* - ${item.qty} ${formatPackDisplay(item)} x ₹${Number(
-          item.rate
-        ).toFixed(2)} = ₹${Number(item.total).toFixed(2)}`
-    )
+    .map((item, idx) => {
+      const cleanName = getCleanInvoiceProductName(item.productName);
+      const qtyStr = formatPackDisplay(item) || `${item.qty || ''}`;
+      const units = item.qty;
+      const rate = Number(item.rate || 0).toFixed(2);
+      const total = Number(item.total || 0).toFixed(2);
+      return `${idx + 1}. *${cleanName}* | ${qtyStr} | ${units} | ₹${rate} | ₹${total}`;
+    })
     .join('\n');
 
   const pendingText =
@@ -111,15 +122,14 @@ export function createWhatsAppBillMessage(sale: SaleRecord): string {
       : '';
   const excessText =
     (sale.excessAmount || 0) > 0
-      ? `*Excess / Return:* ₹${(sale.excessAmount || 0).toFixed(2)}\n`
+      ? `*Balance Return:* ₹${(sale.excessAmount || 0).toFixed(2)}\n`
       : '';
 
   return (
     `*FIA CLEAN AND CARE*\n` +
-    `*Wholesale and Retail*\n` +
+    `*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n` +
     `*Edathanattukara*\n` +
-    `*Mob:8086452106*\n` +
-    `*CASH BILL*\n\n` +
+    `*Mob:80864 52106*\n\n` +
     `*Bill No:* #${sale.billNo}\n` +
     `*Customer:* ${sale.name}\n` +
     `*Date:* ${formatDateDDMMYYYY(sale.date)}\n` +

@@ -893,8 +893,8 @@
                             </select>
                         </div>
                         <div class="flex gap-2">
-                            <input type="number" id="billQty" placeholder="Enter Quantity" oninput="calculateItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500" min="0" step="any">
-                            <select id="billUnitType" onchange="calculateItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500">
+                            <input type="number" id="billQty" placeholder="Enter Quantity" oninput="onBillQtyOrUnitChange()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500" min="0" step="any">
+                            <select id="billUnitType" onchange="onBillQtyOrUnitChange()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500">
                                 <option value="Litre">Litre (L)</option>
                                 <option value="ml">Millilitre (ml)</option>
                                 <option value="Kg">Kilogram (Kg)</option>
@@ -3108,10 +3108,25 @@
             }
         }
 
+        function getCleanInvoiceProductName(name) {
+            if (!name) return '';
+            let clean = String(name).trim();
+            // Remove parenthetical package/volume tags if attached, like (500 ml Bottle), (500 ml), (1 Ltr Bottle), etc.
+            clean = clean.replace(/\s*\(\s*\d+(?:\.\d+)?\s*(?:ml|millilitre|l|ltr|litre|liter|kg|kilogram|g|gm|gram|pcs|bottle|can|box|pack)\s*(?:bottle|can|pouch|box|pack|pcs)?\s*\)/gi, '').trim();
+            return clean;
+        }
+
         async function downloadBillPDF() {
             if (!activePreviewCustomer) { alert('Bill data not available!'); return; }
             const c = activePreviewCustomer;
-            const rows = (c.items || []).map((item) => `<tr><td style="padding:6px;border:1px solid #ddd">${item.productName || ''}${item.variantName ? ' (' + item.variantName + ')' : ''}</td><td style="padding:6px;border:1px solid #ddd;text-align:center">${item.qty || 0} ${item.unitType !== 'Standard' ? (item.unitType || '') : ''}</td><td style="padding:6px;border:1px solid #ddd;text-align:center">${Number(item.numberOfUnits || 1)} Units</td><td style="padding:6px;border:1px solid #ddd;text-align:right">₹${Number(item.rate || 0).toFixed(2)}</td><td style="padding:6px;border:1px solid #ddd;text-align:right">₹${Number(item.total || 0).toFixed(2)}</td></tr>`).join('');
+            const rows = (c.items || []).map((item) => {
+                const cleanName = getCleanInvoiceProductName(item.productName);
+                const qtyText = `${item.qty || 0} ${item.unitType && item.unitType !== 'Standard' ? item.unitType : ''}`.trim();
+                const unitCount = Number(item.numberOfUnits || 1);
+                const rateText = `₹${Number(item.rate || 0).toFixed(2)}`;
+                const totalText = `₹${Number(item.total || 0).toFixed(2)}`;
+                return `<tr><td style="padding:6px;border:1px solid #ddd;font-weight:bold;text-align:left">${cleanName}</td><td style="padding:6px;border:1px solid #ddd;text-align:center">${qtyText}</td><td style="padding:6px;border:1px solid #ddd;text-align:center;font-weight:bold">${unitCount}</td><td style="padding:6px;border:1px solid #ddd;text-align:right">${rateText}</td><td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${totalText}</td></tr>`;
+            }).join('');
             const grand = Number(c.grandTotal || 0), paid = Number(c.paidAmount ?? grand), due = Number(c.pendingAmount ?? Math.max(0, grand-paid)), ret = Number(c.excessAmount ?? Math.max(0, paid-grand));
             const wrapper = document.createElement('div');
             wrapper.innerHTML = `<div style="font-family:Arial,sans-serif;background:#fff!important;color:#000!important;padding:8px;width:100%;max-width:none;margin:0;border:3px solid #000!important;border-radius:4px;box-sizing:border-box;font-size:11px;line-height:1.35"><div style="text-align:center;border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:12px"><div style="font-size:20px;font-weight:bold;color:#065f46">FIA CLEAN AND CARE</div><div style="font-size:12px;font-weight:600;color:#333">Wholesale and Retail</div><div style="font-size:11px;color:#333">Edathanattukara</div><div style="font-size:11px;color:#333">Mob:80864 52106</div></div><div style="font-size:12px;margin-bottom:10px"><strong>Bill No:</strong> ${c.billNo || '—'} &nbsp;|&nbsp; <strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}<br><strong>Customer:</strong> ${c.name || ''}</div><div style="border-top:1px solid #000;padding-top:6px;margin-top:6px;margin-bottom:6px;font-size:14px;font-weight:700;letter-spacing:0.3px;color:#000;text-align:center;">PARTICULARS</div><table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px"><thead><tr style="background:#f3f4f6"><th style="padding:6px;border:1px solid #ddd">Product</th><th style="padding:6px;border:1px solid #ddd">Quantity</th><th style="padding:6px;border:1px solid #ddd">Unit</th><th style="padding:6px;border:1px solid #ddd">Price</th><th style="padding:6px;border:1px solid #ddd">Total</th></tr></thead><tbody>${rows}</tbody></table><div style="text-align:right;font-size:12px;line-height:1.6"><div><strong>Grand Total: ₹${grand.toFixed(2)}</strong></div><div style="color:#047857"><strong>Paid: ₹${paid.toFixed(2)}</strong></div>${due>0?`<div style="color:#b91c1c"><strong>Balance Due: ₹${due.toFixed(2)}</strong></div>`:''}${ret>0?`<div style="color:#b45309"><strong>Balance Return: ₹${ret.toFixed(2)}</strong></div>`:''}</div><div style="text-align:center;border-top:1px solid #ddd;margin-top:20px;padding-top:8px;font-size:10px;color:#555">Thank you for your business!</div></div>`;
@@ -4068,6 +4083,14 @@
             return null;
         }
 
+        function getCleanInvoiceProductName(name) {
+            if (!name) return '';
+            return String(name)
+                .replace(/\s*\(\s*\d+(?:\.\d+)?\s*(?:ml|millilitre|l|ltr|litre|liter|kg|kilogram|g|gm|gram|pcs|pc|bottle|pack)[^)]*\)/gi, '')
+                .replace(/\s*\(\s*(?:bottle|pack|pcs|standard)[^)]*\)/gi, '')
+                .trim();
+        }
+
         function getProductWholesalePrice(p) {
             if (!p) return 0;
             const w = parseFloat(p.wholesalePrice);
@@ -4076,24 +4099,15 @@
             const c = parseFloat(p.costPrice);
             if (Number.isFinite(c) && c > 0) return c;
 
-            // Check purchase history for unit price if available
-            if (Array.isArray(purchases) && p.name) {
-                const pNameLower = String(p.name).trim().toLowerCase();
-                const lastPur = purchases.slice().reverse().find(pur => String(pur.productName || pur.item || '').trim().toLowerCase() === pNameLower && Number(pur.unitPrice) > 0);
-                if (lastPur) return Number(lastPur.unitPrice);
-            }
-            if (Array.isArray(cosPurchases) && p.name) {
-                const pNameLower = String(p.name).trim().toLowerCase();
-                const lastPur = cosPurchases.slice().reverse().find(pur => String(pur.item || pur.productName || '').trim().toLowerCase() === pNameLower && Number(pur.unitPrice) > 0);
-                if (lastPur) return Number(lastPur.unitPrice);
-            }
-
             const p1 = parseFloat(p.price1 || p.purchasePrice);
             if (Number.isFinite(p1) && p1 > 0) return p1;
 
             if (Array.isArray(p.variants) && p.variants.length > 0) {
-                const vW = parseFloat(p.variants[0].wholesalePrice || p.variants[0].costPrice);
-                if (Number.isFinite(vW) && vW > 0) return vW;
+                const vW = p.variants.find(v => {
+                    const val = parseFloat(v.wholesalePrice || v.costPrice);
+                    return Number.isFinite(val) && val > 0;
+                });
+                if (vW) return parseFloat(vW.wholesalePrice || vW.costPrice);
             }
 
             return getProductRetailPrice(p);
@@ -4130,9 +4144,34 @@
             if (Number.isFinite(c) && c > 0) return c;
 
             if (product) {
-                const baseRetail = getProductRetailPrice(product);
                 const baseWholesale = getProductWholesalePrice(product);
+                const baseRetail = getProductRetailPrice(product);
                 const vRetail = getVariantRetailPrice(v, null);
+
+                // If product has base wholesale price and known units, calculate proportionally
+                const pUnit = String(product.unit || '').toLowerCase().trim();
+                const vUnit = String(v.unit || '').toLowerCase().trim();
+                const vSize = parseFloat(v.size) || 0;
+
+                if (baseWholesale > 0 && vSize > 0) {
+                    if (['l', 'ltr', 'litre', 'liter'].includes(pUnit)) {
+                        if (['ml', 'millilitre'].includes(vUnit)) {
+                            return Math.round((baseWholesale * (vSize / 1000)) * 100) / 100;
+                        }
+                        if (['l', 'ltr', 'litre', 'liter'].includes(vUnit)) {
+                            return Math.round((baseWholesale * vSize) * 100) / 100;
+                        }
+                    }
+                    if (['kg', 'kilogram'].includes(pUnit)) {
+                        if (['g', 'gm', 'gram'].includes(vUnit)) {
+                            return Math.round((baseWholesale * (vSize / 1000)) * 100) / 100;
+                        }
+                        if (['kg', 'kilogram'].includes(vUnit)) {
+                            return Math.round((baseWholesale * vSize) * 100) / 100;
+                        }
+                    }
+                }
+
                 if (baseRetail > 0 && baseWholesale > 0 && baseWholesale < baseRetail && vRetail > 0) {
                     return Math.round((vRetail * (baseWholesale / baseRetail)) * 100) / 100;
                 }
@@ -4205,6 +4244,7 @@
             // Update in products or cosProducts array
             let updated = false;
             const updateItem = (item) => {
+                let variantFound = false;
                 if (vId && vId !== 'default_pkg' && Array.isArray(item.variants)) {
                     const variant = item.variants.find(v => String(v.id) === String(vId));
                     if (variant) {
@@ -4215,15 +4255,19 @@
                             variant.retailPrice = enteredRate;
                             variant.salePrice = enteredRate;
                         }
+                        variantFound = true;
                     }
                 }
-                if (isWholesale) {
-                    item.wholesalePrice = enteredRate;
-                    if (item.category === 'Cosmetics') item.costPrice = enteredRate;
-                } else {
-                    item.retailPrice = enteredRate;
-                    if (item.category === 'Cosmetics') item.salePrice = enteredRate;
-                    item.price = enteredRate;
+                // Only update base product price if NO specific pack variant was targeted
+                if (!variantFound) {
+                    if (isWholesale) {
+                        item.wholesalePrice = enteredRate;
+                        if (item.category === 'Cosmetics') item.costPrice = enteredRate;
+                    } else {
+                        item.retailPrice = enteredRate;
+                        if (item.category === 'Cosmetics') item.salePrice = enteredRate;
+                        item.price = enteredRate;
+                    }
                 }
                 updated = true;
             };
@@ -4650,20 +4694,23 @@
             currentCosBillItems = sortBillItemsAlphabetically(currentCosBillItems);
             currentCosBillItems.forEach((item, index) => {
                 grandTotal += Number(item.total || 0);
+                const cleanName = getCleanInvoiceProductName(item.productName);
+                const qtyStr = `${item.qty} ${item.unitType || ''}`.trim();
+                const units = Number(item.numberOfUnits || 1);
                 container.innerHTML += `
                     <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
                         <div class="hidden sm:grid sm:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
-                            <span class="font-semibold truncate">${item.productName}</span><span>${item.qty} ${item.unitType || ''}</span><span>${item.numberOfUnits || 1} Pcs</span><span>₹${Number(item.rate).toFixed(2)}</span><strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
+                            <span class="font-semibold truncate">${cleanName}</span><span>${qtyStr}</span><span>${units}</span><span>₹${Number(item.rate).toFixed(2)}</span><strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
                             <button type="button" onclick="editCosBillItem(${index})" class="text-amber-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
                             <button type="button" onclick="currentCosBillItems.splice(${index},1);renderCosBillPreviewInput();calculateCosSalesBalance();" class="text-red-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
                         </div>
                         <div class="sm:hidden flex flex-col gap-1.5">
                             <div class="flex justify-between items-start gap-2">
-                                <span class="font-bold text-white leading-snug break-words flex-1">${item.productName}</span>
+                                <span class="font-bold text-white leading-snug break-words flex-1">${cleanName}</span>
                                 <strong class="text-emerald-400 text-sm whitespace-nowrap shrink-0">₹${Number(item.total).toFixed(2)}</strong>
                             </div>
                             <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
-                                <span>${item.qty} ${item.unitType || ''} × ${item.numberOfUnits || 1} Pcs @ ₹${Number(item.rate).toFixed(2)}</span>
+                                <span>${qtyStr} × ${units} @ ₹${Number(item.rate).toFixed(2)}</span>
                                 <div class="flex items-center gap-1.5 shrink-0">
                                     <button type="button" onclick="editCosBillItem(${index})" class="px-2.5 py-1 rounded-lg bg-amber-950/60 text-amber-300 border border-amber-800/60 font-bold text-[10px]">✎ Edit</button>
                                     <button type="button" onclick="currentCosBillItems.splice(${index},1);renderCosBillPreviewInput();calculateCosSalesBalance();" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
@@ -4753,7 +4800,9 @@
                     if (currentVId && product.variants.some(v => String(v.id) === String(currentVId))) {
                         variantSelect.value = currentVId;
                     } else {
-                        variantSelect.selectedIndex = 1;
+                        // Prefer 500 ml or 1 Ltr variant if available, otherwise index 1
+                        const preferredIdx = product.variants.findIndex(v => (v.size == 500 && String(v.unit).toLowerCase() === 'ml') || (v.size == 1 && ['ltr','l'].includes(String(v.unit).toLowerCase())));
+                        variantSelect.selectedIndex = preferredIdx !== -1 ? (preferredIdx + 1) : 1;
                     }
                     onPackVariantSelected();
                     return;
@@ -4834,8 +4883,9 @@
                             return `<option value="${v.id}">${v.name} (${v.size} ${v.unit}) — ₹${Number(rate||0).toFixed(2)}${v.packageName ? ' [' + v.packageName + ']' : ''}</option>`;
                         }).join('');
                     
-                    // Auto-select first variant
-                    variantSelect.selectedIndex = 1;
+                    // Prefer 500 ml or 1 Ltr variant if available, otherwise index 1
+                    const preferredIdx = product.variants.findIndex(v => (v.size == 500 && String(v.unit).toLowerCase() === 'ml') || (v.size == 1 && ['ltr','l'].includes(String(v.unit).toLowerCase())));
+                    variantSelect.selectedIndex = preferredIdx !== -1 ? (preferredIdx + 1) : 1;
                     onPackVariantSelected();
                     return;
                 }
@@ -4990,6 +5040,53 @@
             }
 
             updateBillRateNotice(saleType, product, rate, variant);
+            calculateItemTotal();
+        }
+
+        // Auto-match variant when user directly changes Quantity or Unit in Billing
+        function onBillQtyOrUnitChange() {
+            const prodSelect = document.getElementById('billProductSelect');
+            const prodName = prodSelect?.value || '';
+            const product = findUnifiedProduct(prodName);
+            const qty = parseFloat(document.getElementById('billQty')?.value) || 0;
+            const unitType = document.getElementById('billUnitType')?.value || '';
+            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+            const variantSelect = document.getElementById('billPackVariantSelect');
+            const rateEl = document.getElementById('billRate');
+
+            if (product && Array.isArray(product.variants) && product.variants.length > 0 && variantSelect) {
+                const normUnit = (u) => {
+                    const x = String(u || '').toLowerCase().trim();
+                    if (['l', 'ltr', 'litre', 'liter'].includes(x)) return 'l';
+                    if (['ml', 'millilitre'].includes(x)) return 'ml';
+                    if (['kg', 'kilogram'].includes(x)) return 'kg';
+                    if (['g', 'gm', 'gram'].includes(x)) return 'g';
+                    if (['pcs', 'piece'].includes(x)) return 'pcs';
+                    if (['bottle'].includes(x)) return 'bottle';
+                    return x;
+                };
+
+                const matchedVariant = product.variants.find(v => {
+                    const vSize = parseFloat(v.size) || 0;
+                    return Math.abs(vSize - qty) < 0.001 && normUnit(v.unit) === normUnit(unitType);
+                });
+
+                if (matchedVariant) {
+                    if (variantSelect.value !== String(matchedVariant.id)) {
+                        variantSelect.value = String(matchedVariant.id);
+                    }
+                    const rate = Number(saleType === 'Wholesale' ? getVariantWholesalePrice(matchedVariant, product) : getVariantRetailPrice(matchedVariant, product)) || 0;
+                    if (rateEl) {
+                        rateEl.value = rate ? rate.toFixed(2) : '0';
+                        rateEl.dataset.autoRate = rateEl.value;
+                        rateEl.dataset.variantId = matchedVariant.id;
+                    }
+                    updateBillRateNotice(saleType, product, rate, matchedVariant);
+                    calculateItemTotal();
+                    return;
+                }
+            }
+
             calculateItemTotal();
         }
 
@@ -5279,13 +5376,15 @@
             currentBillItems = sortBillItemsAlphabetically(currentBillItems);
             currentBillItems.forEach((item, index) => {
                 grandTotal += Number(item.total || 0);
-                const displayName = item.variantName ? `${item.productName} <span class="text-cyan-400 font-semibold text-[11px]">(${item.variantName})</span>` : item.productName;
+                const cleanName = getCleanInvoiceProductName(item.productName);
+                const qtyStr = `${item.qty} ${item.unitType || ''}`.trim();
+                const units = Number(item.numberOfUnits || 1);
                 container.innerHTML += `
                     <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
                         <div class="hidden sm:grid sm:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
-                            <span class="font-semibold truncate">${displayName}</span>
-                            <span>${item.qty} ${item.unitType || ''}</span>
-                            <span>${item.numberOfUnits || 1} ${item.quantityType || 'Pcs'}</span>
+                            <span class="font-semibold truncate">${cleanName}</span>
+                            <span>${qtyStr}</span>
+                            <span>${units}</span>
                             <span>₹${Number(item.rate).toFixed(2)}</span>
                             <strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
                             <button type="button" onclick="editBillItem(${index})" class="text-amber-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
@@ -5293,11 +5392,11 @@
                         </div>
                         <div class="sm:hidden flex flex-col gap-1.5">
                             <div class="flex justify-between items-start gap-2">
-                                <span class="font-bold text-white leading-snug break-words flex-1">${displayName}</span>
+                                <span class="font-bold text-white leading-snug break-words flex-1">${cleanName}</span>
                                 <strong class="text-emerald-400 text-sm whitespace-nowrap shrink-0">₹${Number(item.total).toFixed(2)}</strong>
                             </div>
                             <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
-                                <span>${item.qty} ${item.unitType || ''} × ${item.numberOfUnits || 1} ${item.quantityType || 'Units'} @ ₹${Number(item.rate).toFixed(2)}</span>
+                                <span>${qtyStr} × ${units} @ ₹${Number(item.rate).toFixed(2)}</span>
                                 <div class="flex items-center gap-1.5 shrink-0">
                                     <button type="button" onclick="editBillItem(${index})" class="px-2.5 py-1 rounded-lg bg-amber-950/60 text-amber-300 border border-amber-800/60 font-bold text-[10px]">✎ Edit</button>
                                     <button type="button" onclick="currentBillItems.splice(${index},1);renderBillPreviewInput();calculateBalance();" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
@@ -5702,12 +5801,14 @@
             let total = 0;
             c.innerHTML = currentBillItems.map((item, i) => {
                 total += Number(item.total || 0);
-                const displayName = item.variantName ? `${item.productName} <span class="text-cyan-400 font-semibold text-[11px]">(${item.variantName})</span>` : item.productName;
+                const cleanName = getCleanInvoiceProductName(item.productName);
+                const qtyStr = `${item.qty} ${item.unitType || ''}`.trim();
+                const units = Number(item.numberOfUnits || 1);
                 return `<div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
                     <div class="hidden sm:grid sm:grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
-                        <span class="font-semibold truncate">${displayName} <small class="text-cyan-400">(${item.combinedCategory||''})</small></span>
-                        <span>${item.qty} ${item.unitType||''}</span>
-                        <span>${item.numberOfUnits||1}</span>
+                        <span class="font-semibold truncate">${cleanName} <small class="text-cyan-400">(${item.combinedCategory||''})</small></span>
+                        <span>${qtyStr}</span>
+                        <span>${units}</span>
                         <span>₹${Number(item.rate||0).toFixed(2)}</span>
                         <strong class="text-emerald-400">₹${Number(item.total||0).toFixed(2)}</strong>
                         <button type="button" onclick="editCombinedBillItem(${i})" class="text-amber-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
@@ -5715,11 +5816,11 @@
                     </div>
                     <div class="sm:hidden flex flex-col gap-1.5">
                         <div class="flex justify-between items-start gap-2">
-                            <span class="font-bold text-white leading-snug break-words flex-1">${displayName} <small class="text-cyan-400">(${item.combinedCategory||''})</small></span>
+                            <span class="font-bold text-white leading-snug break-words flex-1">${cleanName} <small class="text-cyan-400">(${item.combinedCategory||''})</small></span>
                             <strong class="text-emerald-400 text-sm whitespace-nowrap shrink-0">₹${Number(item.total||0).toFixed(2)}</strong>
                         </div>
                         <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
-                            <span>${item.qty} ${item.unitType||''} × ${item.numberOfUnits||1} @ ₹${Number(item.rate||0).toFixed(2)}</span>
+                            <span>${qtyStr} × ${units} @ ₹${Number(item.rate||0).toFixed(2)}</span>
                             <div class="flex items-center gap-1.5 shrink-0">
                                 <button type="button" onclick="editCombinedBillItem(${i})" class="px-2.5 py-1 rounded-lg bg-amber-950/60 text-amber-300 border border-amber-800/60 font-bold text-[10px]">✎ Edit</button>
                                 <button type="button" onclick="currentBillItems.splice(${i},1);renderCombinedBillItems();calculateCombinedBalance();" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
@@ -6076,7 +6177,15 @@
             activePreviewCustomer = c;
             const saleTypeStr = (c.saleType || 'Retail').toUpperCase();
             const isWholesale = saleTypeStr === 'WHOLESALE';
-            let itemsRows = sortBillItemsAlphabetically(c.items || []).map((item) => `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${item.productName}${item.variantName ? ' (' + item.variantName + ')' : ''}${item.combinedCategory === 'Cosmetics' ? ` <small style="color:#db2777">(Cosmetics)</small>` : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${item.qty} ${item.unitType !== 'Standard' ? item.unitType : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${Number(item.numberOfUnits || 1)} ${item.quantityType || 'Units'}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.rate || 0).toFixed(2)}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.total).toFixed(2)}</td></tr>`).join('');
+            let itemsRows = sortBillItemsAlphabetically(c.items || []).map((item) => {
+                const cleanName = getCleanInvoiceProductName(item.productName);
+                const qtyStr = `${item.qty} ${item.unitType && item.unitType !== 'Standard' ? item.unitType : ''}`.trim();
+                const units = Number(item.numberOfUnits || 1);
+                const rate = Number(item.rate || 0).toFixed(2);
+                const total = Number(item.total || 0).toFixed(2);
+                const cosTag = item.combinedCategory === 'Cosmetics' ? ` <small style="color:#db2777">(Cosmetics)</small>` : '';
+                return `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${cleanName}${cosTag}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${qtyStr}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${units}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${rate}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${total}</td></tr>`;
+            }).join('');
 
             const grandVal = Number(c.grandTotal || 0);
             const paidVal = c.paidAmount !== undefined ? Number(c.paidAmount) : grandVal;
@@ -6128,11 +6237,40 @@
             setTimeout(() => { printWindow.focus(); printWindow.print(); }, 700);
         }
 
+        function downloadBillPDF() {
+            const printSection = document.getElementById('printSection');
+            if (!printSection || !printSection.innerHTML.trim()) {
+                alert('Bill data is not available for download.');
+                return;
+            }
+            const c = activePreviewCustomer;
+            const billNo = c?.billNo || 'BILL';
+            const opt = {
+                margin: [8, 8, 8, 8],
+                filename: `FIA_Bill_${billNo}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            if (typeof html2pdf !== 'undefined') {
+                html2pdf().set(opt).from(printSection).save();
+            } else {
+                printBill();
+            }
+        }
+
         function sendBillViaWhatsApp() {
             if(!activePreviewCustomer) return;
             const c = activePreviewCustomer;
             const isWholesale = (c.saleType || '').toLowerCase() === 'wholesale';
-            let itemsText = (c.items || []).map((i, idx) => `${idx + 1}. *${i.productName}${i.variantName ? ' (' + i.variantName + ')' : ''}* | ${i.qty} ${i.unitType !== 'Standard' ? i.unitType : ''} | ${Number(i.numberOfUnits || 1)} ${i.quantityType || 'Pcs'} | ₹${Number(i.rate || 0).toFixed(2)} | ₹${Number(i.total || 0).toFixed(2)}`).join('\n');
+            let itemsText = (c.items || []).map((i, idx) => {
+                const cleanName = getCleanInvoiceProductName(i.productName);
+                const qtyStr = `${i.qty} ${i.unitType && i.unitType !== 'Standard' ? i.unitType : ''}`.trim();
+                const units = Number(i.numberOfUnits || 1);
+                const rate = Number(i.rate || 0).toFixed(2);
+                const total = Number(i.total || 0).toFixed(2);
+                return `${idx + 1}. *${cleanName}* | ${qtyStr} | ${units} | ₹${rate} | ₹${total}`;
+            }).join('\n');
             const paidVal = c.paidAmount !== undefined ? c.paidAmount : c.grandTotal;
             const pendingVal = c.pendingAmount !== undefined ? c.pendingAmount : 0;
             
@@ -6536,9 +6674,14 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                 paymentMode: norm.paymentMode
             };
 
-            const itemsRows = sortBillItemsAlphabetically(norm.items).map((item) =>
-                `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${item.productName}${item.variantName ? ' (' + item.variantName + ')' : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${item.qty} ${item.unitType !== 'Standard' ? item.unitType : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${Number(item.numberOfUnits || 1)} Units</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.rate||0).toFixed(2)}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.total||0).toFixed(2)}</td></tr>`
-            ).join('');
+            const itemsRows = sortBillItemsAlphabetically(norm.items).map((item) => {
+                const cleanName = getCleanInvoiceProductName(item.productName);
+                const qtyStr = `${item.qty} ${item.unitType && item.unitType !== 'Standard' ? item.unitType : ''}`.trim();
+                const units = Number(item.numberOfUnits || 1);
+                const rate = Number(item.rate || 0).toFixed(2);
+                const total = Number(item.total || 0).toFixed(2);
+                return `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${cleanName}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${qtyStr}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${units}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${rate}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${total}</td></tr>`;
+            }).join('');
 
             const billHTML = `
                 <div style="font-family: Arial; color: #000000 !important; background-color: #ffffff !important; padding: 10px;">
@@ -7346,7 +7489,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=23')
+                navigator.serviceWorker.register('./sw.js?v=24')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

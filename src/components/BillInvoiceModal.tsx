@@ -3,7 +3,7 @@ import { X, Printer, Share2, Download, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { SaleRecord } from '../types';
-import { formatCurrency, formatDateDDMMYYYY, createWhatsAppBillMessage, formatPackDisplay } from '../utils/formatters';
+import { formatCurrency, formatDateDDMMYYYY, createWhatsAppBillMessage, formatPackDisplay, getCleanInvoiceProductName } from '../utils/formatters';
 
 interface BillInvoiceModalProps {
   sale: SaleRecord | null;
@@ -108,7 +108,7 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
     // Items Table
     const tableRows = record.items.map((item, idx) => [
       idx + 1,
-      item.productName,
+      getCleanInvoiceProductName(item.productName),
       formatPackDisplay(item),
       item.qty,
       `₹ ${Number(item.rate).toFixed(2)}`,
@@ -117,7 +117,7 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
 
     autoTable(doc, {
       startY: 70.5,
-      head: [['#', 'Item Description', 'Pack', 'Qty', 'Rate', 'Amount']],
+      head: [['#', 'Product', 'Quantity', 'Unit', 'Price', 'Total']],
       body: tableRows,
       theme: 'grid',
       headStyles: {
@@ -527,11 +527,11 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
               <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
                 <tr>
                   <th className="py-2 px-2.5 text-center w-8">#</th>
-                  <th className="py-2 px-2.5">Item Description</th>
-                  <th className="py-2 px-2 text-center w-24">Pack</th>
-                  <th className="py-2 px-2 text-center w-14">Qty</th>
-                  <th className="py-2 px-2.5 text-right w-24">Rate</th>
-                  <th className="py-2 px-2.5 text-right w-24">Amount</th>
+                  <th className="py-2 px-2.5">Product</th>
+                  <th className="py-2 px-2 text-center w-24">Quantity</th>
+                  <th className="py-2 px-2 text-center w-14">Unit</th>
+                  <th className="py-2 px-2.5 text-right w-24">Price</th>
+                  <th className="py-2 px-2.5 text-right w-24">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -541,7 +541,7 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
                       {idx + 1}
                     </td>
                     <td className="py-2 px-2.5 font-bold text-slate-900">
-                      {item.productName}
+                      {getCleanInvoiceProductName(item.productName)}
                     </td>
                     <td className="py-2 px-2 text-center text-slate-600 font-medium font-mono text-[11px]">
                       {formatPackDisplay(item)}
