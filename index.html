@@ -3783,11 +3783,18 @@
                 const variantsBadgeHtml = (p.variants && p.variants.length > 0)
                     ? `<div class="flex flex-wrap gap-1 mt-1.5">${p.variants.map(v=>`<span class="bg-slate-900 border border-slate-700 text-[10px] px-2 py-0.5 rounded-md text-cyan-300 font-semibold">📦 ${v.name}: ₹${v.retailPrice}</span>`).join('')}</div>`
                     : '';
+                const wPrice = getProductWholesalePrice(p);
+                const rPrice = getProductRetailPrice(p);
+                const hasCustomWholesale = (p.wholesalePrice !== undefined && p.wholesalePrice !== null && p.wholesalePrice !== '' && !isNaN(Number(p.wholesalePrice)));
+                const wBadge = hasCustomWholesale 
+                    ? `<span class="text-amber-300 font-semibold">W: ₹${Number(p.wholesalePrice).toFixed(2)}</span>`
+                    : `<span class="text-amber-400/80 italic text-[10px]" title="Wholesale rate not explicitly set, defaulting to Retail rate">W: Not set (₹${wPrice.toFixed(2)})</span>`;
+                const rBadge = `<span class="text-emerald-400 font-semibold">R: ₹${rPrice.toFixed(2)}</span>`;
                 container.innerHTML += `
                     <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
                         <div class="min-w-0 flex-1 pr-2 break-words">
                             <p class="font-bold text-emerald-300">${p.name} ${p.barcode ? '<span class="text-[10px] text-slate-400">['+p.barcode+']</span>' : ''}</p>
-                            <p class="text-slate-400">Stock: <span class="${p.stock <= 5 ? 'text-rose-400 font-bold' : ''}">${p.stock} ${p.unit}</span> | <span class="text-amber-300">W: ₹${p.wholesalePrice}</span> | <span class="text-emerald-400">R: ₹${p.retailPrice}</span></p>
+                            <p class="text-slate-400">Stock: <span class="${p.stock <= 5 ? 'text-rose-400 font-bold' : ''}">${p.stock} ${p.unit}</span> | ${wBadge} | ${rBadge}</p>
                             ${variantsBadgeHtml}
                         </div>
                         <div class="flex flex-wrap gap-1 justify-end shrink-0">
@@ -4164,6 +4171,134 @@
             }
         }
 
+        function quickSaveProductRate(productName, targetSaleType = 'Wholesale', rateToSave = null) {
+            const product = findUnifiedProduct(productName);
+            if (!product) {
+                alert(`Product "${productName}" not found.`);
+                return;
+            }
+            const currentWholesale = getProductWholesalePrice(product);
+            const currentRetail = getProductRetailPrice(product);
+            const isWholesale = String(targetSaleType).toLowerCase() === 'wholesale';
+            let enteredRate = rateToSave;
+
+            if (enteredRate === null || enteredRate === undefined || isNaN(Number(enteredRate))) {
+                const defaultVal = isWholesale ? (currentWholesale > 0 ? currentWholesale : currentRetail) : currentRetail;
+                const promptMsg = isWholesale 
+                    ? `Set Wholesale Price for "${product.name}" (Current Retail is ₹${currentRetail.toFixed(2)}):`
+                    : `Set Retail Price for "${product.name}":`;
+                const input = prompt(promptMsg, defaultVal > 0 ? String(defaultVal) : '');
+                if (input === null) return;
+                enteredRate = parseFloat(input);
+            } else {
+                enteredRate = parseFloat(enteredRate);
+            }
+
+            if (!Number.isFinite(enteredRate) || enteredRate < 0) {
+                alert('Please enter a valid price amount.');
+                return;
+            }
+
+            const variantSelect = document.getElementById('billPackVariantSelect');
+            const vId = variantSelect?.value;
+
+            // Update in products or cosProducts array
+            let updated = false;
+            const updateItem = (item) => {
+                if (vId && vId !== 'default_pkg' && Array.isArray(item.variants)) {
+                    const variant = item.variants.find(v => String(v.id) === String(vId));
+                    if (variant) {
+                        if (isWholesale) {
+                            variant.wholesalePrice = enteredRate;
+                            variant.costPrice = enteredRate;
+                        } else {
+                            variant.retailPrice = enteredRate;
+                            variant.salePrice = enteredRate;
+                        }
+                    }
+                }
+                if (isWholesale) {
+                    item.wholesalePrice = enteredRate;
+                    if (item.category === 'Cosmetics') item.costPrice = enteredRate;
+                } else {
+                    item.retailPrice = enteredRate;
+                    if (item.category === 'Cosmetics') item.salePrice = enteredRate;
+                    item.price = enteredRate;
+                }
+                updated = true;
+            };
+
+            products.forEach(p => {
+                if (p.name === product.name || (product.id && String(p.id) === String(product.id))) updateItem(p);
+            });
+            cosProducts.forEach(cp => {
+                if (cp.name === product.name || (product.id && String(cp.id) === String(product.id))) updateItem(cp);
+            });
+
+            if (updated) {
+                syncToFirebase();
+                renderProducts();
+                renderCosProductStock();
+                updateProductDropdown();
+
+                const rateEl = document.getElementById('billRate');
+                if (rateEl) {
+                    rateEl.value = enteredRate.toFixed(2);
+                    rateEl.dataset.autoRate = rateEl.value;
+                }
+                calculateItemTotal();
+
+                // Also update this item in currentBillItems if currently in that mode
+                if (Array.isArray(currentBillItems) && currentBillItems.length > 0) {
+                    const currentSaleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+                    if (currentSaleType === targetSaleType) {
+                        currentBillItems.forEach(bi => {
+                            if (bi.productName === product.name && (!vId || vId === 'default_pkg' || bi.variantId === vId)) {
+                                bi.rate = enteredRate;
+                                bi.total = (bi.numberOfUnits || 1) * enteredRate;
+                            }
+                        });
+                        renderBillPreviewInput();
+                        calculateBalance();
+                    }
+                }
+
+                const notice = document.getElementById('billRateNotice');
+                if (notice) {
+                    notice.innerHTML = `<span class="text-emerald-400 font-extrabold">✅ ${targetSaleType} price for "${product.name}" saved as ₹${enteredRate.toFixed(2)} to Cloud!</span>`;
+                }
+            }
+        }
+
+        function updateCurrentBillItemsSaleType(saleType) {
+            if (!Array.isArray(currentBillItems) || currentBillItems.length === 0) return;
+            let changed = false;
+            currentBillItems.forEach(item => {
+                if (item.isPackage) return;
+                const product = findUnifiedProduct(item.productName);
+                if (!product) return;
+                let newRate = 0;
+                if (item.variantId && Array.isArray(product.variants)) {
+                    const variant = product.variants.find(v => String(v.id) === String(item.variantId));
+                    if (variant) {
+                        newRate = saleType === 'Wholesale' ? getVariantWholesalePrice(variant, product) : getVariantRetailPrice(variant, product);
+                    }
+                }
+                if (!newRate) {
+                    newRate = saleType === 'Wholesale' ? getProductWholesalePrice(product) : getProductRetailPrice(product);
+                }
+                if (Number.isFinite(newRate) && newRate > 0 && Math.abs(item.rate - newRate) > 0.001) {
+                    item.rate = newRate;
+                    item.total = (item.numberOfUnits || 1) * newRate;
+                    changed = true;
+                }
+            });
+            if (changed) {
+                renderBillPreviewInput();
+                calculateBalance();
+            }
+        }
+
         function updateBillRateNotice(saleType, product, baseRate, variantObj = null) {
             updateBillTypeBadge(saleType);
             const notice = document.getElementById('billRateNotice');
@@ -4176,15 +4311,29 @@
                 }
                 const wPrice = variantObj ? getVariantWholesalePrice(variantObj, product) : getProductWholesalePrice(product);
                 const rPrice = variantObj ? getVariantRetailPrice(variantObj, product) : getProductRetailPrice(product);
+                const safeName = (product.name || '').replace(/'/g, "\\'");
+                const hasCustomWholesale = (product.wholesalePrice !== undefined && product.wholesalePrice !== null && product.wholesalePrice !== '' && !isNaN(Number(product.wholesalePrice))) || (variantObj && variantObj.wholesalePrice !== undefined && variantObj.wholesalePrice !== null && variantObj.wholesalePrice !== '');
                 
                 if (isWholesale) {
-                    if (wPrice === rPrice && rPrice > 0) {
-                        notice.innerHTML = `<span class="text-amber-400 font-semibold">ℹ️ Wholesale Price: ₹${wPrice.toFixed(2)} (Same as Retail — Edit product in Stock to set distinct Wholesale rate)</span>`;
+                    if (!hasCustomWholesale && wPrice === rPrice && rPrice > 0) {
+                        notice.innerHTML = `
+                            <div class="flex flex-wrap items-center justify-between gap-1.5 p-1.5 rounded-lg bg-amber-950/50 border border-amber-500/50">
+                                <span class="text-amber-300 font-semibold text-[11px]">⚠️ Wholesale rate not configured (Using Retail ₹${rPrice.toFixed(2)})</span>
+                                <button type="button" onclick="quickSaveProductRate('${safeName}', 'Wholesale')" class="px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-md text-[10px] shadow transition">💾 Set Wholesale Rate</button>
+                            </div>`;
                     } else {
-                        notice.innerHTML = `<span class="text-amber-300 font-bold">🏷️ Wholesale Rate Applied: ₹${Number(baseRate||0).toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(Retail: ₹${rPrice.toFixed(2)})</span>`;
+                        notice.innerHTML = `
+                            <div class="flex flex-wrap items-center justify-between gap-1 text-[11px]">
+                                <span class="text-amber-300 font-bold">🏷️ Wholesale Rate Applied: ₹${Number(baseRate||0).toFixed(2)} <span class="text-slate-400 text-[10px] font-normal">(Retail: ₹${rPrice.toFixed(2)})</span></span>
+                                <button type="button" onclick="quickSaveProductRate('${safeName}', 'Wholesale')" class="text-[10px] text-amber-400 underline hover:text-amber-300 font-bold ml-1">Change Default</button>
+                            </div>`;
                     }
                 } else {
-                    notice.innerHTML = `<span class="text-emerald-300 font-bold">🛍️ Retail Rate Applied: ₹${Number(baseRate||0).toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(Wholesale: ₹${wPrice.toFixed(2)})</span>`;
+                    notice.innerHTML = `
+                        <div class="flex flex-wrap items-center justify-between gap-1 text-[11px]">
+                            <span class="text-emerald-300 font-bold">🛍️ Retail Rate Applied: ₹${Number(baseRate||0).toFixed(2)} <span class="text-slate-400 text-[10px] font-normal">(Wholesale: ₹${wPrice.toFixed(2)})</span></span>
+                            <button type="button" onclick="quickSaveProductRate('${safeName}', 'Retail')" class="text-[10px] text-emerald-400 underline hover:text-emerald-300 font-bold ml-1">Change Default</button>
+                        </div>`;
                 }
             }
         }
@@ -4341,8 +4490,8 @@
                         <strong class="text-pink-400 font-bold">${p.name} ${p.barcode ? '<span class="text-[10px] text-slate-400">['+p.barcode+']</span>' : ''}</strong>
                         <p class="text-slate-400">Stock:
                             <span class="${(parseFloat(p.stock) || 0) <= 5 ? 'text-rose-400 font-bold' : 'text-emerald-300 font-bold'}">${p.stock} ${p.unit}</span>
-                            | W: ₹${p.costPrice}
-                            | R: ₹${p.salePrice}
+                            | <span class="text-amber-300 font-semibold">W: ₹${getProductWholesalePrice(p).toFixed(2)}</span>
+                            | <span class="text-pink-300 font-semibold">R: ₹${getProductRetailPrice(p).toFixed(2)}</span>
                         </p>
                         ${variantsBadgeHtml}
                     </div>
@@ -4578,6 +4727,7 @@
         function onSaleTypeChange() { 
             const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
             updateBillTypeBadge(saleType);
+            updateCurrentBillItemsSaleType(saleType);
 
             const prodSelect = document.getElementById('billProductSelect');
             const currentVal = prodSelect?.value || '';
@@ -4901,11 +5051,16 @@
             const variantId = document.getElementById('billPackVariantSelect')?.value || document.getElementById('billRate')?.dataset.variantId;
             const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
 
-            // If user manually changed the rate, provide helpful feedback
+            // If user manually changed the rate, provide helpful feedback & quick save
             const noticeEl = document.getElementById('billRateNotice');
             if (Number.isFinite(autoRate) && Number.isFinite(rate) && Math.abs(rate - autoRate) > 0.001) {
                 if (noticeEl) {
-                    noticeEl.innerHTML = `<span class="text-sky-300 font-bold">✏️ Custom Rate: ₹${rate.toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(${saleType} preset was ₹${autoRate.toFixed(2)})</span>`;
+                    const safeName = (product?.name || productName).replace(/'/g, "\\'");
+                    noticeEl.innerHTML = `
+                        <div class="flex flex-wrap items-center justify-between gap-1.5 p-1 rounded-lg bg-sky-950/50 border border-sky-600/50">
+                            <span class="text-sky-300 font-bold text-[11px]">✏️ Custom Rate: ₹${rate.toFixed(2)} <span class="text-slate-400 text-[10px]">(${saleType} was ₹${autoRate.toFixed(2)})</span></span>
+                            ${product ? `<button type="button" onclick="quickSaveProductRate('${safeName}', '${saleType}', ${rate})" class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-md text-[10px] shadow transition">💾 Save ₹${rate.toFixed(2)} as ${saleType}</button>` : ''}
+                        </div>`;
                 }
             }
 
@@ -7191,7 +7346,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=22')
+                navigator.serviceWorker.register('./sw.js?v=23')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
