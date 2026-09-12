@@ -864,10 +864,10 @@
                         </div>
                         <div class="flex gap-4 pt-0.5">
                             <label class="flex items-center gap-2 text-xs cursor-pointer font-bold text-slate-200">
-                                <input type="radio" name="saleType" value="Retail" checked onchange="onSaleTypeChange()" class="accent-emerald-500 scale-110"> 🛍️ Retail Price
+                                <input type="radio" id="billSaleTypeRetail" name="saleType" value="Retail" checked onchange="onSaleTypeChange()" onclick="onSaleTypeChange()" class="accent-emerald-500 scale-110"> 🛍️ Retail Price
                             </label>
                             <label class="flex items-center gap-2 text-xs cursor-pointer font-bold text-slate-200">
-                                <input type="radio" name="saleType" value="Wholesale" onchange="onSaleTypeChange()" class="accent-amber-500 scale-110"> 🏷️ Wholesale Price
+                                <input type="radio" id="billSaleTypeWholesale" name="saleType" value="Wholesale" onchange="onSaleTypeChange()" onclick="onSaleTypeChange()" class="accent-amber-500 scale-110"> 🏷️ Wholesale Price
                             </label>
                         </div>
                     </div>
@@ -2402,6 +2402,8 @@
             }
             updateProductDropdown();
             updateCustomerDropdown();
+            const curSaleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+            updateBillTypeBadge(curSaleType);
         }
 
         window.onpopstate = function(event) {
@@ -2446,7 +2448,7 @@
             
             const expDateEl = document.getElementById('expDate');
             if(expDateEl && !expDateEl.value) expDateEl.value = todayDDMMYYYY();
-            setTimeout(() => { switchStockTopTab('product'); switchStockSubTab('cleaning'); switchPurchaseSubTab('cleaning'); updateCleaningPurchaseDropdown(); updateCosProductDropdowns(); updateStockReturnDropdowns(); renderStockReturnHistory(); }, 0);
+            setTimeout(() => { switchStockTopTab('product'); switchStockSubTab('cleaning'); switchPurchaseSubTab('cleaning'); updateCleaningPurchaseDropdown(); updateCosProductDropdowns(); updateStockReturnDropdowns(); renderStockReturnHistory(); updateBillTypeBadge(document.querySelector('input[name="saleType"]:checked')?.value || 'Retail'); }, 0);
             renderAll();
             startRealtimeSync();
             startAutomaticBackup();
@@ -4149,20 +4151,23 @@
             return 0;
         }
 
-        function updateBillRateNotice(saleType, product, baseRate, variantObj = null) {
+        function updateBillTypeBadge(saleType) {
             const badge = document.getElementById('billTypeBadge');
-            const notice = document.getElementById('billRateNotice');
-            const isWholesale = saleType === 'Wholesale';
-
-            if (badge) {
-                if (isWholesale) {
-                    badge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1';
-                    badge.innerHTML = '🏷️ Wholesale Mode Active';
-                } else {
-                    badge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1';
-                    badge.innerHTML = '🛍️ Retail Mode Active';
-                }
+            if (!badge) return;
+            const isWholesale = String(saleType || '').toLowerCase() === 'wholesale';
+            if (isWholesale) {
+                badge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1';
+                badge.innerHTML = '🏷️ Wholesale Mode Active';
+            } else {
+                badge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1';
+                badge.innerHTML = '🛍️ Retail Mode Active';
             }
+        }
+
+        function updateBillRateNotice(saleType, product, baseRate, variantObj = null) {
+            updateBillTypeBadge(saleType);
+            const notice = document.getElementById('billRateNotice');
+            const isWholesale = String(saleType || '').toLowerCase() === 'wholesale';
 
             if (notice) {
                 if (!product) {
@@ -4571,6 +4576,9 @@
         }
 
         function onSaleTypeChange() { 
+            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+            updateBillTypeBadge(saleType);
+
             const prodSelect = document.getElementById('billProductSelect');
             const currentVal = prodSelect?.value || '';
             updateProductDropdown();
@@ -4578,7 +4586,6 @@
                 prodSelect.value = currentVal;
             }
 
-            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
             const variantWrapper = document.getElementById('billPackVariantWrapper');
             const variantSelect = document.getElementById('billPackVariantSelect');
             const product = findUnifiedProduct(currentVal);
@@ -5103,6 +5110,8 @@
             if (vWrap) vWrap.classList.add('hidden');
             const vBadge = document.getElementById('billPackVariantBadge');
             if (vBadge) vBadge.textContent = '';
+            const rateNotice = document.getElementById('billRateNotice');
+            if (rateNotice) rateNotice.innerHTML = '';
             renderBillPreviewInput();
             calculateBalance();
         }
@@ -5819,6 +5828,7 @@
             document.getElementById('custPhone').value = c.phone || '';
             const saleRadio = document.querySelector(`input[name="saleType"][value="${c.saleType || 'Retail'}"]`);
             if(saleRadio) saleRadio.checked = true;
+            updateBillTypeBadge(c.saleType || 'Retail');
             currentBillItems = sortBillItemsAlphabetically((c.items || []).map(item => ({...item})));
             renderBillPreviewInput();
             document.getElementById('billPaidAmt').value = c.paidAmount !== undefined ? Number(c.paidAmount) : Number(c.grandTotal || 0);
@@ -6000,6 +6010,9 @@
             if(adj) adj.value = '';
             const submitBtn = document.getElementById('custSubmitBtn');
             if(submitBtn) submitBtn.textContent = 'Save Bill & Folder';
+            updateBillTypeBadge('Retail');
+            const rateNotice = document.getElementById('billRateNotice');
+            if (rateNotice) rateNotice.innerHTML = '';
             renderBillPreviewInput();
         }
 
