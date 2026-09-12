@@ -418,12 +418,11 @@
                     <div class="rounded-2xl bg-amber-950/30 border border-amber-800/50 p-3">
                         <button type="button" onclick="switchTab('billing')" class="w-full flex items-center gap-3 text-left">
                             <span class="text-2xl">🧾</span>
-                            <span><span class="block font-bold text-sm text-amber-300">Billing</span><span class="block text-[10px] text-slate-500">Cleaning & Cosmetics</span></span>
+                            <span><span class="block font-bold text-sm text-amber-300">Billing</span><span class="block text-[10px] text-slate-500">Unified Invoice • Cleaning & Cosmetics</span></span>
                         </button>
-                        <div class="grid grid-cols-3 gap-2 mt-3">
-                            <button type="button" onclick="openBillingSection('cleaning')" class="py-2 rounded-xl bg-amber-600 text-white text-[10px] font-bold">🧹 Cleaning</button>
-                            <button type="button" onclick="openBillingSection('cosmetics')" class="py-2 rounded-xl bg-pink-600 text-white text-[10px] font-bold">💄 Cosmetics</button>
-                            <button type="button" onclick="openBillingSection('history')" class="py-2 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-[10px] font-bold">📋 History</button>
+                        <div class="grid grid-cols-2 gap-2 mt-3">
+                            <button type="button" onclick="openBillingSection('new')" class="py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition flex items-center justify-center gap-1 shadow-md shadow-amber-900/30">➕ New Bill</button>
+                            <button type="button" onclick="openBillingSection('history')" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-800/50 text-xs font-bold transition flex items-center justify-center gap-1">📋 Bill History</button>
                         </div>
                     </div>
                     <div class="rounded-2xl bg-slate-950/50 border border-slate-700/70 p-3">
@@ -814,11 +813,9 @@
         <div id="sectionBilling" class="space-y-4 hidden">
             <div class="bg-slate-950/60 p-3 rounded-2xl border border-amber-800/40 shadow-inner">
                 <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-2 font-bold">BILLING</div>
-                <div class="billing-subtabs-grid grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button type="button" onclick="openBillingSection('cleaning')" class="py-3 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-md">🧹 Cleaning</button>
-                    <button type="button" onclick="openBillingSection('cosmetics')" class="py-3 rounded-xl bg-slate-800 text-pink-300 border border-pink-800/50 text-xs font-bold">💄 Cosmetics</button>
-                    <button type="button" onclick="openBillingSection('combined')" class="py-3 rounded-xl bg-slate-800 text-cyan-300 border border-cyan-800/50 text-xs font-bold">🧾 Combined</button>
-                    <button type="button" onclick="openBillingSection('history')" class="py-3 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-xs font-bold">📋 History</button>
+                <div class="billing-subtabs-grid grid grid-cols-2 gap-2">
+                    <button type="button" id="btnBillingNew" onclick="openBillingSection('new')" class="py-3 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition">➕ New Bill</button>
+                    <button type="button" id="btnBillingHistory" onclick="openBillingSection('history')" class="py-3 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition">📋 Bill History</button>
                 </div>
             </div>
             <div id="billingSalesHistoryPanel" class="hidden space-y-3">
@@ -828,9 +825,9 @@
                         <button type="button" id="centralSalesHistoryRefreshBtn" onclick="refreshSalesHistoryFromCloud()" class="text-[10px] bg-slate-800 text-emerald-300 border border-slate-700 px-2.5 py-1.5 rounded-lg font-bold">↻ Refresh</button>
                     </div>
                     <div class="billing-history-tabs-grid grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-3">
-                        <button type="button" onclick="setSalesHistoryFilter('all')" id="salesHistoryTabAll" class="py-2 rounded-lg bg-slate-700 text-white text-[10px] font-bold">All</button>
-                        <button type="button" onclick="setSalesHistoryFilter('cleaning')" id="salesHistoryTabCleaning" class="py-2 rounded-lg bg-slate-900 text-amber-300 border border-slate-700 text-[10px] font-bold">🧹 Cleaning</button>
-                        <button type="button" onclick="setSalesHistoryFilter('cosmetics')" id="salesHistoryTabCosmetics" class="py-2 rounded-lg bg-slate-900 text-pink-300 border border-slate-700 text-[10px] font-bold">💄 Cosmetics</button>
+                        <button type="button" onclick="setSalesHistoryFilter('all')" id="salesHistoryTabAll" class="py-2 rounded-lg bg-slate-700 text-white text-[10px] font-bold">All Bills</button>
+                        <button type="button" onclick="setSalesHistoryFilter('wholesale')" id="salesHistoryTabWholesale" class="py-2 rounded-lg bg-slate-900 text-amber-300 border border-slate-700 text-[10px] font-bold">🏷️ Wholesale</button>
+                        <button type="button" onclick="setSalesHistoryFilter('retail')" id="salesHistoryTabRetail" class="py-2 rounded-lg bg-slate-900 text-emerald-300 border border-slate-700 text-[10px] font-bold">🛍️ Retail</button>
                         <button type="button" onclick="setSalesHistoryFilter('customer')" id="salesHistoryTabCustomer" class="py-2 rounded-lg bg-slate-900 text-cyan-300 border border-slate-700 text-[10px] font-bold">👤 Customer</button>
                     </div>
                     <div id="salesHistoryCustomerSearch" class="hidden mb-3">
@@ -842,7 +839,7 @@
 
             <div id="billingStandardContent" class="space-y-4">
                 <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner">
-                <h2 id="custFormTitle" class="font-bold text-amber-400 mb-3 text-sm">Cleaning Billing (Wholesale / Retail)</h2>
+                <h2 id="custFormTitle" class="font-bold text-amber-400 mb-3 text-sm">Unified Billing (Cleaning & Cosmetics)</h2>
                 <form id="customerForm" class="space-y-3" onsubmit="saveCustomer(event)">
                     <input type="hidden" id="custIndex" value="-1">
                     <div class="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800"><div class="flex justify-between items-center"><span class="text-[10px] text-slate-400">AUTOMATIC BILL NUMBER</span><span id="billNumberDisplay" class="text-sm font-extrabold text-amber-300">NEW</span></div></div>
@@ -905,7 +902,11 @@
                             </select>
                         </div>
                         <div class="flex gap-2">
-                            <input type="number" id="billNumberOfUnits" placeholder="Number of Bottles / Packs" value="1" oninput="calculateItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500" min="1" step="any">
+                            <div class="w-1/2 flex items-center border border-slate-700 rounded-xl bg-slate-950 overflow-hidden focus-within:border-amber-500">
+                                <button type="button" onclick="stepStdBillUnits(-1)" class="w-10 h-full py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-amber-600 text-slate-200 font-bold text-base flex items-center justify-center transition select-none" title="Decrease units">−</button>
+                                <input type="number" id="billNumberOfUnits" placeholder="Units" value="1" oninput="calculateItemTotal()" class="w-full text-center p-2 text-xs bg-transparent text-slate-100 font-bold focus:outline-none" min="1" step="any">
+                                <button type="button" onclick="stepStdBillUnits(1)" class="w-10 h-full py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-amber-600 text-slate-200 font-bold text-base flex items-center justify-center transition select-none" title="Increase units">+</button>
+                            </div>
                             <select id="billQuantityType" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500"><optgroup label="Standard Packaging"><option value="Bottle">Bottle</option><option value="Pack">Pack</option><option value="Can">Can</option><option value="Pouch">Pouch</option><option value="Box">Box</option><option value="Piece">Piece</option><option value="Sticker">Sticker</option><option value="Roll">Roll</option><option value="Other">Other</option></optgroup></select>
                         </div>
                         <div class="flex gap-2">
@@ -949,75 +950,6 @@
                     </div>
                 </form>
             </div>
-            </div>
-        </div>
-
-        <!-- ================= COMBINED BILLING ================= -->
-        <div id="billingCombinedContent" class="hidden space-y-4">
-            <div class="bg-slate-950/60 p-4 rounded-2xl border border-cyan-800/50 shadow-inner">
-                <div class="flex justify-between items-center gap-2 mb-3">
-                    <h2 class="font-bold text-cyan-300 text-sm">🧾 Combined Billing (Cleaning + Cosmetics)</h2>
-                    <span id="combinedBillNumberDisplay" class="text-sm font-extrabold text-cyan-300">COM-0001</span>
-                </div>
-                <form id="combinedBillingForm" class="space-y-3" onsubmit="saveCombinedBill(event)">
-                    <input type="hidden" id="combinedBillIndex" value="-1">
-                    <div class="space-y-1">
-                        <label class="text-[11px] text-slate-400">Select Customer from Directory (A-Z):</label>
-                        <select id="combinedCustomerSelect" onchange="fillCombinedCustomer()" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-cyan-500">
-                            <option value="">-- Select Customer / Enter Manually Below --</option>
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-1 gap-2 bg-slate-900/70 p-3 rounded-xl border border-slate-800">
-                        <label class="text-[11px] text-cyan-300 font-bold">Customer Details</label>
-                        <input type="text" id="combinedCustomerName" placeholder="Customer Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-cyan-500">
-                        <input type="text" id="combinedCustomerPhone" placeholder="Mobile Number" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-cyan-500">
-                    </div>
-                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                        <label class="text-[11px] text-cyan-300 font-bold block">Bill Type / Price</label>
-                        <div class="flex gap-4">
-                            <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="radio" name="combinedSaleType" value="Retail" checked onchange="onCombinedSaleTypeChange()" class="accent-cyan-500"> Retail Price</label>
-                            <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="radio" name="combinedSaleType" value="Wholesale" onchange="onCombinedSaleTypeChange()" class="accent-cyan-500"> Wholesale Price</label>
-                        </div>
-                    </div>
-                    <div class="p-3.5 bg-slate-900 rounded-xl border border-slate-800 space-y-2.5">
-                        <div class="flex items-center justify-between gap-2">
-                            <label class="font-bold text-xs text-cyan-300">Select Product</label>
-                            <span class="text-[10px] text-slate-500">Cleaning + Cosmetics</span>
-                        </div>
-                        <select id="combinedProductSelect" onchange="fillCombinedProductPrice()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-cyan-500">
-                            <option value="">-- Select Product --</option>
-                        </select>
-                        <!-- Dynamic Pack Size / Variant Selector for Combined Billing -->
-                        <div id="combinedPackVariantWrapper" class="hidden space-y-1 bg-slate-950/90 p-2.5 rounded-xl border border-cyan-500/60 shadow-inner">
-                            <div class="flex justify-between items-center">
-                                <label class="font-bold text-[11px] text-cyan-300">📦 Select Pack Size / Packaging:</label>
-                                <span class="text-[10px] text-emerald-400 font-semibold" id="combinedPackVariantBadge"></span>
-                            </div>
-                            <select id="combinedPackVariantSelect" onchange="onCombinedPackVariantSelected()" class="w-full p-2.5 border border-cyan-600/70 rounded-xl text-xs bg-slate-900 text-cyan-200 font-bold focus:outline-none focus:border-cyan-400">
-                                <option value="">-- Select Pack Size --</option>
-                            </select>
-                        </div>
-                        <div class="flex gap-2">
-                            <input type="number" id="combinedQty" placeholder="Enter Quantity" oninput="calculateCombinedItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200" min="0" step="any">
-                            <select id="combinedUnitType" onchange="calculateCombinedItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200">
-                                <option value="Litre">Litre (L)</option><option value="ml">Millilitre (ml)</option><option value="Kg">Kilogram (Kg)</option><option value="Gram">Gram (g)</option><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option><option value="General">General</option>
-                            </select>
-                        </div>
-                        <div class="flex gap-2">
-                            <input type="number" id="combinedNumberOfUnits" placeholder="Number of Units" value="1" oninput="calculateCombinedItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200" min="1" step="1">
-                            <input type="number" id="combinedRate" placeholder="Price per Unit (₹)" oninput="calculateCombinedItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200" min="0" step="any">
-                        </div>
-                        <input type="number" id="combinedCalculatedTotal" placeholder="Total (₹)" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-emerald-400 font-bold">
-                        <button type="button" onclick="addToCombinedBill()" class="w-full bg-cyan-700 text-white py-2 rounded-xl text-xs font-bold">Add to Combined Bill</button>
-                    </div>
-                    <div class="hidden sm:grid grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr_0.9fr_auto_auto] gap-1 px-2 text-[10px] text-slate-400 font-bold uppercase"><span>Product</span><span>Qty</span><span>Units</span><span>Price</span><span>Total</span><span></span><span></span></div>
-                    <div id="combinedBillItemsPreview" class="space-y-1.5 text-xs w-full min-w-0"></div>
-                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                        <div><label class="text-[10px] text-slate-400 block mb-1">Paid Amount (₹)</label><input type="number" id="combinedPaidAmt" placeholder="Paid Amount" oninput="calculateCombinedBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 min-w-0" min="0" step="any"><select id="combinedPaymentMode" class="w-full mt-1.5 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200"><option value="Cash">💵 Cash</option><option value="Online">🌐 Online</option></select></div>
-                        <div><label class="text-[10px] text-slate-400 block mb-1">Balance / Due (₹)</label><input type="number" id="combinedPendingAmt" placeholder="Balance" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-slate-400 min-w-0"><div id="combinedBalanceStatus" class="text-[10px] font-bold mt-1 text-right"></div></div>
-                    </div>
-                    <div class="flex gap-2 pt-1"><button type="submit" id="combinedSubmitBtn" class="flex-1 bg-cyan-700 text-white py-3 rounded-xl font-bold text-sm">Save Combined Bill</button><button type="button" onclick="resetCombinedBillForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm border border-slate-700">Clear</button></div>
-                </form>
             </div>
         </div>
 
@@ -1243,122 +1175,16 @@
             <div id="expenseListContainer" class="space-y-2.5"></div>
         </div>
 
-        <!-- ================= SECTION 6: COSMETICS BILLING ================= -->
+        <!-- ================= SECTION 6: COSMETICS BILLING (UNIFIED) ================= -->
         <div id="sectionCosmetics" class="space-y-4 hidden">
-            <div class="bg-gradient-to-r from-pink-950/60 to-purple-950/60 p-4 rounded-2xl border border-pink-800/50 space-y-2 shadow-inner text-xs">
-                <h3 class="font-bold text-pink-300 text-sm mb-1">💄 Cosmetics Billing</h3>
-                <div class="flex justify-between p-1.5 bg-slate-900/60 rounded-lg border border-slate-800">
-                    <span>Total Sales:</span>
-                    <strong id="cosSumSales" class="text-emerald-400">₹0</strong>
-                </div>
-                <div class="flex justify-between p-1.5 bg-slate-900/60 rounded-lg border border-slate-800 font-bold">
-                    <span>Total Cosmetics Due:</span>
-                    <strong id="cosSumDue" class="text-rose-400">₹0</strong>
-                </div>
-            </div>
-
-            <div class="flex gap-2">
-                <button type="button" onclick="openCosmeticsSalesEntry()" class="flex-1 py-2.5 rounded-xl bg-slate-800 text-pink-300 border border-slate-700 text-xs font-bold">🧾 Sales Entry</button>
-            </div>
-
-            <div id="cosSalesContent" class="space-y-4">
-                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner">
-                    <h2 id="cosSFormTitle" class="font-bold text-pink-400 mb-3 text-sm">Cosmetics Billing (Wholesale / Retail)</h2>
-                    <form id="cosSalesForm" class="space-y-3" onsubmit="saveCosSales(event)">
-                        <input type="hidden" id="cosSIndex" value="-1">
-                        <div class="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800"><div class="flex justify-between items-center"><span class="text-[10px] text-slate-400">AUTOMATIC BILL NUMBER</span><span id="cosBillNumberDisplay" class="text-sm font-extrabold text-pink-300">COS-0001</span></div></div>
-
-                        <div class="space-y-1">
-                            <label class="text-[11px] text-slate-400">Select Customer from Directory (A-Z):</label>
-                            <select id="cosExistingCustomerSelect" onchange="fillCosExistingCustomer()" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-pink-500">
-                                <option value="">-- Select Customer / Enter Manually Below --</option>
-                            </select>
-                        </div>
-
-                        <div class="grid grid-cols-1 gap-2 bg-slate-900/70 p-3 rounded-xl border border-slate-800">
-                            <label class="text-[11px] text-pink-300 font-bold">Customer Details (Manual Entry)</label>
-                            <input type="text" id="cosSCustomer" placeholder="Customer Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-pink-500">
-                            <input type="text" id="cosSPhone" placeholder="Mobile Number" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-pink-500">
-                        </div>
-
-                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                            <label class="text-[11px] text-pink-300 font-bold block">Select Bill Type:</label>
-                            <div class="flex gap-4">
-                                <label class="flex items-center gap-2 text-xs cursor-pointer">
-                                    <input type="radio" name="cosSaleType" value="Retail" checked onchange="onCosSaleTypeChange()" class="accent-pink-500"> Retail Price
-                                </label>
-                                <label class="flex items-center gap-2 text-xs cursor-pointer">
-                                    <input type="radio" name="cosSaleType" value="Wholesale" onchange="onCosSaleTypeChange()" class="accent-pink-500"> Wholesale Price
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="p-3.5 bg-slate-900 rounded-xl border border-slate-800 space-y-2.5">
-                            <div class="flex items-center justify-between gap-2">
-                                <label class="font-bold text-xs text-pink-300">Select Cosmetic Product:</label>
-                                <div class="flex gap-1">
-                                    <button type="button" onclick="openBarcodeScannerForCosmeticsSales()" class="text-[10px] bg-slate-800 text-pink-300 border border-slate-700 px-2 py-0.5 rounded font-bold">📷 Scan</button>
-                                </div>
-                            </div>
-                            <input type="text" id="cosSBarcode" placeholder="Barcode / QR Number (Optional)" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-pink-500">
-                            <select id="cosSalesStockSelect" onchange="fillCosSalesStockDetails()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-pink-500">
-                                <option value="">-- Select Cosmetic Product --</option>
-                            </select>
-                            <div class="flex gap-2">
-                                <input type="number" id="cosSQty" placeholder="Enter Quantity" oninput="calculateCosSalesTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-pink-500" min="0" step="any">
-                                <select id="cosSUnit" onchange="calculateCosSalesTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-pink-500">
-                                    <option value="Ltr">Litre (Ltr)</option>
-                                    <option value="ml">Millilitre (ml)</option>
-                                    <option value="Kg">Kilogram (Kg)</option>
-                                    <option value="Gram">Gram (g)</option>
-                                    <option value="Pcs">Pieces (Pcs)</option>
-                                    <option value="Bottle">Bottle</option>
-                                </select>
-                            </div>
-                            <input type="number" id="cosSNumberOfUnits" placeholder="Number of Units" value="1" oninput="calculateCosSalesTotal()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-pink-500" min="1" step="1">
-                            <div class="flex gap-2">
-                                <input type="number" id="cosSUnitPrice" placeholder="Price per Unit (₹)" oninput="calculateCosSalesTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-pink-500" min="0" step="any">
-                                <input type="number" id="cosSAmount" placeholder="Total (₹)" readonly class="w-1/2 p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-emerald-400 font-bold cursor-not-allowed">
-                            </div>
-                            <button type="button" onclick="addToCosBillItems()" class="w-full bg-pink-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-pink-500 transition shadow-md shadow-pink-900/30">Add to Bill</button>
-                        </div>
-
-                        <div class="hidden sm:grid grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_0.9fr_auto] gap-1 px-2 text-[10px] text-slate-400 font-bold uppercase"><span>Product</span><span>Quantity</span><span>Unit</span><span>Price</span><span>Total</span><span></span></div>
-                        <div id="cosCurrentBillItemsPreview" class="space-y-1.5 text-xs w-full min-w-0"></div>
-
-                        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                            <div>
-                                <label class="text-[10px] text-slate-400 block mb-1">Paid Amount (₹):</label>
-                                <input type="number" id="cosSPaid" placeholder="Paid Amount" oninput="calculateCosSalesBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-pink-500 min-w-0" min="0" step="any">
-                                <select id="cosSPaymentMode" class="w-full mt-1.5 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-pink-500">
-                                    <option value="Cash">💵 Cash</option>
-                                    <option value="Online">🌐 Online</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-slate-400 block mb-1">Pending / Due (₹):</label>
-                                <input type="number" id="cosSBalance" placeholder="Pending" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-rose-400 font-bold cursor-not-allowed min-w-0">
-                                <div id="cosSBalanceStatus" class="text-[10px] font-bold mt-1 text-right text-slate-400">BALANCE: ₹0.00</div>
-                            </div>
-                        </div>
-
-                        <div id="cosmeticsPaymentEditMode" class="hidden bg-pink-950/30 border border-pink-800/60 rounded-xl p-3 space-y-2">
-                            <div class="flex justify-between items-center">
-                                <span class="text-[10px] font-bold text-pink-300">✏️ EDIT / PAYMENT ADJUSTMENT</span>
-                                <span class="text-[9px] text-slate-400">Changes sync with Accounts</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="number" id="cosmeticsPaymentAdjustmentAmt" placeholder="Amount ₹" min="0" step="any" class="col-span-2 w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 text-xs min-w-0">
-                                <button type="button" onclick="adjustCosmeticsSalePayment('add')" class="w-full bg-emerald-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold leading-tight">+ Add Paid</button>
-                                <button type="button" onclick="adjustCosmeticsSalePayment('reduce')" class="w-full bg-rose-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold leading-tight">− Reduce Paid</button>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-2 pt-1">
-                            <button type="submit" id="cosSSubmitBtn" class="flex-1 bg-pink-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-pink-500 transition shadow-lg shadow-pink-900/30">Save Bill & Folder</button>
-                            <button type="button" onclick="resetCosSalesForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm hover:bg-slate-700 transition border border-slate-700">Clear</button>
-                        </div>
-                    </form>
+            <div class="bg-gradient-to-r from-pink-950/60 to-purple-950/60 p-5 rounded-2xl border border-pink-800/50 space-y-3 text-center shadow-inner">
+                <span class="text-3xl">💄✨</span>
+                <h3 class="font-bold text-pink-300 text-base">Cosmetics Billing is now Unified!</h3>
+                <p class="text-xs text-slate-300 max-w-sm mx-auto">You can now bill both Cosmetics and Cleaning products together or separately in the main <b>Billing</b> section with full Wholesale & Retail pricing.</p>
+                <div class="pt-2">
+                    <button type="button" onclick="switchTab('billing'); openBillingSection('new');" class="bg-gradient-to-r from-amber-600 to-pink-600 hover:from-amber-500 hover:to-pink-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-lg shadow-pink-900/40 transition cursor-pointer">
+                        🧾 Open Unified Billing
+                    </button>
                 </div>
             </div>
         </div>
@@ -1369,7 +1195,7 @@
                 <div class="flex justify-between items-center">
                     <h2 class="font-bold text-purple-400 text-sm">Day Book & Date-wise Reports</h2>
                     <div class="flex gap-1.5 flex-wrap justify-end">
-                        <button onclick="exportDayBookToExcel()" class="text-[10px] bg-emerald-900/60 text-emerald-300 border border-emerald-700/50 px-2.5 py-1 rounded-lg hover:bg-emerald-800 transition font-bold">📥 Excel Export</button>
+                        <button onclick="exportDayBookToCSV()" class="text-[10px] bg-emerald-900/60 text-emerald-300 border border-emerald-700/50 px-2.5 py-1 rounded-lg hover:bg-emerald-800 transition font-bold">📥 Excel Export</button>
                         <button onclick="clearDayBook()" class="text-[10px] bg-red-900/60 text-red-300 border border-red-700/50 px-2.5 py-1 rounded-lg hover:bg-red-800 transition font-bold">🗑️ Clear</button>
                         <button type="button" onclick="openBackupModal()" class="text-[10px] bg-blue-900/60 text-blue-300 border border-blue-700/50 px-2.5 py-1 rounded-lg hover:bg-blue-800 transition font-bold">💾 Backup</button>
                     </div>
@@ -1387,7 +1213,54 @@
                 </div>
                 <div class="flex gap-2">
                     <button type="button" onclick="setFilterPreset('today')" class="flex-1 bg-slate-800 text-purple-300 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 hover:bg-slate-700">Today</button>
+                    <button type="button" onclick="setFilterPreset('month')" class="flex-1 bg-slate-800 text-emerald-300 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 hover:bg-slate-700">This Month</button>
                     <button type="button" onclick="setFilterPreset('all')" class="flex-1 bg-slate-800 text-slate-300 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 hover:bg-slate-700">All Time</button>
+                </div>
+
+                <!-- ================= NET PROFIT MINI-CHART & PERCENTAGE WIDGET ================= -->
+                <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-purple-500/40 p-4 rounded-2xl shadow-inner space-y-3">
+                    <div class="text-[10px] uppercase tracking-wider font-bold text-purple-300 text-center">Net Profit & Margin Analysis</div>
+                    
+                    <div class="flex items-center justify-around gap-2">
+                        <!-- SVG Donut / Circular Progress Ring -->
+                        <div class="relative w-24 h-24 flex items-center justify-center shrink-0">
+                            <svg class="w-24 h-24 transform -rotate-90" viewBox="0 0 80 80">
+                                <circle cx="40" cy="40" r="32" stroke="#1e293b" stroke-width="8" fill="transparent" />
+                                <circle id="profitRingCircle" cx="40" cy="40" r="32" stroke="#10b981" stroke-width="8" stroke-dasharray="201.06" stroke-dashoffset="50" stroke-linecap="round" fill="transparent" class="transition-all duration-700 ease-out" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                <span id="profitMarginPercentText" class="text-sm font-black text-emerald-400">0%</span>
+                                <span class="text-[8px] text-slate-400 uppercase font-semibold">Margin</span>
+                            </div>
+                        </div>
+
+                        <!-- Profit Figures -->
+                        <div class="space-y-1 text-xs">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block">Total Income (Sales)</span>
+                                <b id="dbIncomeText" class="text-sm font-extrabold text-emerald-400">₹0.00</b>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 block">Total Expense (Purch + Ops)</span>
+                                <b id="dbExpenseText" class="text-sm font-extrabold text-rose-400">₹0.00</b>
+                            </div>
+                            <div class="pt-1 border-t border-slate-800">
+                                <span class="text-[10px] text-slate-400 block">Net Profit</span>
+                                <b id="dbNetProfitText" class="text-base font-black text-white">₹0.00</b>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Profit Progress Bar -->
+                    <div class="space-y-1 pt-1">
+                        <div class="flex justify-between text-[10px] text-slate-400">
+                            <span>Profit Ratio</span>
+                            <span id="profitStatusBadge" class="font-bold text-emerald-400">Healthy Margin</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden flex">
+                            <div id="profitProgressBar" class="bg-emerald-500 h-2 transition-all duration-700" style="width: 50%;"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs space-y-2">
@@ -2462,26 +2335,40 @@
             if (billingTab) billingTab.classList.add('active');
             const std = document.getElementById('billingStandardContent');
             const hist = document.getElementById('billingSalesHistoryPanel');
-            const combined = document.getElementById('billingCombinedContent');
-            const cosmetics = document.getElementById('sectionCosmetics');
+            const btnNew = document.getElementById('btnBillingNew');
+            const btnHist = document.getElementById('btnBillingHistory');
+
             if (type === 'history') {
-                if (std) std.classList.add('hidden'); if (combined) combined.classList.add('hidden'); if (hist) hist.classList.remove('hidden');
+                if (std) std.classList.add('hidden');
+                if (hist) hist.classList.remove('hidden');
+                if (btnNew) {
+                    btnNew.className = 'py-3 rounded-xl bg-slate-800 text-amber-300 border border-amber-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+                }
+                if (btnHist) {
+                    btnHist.className = 'py-3 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
+                }
                 try { window.__fiaSalesHistoryFilter = window.__fiaSalesHistoryFilter || 'all'; } catch(e) {}
                 if (typeof window.setSalesHistoryFilter === 'function') window.setSalesHistoryFilter(window.__fiaSalesHistoryFilter);
                 return;
             }
-            if (cosmetics) cosmetics.classList.add('hidden');
-            if (type === 'combined') {
-                if (std) std.classList.add('hidden'); if (hist) hist.classList.add('hidden'); if (combined) combined.classList.remove('hidden');
-                updateCombinedProductSelect(); updateCombinedCustomerSelect(); resetCombinedBillForm(false);
-                return;
+
+            // 'new' (or legacy 'cleaning', 'combined', 'cosmetics')
+            if (hist) hist.classList.add('hidden');
+            if (std) std.classList.remove('hidden');
+            if (btnNew) {
+                btnNew.className = 'py-3 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
             }
-            if (combined) combined.classList.add('hidden');
-            if (std) std.classList.remove('hidden'); if (hist) hist.classList.add('hidden');
-            const idxEl = document.getElementById('custIndex'); const billNoEl = document.getElementById('billNumberDisplay');
-            if (type === 'cleaning' && idxEl && billNoEl && String(idxEl.value) === '-1') billNoEl.textContent = getNextBillNumber();
-            if (type === 'cleaning') switchTab('billing', false);
-            else if (type === 'cosmetics') openCosmeticsSalesEntry();
+            if (btnHist) {
+                btnHist.className = 'py-3 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+            }
+
+            const idxEl = document.getElementById('custIndex');
+            const billNoEl = document.getElementById('billNumberDisplay');
+            if (idxEl && billNoEl && String(idxEl.value) === '-1') {
+                billNoEl.textContent = getNextBillNumber();
+            }
+            updateProductDropdown();
+            updateCustomerDropdown();
         }
 
         window.onpopstate = function(event) {
@@ -3307,37 +3194,47 @@
                 sortByNameAsc(packages).map(p => `<option value="${p.id}" ${String(p.id) === String(v.packageId) ? 'selected' : ''}>${p.name}${p.size ? ' (' + p.size + ')' : ''} (Stock: ${p.stock})</option>`).join('');
 
             const row = document.createElement('div');
-            row.className = 'prod-variant-row bg-slate-950 p-2.5 rounded-xl border border-slate-700/80 space-y-2 shadow-sm';
+            row.className = 'prod-variant-row bg-slate-950 p-3 rounded-2xl border border-slate-700/90 space-y-2.5 shadow-sm';
             row.dataset.varId = v.id;
             row.innerHTML = `
                 <div class="flex justify-between items-center gap-2">
-                    <input type="text" class="var-name flex-1 p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs ${target==='cosmetics'?'text-pink-300':'text-emerald-300'} font-bold focus:outline-none" placeholder="Pack Name (e.g. 500 ml Bottle)" value="${String(v.name || '').replace(/"/g, '&quot;')}">
-                    <button type="button" onclick="this.closest('.prod-variant-row').remove()" class="bg-red-950/80 hover:bg-red-900 text-red-300 px-2 py-1 rounded-lg text-[10px] font-bold border border-red-800" title="Delete Variant">✕ Remove</button>
+                    <span class="text-[11px] font-extrabold ${target==='cosmetics'?'text-pink-300':'text-emerald-300'}">📦 Pack Variant (പാക്ക് അളവ്)</span>
+                    <button type="button" onclick="this.closest('.prod-variant-row').remove()" class="bg-red-950/80 hover:bg-red-900 text-red-300 px-2 py-0.5 rounded-lg text-[10px] font-bold border border-red-800" title="Delete Variant">✕ Remove</button>
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-400 block mb-0.5 font-semibold">Pack Name (e.g. 500 ml Bottle, 1 Ltr Can)</label>
+                    <input type="text" class="var-name w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs ${target==='cosmetics'?'text-pink-300':'text-emerald-300'} font-bold focus:outline-none focus:border-emerald-500" placeholder="Pack Name (e.g. 500 ml Bottle)" value="${String(v.name || '').replace(/"/g, '&quot;')}">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
-                    <div class="flex gap-1">
-                        <input type="number" class="var-size w-3/5 p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none" placeholder="Size" value="${v.size || ''}" min="0" step="any">
-                        <select class="var-unit w-2/5 p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none">
-                            <option value="ml" ${v.unit==='ml'?'selected':''}>ml</option>
-                            <option value="Ltr" ${v.unit==='Ltr'?'selected':''}>Ltr</option>
-                            <option value="g" ${v.unit==='g'?'selected':''}>g</option>
-                            <option value="Kg" ${v.unit==='Kg'?'selected':''}>Kg</option>
-                            <option value="Pcs" ${v.unit==='Pcs'?'selected':''}>Pcs</option>
-                            <option value="Bottle" ${v.unit==='Bottle'?'selected':''}>Bottle</option>
+                    <div>
+                        <label class="text-[10px] text-slate-400 block mb-0.5 font-semibold">Volume / Size (അളവ്):</label>
+                        <div class="flex gap-1">
+                            <input type="number" class="var-size w-3/5 p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white font-bold focus:outline-none focus:border-emerald-500" placeholder="Size" value="${v.size || ''}" min="0" step="any">
+                            <select class="var-unit w-2/5 p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none">
+                                <option value="ml" ${v.unit==='ml'?'selected':''}>ml</option>
+                                <option value="Ltr" ${v.unit==='Ltr'?'selected':''}>Ltr</option>
+                                <option value="g" ${v.unit==='g'?'selected':''}>g</option>
+                                <option value="Kg" ${v.unit==='Kg'?'selected':''}>Kg</option>
+                                <option value="Pcs" ${v.unit==='Pcs'?'selected':''}>Pcs</option>
+                                <option value="Bottle" ${v.unit==='Bottle'?'selected':''}>Bottle</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-cyan-300 block mb-0.5 font-semibold">🧴 Package Container:</label>
+                        <select class="var-pkg w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-cyan-200 focus:outline-none focus:border-cyan-500">
+                            ${pkgOptions}
                         </select>
                     </div>
-                    <select class="var-pkg w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none">
-                        ${pkgOptions}
-                    </select>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
                     <div>
-                        <label class="text-[9px] text-slate-400 block mb-0.5">Wholesale Price (₹):</label>
-                        <input type="number" class="var-wholesale w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-amber-300 font-bold focus:outline-none" placeholder="Wholesale" value="${v.wholesalePrice !== undefined && v.wholesalePrice !== '' ? v.wholesalePrice : ''}" min="0" step="any">
+                        <label class="text-[10px] text-emerald-400 block mb-0.5 font-extrabold">Retail Price (₹) [റീട്ടെയിൽ]:</label>
+                        <input type="number" class="var-retail w-full p-2 bg-slate-900 border border-emerald-600/70 rounded-xl text-xs text-emerald-300 font-black focus:outline-none focus:border-emerald-400" placeholder="Enter Retail Price" value="${v.retailPrice !== undefined && v.retailPrice !== '' ? v.retailPrice : ''}" min="0" step="any">
                     </div>
                     <div>
-                        <label class="text-[9px] text-slate-400 block mb-0.5">Retail Price (₹):</label>
-                        <input type="number" class="var-retail w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-emerald-400 font-bold focus:outline-none" placeholder="Retail" value="${v.retailPrice !== undefined && v.retailPrice !== '' ? v.retailPrice : ''}" min="0" step="any">
+                        <label class="text-[10px] text-amber-400 block mb-0.5 font-extrabold">Wholesale Price (₹) [ഹോൾസെയിൽ]:</label>
+                        <input type="number" class="var-wholesale w-full p-2 bg-slate-900 border border-amber-600/70 rounded-xl text-xs text-amber-300 font-black focus:outline-none focus:border-amber-400" placeholder="Enter Wholesale Price" value="${v.wholesalePrice !== undefined && v.wholesalePrice !== '' ? v.wholesalePrice : ''}" min="0" step="any">
                     </div>
                 </div>`;
             container.appendChild(row);
@@ -4116,16 +4013,62 @@
             sortByNameAsc(products).forEach(p => select.innerHTML += `<option value="${p.id}">${p.name} (Stock: ${p.stock} ${p.unit})</option>`);
         }
 
+        function findUnifiedProduct(productName) {
+            if (!productName) return null;
+            const p = (products || []).find(x => x.name === productName);
+            if (p) return { ...p, category: 'Cleaning' };
+            const cp = (cosProducts || []).find(x => x.name === productName);
+            if (cp) return { ...cp, category: 'Cosmetics' };
+            const pkg = (packages || []).find(x => x.name === productName);
+            if (pkg) return { ...pkg, category: 'Package' };
+            return null;
+        }
+
+        function getProductWholesalePrice(p) {
+            if (!p) return 0;
+            if (p.wholesalePrice !== undefined && p.wholesalePrice !== null && p.wholesalePrice !== '') return Number(p.wholesalePrice) || 0;
+            if (p.costPrice !== undefined && p.costPrice !== null && p.costPrice !== '') return Number(p.costPrice) || 0;
+            return Number(p.retailPrice || p.salePrice || 0);
+        }
+
+        function getProductRetailPrice(p) {
+            if (!p) return 0;
+            if (p.retailPrice !== undefined && p.retailPrice !== null && p.retailPrice !== '') return Number(p.retailPrice) || 0;
+            if (p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '') return Number(p.salePrice) || 0;
+            return Number(p.wholesalePrice || p.costPrice || 0);
+        }
+
         function updateProductDropdown() {
             const select = document.getElementById('billProductSelect');
             if(!select) return;
             const currentVal = select.value;
+            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
             let html = '<option value="">-- Select Product --</option>';
 
-            const sortedProds = sortByNameAsc(products || []);
-            sortedProds.forEach(p => {
-                html += `<option value="${p.name.replace(/"/g, '&quot;')}" data-wholesale="${p.wholesalePrice}" data-retail="${p.retailPrice}" data-stock="${p.stock}" data-unit="${p.unit}" data-pkg-id="${p.packageId || ''}" data-pkg-name="${(p.packageName || '').replace(/"/g, '&quot;')}" data-pkg-qty="${p.packageQty || 1}">${p.name} (Stock: ${p.stock} ${p.unit})</option>`;
-            });
+            const cleanList = sortByNameAsc(products || []);
+            const cosList = sortByNameAsc(cosProducts || []);
+
+            if (cleanList.length > 0) {
+                html += `<optgroup label="🧹 Cleaning Products">`;
+                cleanList.forEach(p => {
+                    const wPrice = getProductWholesalePrice(p);
+                    const rPrice = getProductRetailPrice(p);
+                    const priceLabel = saleType === 'Wholesale' ? `W: ₹${wPrice.toFixed(2)}` : `R: ₹${rPrice.toFixed(2)}`;
+                    html += `<option value="${p.name.replace(/"/g, '&quot;')}" data-category="Cleaning" data-wholesale="${wPrice}" data-retail="${rPrice}" data-stock="${p.stock}" data-unit="${p.unit}" data-pkg-id="${p.packageId || ''}" data-pkg-name="${(p.packageName || '').replace(/"/g, '&quot;')}" data-pkg-qty="${p.packageQty || 1}">🧹 ${p.name} (Stock: ${p.stock} ${p.unit}) — ${priceLabel}</option>`;
+                });
+                html += `</optgroup>`;
+            }
+
+            if (cosList.length > 0) {
+                html += `<optgroup label="💄 Cosmetic Products">`;
+                cosList.forEach(p => {
+                    const wPrice = getProductWholesalePrice(p);
+                    const rPrice = getProductRetailPrice(p);
+                    const priceLabel = saleType === 'Wholesale' ? `W: ₹${wPrice.toFixed(2)}` : `R: ₹${rPrice.toFixed(2)}`;
+                    html += `<option value="${p.name.replace(/"/g, '&quot;')}" data-category="Cosmetics" data-wholesale="${wPrice}" data-retail="${rPrice}" data-stock="${p.stock}" data-unit="${p.unit}" data-pkg-id="${p.packageId || ''}" data-pkg-name="${(p.packageName || '').replace(/"/g, '&quot;')}" data-pkg-qty="${p.packageQty || 1}">💄 ${p.name} (Stock: ${p.stock} ${p.unit}) — ${priceLabel}</option>`;
+                });
+                html += `</optgroup>`;
+            }
 
             select.innerHTML = html;
             if (currentVal && [...select.options].some(o => o.value === currentVal)) {
@@ -4474,12 +4417,38 @@
         }
 
         function onSaleTypeChange() { 
-            const vWrap = document.getElementById('billPackVariantWrapper');
-            if (vWrap && !vWrap.classList.contains('hidden')) {
-                onPackVariantSelected();
-            } else {
-                fillProductPrice();
+            const prodSelect = document.getElementById('billProductSelect');
+            const currentVal = prodSelect?.value || '';
+            updateProductDropdown();
+            if (currentVal && prodSelect) {
+                prodSelect.value = currentVal;
             }
+
+            const variantWrapper = document.getElementById('billPackVariantWrapper');
+            const variantSelect = document.getElementById('billPackVariantSelect');
+            const product = findUnifiedProduct(currentVal);
+
+            if (product && Array.isArray(product.variants) && product.variants.length > 0) {
+                if (variantWrapper && variantSelect) {
+                    variantWrapper.classList.remove('hidden');
+                    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+                    const currentVId = variantSelect.value;
+                    variantSelect.innerHTML = '<option value="">-- Select Pack Size (' + product.variants.length + ' options) --</option>' +
+                        product.variants.map(v => {
+                            const rate = saleType === 'Wholesale' ? v.wholesalePrice : v.retailPrice;
+                            return `<option value="${v.id}">${v.name} (${v.size} ${v.unit}) — ₹${Number(rate||0).toFixed(2)}${v.packageName ? ' [' + v.packageName + ']' : ''}</option>`;
+                        }).join('');
+                    
+                    if (currentVId && product.variants.some(v => String(v.id) === String(currentVId))) {
+                        variantSelect.value = currentVId;
+                    } else {
+                        variantSelect.selectedIndex = 1;
+                    }
+                    onPackVariantSelected();
+                    return;
+                }
+            }
+            fillProductPrice();
         }
 
         function parsePackageVolume(sizeStr, nameStr) {
@@ -4535,11 +4504,11 @@
                 }
             }
 
-            const product = products.find(p => p.name === opt.value);
+            const product = findUnifiedProduct(opt.value);
             if (!product) return;
 
             const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
-            const baseRate = parseFloat(saleType === 'Wholesale' ? opt.getAttribute('data-wholesale') : opt.getAttribute('data-retail')) || 0;
+            const baseRate = saleType === 'Wholesale' ? getProductWholesalePrice(product) : getProductRetailPrice(product);
 
             // 1. Check if product has pack size variants configured
             if (Array.isArray(product.variants) && product.variants.length > 0) {
@@ -4631,7 +4600,7 @@
         function onPackVariantSelected() {
             const prodSelect = document.getElementById('billProductSelect');
             const prodName = prodSelect?.value || '';
-            const product = products.find(p => p.name === prodName);
+            const product = findUnifiedProduct(prodName);
             const variantSelect = document.getElementById('billPackVariantSelect');
             const vId = variantSelect?.value;
             const badgeEl = document.getElementById('billPackVariantBadge');
@@ -4646,7 +4615,7 @@
                 if (!mappedPkg && product.packageName) mappedPkg = packages.find(p => String(p.name).toLowerCase() === String(product.packageName).toLowerCase());
 
                 const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
-                const rate = Number(saleType === 'Wholesale' ? product.wholesalePrice : product.retailPrice) || 0;
+                const rate = saleType === 'Wholesale' ? getProductWholesalePrice(product) : getProductRetailPrice(product);
                 const rateEl = document.getElementById('billRate');
                 rateEl.value = rate ? rate.toFixed(2) : '0';
                 rateEl.dataset.autoRate = rateEl.value;
@@ -4752,13 +4721,13 @@
         }
 
         function calculateItemTotal() {
-            const qty = parseFloat(document.getElementById('billQty').value) || 0;
-            let rate = parseFloat(document.getElementById('billRate').value) || 0;
-            const unitType = document.getElementById('billUnitType').value;
+            const qty = parseFloat(document.getElementById('billQty')?.value) || 0;
+            let rate = parseFloat(document.getElementById('billRate')?.value) || 0;
+            const unitType = document.getElementById('billUnitType')?.value;
             const quantityType = document.getElementById('billQuantityType')?.value || 'Bottle';
             const numberOfUnits = Math.max(1, parseInt(document.getElementById('billNumberOfUnits')?.value, 10) || 1);
             const productName = document.getElementById('billProductSelect')?.value || '';
-            const product = products.find(p => p.name === productName);
+            const product = findUnifiedProduct(productName);
             const factor = getBillingUnitFactor(unitType, product?.unit);
 
             // If the rate is still the automatically supplied preset rate, keep it in sync
@@ -4767,9 +4736,8 @@
             const autoRate = parseFloat(document.getElementById('billRate')?.dataset.autoRate);
             const variantId = document.getElementById('billPackVariantSelect')?.value || document.getElementById('billRate')?.dataset.variantId;
             if (!variantId && Number.isFinite(autoRate) && Math.abs(rate - autoRate) < 0.000001) {
-                const baseRate = product
-                    ? (document.querySelector('input[name="saleType"]:checked')?.value === 'Wholesale' ? Number(product.wholesalePrice || 0) : Number(product.retailPrice || 0))
-                    : 0;
+                const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+                const baseRate = product ? (saleType === 'Wholesale' ? getProductWholesalePrice(product) : getProductRetailPrice(product)) : 0;
                 if (baseRate > 0) {
                     rate = baseRate;
                     document.getElementById('billRate').value = rate.toFixed(2);
@@ -4780,7 +4748,37 @@
             // In commercial billing, Rate is the price per bottle / pack / selling unit.
             // Total = rate * numberOfUnits (e.g. 10 bottles @ ₹37 = ₹370, 2 bottles @ ₹70 = ₹140).
             const total = rate * numberOfUnits;
-            document.getElementById('billCalculatedTotal').value = total ? total.toFixed(2) : '';
+            const totalEl = document.getElementById('billCalculatedTotal');
+            if (totalEl) {
+                totalEl.value = total > 0 ? total.toFixed(2) : (rate > 0 ? '0.00' : '');
+            }
+        }
+
+        function stepStdBillUnits(delta) {
+            const input = document.getElementById('billNumberOfUnits');
+            if (!input) return;
+            let val = parseInt(input.value, 10) || 1;
+            val = Math.max(1, val + delta);
+            input.value = val;
+            calculateItemTotal();
+        }
+
+        function stepCombinedBillUnits(delta) {
+            const input = document.getElementById('combinedNumberOfUnits');
+            if (!input) return;
+            let val = parseInt(input.value, 10) || 1;
+            val = Math.max(1, val + delta);
+            input.value = val;
+            calculateCombinedItemTotal();
+        }
+
+        function stepCosBillUnits(delta) {
+            const input = document.getElementById('cosSNumberOfUnits');
+            if (!input) return;
+            let val = parseInt(input.value, 10) || 1;
+            val = Math.max(1, val + delta);
+            input.value = val;
+            calculateCosSalesTotal();
         }
 
         function sortBillItemsAlphabetically(items) {
@@ -4802,18 +4800,18 @@
             const newStockDeductionQty = perUnitBulk * newUnits;
             const newTotal = newUnits * newRate;
 
-            const product = products.find(p => p.name === item.productName);
+            const product = findUnifiedProduct(item.productName);
             if (product && !item.isPackage) {
-                const others = currentBillItems.filter((_, i) => i !== index && i.productName === item.productName && !i.isPackage).reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
+                const others = currentBillItems.filter((_, i) => i !== index && _.productName === item.productName && !_.isPackage).reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
                 if (newStockDeductionQty + others > Number(product.stock || 0)) {
-                    alert(`Insufficient liquid stock for "${product.name}".\nAvailable: ${product.stock} ${product.unit}\nNeeded: ${(newStockDeductionQty + others).toFixed(2)} ${product.unit}`);
+                    alert(`Insufficient stock for "${product.name}".\nAvailable: ${product.stock} ${product.unit}\nNeeded: ${(newStockDeductionQty + others).toFixed(2)} ${product.unit}`);
                     return;
                 }
             }
             if (item.packageId) {
                 const pkg = packages.find(p => String(p.id) === String(item.packageId));
                 if (pkg) {
-                    const others = currentBillItems.filter((_, i) => i !== index && String(i.packageId) === String(pkg.id)).reduce((s, i) => s + Number(i.numberOfUnits || 1), 0);
+                    const others = currentBillItems.filter((_, i) => i !== index && String(_.packageId) === String(pkg.id)).reduce((s, i) => s + Number(i.numberOfUnits || 1), 0);
                     if (newUnits + others > Number(pkg.stock || 0)) {
                         alert(`Insufficient packaging stock for "${pkg.name}".\nAvailable: ${pkg.stock} ${pkg.unit || 'Pcs'}\nNeeded: ${newUnits + others} ${pkg.unit || 'Pcs'}`);
                         return;
@@ -4850,12 +4848,12 @@
                         return;
                     }
                 }
-                currentBillItems.push({ productName, qty, unitType, quantityType, numberOfUnits, rate, total, stockDeductionQty, isPackage: true, packageId: pkg?.id || '', packageQty: 1, packageName: pkg?.name || productName });
+                currentBillItems.push({ productName, qty, unitType, quantityType, numberOfUnits, rate, total, stockDeductionQty, isPackage: true, packageId: pkg?.id || '', packageQty: 1, packageName: pkg?.name || productName, combinedCategory: 'Package' });
                 finishAddBillItem();
                 return;
             }
 
-            const product = products.find(p => p.name === productName);
+            const product = findUnifiedProduct(productName);
             const variantId = document.getElementById('billPackVariantSelect')?.value || document.getElementById('billRate')?.dataset.variantId || '';
             const variant = product?.variants?.find(v => String(v.id) === String(variantId));
 
@@ -4900,7 +4898,7 @@
             if (product) {
                 const already = currentBillItems.filter(i => i.productName === productName && !i.isPackage).reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
                 if (stockDeductionQty + already > Number(product.stock || 0)) {
-                    alert(`Insufficient liquid/bulk stock for "${product.name}".\nAvailable: ${product.stock} ${product.unit}\nNeeded: ${(stockDeductionQty + already).toFixed(2)} ${product.unit}`);
+                    alert(`Insufficient stock for "${product.name}".\nAvailable: ${product.stock} ${product.unit}\nNeeded: ${(stockDeductionQty + already).toFixed(2)} ${product.unit}`);
                     return;
                 }
             }
@@ -4929,7 +4927,9 @@
                 isPackage: false,
                 packageId: packageInfo?.id || '',
                 packageQty: 1,
-                packageName: packageInfo?.name || ''
+                packageName: packageInfo?.name || '',
+                combinedCategory: product?.category || 'Cleaning',
+                stockId: product?.id || ''
             });
 
             finishAddBillItem();
@@ -5450,7 +5450,30 @@
             calculateCombinedBalance();
         }
 
-        function calculateCombinedBalance(){ const total=currentBillItems.reduce((s,i)=>s+Number(i.total||0),0), paid=parseFloat(document.getElementById('combinedPaidAmt')?.value)||0, bal=total-paid, due=Math.max(0,bal), excess=Math.max(0,-bal); const f=document.getElementById('combinedPendingAmt'),st=document.getElementById('combinedBalanceStatus'); if(f)f.value=due.toFixed(2); if(st){st.textContent=bal>0?'BALANCE DUE: ₹'+due.toFixed(2):bal<0?'BALANCE RETURN: ₹'+excess.toFixed(2):'PAID IN FULL — BALANCE: ₹0.00';st.className='text-[10px] font-bold mt-1 text-right '+(bal>0?'text-rose-400':bal<0?'text-amber-300':'text-emerald-400');}}
+        function calculateCombinedBalance(){
+            const total = currentBillItems.reduce((s,i)=>s+Number(i.total||0),0);
+            const paidRaw = document.getElementById('combinedPaidAmt')?.value;
+            const isPaidEmpty = paidRaw === '' || paidRaw === undefined;
+            const paid = isPaidEmpty ? total : (parseFloat(paidRaw) || 0);
+            const bal = total - paid;
+            const due = Math.max(0, bal);
+            const excess = Math.max(0, -bal);
+            const f = document.getElementById('combinedPendingAmt');
+            const st = document.getElementById('combinedBalanceStatus');
+            if (f) f.value = due.toFixed(2);
+            if (st) {
+                if (bal > 0.001) {
+                    st.textContent = 'BALANCE DUE: ₹' + due.toFixed(2);
+                    st.className = 'text-xs font-black mt-1 text-right text-rose-400 animate-pulse';
+                } else if (bal < -0.001) {
+                    st.textContent = 'BALANCE RETURN / CHANGE: ₹' + excess.toFixed(2);
+                    st.className = 'text-xs font-black mt-1 text-right text-amber-300';
+                } else {
+                    st.textContent = 'PAID IN FULL — BALANCE: ₹0.00';
+                    st.className = 'text-xs font-black mt-1 text-right text-emerald-400';
+                }
+            }
+        }
         function getNextCombinedBillNumber(){const max=customers.reduce((m,c)=>{if(c?.billType!=='Combined')return m;const n=parseInt(String(c.billNo||'').match(/(\d+)$/)?.[1]||0,10);return Math.max(m,n)},0);return 'COM-'+String(max+1).padStart(4,'0');}
         function resetCombinedBillForm(focus=true){ 
             const f=document.getElementById('combinedBillingForm'); if(!f)return; 
@@ -5494,18 +5517,42 @@
 
         function calculateBalance() {
             const grandTotal = currentBillItems.reduce((sum, i) => sum + Number(i.total || 0), 0);
-            const paidInput = parseFloat(document.getElementById('billPaidAmt').value) || 0;
-            const balance = grandTotal - paidInput;
+            const paidInputRaw = document.getElementById('billPaidAmt')?.value;
+            const paidInput = parseFloat(paidInputRaw);
+            const isPaidEmpty = paidInputRaw === '' || paidInputRaw === undefined;
+            const effectivePaid = isPaidEmpty ? grandTotal : (Number.isFinite(paidInput) ? paidInput : 0);
+            const balance = grandTotal - effectivePaid;
             const due = Math.max(0, balance);
             const excess = Math.max(0, -balance);
             const field = document.getElementById('billPendingAmt');
             const status = document.getElementById('billBalanceStatus');
+            const label = document.getElementById('billBalanceLabel');
             if (field) field.value = due.toFixed(2);
-            if (status) {
-                if (balance > 0) { status.textContent = 'BALANCE DUE: ₹' + due.toFixed(2); status.className = 'text-[10px] font-bold mt-1 text-right text-rose-400'; }
-                else if (balance < 0) { status.textContent = 'BALANCE RETURN: ₹' + excess.toFixed(2); status.className = 'text-[10px] font-bold mt-1 text-right text-amber-300'; }
-                else { status.textContent = 'PAID IN FULL — BALANCE: ₹0.00'; status.className = 'text-[10px] font-bold mt-1 text-right text-emerald-400'; }
+            if (label) {
+                label.textContent = balance < -0.001 ? 'Balance Return / Change (₹):' : 'Balance / Due (₹):';
             }
+            if (status) {
+                if (balance > 0.001) {
+                    status.textContent = 'BALANCE DUE: ₹' + due.toFixed(2);
+                    status.className = 'text-xs font-black mt-1 text-right text-rose-400 animate-pulse';
+                } else if (balance < -0.001) {
+                    status.textContent = 'BALANCE RETURN / CHANGE: ₹' + excess.toFixed(2);
+                    status.className = 'text-xs font-black mt-1 text-right text-amber-300';
+                } else {
+                    status.textContent = 'PAID IN FULL — BALANCE: ₹0.00';
+                    status.className = 'text-xs font-black mt-1 text-right text-emerald-400';
+                }
+            }
+        }
+
+        function getStockProductRecord(itemOrName) {
+            const name = typeof itemOrName === 'string' ? itemOrName : (itemOrName?.productName || itemOrName?.name);
+            if (!name) return null;
+            const p = (products || []).find(x => x.name === name);
+            if (p) return { product: p, category: 'Cleaning' };
+            const cp = (cosProducts || []).find(x => x.name === name);
+            if (cp) return { product: cp, category: 'Cosmetics' };
+            return null;
         }
 
         function saveCustomer(e) {
@@ -5513,7 +5560,7 @@
             const index = parseInt(document.getElementById('custIndex').value);
             const name = document.getElementById('custName').value.trim();
             const phone = document.getElementById('custPhone').value.trim();
-            const saleType = document.querySelector('input[name="saleType"]:checked').value;
+            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
 
             if(currentBillItems.length === 0) { alert("Please add at least one item."); return; }
 
@@ -5523,8 +5570,8 @@
                 if(oldBill.items) {
                     oldBill.items.forEach(oldItem => {
                         if (!oldItem.isPackage) {
-                            const p = products.find(prod => prod.name === oldItem.productName);
-                            if(p) p.stock += (oldItem.stockDeductionQty || oldItem.qty || 0);
+                            const rec = getStockProductRecord(oldItem);
+                            if(rec && rec.product) rec.product.stock = (parseFloat(rec.product.stock) || 0) + (parseFloat(oldItem.stockDeductionQty || oldItem.qty) || 0);
                         }
                     });
                 }
@@ -5532,24 +5579,24 @@
 
             currentBillItems.forEach(item => {
                 if (!item.isPackage) {
-                    const p = products.find(prod => prod.name === item.productName);
-                    if(p) p.stock -= item.stockDeductionQty;
+                    const rec = getStockProductRecord(item);
+                    if(rec && rec.product) rec.product.stock = (parseFloat(rec.product.stock) || 0) - (parseFloat(item.stockDeductionQty) || 0);
                 }
             });
             const packageDeduction=checkAndDeductPackageStock(currentBillItems);
             if(!packageDeduction.ok){
                 currentBillItems.forEach(item=>{
                     if (!item.isPackage) {
-                        const p=products.find(prod=>prod.name===item.productName);
-                        if(p)p.stock+=Number(item.stockDeductionQty||0);
+                        const rec = getStockProductRecord(item);
+                        if(rec && rec.product) rec.product.stock = (parseFloat(rec.product.stock) || 0) + Number(item.stockDeductionQty || 0);
                     }
                 });
                 if(index!==-1 && oldBill){
                     restorePackageStock(oldBill.items||[]);
                     (oldBill.items||[]).forEach(item=>{
                         if (!item.isPackage) {
-                            const p=products.find(prod=>prod.name===item.productName);
-                            if(p)p.stock-=Number(item.stockDeductionQty||item.qty||0);
+                            const rec = getStockProductRecord(item);
+                            if(rec && rec.product) rec.product.stock = (parseFloat(rec.product.stock) || 0) - Number(item.stockDeductionQty||item.qty||0);
                         }
                     });
                 }
@@ -5590,8 +5637,10 @@
             updateCosProductDropdowns();
             updateCleaningAddStockDropdown();
             renderProducts();
+            renderCosProductStock();
             renderAccounts();
             renderSalesHistory();
+            updateDashboard();
         }
 
         function renderCustomers() {
@@ -5605,7 +5654,7 @@
             if(!c) { alert('Bill not found.'); return; }
             if(c.billType === 'Combined') { editCombinedSavedBill(index); return; }
             switchTab('billing', false);
-            openBillingSection('cleaning');
+            openBillingSection('new');
 
             document.getElementById('custIndex').value = index;
             const billNoEl = document.getElementById('billNumberDisplay'); if (billNoEl) billNoEl.textContent = c.billNo || 'OLD BILL';
@@ -5631,9 +5680,27 @@
         }
 
         function editCombinedSavedBill(index){
-            const c=customers[index]; if(!c)return; switchTab('billing',false); openBillingSection('combined');
-            document.getElementById('combinedBillIndex').value=index; document.getElementById('combinedBillNumberDisplay').textContent=c.billNo||'OLD BILL'; document.getElementById('combinedCustomerName').value=c.name||''; document.getElementById('combinedCustomerPhone').value=c.phone||'';
-            const radio=document.querySelector(`input[name="combinedSaleType"][value="${c.saleType||'Retail'}"]`); if(radio)radio.checked=true; document.getElementById('combinedPaidAmt').value=Number(c.paidAmount||0); document.getElementById('combinedPaymentMode').value=c.paymentMode||'Cash'; currentBillItems=sortBillItemsAlphabetically((c.items||[]).map(i=>({...i}))); renderCombinedBillItems(); document.getElementById('combinedSubmitBtn').textContent='Update Combined Bill';
+            const c=customers[index]; if(!c)return; switchTab('billing',false); openBillingSection('new');
+            document.getElementById('custIndex').value = index;
+            const billNoEl = document.getElementById('billNumberDisplay'); if (billNoEl) billNoEl.textContent = c.billNo || 'OLD BILL';
+            document.getElementById('custName').value = c.name || '';
+            document.getElementById('custPhone').value = c.phone || '';
+            const radio = document.querySelector(`input[name="saleType"][value="${c.saleType || 'Retail'}"]`);
+            if (radio) radio.checked = true;
+            document.getElementById('billPaidAmt').value = Number(c.paidAmount || 0);
+            const paymentModeEl = document.getElementById('billPaymentMode');
+            if (paymentModeEl) paymentModeEl.value = c.paymentMode || 'Cash';
+            currentBillItems = sortBillItemsAlphabetically((c.items || []).map(i => ({...i})));
+            renderBillPreviewInput();
+            calculateBalance();
+            const editBadge = document.getElementById('billingEditMode');
+            if (editBadge) editBadge.classList.remove('hidden');
+            const btn = document.getElementById('custSubmitBtn');
+            if (btn) btn.textContent = 'Update Bill & Payment';
+            setTimeout(() => {
+                document.getElementById('billingStandardContent')?.scrollIntoView({behavior:'smooth', block:'start'});
+                document.getElementById('billPaidAmt')?.focus();
+            }, 100);
         }
 
         function deleteCustomerBill(billIdentifier, askConfirm = true) {
@@ -5657,8 +5724,8 @@
             if (c.items && Array.isArray(c.items)) {
                 restorePackageStock(c.items);
                 c.items.forEach(oldItem => {
-                    const p = c.billType === 'Combined' ? combinedStockRecord(oldItem) : products.find(prod => prod.name === oldItem.productName);
-                    if (p) p.stock += (parseFloat(oldItem.stockDeductionQty ?? oldItem.qty) || 0);
+                    const rec = getStockProductRecord(oldItem);
+                    if (rec && rec.product) rec.product.stock = (parseFloat(rec.product.stock) || 0) + (parseFloat(oldItem.stockDeductionQty ?? oldItem.qty) || 0);
                 });
             }
 
@@ -5685,7 +5752,9 @@
         function previewBill(index) {
             const c = customers[index];
             activePreviewCustomer = c;
-            let itemsRows = sortBillItemsAlphabetically(c.items || []).map((item) => `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${item.productName}${item.variantName ? ' (' + item.variantName + ')' : ''}${c.billType==='Combined' ? ` <small style="color:#0891b2">(${item.combinedCategory||''})</small>` : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${item.qty} ${item.unitType !== 'Standard' ? item.unitType : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${Number(item.numberOfUnits || 1)} Units</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.rate || 0).toFixed(2)}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.total).toFixed(2)}</td></tr>`).join('');
+            const saleTypeStr = (c.saleType || 'Retail').toUpperCase();
+            const isWholesale = saleTypeStr === 'WHOLESALE';
+            let itemsRows = sortBillItemsAlphabetically(c.items || []).map((item) => `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${item.productName}${item.variantName ? ' (' + item.variantName + ')' : ''}${item.combinedCategory === 'Cosmetics' ? ` <small style="color:#db2777">(Cosmetics)</small>` : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${item.qty} ${item.unitType !== 'Standard' ? item.unitType : ''}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${Number(item.numberOfUnits || 1)} ${item.quantityType || 'Units'}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.rate || 0).toFixed(2)}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${Number(item.total).toFixed(2)}</td></tr>`).join('');
 
             const grandVal = Number(c.grandTotal || 0);
             const paidVal = c.paidAmount !== undefined ? Number(c.paidAmount) : grandVal;
@@ -5696,7 +5765,7 @@
                 <div style="font-family: Arial; color: #000000 !important; background-color: #ffffff !important; padding: 10px;">
                     <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 10px;">
                         <h2 style="margin:0; color: #065f46; font-size: 16px;">FIA CLEAN AND CARE</h2>
-                        <div style="margin:1px 0; font-size: 11px; font-weight:600; color: #000000 !important;">Wholesale and Retail</div>
+                        <div style="margin:2px 0;"><span style="display:inline-block; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px; ${isWholesale ? 'background:#fef3c7; color:#92400e; border:1px solid #f59e0b;' : 'background:#ecfdf5; color:#065f46; border:1px solid #10b981;'}">${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}</span></div>
                         <div style="margin:1px 0; font-size: 11px; color: #000000 !important;">Edathanattukara</div>
                         <div style="margin:1px 0; font-size: 11px; color: #000000 !important;">Mob:80864 52106</div>
                     </div>
@@ -5740,14 +5809,15 @@
         function sendBillViaWhatsApp() {
             if(!activePreviewCustomer) return;
             const c = activePreviewCustomer;
-            let itemsText = (c.items || []).map((i, idx) => `${idx + 1}. *${i.productName}${i.variantName ? ' (' + i.variantName + ')' : ''}* | ${i.qty} ${i.unitType !== 'Standard' ? i.unitType : ''} | ${Number(i.numberOfUnits || 1)} Pcs | ₹${Number(i.rate || 0).toFixed(2)} | ₹${Number(i.total || 0).toFixed(2)}`).join('\n');
+            const isWholesale = (c.saleType || '').toLowerCase() === 'wholesale';
+            let itemsText = (c.items || []).map((i, idx) => `${idx + 1}. *${i.productName}${i.variantName ? ' (' + i.variantName + ')' : ''}* | ${i.qty} ${i.unitType !== 'Standard' ? i.unitType : ''} | ${Number(i.numberOfUnits || 1)} ${i.quantityType || 'Pcs'} | ₹${Number(i.rate || 0).toFixed(2)} | ₹${Number(i.total || 0).toFixed(2)}`).join('\n');
             const paidVal = c.paidAmount !== undefined ? c.paidAmount : c.grandTotal;
             const pendingVal = c.pendingAmount !== undefined ? c.pendingAmount : 0;
             
             const excessVal = Number(c.excessAmount || 0);
             const dueLine = Number(pendingVal) > 0 ? `*Balance Due:* ₹${Number(pendingVal).toFixed(2)}\n` : '';
             const returnLine = excessVal > 0 ? `*Balance Return:* ₹${excessVal.toFixed(2)}\n` : '';
-            let msg = `*FIA CLEAN AND CARE*\n*Wholesale and Retail*\n*Edathanattukara*\n*Mob:80864 52106*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${c.name}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}${returnLine}\n_Thank you for your business!_`;
+            let msg = `*FIA CLEAN AND CARE*\n*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n*Edathanattukara*\n*Mob:80864 52106*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${c.name}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}${returnLine}\n_Thank you for your business!_`;
             
             history.pushState({ loggedIn: true, tab: 'billing' }, "", "#billing");
             
@@ -6374,8 +6444,17 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function setFilterPreset(preset) {
             const d = new Date();
             const today = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-            document.getElementById('filterFromDate').value = preset === 'today' ? today : '';
-            document.getElementById('filterToDate').value = preset === 'today' ? today : '';
+            if (preset === 'today') {
+                document.getElementById('filterFromDate').value = today;
+                document.getElementById('filterToDate').value = today;
+            } else if (preset === 'month') {
+                const firstDay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-01';
+                document.getElementById('filterFromDate').value = firstDay;
+                document.getElementById('filterToDate').value = today;
+            } else {
+                document.getElementById('filterFromDate').value = '';
+                document.getElementById('filterToDate').value = '';
+            }
             renderAccounts();
         }
 
@@ -6485,12 +6564,104 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             const currentExpense = openingExpense + exp;
             const netBalance = currentIncome - currentExpense;
             
+            const totalTurnover = currentIncome + currentExpense;
+            const incPct = totalTurnover > 0 ? Math.round((currentIncome / totalTurnover) * 100) : 50;
+            const expPct = totalTurnover > 0 ? (100 - incPct) : 50;
+            const rawMarginPct = currentIncome > 0 ? (netBalance / currentIncome) * 100 : 0;
+            const marginPct = Math.abs(rawMarginPct).toFixed(1);
+            const isProfit = netBalance >= 0;
+
+            // Animate SVG Donut Ring & Graphical Widget
+            const circle = document.getElementById('profitRingCircle');
+            const marginText = document.getElementById('profitMarginPercentText');
+            const incomeText = document.getElementById('dbIncomeText');
+            const expenseText = document.getElementById('dbExpenseText');
+            const profitText = document.getElementById('dbNetProfitText');
+            const statusBadge = document.getElementById('profitStatusBadge');
+            const progressBar = document.getElementById('profitProgressBar');
+
+            if (incomeText) incomeText.textContent = '₹' + currentIncome.toFixed(2);
+            if (expenseText) expenseText.textContent = '₹' + currentExpense.toFixed(2);
+            if (profitText) {
+                profitText.textContent = (isProfit ? '+₹' : '-₹') + Math.abs(netBalance).toFixed(2);
+                profitText.className = 'text-base font-black ' + (isProfit ? 'text-emerald-400' : 'text-rose-400');
+            }
+
+            const circumference = 201.06; // 2 * PI * 32
+            if (circle) {
+                const effectivePct = Math.min(100, Math.max(0, isProfit ? Number(marginPct) : Math.min(100, currentExpense > 0 ? (Math.abs(netBalance)/currentExpense)*100 : 0)));
+                const offset = circumference * (1 - (effectivePct / 100));
+                circle.style.strokeDashoffset = offset;
+                circle.setAttribute('stroke', isProfit ? '#10b981' : '#f43f5e');
+            }
+
+            if (marginText) {
+                marginText.textContent = (isProfit ? '' : '-') + marginPct + '%';
+                marginText.className = 'text-sm font-black ' + (isProfit ? 'text-emerald-400' : 'text-rose-400');
+            }
+
+            if (statusBadge) {
+                if (isProfit) {
+                    const num = Number(marginPct);
+                    statusBadge.textContent = num >= 30 ? '🚀 High Margin' : (num >= 15 ? '✅ Healthy Margin' : '⚡ Moderate Margin');
+                    statusBadge.className = 'font-bold text-emerald-400';
+                } else {
+                    statusBadge.textContent = '⚠️ Operating Loss';
+                    statusBadge.className = 'font-bold text-rose-400';
+                }
+            }
+
+            if (progressBar) {
+                progressBar.style.width = Math.min(100, Math.max(5, isProfit ? incPct : expPct)) + '%';
+                progressBar.className = (isProfit ? 'bg-emerald-500' : 'bg-rose-500') + ' h-2 transition-all duration-700';
+            }
+
             document.getElementById('accountsSummaryContainer').innerHTML = `
-                <div class="flex justify-between p-2 bg-slate-900 rounded-lg"><span>Opening Balance:</span><strong class="text-emerald-300">₹${openingBalance.toFixed(2)}</strong></div>
-                <div class="flex justify-between p-2 bg-slate-900 rounded-lg"><span>Opening Expense:</span><strong class="text-rose-300">₹${openingExpense.toFixed(2)}</strong></div>
-                <div class="flex justify-between p-2 bg-slate-900 rounded-lg"><span>Current Income:</span><strong class="text-emerald-400">₹${currentIncome.toFixed(2)}</strong></div>
-                <div class="flex justify-between p-2 bg-slate-900 rounded-lg"><span>Current Expense:</span><strong class="text-rose-400">₹${currentExpense.toFixed(2)}</strong></div>
-                <div class="flex justify-between p-2 bg-slate-900 rounded-lg font-bold"><span>Net Balance:</span><span class="${netBalance>=0?'text-emerald-300':'text-red-400'}">₹${netBalance.toFixed(2)}</span></div>`;
+                <!-- Graphical Profit & Loss Analytics Card -->
+                <div class="bg-gradient-to-br from-slate-900 to-slate-950 p-3.5 rounded-2xl border ${isProfit ? 'border-emerald-500/40' : 'border-rose-500/40'} shadow-lg space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">📊 Profit & Loss Overview</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${isProfit ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/60' : 'bg-rose-950 text-rose-300 border border-rose-700/60'}">
+                            ${isProfit ? '📈 Net Profit: +' + marginPct + '%' : '📉 Net Loss: -' + marginPct + '%'}
+                        </span>
+                    </div>
+
+                    <!-- Visual Income vs Expense Ratio Bar -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[10px] font-bold">
+                            <span class="text-emerald-400">Total Income: ₹${currentIncome.toFixed(2)} (${incPct}%)</span>
+                            <span class="text-rose-400">Total Expense: ₹${currentExpense.toFixed(2)} (${expPct}%)</span>
+                        </div>
+                        <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden flex border border-slate-700">
+                            <div style="width: ${incPct}%;" class="h-full bg-emerald-500 transition-all duration-500" title="Income: ${incPct}%"></div>
+                            <div style="width: ${expPct}%;" class="h-full bg-rose-500 transition-all duration-500" title="Expense: ${expPct}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Net Balance Spotlight -->
+                    <div class="p-3 rounded-xl ${isProfit ? 'bg-emerald-950/40 border border-emerald-800/50' : 'bg-rose-950/40 border border-rose-800/50'} flex justify-between items-center">
+                        <div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase">${isProfit ? '💰 Net Profit' : '⚠️ Net Operating Loss'}</div>
+                            <div class="text-lg font-black ${isProfit ? 'text-emerald-300' : 'text-rose-300'}">₹${Math.abs(netBalance).toFixed(2)}</div>
+                        </div>
+                        <div class="text-right text-[10px] text-slate-400 space-y-0.5">
+                            <div>Opening Bal: <span class="text-emerald-400 font-bold">₹${openingBalance.toFixed(2)}</span></div>
+                            <div>Opening Exp: <span class="text-rose-400 font-bold">₹${openingExpense.toFixed(2)}</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-breakdown rows -->
+                    <div class="grid grid-cols-2 gap-2 text-[11px] pt-0.5">
+                        <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span class="text-slate-400">Period Sales:</span>
+                            <strong class="text-emerald-400 font-bold">₹${inc.toFixed(2)}</strong>
+                        </div>
+                        <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span class="text-slate-400">Period Expenses:</span>
+                            <strong class="text-rose-400 font-bold">₹${exp.toFixed(2)}</strong>
+                        </div>
+                    </div>
+                </div>`;
 
             document.getElementById('dayBookListContainer').innerHTML = filtered.map(e => `
                 <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between text-xs">
@@ -6498,6 +6669,52 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                     <button type="button" onclick="deleteDayBookEntry('${e.id}')" class="text-red-400 font-bold px-2 py-1 bg-red-950/40 border border-red-800/60 rounded-lg text-[10px] hover:bg-red-900 cursor-pointer">Del</button>
                 </div>`).join('') || '<p class="text-xs text-slate-500 text-center">No entries found.</p>';
         }
+
+        function exportDayBookToCSV() {
+            let fromDate = parseDateDDMMYYYY(document.getElementById('filterFromDate')?.value);
+            let toDate = parseDateDDMMYYYY(document.getElementById('filterToDate')?.value);
+            let filtered = getAllMasterEntries().filter(e => !clearedDayBookEntries.includes(e.id) && (!fromDate || dashboardDateKey(e.date) >= fromDate) && (!toDate || dashboardDateKey(e.date) <= toDate));
+            filtered.sort((a, b) => dateSortValue(a.date) - dateSortValue(b.date));
+
+            const openingBalance = Number(dayBookOpeningBalance || 0);
+            const openingExpense = Number(dayBookOpeningExpense || 0);
+            let runningBalance = openingBalance - openingExpense;
+
+            let csv = "Date,Type,Description,Income (Rs),Expense (Rs),Running Balance (Rs)\r\n";
+            csv += `"${todayDDMMYYYY()}","Opening","Opening Balance / Expense","${openingBalance.toFixed(2)}","${openingExpense.toFixed(2)}","${runningBalance.toFixed(2)}"\r\n`;
+
+            let totalIncome = openingBalance;
+            let totalExpense = openingExpense;
+
+            filtered.forEach(e => {
+                const isInc = e.type === 'Income';
+                const incAmt = isInc ? Number(e.amount || 0) : 0;
+                const expAmt = !isInc ? Number(e.amount || 0) : 0;
+                totalIncome += incAmt;
+                totalExpense += expAmt;
+                runningBalance += (incAmt - expAmt);
+                const desc = String(e.desc || '').replace(/"/g, '""');
+                csv += `"${formatDateDDMMYYYY(e.date)}","${e.type}","${desc}","${incAmt > 0 ? incAmt.toFixed(2) : '0.00'}","${expAmt > 0 ? expAmt.toFixed(2) : '0.00'}","${runningBalance.toFixed(2)}"\r\n`;
+            });
+
+            const netProfit = totalIncome - totalExpense;
+            csv += "\r\n";
+            csv += `Total Income (Rs),${totalIncome.toFixed(2)}\r\n`;
+            csv += `Total Expense (Rs),${totalExpense.toFixed(2)}\r\n`;
+            csv += `Net ${netProfit >= 0 ? 'Profit' : 'Loss'} (Rs),${Math.abs(netProfit).toFixed(2)}\r\n`;
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const dateStr = (fromDate && toDate) ? `${fromDate}_to_${toDate}` : new Date().toISOString().split('T')[0];
+            a.download = `FIA_DAYBOOK_REPORT_${dateStr}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        window.exportDayBookToExcel = exportDayBookToCSV;
 
         function dashboardDateKey(v) {
             if (!v) return '';
@@ -6647,8 +6864,17 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             const container = document.getElementById('salesHistoryContainer');
             if (!container) return;
             const allRows = getSalesHistoryRows();
-            const filter = window.__fiaSalesHistoryFilter || 'all';
-            const rows = filter === 'all' ? allRows : allRows.filter(r => r.type === filter);
+            const filter = (window.__fiaSalesHistoryFilter || 'all').toLowerCase();
+            let rows = allRows;
+            if (filter === 'wholesale') {
+                rows = allRows.filter(r => String(r.saleType || '').toLowerCase() === 'wholesale');
+            } else if (filter === 'retail') {
+                rows = allRows.filter(r => String(r.saleType || '').toLowerCase() !== 'wholesale');
+            } else if (filter === 'cleaning') {
+                rows = allRows.filter(r => r.type === 'cleaning');
+            } else if (filter === 'cosmetics') {
+                rows = allRows.filter(r => r.type === 'cosmetics');
+            }
             const label = r => r.type === 'cleaning' ? '🧹 Cleaning' : r.type === 'combined' ? '🧾 Combined' : '💄 Cosmetics';
             
             container.innerHTML = rows.map(r => {
@@ -6657,11 +6883,18 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                 const viewFn = (r.type === 'cleaning' || r.type === 'combined') ? `previewBill(${r.index})` : `previewCosSaleBill(cosSales[${r.index}])`;
                 const editFn = (r.type === 'cleaning' || r.type === 'combined') ? `editCustomerBill(${r.index})` : `editCosSale(${r.index})`;
                 const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `deleteCustomerBill(${r.index})` : `deleteCosSale(${r.index})`;
+                const isWholesale = String(r.saleType || '').toLowerCase() === 'wholesale';
+                const badgeHtml = isWholesale
+                    ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-950/80 text-amber-300 border border-amber-700/60">🏷️ Wholesale</span>`
+                    : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">🛍️ Retail</span>`;
                 return `<div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs">
                     <div class="flex justify-between items-start gap-2">
-                        <div class="min-w-0">
-                            <div class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — ${r.name}</div>
-                            <div class="text-slate-400 mt-0.5">${formatDateDDMMYYYY(r.date)} | ${r.saleType} | ${r.paymentMode}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — ${r.name}</span>
+                                ${badgeHtml}
+                            </div>
+                            <div class="text-slate-400 mt-0.5">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>
                             ${r.phone ? `<div class="text-slate-500 mt-0.5">📞 ${r.phone}</div>` : ''}
                             <div class="text-slate-300 mt-1">${itemText || 'No item details'}</div>
                             <div class="mt-1"><span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-300">Paid: ₹${r.paid.toFixed(2)}</span> · <span class="text-rose-300">Due: ₹${r.due.toFixed(2)}</span></div>
@@ -6690,24 +6923,28 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                 const viewFn = (r.type === 'cleaning' || r.type === 'combined') ? `previewBill(${r.index})` : `previewCosSaleBill(cosSales[${r.index}])`;
                 const editFn = (r.type === 'cleaning' || r.type === 'combined') ? `editCustomerBill(${r.index})` : `editCosSale(${r.index})`;
                 const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `deleteCustomerBill(${r.index})` : `deleteCosSale(${r.index})`;
-                return `<div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs"><div class="flex justify-between items-start gap-2"><div><div class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — ${r.name}</div><div class="text-slate-400">${formatDateDDMMYYYY(r.date)} | ${r.saleType} | ${r.paymentMode}</div>${r.phone?`<div class="text-slate-500">📞 ${r.phone}</div>`:''}<div class="text-slate-300 mt-1">${itemText}</div><div class="mt-1">Total ₹${r.total.toFixed(2)} · <span class="text-emerald-300">Paid ₹${r.paid.toFixed(2)}</span> · <span class="text-rose-300">Due ₹${r.due.toFixed(2)}</span></div></div><div class="flex flex-wrap gap-1 justify-end shrink-0"><button type="button" onclick="${viewFn}" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button><button type="button" onclick="${editFn}" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button><button type="button" onclick="${deleteFn}" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button></div></div></div>`;
+                const isWholesale = String(r.saleType || '').toLowerCase() === 'wholesale';
+                const badgeHtml = isWholesale
+                    ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-950/80 text-amber-300 border border-amber-700/60">🏷️ Wholesale</span>`
+                    : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">🛍️ Retail</span>`;
+                return `<div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs"><div class="flex justify-between items-start gap-2"><div class="min-w-0 flex-1"><div class="flex items-center gap-2 flex-wrap"><div class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — ${r.name}</div>${badgeHtml}</div><div class="text-slate-400">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>${r.phone?`<div class="text-slate-500">📞 ${r.phone}</div>`:''}<div class="text-slate-300 mt-1">${itemText}</div><div class="mt-1">Total ₹${r.total.toFixed(2)} · <span class="text-emerald-300">Paid ₹${r.paid.toFixed(2)}</span> · <span class="text-rose-300">Due ₹${r.due.toFixed(2)}</span></div></div><div class="flex flex-wrap gap-1 justify-end shrink-0"><button type="button" onclick="${viewFn}" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button><button type="button" onclick="${editFn}" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button><button type="button" onclick="${deleteFn}" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button></div></div></div>`;
             }).join('') : '<div class="text-center py-8 text-slate-500 text-xs">No sales found for this customer.</div>';
         }
 
         window.setSalesHistoryFilter = function(f) {
             window.__fiaSalesHistoryFilter = f;
-            ['All','Cleaning','Cosmetics','Customer'].forEach(x=>{
+            ['All','Wholesale','Retail','Customer','Cleaning','Cosmetics'].forEach(x=>{
                 const b = document.getElementById('salesHistoryTab'+x);
                 if(b) b.className = 'py-2 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 text-[10px] font-bold';
             });
-            const activeBtn = document.getElementById('salesHistoryTab'+f.charAt(0).toUpperCase()+f.slice(1));
+            const key = f.charAt(0).toUpperCase() + f.slice(1);
+            const activeBtn = document.getElementById('salesHistoryTab' + key);
             if(activeBtn) activeBtn.className = 'py-2 rounded-lg bg-slate-700 text-white text-[10px] font-bold';
             
             const q = document.getElementById('salesHistoryCustomerSearch');
             if(q) q.classList.toggle('hidden', f !== 'customer');
             
             if(f === 'customer') renderCustomerSalesHistory();
-            else renderSalesHistory();
         };
 
         window.refreshSalesHistoryFromCloud = function() {
@@ -6784,7 +7021,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js')
+                navigator.serviceWorker.register('./sw.js?v=21')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
