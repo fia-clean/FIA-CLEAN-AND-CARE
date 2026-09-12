@@ -858,13 +858,16 @@
                     </div>
                     
                     <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1.5">
-                        <label class="text-[11px] text-amber-300 font-bold block">Select Bill Type:</label>
-                        <div class="flex gap-4">
-                            <label class="flex items-center gap-2 text-xs cursor-pointer">
-                                <input type="radio" name="saleType" value="Retail" checked onchange="onSaleTypeChange()" class="accent-amber-500"> Retail Price
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] text-amber-300 font-bold block">Select Bill Type:</label>
+                            <span id="billTypeBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1">🛍️ Retail Mode Active</span>
+                        </div>
+                        <div class="flex gap-4 pt-0.5">
+                            <label class="flex items-center gap-2 text-xs cursor-pointer font-bold text-slate-200">
+                                <input type="radio" name="saleType" value="Retail" checked onchange="onSaleTypeChange()" class="accent-emerald-500 scale-110"> 🛍️ Retail Price
                             </label>
-                            <label class="flex items-center gap-2 text-xs cursor-pointer">
-                                <input type="radio" name="saleType" value="Wholesale" onchange="onSaleTypeChange()" class="accent-amber-500"> Wholesale Price
+                            <label class="flex items-center gap-2 text-xs cursor-pointer font-bold text-slate-200">
+                                <input type="radio" name="saleType" value="Wholesale" onchange="onSaleTypeChange()" class="accent-amber-500 scale-110"> 🏷️ Wholesale Price
                             </label>
                         </div>
                     </div>
@@ -909,9 +912,12 @@
                             </div>
                             <select id="billQuantityType" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500"><optgroup label="Standard Packaging"><option value="Bottle">Bottle</option><option value="Pack">Pack</option><option value="Can">Can</option><option value="Pouch">Pouch</option><option value="Box">Box</option><option value="Piece">Piece</option><option value="Sticker">Sticker</option><option value="Roll">Roll</option><option value="Other">Other</option></optgroup></select>
                         </div>
-                        <div class="flex gap-2">
-                            <input type="number" id="billRate" placeholder="Price per Unit (₹)" oninput="calculateItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500" min="0" step="any">
-                            <input type="number" id="billCalculatedTotal" placeholder="Total (₹)" readonly class="w-1/2 p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-emerald-400 font-bold cursor-not-allowed">
+                        <div class="space-y-1">
+                            <div class="flex gap-2">
+                                <input type="number" id="billRate" placeholder="Price per Unit (₹)" oninput="calculateItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500 font-bold" min="0" step="any">
+                                <input type="number" id="billCalculatedTotal" placeholder="Total (₹)" readonly class="w-1/2 p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-emerald-400 font-bold cursor-not-allowed">
+                            </div>
+                            <div id="billRateNotice" class="text-[10px] min-h-[16px] px-1"></div>
                         </div>
                         <button type="button" onclick="addToBillItems()" class="w-full bg-amber-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-amber-500 transition shadow-md shadow-amber-900/30">Add to Bill</button>
                     </div>
@@ -1848,6 +1854,7 @@
                     cosSales = cloudCosSales;
                     packages = cloudPackages;
                     stockReturns = cloudStockReturns;
+                    normalizeLoadedProducts();
 
                     clearedDayBookEntries = Array.isArray(data.clearedDayBookEntries) ? data.clearedDayBookEntries : Object.values(data.clearedDayBookEntries || []);
                     dayBookOpeningBalance = Number(data.dayBookOpeningBalance || dayBookOpeningBalance || 0);
@@ -2038,6 +2045,31 @@
             }
         }
 
+        function normalizeLoadedProducts() {
+            (products || []).forEach(p => {
+                if (!p) return;
+                const r = parseFloat(p.retailPrice);
+                const s = parseFloat(p.salePrice || p.price || p.price2);
+                if (!Number.isFinite(r) && Number.isFinite(s)) p.retailPrice = s;
+                
+                const w = parseFloat(p.wholesalePrice);
+                const c = parseFloat(p.costPrice || p.price1);
+                if (!Number.isFinite(w) && Number.isFinite(c)) p.wholesalePrice = c;
+            });
+            (cosProducts || []).forEach(p => {
+                if (!p) return;
+                const c = parseFloat(p.costPrice);
+                const w = parseFloat(p.wholesalePrice);
+                if (!Number.isFinite(w) && Number.isFinite(c)) p.wholesalePrice = c;
+                if (!Number.isFinite(c) && Number.isFinite(w)) p.costPrice = w;
+
+                const s = parseFloat(p.salePrice);
+                const r = parseFloat(p.retailPrice);
+                if (!Number.isFinite(r) && Number.isFinite(s)) p.retailPrice = s;
+                if (!Number.isFinite(s) && Number.isFinite(r)) p.salePrice = r;
+            });
+        }
+
         function loadFromLocalStorage() {
             try {
                 products = (JSON.parse(localStorage.getItem('fia_products')) || []).filter(p => !isRecordDeleted('product', p));
@@ -2053,6 +2085,7 @@
                 dayBookOpeningBalance = Number(localStorage.getItem('fia_daybook_opening_balance') || 0);
                 dayBookOpeningExpense = Number(localStorage.getItem('fia_daybook_opening_expense') || 0);
                 appPin = localStorage.getItem('fia_app_pin') || "1234";
+                normalizeLoadedProducts();
             } catch (e) {
                 console.warn('Failed to load from localStorage:', e);
             }
@@ -3596,10 +3629,10 @@
             const id = document.getElementById('prodId').value;
             const name = document.getElementById('prodName').value.trim();
             const barcode = document.getElementById('prodBarcode').value.trim();
-            const stock = parseFloat(document.getElementById('prodStock').value);
+            const stock = parseFloat(document.getElementById('prodStock').value) || 0;
             const unit = document.getElementById('prodUnit').value;
-            const wholesalePrice = parseFloat(document.getElementById('prodWholesalePrice').value);
-            const retailPrice = parseFloat(document.getElementById('prodRetailPrice').value);
+            const wholesalePrice = parseFloat(document.getElementById('prodWholesalePrice').value) || 0;
+            const retailPrice = parseFloat(document.getElementById('prodRetailPrice').value) || 0;
             const rawPackageId=document.getElementById('prodPackageId')?.value||'';
             const rawPackageQty=parseFloat(document.getElementById('prodPackageQty')?.value)||0;
             const selectedText=document.getElementById('prodPackageId')?.selectedOptions?.[0]?.textContent||'';
@@ -3777,8 +3810,10 @@
                 document.getElementById('prodBarcode').value = p.barcode || '';
                 document.getElementById('prodStock').value = p.stock ?? 0;
                 document.getElementById('prodUnit').value = p.unit || '';
-                document.getElementById('prodWholesalePrice').value = p.wholesalePrice ?? 0;
-                document.getElementById('prodRetailPrice').value = p.retailPrice ?? 0;
+                const wp = (p.wholesalePrice !== undefined && p.wholesalePrice !== null && p.wholesalePrice !== '') ? p.wholesalePrice : (p.costPrice || p.price1 || '');
+                const rp = (p.retailPrice !== undefined && p.retailPrice !== null && p.retailPrice !== '') ? p.retailPrice : (p.salePrice || p.price || '');
+                document.getElementById('prodWholesalePrice').value = wp !== '' ? wp : '';
+                document.getElementById('prodRetailPrice').value = rp !== '' ? rp : '';
                 updatePackageSelectors(); 
                 document.getElementById('prodPackageId').value = p.packageId || ''; 
                 document.getElementById('prodPackageQty').value = p.packageQty ?? 1;
@@ -4026,16 +4061,127 @@
 
         function getProductWholesalePrice(p) {
             if (!p) return 0;
-            if (p.wholesalePrice !== undefined && p.wholesalePrice !== null && p.wholesalePrice !== '') return Number(p.wholesalePrice) || 0;
-            if (p.costPrice !== undefined && p.costPrice !== null && p.costPrice !== '') return Number(p.costPrice) || 0;
-            return Number(p.retailPrice || p.salePrice || 0);
+            const w = parseFloat(p.wholesalePrice);
+            if (Number.isFinite(w) && w > 0) return w;
+
+            const c = parseFloat(p.costPrice);
+            if (Number.isFinite(c) && c > 0) return c;
+
+            // Check purchase history for unit price if available
+            if (Array.isArray(purchases) && p.name) {
+                const pNameLower = String(p.name).trim().toLowerCase();
+                const lastPur = purchases.slice().reverse().find(pur => String(pur.productName || pur.item || '').trim().toLowerCase() === pNameLower && Number(pur.unitPrice) > 0);
+                if (lastPur) return Number(lastPur.unitPrice);
+            }
+            if (Array.isArray(cosPurchases) && p.name) {
+                const pNameLower = String(p.name).trim().toLowerCase();
+                const lastPur = cosPurchases.slice().reverse().find(pur => String(pur.item || pur.productName || '').trim().toLowerCase() === pNameLower && Number(pur.unitPrice) > 0);
+                if (lastPur) return Number(lastPur.unitPrice);
+            }
+
+            const p1 = parseFloat(p.price1 || p.purchasePrice);
+            if (Number.isFinite(p1) && p1 > 0) return p1;
+
+            if (Array.isArray(p.variants) && p.variants.length > 0) {
+                const vW = parseFloat(p.variants[0].wholesalePrice || p.variants[0].costPrice);
+                if (Number.isFinite(vW) && vW > 0) return vW;
+            }
+
+            return getProductRetailPrice(p);
         }
 
         function getProductRetailPrice(p) {
             if (!p) return 0;
-            if (p.retailPrice !== undefined && p.retailPrice !== null && p.retailPrice !== '') return Number(p.retailPrice) || 0;
-            if (p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '') return Number(p.salePrice) || 0;
-            return Number(p.wholesalePrice || p.costPrice || 0);
+            const r = parseFloat(p.retailPrice);
+            if (Number.isFinite(r) && r > 0) return r;
+
+            const s = parseFloat(p.salePrice);
+            if (Number.isFinite(s) && s > 0) return s;
+
+            const p2 = parseFloat(p.price2 || p.sellingPrice || p.price);
+            if (Number.isFinite(p2) && p2 > 0) return p2;
+
+            if (Array.isArray(p.variants) && p.variants.length > 0) {
+                const vR = parseFloat(p.variants[0].retailPrice || p.variants[0].salePrice);
+                if (Number.isFinite(vR) && vR > 0) return vR;
+            }
+
+            const w = parseFloat(p.wholesalePrice || p.costPrice);
+            if (Number.isFinite(w) && w > 0) return w;
+
+            return 0;
+        }
+
+        function getVariantWholesalePrice(v, product) {
+            if (!v) return 0;
+            const w = parseFloat(v.wholesalePrice);
+            if (Number.isFinite(w) && w > 0) return w;
+
+            const c = parseFloat(v.costPrice);
+            if (Number.isFinite(c) && c > 0) return c;
+
+            if (product) {
+                const baseRetail = getProductRetailPrice(product);
+                const baseWholesale = getProductWholesalePrice(product);
+                const vRetail = getVariantRetailPrice(v, null);
+                if (baseRetail > 0 && baseWholesale > 0 && baseWholesale < baseRetail && vRetail > 0) {
+                    return Math.round((vRetail * (baseWholesale / baseRetail)) * 100) / 100;
+                }
+                if (baseWholesale > 0) return baseWholesale;
+            }
+
+            return getVariantRetailPrice(v, product);
+        }
+
+        function getVariantRetailPrice(v, product) {
+            if (!v) return 0;
+            const r = parseFloat(v.retailPrice);
+            if (Number.isFinite(r) && r > 0) return r;
+
+            const s = parseFloat(v.salePrice);
+            if (Number.isFinite(s) && s > 0) return s;
+
+            if (product) {
+                const baseRetail = getProductRetailPrice(product);
+                if (baseRetail > 0) return baseRetail;
+            }
+
+            return 0;
+        }
+
+        function updateBillRateNotice(saleType, product, baseRate, variantObj = null) {
+            const badge = document.getElementById('billTypeBadge');
+            const notice = document.getElementById('billRateNotice');
+            const isWholesale = saleType === 'Wholesale';
+
+            if (badge) {
+                if (isWholesale) {
+                    badge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1';
+                    badge.innerHTML = '🏷️ Wholesale Mode Active';
+                } else {
+                    badge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1';
+                    badge.innerHTML = '🛍️ Retail Mode Active';
+                }
+            }
+
+            if (notice) {
+                if (!product) {
+                    notice.innerHTML = '';
+                    return;
+                }
+                const wPrice = variantObj ? getVariantWholesalePrice(variantObj, product) : getProductWholesalePrice(product);
+                const rPrice = variantObj ? getVariantRetailPrice(variantObj, product) : getProductRetailPrice(product);
+                
+                if (isWholesale) {
+                    if (wPrice === rPrice && rPrice > 0) {
+                        notice.innerHTML = `<span class="text-amber-400 font-semibold">ℹ️ Wholesale Price: ₹${wPrice.toFixed(2)} (Same as Retail — Edit product in Stock to set distinct Wholesale rate)</span>`;
+                    } else {
+                        notice.innerHTML = `<span class="text-amber-300 font-bold">🏷️ Wholesale Rate Applied: ₹${Number(baseRate||0).toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(Retail: ₹${rPrice.toFixed(2)})</span>`;
+                    }
+                } else {
+                    notice.innerHTML = `<span class="text-emerald-300 font-bold">🛍️ Retail Rate Applied: ₹${Number(baseRate||0).toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(Wholesale: ₹${wPrice.toFixed(2)})</span>`;
+                }
+            }
         }
 
         function updateProductDropdown() {
@@ -4098,12 +4244,18 @@
             if (id === '') {
                 cosProducts.push({
                     id: 'cp_' + Date.now().toString(),
-                    name, barcode, stock, unit, costPrice, salePrice, packageId, packageQty, packageName, variants
+                    name, barcode, stock, unit, costPrice, salePrice,
+                    wholesalePrice: costPrice, retailPrice: salePrice,
+                    packageId, packageQty, packageName, variants
                 });
             } else {
                 const idx = cosProducts.findIndex(p => p.id === id);
                 if (idx !== -1) {
-                    cosProducts[idx] = { ...cosProducts[idx], name, barcode, stock, unit, costPrice, salePrice, packageId, packageQty, packageName, variants };
+                    cosProducts[idx] = {
+                        ...cosProducts[idx], name, barcode, stock, unit, costPrice, salePrice,
+                        wholesalePrice: costPrice, retailPrice: salePrice,
+                        packageId, packageQty, packageName, variants
+                    };
                 }
             }
             syncToFirebase();
@@ -4143,8 +4295,10 @@
             document.getElementById('cosProdBarcode').value = p.barcode || '';
             document.getElementById('cosProdStock').value = p.stock ?? 0;
             document.getElementById('cosProdUnit').value = p.unit || '';
-            document.getElementById('cosProdCostPrice').value = p.costPrice ?? 0;
-            document.getElementById('cosProdSalePrice').value = p.salePrice ?? 0;
+            const wp = (p.wholesalePrice !== undefined && p.wholesalePrice !== null && p.wholesalePrice !== '') ? p.wholesalePrice : (p.costPrice ?? '');
+            const rp = (p.retailPrice !== undefined && p.retailPrice !== null && p.retailPrice !== '') ? p.retailPrice : (p.salePrice ?? '');
+            document.getElementById('cosProdCostPrice').value = wp;
+            document.getElementById('cosProdSalePrice').value = rp;
             updatePackageSelectors(); document.getElementById('cosProdPackageId').value=p.packageId||''; document.getElementById('cosProdPackageQty').value=p.packageQty??1;
             renderProductVariants(p.variants || [], 'cosmetics');
             document.getElementById('cosStockFormTitle').innerText = 'Edit Cosmetic Product';
@@ -4424,6 +4578,7 @@
                 prodSelect.value = currentVal;
             }
 
+            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
             const variantWrapper = document.getElementById('billPackVariantWrapper');
             const variantSelect = document.getElementById('billPackVariantSelect');
             const product = findUnifiedProduct(currentVal);
@@ -4431,11 +4586,10 @@
             if (product && Array.isArray(product.variants) && product.variants.length > 0) {
                 if (variantWrapper && variantSelect) {
                     variantWrapper.classList.remove('hidden');
-                    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
                     const currentVId = variantSelect.value;
                     variantSelect.innerHTML = '<option value="">-- Select Pack Size (' + product.variants.length + ' options) --</option>' +
                         product.variants.map(v => {
-                            const rate = saleType === 'Wholesale' ? v.wholesalePrice : v.retailPrice;
+                            const rate = saleType === 'Wholesale' ? getVariantWholesalePrice(v, product) : getVariantRetailPrice(v, product);
                             return `<option value="${v.id}">${v.name} (${v.size} ${v.unit}) — ₹${Number(rate||0).toFixed(2)}${v.packageName ? ' [' + v.packageName + ']' : ''}</option>`;
                         }).join('');
                     
@@ -4471,11 +4625,14 @@
             const variantWrapper = document.getElementById('billPackVariantWrapper');
             const variantSelect = document.getElementById('billPackVariantSelect');
             const badgeEl = document.getElementById('billPackVariantBadge');
+            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+
             if(!opt || !opt.value) {
                 if (variantWrapper) variantWrapper.classList.add('hidden');
                 if (badgeEl) badgeEl.textContent = '';
                 document.getElementById('billRate').value = '';
                 document.getElementById('billCalculatedTotal').value = '';
+                updateBillRateNotice(saleType, null, 0);
                 return;
             }
 
@@ -4499,6 +4656,7 @@
                     if (rateEl && !rateEl.value) rateEl.value = '0';
                     delete rateEl.dataset.variantId;
                     delete rateEl.dataset.defaultPkgId;
+                    updateBillRateNotice(saleType, null, 0);
                     calculateItemTotal();
                     return;
                 }
@@ -4507,7 +4665,6 @@
             const product = findUnifiedProduct(opt.value);
             if (!product) return;
 
-            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
             const baseRate = saleType === 'Wholesale' ? getProductWholesalePrice(product) : getProductRetailPrice(product);
 
             // 1. Check if product has pack size variants configured
@@ -4516,7 +4673,7 @@
                     variantWrapper.classList.remove('hidden');
                     variantSelect.innerHTML = '<option value="">-- Select Pack Size (' + product.variants.length + ' options) --</option>' +
                         product.variants.map(v => {
-                            const rate = saleType === 'Wholesale' ? v.wholesalePrice : v.retailPrice;
+                            const rate = saleType === 'Wholesale' ? getVariantWholesalePrice(v, product) : getVariantRetailPrice(v, product);
                             return `<option value="${v.id}">${v.name} (${v.size} ${v.unit}) — ₹${Number(rate||0).toFixed(2)}${v.packageName ? ' [' + v.packageName + ']' : ''}</option>`;
                         }).join('');
                     
@@ -4573,6 +4730,7 @@
                 rateEl.dataset.autoRate = rateEl.value;
                 rateEl.dataset.defaultPkgId = mappedPkg.id;
                 delete rateEl.dataset.variantId;
+                updateBillRateNotice(saleType, product, baseRate, null);
                 calculateItemTotal();
                 return;
             }
@@ -4594,6 +4752,7 @@
             rateEl.dataset.autoRate = rateEl.value;
             delete rateEl.dataset.variantId;
             delete rateEl.dataset.defaultPkgId;
+            updateBillRateNotice(saleType, product, baseRate, null);
             calculateItemTotal();
         }
 
@@ -4604,6 +4763,7 @@
             const variantSelect = document.getElementById('billPackVariantSelect');
             const vId = variantSelect?.value;
             const badgeEl = document.getElementById('billPackVariantBadge');
+            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
             if (!product || !vId) {
                 if (badgeEl) badgeEl.textContent = '';
                 return;
@@ -4614,7 +4774,6 @@
                 if (product.packageId) mappedPkg = packages.find(p => String(p.id) === String(product.packageId));
                 if (!mappedPkg && product.packageName) mappedPkg = packages.find(p => String(p.name).toLowerCase() === String(product.packageName).toLowerCase());
 
-                const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
                 const rate = saleType === 'Wholesale' ? getProductWholesalePrice(product) : getProductRetailPrice(product);
                 const rateEl = document.getElementById('billRate');
                 rateEl.value = rate ? rate.toFixed(2) : '0';
@@ -4631,6 +4790,7 @@
                 if (mappedPkg && badgeEl) {
                     badgeEl.innerHTML = `📦 ${mappedPkg.name} (<span class="${Number(mappedPkg.stock)<=5?'text-rose-400 font-bold':'text-emerald-400 font-bold'}">Stock: ${mappedPkg.stock}</span>)`;
                 }
+                updateBillRateNotice(saleType, product, rate, null);
                 calculateItemTotal();
                 return;
             }
@@ -4646,8 +4806,7 @@
                 }
                 unitEl.value = variant.unit;
             }
-            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
-            const rate = Number(saleType === 'Wholesale' ? variant.wholesalePrice : variant.retailPrice) || 0;
+            const rate = Number(saleType === 'Wholesale' ? getVariantWholesalePrice(variant, product) : getVariantRetailPrice(variant, product)) || 0;
             const rateEl = document.getElementById('billRate');
             rateEl.value = rate ? rate.toFixed(2) : '0';
             rateEl.dataset.autoRate = rateEl.value;
@@ -4673,6 +4832,7 @@
                 if (badgeEl) badgeEl.textContent = variant.packageName ? `📦 ${variant.packageName}` : '';
             }
 
+            updateBillRateNotice(saleType, product, rate, variant);
             calculateItemTotal();
         }
 
@@ -4730,18 +4890,15 @@
             const product = findUnifiedProduct(productName);
             const factor = getBillingUnitFactor(unitType, product?.unit);
 
-            // If the rate is still the automatically supplied preset rate, keep it in sync
-            // with the selected bottle/pack size. Once the user manually changes the rate,
-            // that manual rate is treated as the price for ONE bottle/pack.
             const autoRate = parseFloat(document.getElementById('billRate')?.dataset.autoRate);
             const variantId = document.getElementById('billPackVariantSelect')?.value || document.getElementById('billRate')?.dataset.variantId;
-            if (!variantId && Number.isFinite(autoRate) && Math.abs(rate - autoRate) < 0.000001) {
-                const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
-                const baseRate = product ? (saleType === 'Wholesale' ? getProductWholesalePrice(product) : getProductRetailPrice(product)) : 0;
-                if (baseRate > 0) {
-                    rate = baseRate;
-                    document.getElementById('billRate').value = rate.toFixed(2);
-                    document.getElementById('billRate').dataset.autoRate = document.getElementById('billRate').value;
+            const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+
+            // If user manually changed the rate, provide helpful feedback
+            const noticeEl = document.getElementById('billRateNotice');
+            if (Number.isFinite(autoRate) && Number.isFinite(rate) && Math.abs(rate - autoRate) > 0.001) {
+                if (noticeEl) {
+                    noticeEl.innerHTML = `<span class="text-sky-300 font-bold">✏️ Custom Rate: ₹${rate.toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(${saleType} preset was ₹${autoRate.toFixed(2)})</span>`;
                 }
             }
 
@@ -5007,8 +5164,8 @@
         function updateCombinedProductSelect(){
             const select=document.getElementById('combinedProductSelect'); if(!select)return;
             const rows=[
-                ...products.map(p=>({category:'Cleaning',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'',wholesale:Number(p.wholesalePrice)||0,retail:Number(p.retailPrice)||0})),
-                ...cosProducts.map(p=>({category:'Cosmetics',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'',wholesale:Number(p.wholesalePrice||p.salePrice)||0,retail:Number(p.retailPrice||p.salePrice)||0}))
+                ...products.map(p=>({category:'Cleaning',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'',wholesale:getProductWholesalePrice(p),retail:getProductRetailPrice(p)})),
+                ...cosProducts.map(p=>({category:'Cosmetics',name:p.name||'',stock:Number(p.stock)||0,unit:p.unit||'',wholesale:getProductWholesalePrice(p),retail:getProductRetailPrice(p)}))
             ].sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base',numeric:true}));
             const current=select.value;
             select.innerHTML='<option value="">-- Select Product --</option>'+rows.map((r,i)=>`<option value="${r.category}::${String(r.name).replace(/"/g,'&quot;')}" data-category="${r.category}" data-name="${String(r.name).replace(/"/g,'&quot;')}" data-stock="${r.stock}" data-unit="${r.unit}" data-wholesale="${r.wholesale}" data-retail="${r.retail}">${r.name} — ${r.category} (Stock: ${r.stock} ${r.unit})</option>`).join('');
@@ -7021,7 +7178,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=21')
+                navigator.serviceWorker.register('./sw.js?v=22')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
