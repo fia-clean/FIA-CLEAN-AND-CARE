@@ -13,14 +13,43 @@ export function formatNumber(val: number): string {
   return safe.toLocaleString('en-IN');
 }
 
-export function formatDateDDMMYYYY(dateStr: string | undefined): string {
-  if (!dateStr) return '';
-  const s = String(dateStr).trim();
-  const m1 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (m1) return `${m1[3]}-${m1[2]}-${m1[1]}`;
-  const m2 = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
-  return s;
+export function normalizeToDateKey(v: unknown): string {
+  if (!v && v !== 0) return '';
+  if (typeof v === 'number' || /^\d{10,14}$/.test(String(v).trim())) {
+    const d = new Date(Number(v));
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  }
+  const s = String(v).trim();
+  if (!s) return '';
+  let m = s.match(/^(\d{4})[-/. ](\d{1,2})[-/. ](\d{1,2})/);
+  if (m) {
+    return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+  }
+  m = s.match(/^(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{4})/);
+  if (m) {
+    return `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+  }
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  return '';
+}
+
+export function formatDateDDMMYYYY(dateStr: string | number | undefined): string {
+  if (!dateStr && dateStr !== 0) return '';
+  const key = normalizeToDateKey(dateStr);
+  if (!key) return String(dateStr);
+  const parts = key.split('-');
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
 }
 
 export function getTodayDateString(): string {

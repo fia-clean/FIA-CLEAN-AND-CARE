@@ -13,7 +13,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { SaleRecord, PurchaseRecord, ExpenseRecord, DayBookEntry } from '../types';
-import { formatCurrency, formatDateDDMMYYYY, getTodayDateString, downloadCSV } from '../utils/formatters';
+import { formatCurrency, formatDateDDMMYYYY, getTodayDateString, downloadCSV, normalizeToDateKey } from '../utils/formatters';
 
 interface DayBookProps {
   sales: SaleRecord[];
@@ -35,10 +35,21 @@ export const DayBook: React.FC<DayBookProps> = ({
   onOpenBackupModal,
 }) => {
   const today = getTodayDateString();
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = String(now.getMonth() + 1).padStart(2, '0');
+  const thisMonthStart = `${curYear}-${curMonth}-01`;
+  const lastDayNum = new Date(curYear, now.getMonth() + 1, 0).getDate();
+  const thisMonthEnd = `${curYear}-${curMonth}-${String(lastDayNum).padStart(2, '0')}`;
+
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
   const [actionNotification, setActionNotification] = useState<string | null>(null);
+
+  const isTodayActive = fromDate === today && toDate === today;
+  const isMonthActive = fromDate === thisMonthStart && toDate === thisMonthEnd;
+  const isAllActive = !fromDate && !toDate;
 
   // Assemble all day book entries
   const allEntries: DayBookEntry[] = [];
@@ -91,11 +102,19 @@ export const DayBook: React.FC<DayBookProps> = ({
   const filteredEntries = allEntries
     .filter((entry) => {
       if (clearedEntryIds.includes(entry.id)) return false;
-      if (fromDate && entry.date < fromDate) return false;
-      if (toDate && entry.date > toDate) return false;
+      const entryKey = normalizeToDateKey(entry.date) || String(entry.date || '');
+      if (fromDate && entryKey < fromDate) return false;
+      if (toDate && entryKey > toDate) return false;
       return true;
     })
-    .sort((a, b) => b.timestamp - a.timestamp); // Descending order
+    .sort((a, b) => {
+      const dateA = normalizeToDateKey(a.date) || String(a.date || '');
+      const dateB = normalizeToDateKey(b.date) || String(b.date || '');
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA);
+      }
+      return (b.timestamp || 0) - (a.timestamp || 0);
+    });
 
   const totalIncome = filteredEntries
     .filter((e) => e.type === 'Income')
@@ -247,16 +266,34 @@ export const DayBook: React.FC<DayBookProps> = ({
           </div>
 
           <div className="space-y-1 flex flex-col justify-end">
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setFromDate(today);
                   setToDate(today);
                 }}
-                className="flex-1 bg-white hover:bg-slate-100 text-indigo-700 border border-indigo-200 py-2 rounded text-xs font-bold"
+                className={`flex-1 py-2 px-2 rounded text-xs font-bold transition flex items-center justify-center gap-1 border ${
+                  isTodayActive
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
               >
-                Today
+                <span>📅 Today</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFromDate(thisMonthStart);
+                  setToDate(thisMonthEnd);
+                }}
+                className={`flex-1 py-2 px-2 rounded text-xs font-bold transition flex items-center justify-center gap-1 border ${
+                  isMonthActive
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+              >
+                <span>🗓️ This Month</span>
               </button>
               <button
                 type="button"
@@ -264,9 +301,13 @@ export const DayBook: React.FC<DayBookProps> = ({
                   setFromDate('');
                   setToDate('');
                 }}
-                className="flex-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 py-2 rounded text-xs font-bold"
+                className={`flex-1 py-2 px-2 rounded text-xs font-bold transition flex items-center justify-center gap-1 border ${
+                  isAllActive
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
               >
-                All Time
+                <span>🌐 All Time</span>
               </button>
               {(fromDate || toDate) && (
                 <button
@@ -275,10 +316,10 @@ export const DayBook: React.FC<DayBookProps> = ({
                     setFromDate('');
                     setToDate('');
                   }}
-                  className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded text-xs font-bold transition"
+                  className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 py-2 rounded text-xs font-bold transition"
                   title="Clear Date Filters"
                 >
-                  Reset
+                  ✕
                 </button>
               )}
             </div>

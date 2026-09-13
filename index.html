@@ -1201,6 +1201,7 @@
                 <div class="flex justify-between items-center">
                     <h2 class="font-bold text-purple-400 text-sm">Day Book & Date-wise Reports</h2>
                     <div class="flex gap-1.5 flex-wrap justify-end">
+                        <button id="restoreDayBookBtn" type="button" onclick="restoreClearedDayBook()" class="text-[10px] bg-amber-900/60 text-amber-300 border border-amber-700/50 px-2.5 py-1 rounded-lg hover:bg-amber-800 transition font-bold hidden">🔄 Restore</button>
                         <button onclick="exportDayBookToCSV()" class="text-[10px] bg-emerald-900/60 text-emerald-300 border border-emerald-700/50 px-2.5 py-1 rounded-lg hover:bg-emerald-800 transition font-bold">📥 Excel Export</button>
                         <button onclick="clearDayBook()" class="text-[10px] bg-red-900/60 text-red-300 border border-red-700/50 px-2.5 py-1 rounded-lg hover:bg-red-800 transition font-bold">🗑️ Clear</button>
                         <button type="button" onclick="openBackupModal()" class="text-[10px] bg-blue-900/60 text-blue-300 border border-blue-700/50 px-2.5 py-1 rounded-lg hover:bg-blue-800 transition font-bold">💾 Backup</button>
@@ -1210,83 +1211,90 @@
                 <div class="grid grid-cols-2 gap-2 bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
                     <div>
                         <label class="text-[10px] text-slate-400 block mb-1">From Date:</label>
-                        <input type="date" id="filterFromDate" onchange="renderAccounts()" aria-label="From Date" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:outline-none focus:border-purple-500">
+                        <input type="date" id="filterFromDate" onchange="onDayBookDateInputChange()" aria-label="From Date" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:outline-none focus:border-purple-500">
                     </div>
                     <div>
                         <label class="text-[10px] text-slate-400 block mb-1">To Date:</label>
-                        <input type="date" id="filterToDate" onchange="renderAccounts()" aria-label="To Date" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:outline-none focus:border-purple-500">
+                        <input type="date" id="filterToDate" onchange="onDayBookDateInputChange()" aria-label="To Date" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:outline-none focus:border-purple-500">
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button type="button" onclick="setFilterPreset('today')" class="flex-1 bg-slate-800 text-purple-300 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 hover:bg-slate-700">Today</button>
-                    <button type="button" onclick="setFilterPreset('month')" class="flex-1 bg-slate-800 text-emerald-300 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 hover:bg-slate-700">This Month</button>
-                    <button type="button" onclick="setFilterPreset('all')" class="flex-1 bg-slate-800 text-slate-300 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 hover:bg-slate-700">All Time</button>
+                    <button type="button" id="dayBookTabToday" onclick="setFilterPreset('today')" class="flex-1 bg-purple-600 text-white py-2 rounded-xl text-xs font-black shadow-md border border-purple-400 transition cursor-pointer">📅 Today</button>
+                    <button type="button" id="dayBookTabMonth" onclick="setFilterPreset('month')" class="flex-1 bg-slate-900 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer">🗓️ This Month</button>
+                    <button type="button" id="dayBookTabAll" onclick="setFilterPreset('all')" class="flex-1 bg-slate-900 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer">🌐 All Time</button>
                 </div>
 
-                <!-- ================= NET PROFIT MINI-CHART & PERCENTAGE WIDGET ================= -->
-                <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-purple-500/40 p-4 rounded-2xl shadow-inner space-y-3">
-                    <div class="text-[10px] uppercase tracking-wider font-bold text-purple-300 text-center">Net Profit & Margin Analysis</div>
+                <!-- ================= STREAMLINED COMPACT PICTORIAL ANALYSIS ================= -->
+                <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-purple-500/30 p-3 rounded-xl shadow-inner space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] uppercase tracking-wider font-bold text-purple-300">📊 Net Profit & Margin Analysis</span>
+                        <span id="profitStatusBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/60">Healthy Margin</span>
+                    </div>
                     
-                    <div class="flex items-center justify-around gap-2">
-                        <!-- SVG Donut / Circular Progress Ring -->
-                        <div class="relative w-24 h-24 flex items-center justify-center shrink-0">
-                            <svg class="w-24 h-24 transform -rotate-90" viewBox="0 0 80 80">
+                    <div class="flex items-center gap-3">
+                        <!-- Compact SVG Donut Ring (Reduced to 56px / w-14 h-14) -->
+                        <div class="relative w-14 h-14 shrink-0 flex items-center justify-center">
+                            <svg class="w-14 h-14 transform -rotate-90" viewBox="0 0 80 80">
                                 <circle cx="40" cy="40" r="32" stroke="#1e293b" stroke-width="8" fill="transparent" />
                                 <circle id="profitRingCircle" cx="40" cy="40" r="32" stroke="#10b981" stroke-width="8" stroke-dasharray="201.06" stroke-dashoffset="50" stroke-linecap="round" fill="transparent" class="transition-all duration-700 ease-out" />
                             </svg>
                             <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                <span id="profitMarginPercentText" class="text-sm font-black text-emerald-400">0%</span>
-                                <span class="text-[8px] text-slate-400 uppercase font-semibold">Margin</span>
+                                <span id="profitMarginPercentText" class="text-xs font-black text-emerald-400 leading-none">0%</span>
+                                <span class="text-[7px] text-slate-400 uppercase font-bold leading-none mt-0.5">Margin</span>
                             </div>
                         </div>
 
-                        <!-- Profit Figures -->
-                        <div class="space-y-1 text-xs">
+                        <!-- 3 Compact Financial Stats Columns -->
+                        <div class="flex-1 grid grid-cols-3 gap-1.5 text-center bg-slate-950/60 p-2 rounded-lg border border-slate-800">
                             <div>
-                                <span class="text-[10px] text-slate-400 block">Total Income (Sales)</span>
-                                <b id="dbIncomeText" class="text-sm font-extrabold text-emerald-400">₹0.00</b>
+                                <span class="text-[9px] text-slate-400 block truncate">Income (Sales)</span>
+                                <b id="dbIncomeText" class="text-xs font-black text-emerald-400">₹0.00</b>
                             </div>
                             <div>
-                                <span class="text-[10px] text-slate-400 block">Total Expense (Purch + Ops)</span>
-                                <b id="dbExpenseText" class="text-sm font-extrabold text-rose-400">₹0.00</b>
+                                <span class="text-[9px] text-slate-400 block truncate">Expense (Purch)</span>
+                                <b id="dbExpenseText" class="text-xs font-black text-rose-400">₹0.00</b>
                             </div>
-                            <div class="pt-1 border-t border-slate-800">
-                                <span class="text-[10px] text-slate-400 block">Net Profit</span>
-                                <b id="dbNetProfitText" class="text-base font-black text-white">₹0.00</b>
+                            <div class="border-l border-slate-800/80 pl-1">
+                                <span class="text-[9px] text-slate-400 block truncate">Net Profit</span>
+                                <b id="dbNetProfitText" class="text-xs font-black text-white">₹0.00</b>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Dynamic Profit Progress Bar -->
-                    <div class="space-y-1 pt-1">
-                        <div class="flex justify-between text-[10px] text-slate-400">
-                            <span>Profit Ratio</span>
-                            <span id="profitStatusBadge" class="font-bold text-emerald-400">Healthy Margin</span>
+                    <!-- Visual Income vs Expense Ratio Bar (Compact) -->
+                    <div class="space-y-0.5">
+                        <div class="flex justify-between text-[9px] font-bold">
+                            <span id="dbIncomeRatioText" class="text-emerald-400">Income: 0%</span>
+                            <span id="dbExpenseRatioText" class="text-rose-400">Expense: 0%</span>
                         </div>
-                        <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden flex">
-                            <div id="profitProgressBar" class="bg-emerald-500 h-2 transition-all duration-700" style="width: 50%;"></div>
+                        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex border border-slate-700/60">
+                            <div id="profitProgressBar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 50%;"></div>
+                            <div id="expenseProgressBar" class="h-full bg-rose-500 transition-all duration-500" style="width: 50%;"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs space-y-2">
+                <div class="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800 text-xs space-y-2">
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[10px] text-slate-400 block mb-1">Opening Balance (₹):</label>
-                            <input type="number" id="dayBookOpeningBalanceInput" min="0" step="any" value="0" class="w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-emerald-300 font-bold focus:outline-none focus:border-purple-500">
+                            <input type="number" id="dayBookOpeningBalanceInput" min="0" step="any" value="0" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-emerald-300 font-bold focus:outline-none focus:border-purple-500">
                         </div>
                         <div>
                             <label class="text-[10px] text-slate-400 block mb-1">Opening Expense (₹):</label>
-                            <input type="number" id="dayBookOpeningExpenseInput" min="0" step="any" value="0" class="w-full p-2.5 border border-slate-700 rounded-lg bg-slate-950 text-rose-300 font-bold focus:outline-none focus:border-purple-500">
+                            <input type="number" id="dayBookOpeningExpenseInput" min="0" step="any" value="0" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-rose-300 font-bold focus:outline-none focus:border-purple-500">
                         </div>
                     </div>
-                    <button type="button" onclick="saveDayBookOpeningValues()" class="w-full bg-purple-700 hover:bg-purple-600 text-white py-2.5 rounded-lg text-[11px] font-bold transition">💾 Save Opening Values</button>
+                    <button type="button" onclick="saveDayBookOpeningValues()" class="w-full bg-purple-800 hover:bg-purple-700 text-white py-2 rounded-lg text-[11px] font-bold transition">💾 Save Opening Values</button>
                 </div>
-                <div id="accountsSummaryContainer" class="text-xs space-y-2 pt-1"></div>
+                <div id="accountsSummaryContainer" class="text-xs space-y-2"></div>
             </div>
 
-            <h3 class="font-bold text-slate-300 text-xs px-1">Filtered Day Book Entries</h3>
-            <div id="dayBookListContainer" class="space-y-2.5"></div>
+            <div class="flex justify-between items-center px-1">
+                <h3 id="dayBookEntriesHeading" class="font-bold text-slate-300 text-xs">Filtered Day Book Entries</h3>
+                <span id="dayBookActivePeriodBadge" class="text-[10px] text-purple-300 font-bold bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-800/40">📅 Today</span>
+            </div>
+            <div id="dayBookListContainer" class="space-y-2"></div>
         </div>
 
     </div>
@@ -3782,13 +3790,48 @@
         function sortByNameAsc(list, field = 'name') {
             return [...list].sort((a, b) => String(a?.[field] ?? '').localeCompare(String(b?.[field] ?? ''), undefined, { sensitivity: 'base', numeric: true }));
         }
-        function dateSortValue(v) {
-            if (!v) return 0;
+        function normalizeToDateKey(v) {
+            if (!v && v !== 0) return '';
+            if (typeof v === 'number' || /^\d{10,14}$/.test(String(v).trim())) {
+                const d = new Date(Number(v));
+                if (!isNaN(d.getTime())) {
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }
+            }
             const s = String(v).trim();
-            if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s).getTime() || 0;
-            const m = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-            if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}`).getTime() || 0;
-            return new Date(s).getTime() || 0;
+            if (!s) return '';
+            let m = s.match(/^(\d{4})[-/. ](\d{1,2})[-/. ](\d{1,2})/);
+            if (m) {
+                return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+            }
+            m = s.match(/^(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{4})/);
+            if (m) {
+                return `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+            }
+            const d = new Date(s);
+            if (!isNaN(d.getTime())) {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+            return '';
+        }
+
+        function dateSortValue(v) {
+            if (!v && v !== 0) return 0;
+            const key = normalizeToDateKey(v);
+            if (key) {
+                const parts = key.split('-');
+                if (parts.length === 3) {
+                    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime() || 0;
+                }
+            }
+            const d = new Date(v);
+            return Number.isNaN(d.getTime()) ? 0 : d.getTime();
         }
 
         function renderProducts() {
@@ -6881,25 +6924,34 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         }
 
         function formatDateDDMMYYYY(dateValue) {
-            if (!dateValue) return '';
-            const v = String(dateValue).trim();
-            let m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            if (m) return `${m[3]}-${m[2]}-${m[1]}`;
-            m = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-            if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-            return v;
+            if (!dateValue && dateValue !== 0) return '';
+            const key = normalizeToDateKey(dateValue);
+            if (!key) return String(dateValue);
+            const parts = key.split('-');
+            if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            return key;
         }
+
         function parseDateDDMMYYYY(value) {
-            const v = String(value || '').trim();
-            if (!v) return '';
-            const m = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-            if (m) return `${m[3]}-${m[2]}-${m[1]}`;
-            return v;
+            return normalizeToDateKey(value);
         }
+
+        function dashboardDateKey(v) {
+            return normalizeToDateKey(v);
+        }
+
+        function getTodayDateString() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         function todayDDMMYYYY() {
-            const d = new Date();
-            return String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
+            return formatDateDDMMYYYY(getTodayDateString());
         }
+
         function setupDateFields() {
             const expDateEl = document.getElementById('expDate');
             if (expDateEl) {
@@ -6911,21 +6963,91 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             }
         }
 
-        function setFilterPreset(preset) {
-            const d = new Date();
-            const today = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-            if (preset === 'today') {
-                document.getElementById('filterFromDate').value = today;
-                document.getElementById('filterToDate').value = today;
-            } else if (preset === 'month') {
-                const firstDay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-01';
-                document.getElementById('filterFromDate').value = firstDay;
-                document.getElementById('filterToDate').value = today;
-            } else {
-                document.getElementById('filterFromDate').value = '';
-                document.getElementById('filterToDate').value = '';
+        let currentDayBookPreset = 'all';
+
+        function updateDayBookPresetButtons(preset) {
+            currentDayBookPreset = preset || 'all';
+            const btnToday = document.getElementById('dayBookTabToday');
+            const btnMonth = document.getElementById('dayBookTabMonth');
+            const btnAll = document.getElementById('dayBookTabAll');
+            const periodBadge = document.getElementById('dayBookActivePeriodBadge');
+
+            const activeClassToday = 'flex-1 bg-purple-600 text-white py-2 rounded-xl text-xs font-black shadow-md border border-purple-400 transition cursor-pointer';
+            const activeClassMonth = 'flex-1 bg-emerald-600 text-white py-2 rounded-xl text-xs font-black shadow-md border border-emerald-400 transition cursor-pointer';
+            const activeClassAll = 'flex-1 bg-sky-600 text-white py-2 rounded-xl text-xs font-black shadow-md border border-sky-400 transition cursor-pointer';
+            const inactiveClass = 'flex-1 bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer';
+
+            if (btnToday) btnToday.className = (preset === 'today') ? activeClassToday : inactiveClass;
+            if (btnMonth) btnMonth.className = (preset === 'month') ? activeClassMonth : inactiveClass;
+            if (btnAll) btnAll.className = (preset === 'all') ? activeClassAll : inactiveClass;
+
+            if (periodBadge) {
+                if (preset === 'today') periodBadge.textContent = '📅 Today';
+                else if (preset === 'month') periodBadge.textContent = '🗓️ This Month';
+                else if (preset === 'all') periodBadge.textContent = '🌐 All Time';
+                else periodBadge.textContent = '🔍 Custom Range';
             }
+        }
+
+        function setFilterPreset(preset) {
+            const fromEl = document.getElementById('filterFromDate');
+            const toEl = document.getElementById('filterToDate');
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const todayStr = y + '-' + m + '-' + String(d.getDate()).padStart(2, '0');
+
+            if (preset === 'today') {
+                if (fromEl) fromEl.value = todayStr;
+                if (toEl) toEl.value = todayStr;
+            } else if (preset === 'month') {
+                const firstDayStr = y + '-' + m + '-01';
+                const lastDayNum = new Date(y, d.getMonth() + 1, 0).getDate();
+                const lastDayStr = y + '-' + m + '-' + String(lastDayNum).padStart(2, '0');
+                if (fromEl) fromEl.value = firstDayStr;
+                if (toEl) toEl.value = lastDayStr;
+            } else {
+                preset = 'all';
+                if (fromEl) fromEl.value = '';
+                if (toEl) toEl.value = '';
+            }
+
+            updateDayBookPresetButtons(preset);
             renderAccounts();
+        }
+
+        function onDayBookDateInputChange() {
+            const fromVal = document.getElementById('filterFromDate')?.value;
+            const toVal = document.getElementById('filterToDate')?.value;
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const todayStr = y + '-' + m + '-' + String(d.getDate()).padStart(2, '0');
+            const firstDayStr = y + '-' + m + '-01';
+            const lastDayNum = new Date(y, d.getMonth() + 1, 0).getDate();
+            const lastDayStr = y + '-' + m + '-' + String(lastDayNum).padStart(2, '0');
+
+            let matched = 'custom';
+            if (!fromVal && !toVal) matched = 'all';
+            else if (fromVal === todayStr && toVal === todayStr) matched = 'today';
+            else if (fromVal === firstDayStr && (toVal === lastDayStr || toVal === todayStr)) matched = 'month';
+
+            updateDayBookPresetButtons(matched);
+            renderAccounts();
+        }
+
+        function restoreClearedDayBook() {
+            if (!clearedDayBookEntries || clearedDayBookEntries.length === 0) {
+                alert('No cleared transactions to restore.');
+                return;
+            }
+            if (!confirm(`Restore ${clearedDayBookEntries.length} hidden transaction(s) back to Day Book ledger?`)) return;
+            const count = clearedDayBookEntries.length;
+            clearedDayBookEntries = [];
+            saveLocalStateSafely();
+            syncToFirebase();
+            renderAccounts();
+            alert(`✅ Restored ${count} transaction(s) back to Day Book view.`);
         }
 
         function ensureStableTransactionIds() {
@@ -6954,41 +7076,108 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function getAllMasterEntries() {
             ensureStableTransactionIds();
             let entries = [];
-            customers.forEach((c, i) => { 
-                let incomeVal = Number(c.grandTotal || 0);
+            (customers || []).forEach((c, i) => { 
+                if (!c) return;
+                let incomeVal = Number(c.grandTotal || c.paidAmount || 0);
                 const entryId = c.billNo ? 'bill_' + c.billNo : ('c_' + (c.id || c.savedAt || i));
-                if(incomeVal > 0) entries.push({ id: entryId, type: 'Income', desc: `Customer Sale (${c.name})`, amount: incomeVal, date: c.date }); 
+                if (incomeVal > 0) {
+                    entries.push({ 
+                        id: entryId, 
+                        type: 'Income', 
+                        category: c.billType === 'Combined' ? 'Combined Sale' : 'Cleaning Sale',
+                        desc: `${c.billType === 'Combined' ? 'Bill' : 'Cleaning Bill'} #${c.billNo || (i + 1)} (${c.name || 'Customer'})`, 
+                        amount: incomeVal, 
+                        paidAmount: Number(c.paidAmount || 0),
+                        pendingAmount: Number(c.pendingAmount || 0),
+                        paymentMode: c.paymentMode || 'Cash',
+                        date: c.date || (c.savedAt ? normalizeToDateKey(c.savedAt) : getTodayDateString()),
+                        timestamp: Number(c.savedAt || c.createdAt || dateSortValue(c.date) || 0)
+                    });
+                }
             });
-            cosSales.forEach((s, i) => {
-                let incomeVal = Number((normalizeCosSale(s) || {}).grandTotal || 0);
+            (cosSales || []).forEach((s, i) => {
+                if (!s) return;
+                const norm = normalizeCosSale(s) || {};
+                let incomeVal = Number(norm.grandTotal || norm.paidAmount || 0);
                 const entryId = s.billNo ? 'cossale_' + s.billNo : ('cs_' + (s.id || s.savedAt || i));
-                if(incomeVal > 0) entries.push({ id: entryId, type: 'Income', desc: `Cosmetics Sale (${s.customer})`, amount: incomeVal, date: s.date });
+                if (incomeVal > 0) {
+                    entries.push({ 
+                        id: entryId, 
+                        type: 'Income', 
+                        category: 'Cosmetics Sale',
+                        desc: `Cosmetics Bill #${s.billNo || (i + 1)} (${s.customer || s.name || 'Customer'})`, 
+                        amount: incomeVal, 
+                        paidAmount: Number(norm.paidAmount || 0),
+                        pendingAmount: Number(norm.pendingAmount || 0),
+                        paymentMode: s.paymentMode || 'Cash',
+                        date: s.date || (s.savedAt ? normalizeToDateKey(s.savedAt) : getTodayDateString()),
+                        timestamp: Number(s.savedAt || s.createdAt || dateSortValue(s.date) || 0)
+                    });
+                }
             });
-            purchases.forEach((p, i) => {
-                const amount = Number(p.rawCost || 0);
+            (purchases || []).forEach((p, i) => {
+                if (!p) return;
+                const amount = Number(p.rawCost || p.paid || 0);
                 const entryId = p.id ? 'purch_' + p.id : ('p_' + (p.savedAt || i));
-                if(amount > 0) entries.push({ id: entryId, type: 'Expense', desc: `Purchase (${p.supplierName || p.rawMaterial || 'Supplier'})`, amount, date: p.date });
+                if (amount > 0) {
+                    entries.push({ 
+                        id: entryId, 
+                        type: 'Expense', 
+                        category: 'Purchase',
+                        desc: `Purchase: ${p.rawMaterial || 'Item'} (${p.supplierName || 'Supplier'})`, 
+                        amount, 
+                        paidAmount: Number(p.paid || 0),
+                        pendingAmount: Number(p.balance || 0),
+                        date: p.date || (p.savedAt ? normalizeToDateKey(p.savedAt) : getTodayDateString()),
+                        timestamp: Number(p.savedAt || dateSortValue(p.date) || 0)
+                    });
+                }
             });
-            expenses.forEach((ex, i) => {
+            (expenses || []).forEach((ex, i) => {
+                if (!ex) return;
                 const amount = Number(ex.amount || 0);
                 const entryId = ex.id ? 'exp_' + ex.id : ('e_' + (ex.savedAt || i));
-                if(amount > 0) entries.push({ id: entryId, type: 'Expense', desc: `Expense (${ex.title || 'General Expense'})`, amount, date: ex.date });
+                if (amount > 0) {
+                    entries.push({ 
+                        id: entryId, 
+                        type: 'Expense', 
+                        category: 'Expense',
+                        desc: `Expense: ${ex.title || 'General Expense'}`, 
+                        amount, 
+                        date: ex.date || (ex.savedAt ? normalizeToDateKey(ex.savedAt) : getTodayDateString()),
+                        timestamp: Number(ex.savedAt || dateSortValue(ex.date) || 0)
+                    });
+                }
             });
-            cosPurchases.forEach((cp, i) => {
-                const amount = Number(cp.amount || 0);
+            (cosPurchases || []).forEach((cp, i) => {
+                if (!cp) return;
+                const amount = Number(cp.amount || cp.paid || 0);
                 const entryId = cp.id ? 'cospurch_' + cp.id : ('cp_' + (cp.savedAt || i));
-                if(amount > 0) entries.push({ id: entryId, type: 'Expense', desc: `Cosmetics Purchase (${cp.supplier || cp.item || 'Supplier'})`, amount, date: cp.date });
+                if (amount > 0) {
+                    entries.push({ 
+                        id: entryId, 
+                        type: 'Expense', 
+                        category: 'Cosmetics Purchase',
+                        desc: `Cosmetics Purchase: ${cp.item || 'Item'} (${cp.supplier || 'Supplier'})`, 
+                        amount, 
+                        paidAmount: Number(cp.paid || 0),
+                        pendingAmount: Number(cp.balance || 0),
+                        date: cp.date || (cp.savedAt ? normalizeToDateKey(cp.savedAt) : getTodayDateString()),
+                        timestamp: Number(cp.savedAt || dateSortValue(cp.date) || 0)
+                    });
+                }
             });
             return entries;
         }
 
         function clearDayBook() {
-            let fromDate = parseDateDDMMYYYY(document.getElementById('filterFromDate').value);
-            let toDate = parseDateDDMMYYYY(document.getElementById('filterToDate').value);
-            if (!confirm('Clear all filtered Day Book entries from view?')) return;
+            let fromDate = normalizeToDateKey(document.getElementById('filterFromDate')?.value);
+            let toDate = normalizeToDateKey(document.getElementById('filterToDate')?.value);
+            if (!confirm('Clear all currently filtered Day Book entries from view?')) return;
             getAllMasterEntries().forEach(e => {
-                if((!fromDate || dashboardDateKey(e.date) >= fromDate) && (!toDate || dashboardDateKey(e.date) <= toDate)) {
-                    if(!clearedDayBookEntries.includes(e.id)) clearedDayBookEntries.push(e.id);
+                const ed = normalizeToDateKey(e.date);
+                if ((!fromDate || ed >= fromDate) && (!toDate || ed <= toDate)) {
+                    if (!clearedDayBookEntries.includes(e.id)) clearedDayBookEntries.push(e.id);
                 }
             });
             syncToFirebase();
@@ -7021,10 +7210,25 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             if (openingBalanceInput && document.activeElement !== openingBalanceInput) openingBalanceInput.value = Number(dayBookOpeningBalance || 0);
             if (openingExpenseInput && document.activeElement !== openingExpenseInput) openingExpenseInput.value = Number(dayBookOpeningExpense || 0);
 
-            let fromDate = parseDateDDMMYYYY(document.getElementById('filterFromDate').value);
-            let toDate = parseDateDDMMYYYY(document.getElementById('filterToDate').value);
-            let filtered = getAllMasterEntries().filter(e => !clearedDayBookEntries.includes(e.id) && (!fromDate || dashboardDateKey(e.date) >= fromDate) && (!toDate || dashboardDateKey(e.date) <= toDate));
-            filtered.sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date));
+            const fromDate = normalizeToDateKey(document.getElementById('filterFromDate')?.value);
+            const toDate = normalizeToDateKey(document.getElementById('filterToDate')?.value);
+
+            // Filter by date range and exclude cleared entries
+            let filtered = getAllMasterEntries().filter(e => {
+                if (clearedDayBookEntries.includes(e.id)) return false;
+                const ed = normalizeToDateKey(e.date);
+                if (fromDate && ed && ed < fromDate) return false;
+                if (toDate && ed && ed > toDate) return false;
+                if ((fromDate || toDate) && !ed) return false;
+                return true;
+            });
+
+            // Clean, robust sorting: Date descending, tie-break on timestamp descending
+            filtered.sort((a, b) => {
+                const diff = dateSortValue(b.date) - dateSortValue(a.date);
+                if (diff !== 0) return diff;
+                return (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0);
+            });
 
             let inc = filtered.filter(e => e.type === 'Income').reduce((s, e) => s + e.amount, 0);
             let exp = filtered.filter(e => e.type === 'Expense').reduce((s, e) => s + e.amount, 0);
@@ -7041,7 +7245,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             const marginPct = Math.abs(rawMarginPct).toFixed(1);
             const isProfit = netBalance >= 0;
 
-            // Animate SVG Donut Ring & Graphical Widget
+            // Animate SVG Donut Ring & Compact Graphical Widget
             const circle = document.getElementById('profitRingCircle');
             const marginText = document.getElementById('profitMarginPercentText');
             const incomeText = document.getElementById('dbIncomeText');
@@ -7049,12 +7253,28 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             const profitText = document.getElementById('dbNetProfitText');
             const statusBadge = document.getElementById('profitStatusBadge');
             const progressBar = document.getElementById('profitProgressBar');
+            const expProgressBar = document.getElementById('expenseProgressBar');
+            const incomeRatioText = document.getElementById('dbIncomeRatioText');
+            const expenseRatioText = document.getElementById('dbExpenseRatioText');
+            const restoreBtn = document.getElementById('restoreDayBookBtn');
+            const headingEl = document.getElementById('dayBookEntriesHeading');
+
+            if (headingEl) headingEl.textContent = `Filtered Day Book Entries (${filtered.length})`;
+
+            if (restoreBtn) {
+                if (clearedDayBookEntries && clearedDayBookEntries.length > 0) {
+                    restoreBtn.classList.remove('hidden');
+                    restoreBtn.textContent = `🔄 Restore (${clearedDayBookEntries.length})`;
+                } else {
+                    restoreBtn.classList.add('hidden');
+                }
+            }
 
             if (incomeText) incomeText.textContent = '₹' + currentIncome.toFixed(2);
             if (expenseText) expenseText.textContent = '₹' + currentExpense.toFixed(2);
             if (profitText) {
                 profitText.textContent = (isProfit ? '+₹' : '-₹') + Math.abs(netBalance).toFixed(2);
-                profitText.className = 'text-base font-black ' + (isProfit ? 'text-emerald-400' : 'text-rose-400');
+                profitText.className = 'text-xs font-black ' + (isProfit ? 'text-emerald-400' : 'text-rose-400');
             }
 
             const circumference = 201.06; // 2 * PI * 32
@@ -7067,84 +7287,105 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
 
             if (marginText) {
                 marginText.textContent = (isProfit ? '' : '-') + marginPct + '%';
-                marginText.className = 'text-sm font-black ' + (isProfit ? 'text-emerald-400' : 'text-rose-400');
+                marginText.className = 'text-xs font-black ' + (isProfit ? 'text-emerald-400' : 'text-rose-400');
             }
 
             if (statusBadge) {
                 if (isProfit) {
                     const num = Number(marginPct);
                     statusBadge.textContent = num >= 30 ? '🚀 High Margin' : (num >= 15 ? '✅ Healthy Margin' : '⚡ Moderate Margin');
-                    statusBadge.className = 'font-bold text-emerald-400';
+                    statusBadge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/60';
                 } else {
                     statusBadge.textContent = '⚠️ Operating Loss';
-                    statusBadge.className = 'font-bold text-rose-400';
+                    statusBadge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-700/60';
                 }
             }
 
-            if (progressBar) {
-                progressBar.style.width = Math.min(100, Math.max(5, isProfit ? incPct : expPct)) + '%';
-                progressBar.className = (isProfit ? 'bg-emerald-500' : 'bg-rose-500') + ' h-2 transition-all duration-700';
-            }
+            if (incomeRatioText) incomeRatioText.textContent = `Income: ₹${currentIncome.toFixed(2)} (${incPct}%)`;
+            if (expenseRatioText) expenseRatioText.textContent = `Expense: ₹${currentExpense.toFixed(2)} (${expPct}%)`;
 
+            if (progressBar) progressBar.style.width = incPct + '%';
+            if (expProgressBar) expProgressBar.style.width = expPct + '%';
+
+            // Compact 4-cell financial summary
             document.getElementById('accountsSummaryContainer').innerHTML = `
-                <!-- Graphical Profit & Loss Analytics Card -->
-                <div class="bg-gradient-to-br from-slate-900 to-slate-950 p-3.5 rounded-2xl border ${isProfit ? 'border-emerald-500/40' : 'border-rose-500/40'} shadow-lg space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">📊 Profit & Loss Overview</span>
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${isProfit ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/60' : 'bg-rose-950 text-rose-300 border border-rose-700/60'}">
-                            ${isProfit ? '📈 Net Profit: +' + marginPct + '%' : '📉 Net Loss: -' + marginPct + '%'}
-                        </span>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px] pt-1">
+                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800 flex flex-col">
+                        <span class="text-slate-400">Period Sales</span>
+                        <b class="text-emerald-400 font-extrabold text-xs mt-0.5">₹${inc.toFixed(2)}</b>
                     </div>
-
-                    <!-- Visual Income vs Expense Ratio Bar -->
-                    <div class="space-y-1">
-                        <div class="flex justify-between text-[10px] font-bold">
-                            <span class="text-emerald-400">Total Income: ₹${currentIncome.toFixed(2)} (${incPct}%)</span>
-                            <span class="text-rose-400">Total Expense: ₹${currentExpense.toFixed(2)} (${expPct}%)</span>
-                        </div>
-                        <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden flex border border-slate-700">
-                            <div style="width: ${incPct}%;" class="h-full bg-emerald-500 transition-all duration-500" title="Income: ${incPct}%"></div>
-                            <div style="width: ${expPct}%;" class="h-full bg-rose-500 transition-all duration-500" title="Expense: ${expPct}%"></div>
-                        </div>
+                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800 flex flex-col">
+                        <span class="text-slate-400">Period Expenses</span>
+                        <b class="text-rose-400 font-extrabold text-xs mt-0.5">₹${exp.toFixed(2)}</b>
                     </div>
-
-                    <!-- Net Balance Spotlight -->
-                    <div class="p-3 rounded-xl ${isProfit ? 'bg-emerald-950/40 border border-emerald-800/50' : 'bg-rose-950/40 border border-rose-800/50'} flex justify-between items-center">
-                        <div>
-                            <div class="text-[10px] font-bold text-slate-400 uppercase">${isProfit ? '💰 Net Profit' : '⚠️ Net Operating Loss'}</div>
-                            <div class="text-lg font-black ${isProfit ? 'text-emerald-300' : 'text-rose-300'}">₹${Math.abs(netBalance).toFixed(2)}</div>
-                        </div>
-                        <div class="text-right text-[10px] text-slate-400 space-y-0.5">
-                            <div>Opening Bal: <span class="text-emerald-400 font-bold">₹${openingBalance.toFixed(2)}</span></div>
-                            <div>Opening Exp: <span class="text-rose-400 font-bold">₹${openingExpense.toFixed(2)}</span></div>
-                        </div>
+                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800 flex flex-col">
+                        <span class="text-slate-400">Opening Balance</span>
+                        <b class="text-slate-200 font-bold text-xs mt-0.5">₹${openingBalance.toFixed(2)}</b>
                     </div>
-
-                    <!-- Sub-breakdown rows -->
-                    <div class="grid grid-cols-2 gap-2 text-[11px] pt-0.5">
-                        <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
-                            <span class="text-slate-400">Period Sales:</span>
-                            <strong class="text-emerald-400 font-bold">₹${inc.toFixed(2)}</strong>
-                        </div>
-                        <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
-                            <span class="text-slate-400">Period Expenses:</span>
-                            <strong class="text-rose-400 font-bold">₹${exp.toFixed(2)}</strong>
-                        </div>
+                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800 flex flex-col">
+                        <span class="text-slate-400">Opening Expense</span>
+                        <b class="text-slate-200 font-bold text-xs mt-0.5">₹${openingExpense.toFixed(2)}</b>
                     </div>
                 </div>`;
 
-            document.getElementById('dayBookListContainer').innerHTML = filtered.map(e => `
-                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between text-xs">
-                    <div><p class="font-bold ${e.type==='Income'?'text-emerald-300':'text-blue-300'}">[${e.type}] ${e.desc}</p><p class="text-slate-400">${formatDateDDMMYYYY(e.date)} | ₹${e.amount}</p></div>
-                    <button type="button" onclick="deleteDayBookEntry('${e.id}')" class="text-red-400 font-bold px-2 py-1 bg-red-950/40 border border-red-800/60 rounded-lg text-[10px] hover:bg-red-900 cursor-pointer">Del</button>
-                </div>`).join('') || '<p class="text-xs text-slate-500 text-center">No entries found.</p>';
+            // Render Day Book items
+            if (filtered.length === 0) {
+                const clearedNote = (clearedDayBookEntries && clearedDayBookEntries.length > 0)
+                    ? `<div class="mt-2 text-amber-300 text-[11px] bg-amber-950/40 p-2 rounded-lg border border-amber-800/40">⚠️ ${clearedDayBookEntries.length} transaction(s) are currently marked as cleared. <button type="button" onclick="restoreClearedDayBook()" class="underline font-bold text-amber-200 ml-1 hover:text-white">Click here to restore</button></div>`
+                    : '';
+                document.getElementById('dayBookListContainer').innerHTML = `
+                    <div class="bg-slate-950/40 border border-slate-800/70 p-6 rounded-2xl text-center space-y-2">
+                        <div class="text-2xl">📋</div>
+                        <p class="text-xs text-slate-400 font-medium">No transactions found for the selected period.</p>
+                        <div class="flex justify-center gap-2 pt-1">
+                            <button type="button" onclick="setFilterPreset('all')" class="text-[11px] bg-sky-900/60 text-sky-300 border border-sky-700/60 px-3 py-1.5 rounded-lg hover:bg-sky-800 transition font-bold">🌐 Show All Time</button>
+                        </div>
+                        ${clearedNote}
+                    </div>`;
+            } else {
+                document.getElementById('dayBookListContainer').innerHTML = filtered.map(e => {
+                    const isInc = e.type === 'Income';
+                    const badgeBg = isInc ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60' : 'bg-rose-950/80 text-rose-300 border-rose-700/60';
+                    const icon = isInc ? '💰' : '💸';
+                    const payBadge = e.paymentMode ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">${e.paymentMode}</span>` : '';
+                    return `
+                    <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3 text-xs hover:border-slate-700 transition">
+                        <div class="flex items-start gap-2.5 min-w-0">
+                            <span class="text-base shrink-0 mt-0.5">${icon}</span>
+                            <div class="min-w-0 space-y-0.5">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${badgeBg}">[${e.type}]</span>
+                                    <span class="font-bold text-slate-200 truncate">${e.desc}</span>
+                                    ${payBadge}
+                                </div>
+                                <p class="text-[10px] text-slate-400">📅 ${formatDateDDMMYYYY(e.date)} ${e.category ? '• ' + e.category : ''}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="font-black text-xs ${isInc ? 'text-emerald-400' : 'text-rose-400'}">₹${Number(e.amount || 0).toFixed(2)}</span>
+                            <button type="button" onclick="deleteDayBookEntry('${e.id}')" title="Remove from Day Book view" class="text-slate-400 hover:text-red-300 hover:bg-red-950/60 border border-transparent hover:border-red-800/60 p-1 rounded-lg text-xs transition cursor-pointer">🗑️</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
         }
 
         function exportDayBookToCSV() {
-            let fromDate = parseDateDDMMYYYY(document.getElementById('filterFromDate')?.value);
-            let toDate = parseDateDDMMYYYY(document.getElementById('filterToDate')?.value);
-            let filtered = getAllMasterEntries().filter(e => !clearedDayBookEntries.includes(e.id) && (!fromDate || dashboardDateKey(e.date) >= fromDate) && (!toDate || dashboardDateKey(e.date) <= toDate));
-            filtered.sort((a, b) => dateSortValue(a.date) - dateSortValue(b.date));
+            let fromDate = normalizeToDateKey(document.getElementById('filterFromDate')?.value);
+            let toDate = normalizeToDateKey(document.getElementById('filterToDate')?.value);
+            let filtered = getAllMasterEntries().filter(e => {
+                if (clearedDayBookEntries.includes(e.id)) return false;
+                const ed = normalizeToDateKey(e.date);
+                if (fromDate && ed && ed < fromDate) return false;
+                if (toDate && ed && ed > toDate) return false;
+                if ((fromDate || toDate) && !ed) return false;
+                return true;
+            });
+            filtered.sort((a, b) => {
+                const diff = dateSortValue(a.date) - dateSortValue(b.date);
+                if (diff !== 0) return diff;
+                return (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0);
+            });
 
             const openingBalance = Number(dayBookOpeningBalance || 0);
             const openingExpense = Number(dayBookOpeningExpense || 0);
@@ -7177,7 +7418,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            const dateStr = (fromDate && toDate) ? `${fromDate}_to_${toDate}` : new Date().toISOString().split('T')[0];
+            const dateStr = (fromDate && toDate) ? `${fromDate}_to_${toDate}` : getTodayDateString();
             a.download = `FIA_DAYBOOK_REPORT_${dateStr}.csv`;
             document.body.appendChild(a);
             a.click();
@@ -7185,16 +7426,6 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             URL.revokeObjectURL(url);
         }
         window.exportDayBookToExcel = exportDayBookToCSV;
-
-        function dashboardDateKey(v) {
-            if (!v) return '';
-            const s = String(v).trim();
-            if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-            const m = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-            if (m) return `${m[3]}-${m[2]}-${m[1]}`;
-            const d = new Date(s);
-            return Number.isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
-        }
 
         function money(v) { return '₹' + Number(v || 0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 
@@ -7491,7 +7722,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=25')
+                navigator.serviceWorker.register('./sw.js?v=26')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
