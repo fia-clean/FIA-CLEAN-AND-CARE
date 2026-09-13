@@ -8,10 +8,10 @@ Write-Host "Checking git status..." -ForegroundColor Yellow
 git status -s
 
 Write-Host "Adding modified files..." -ForegroundColor Yellow
-git add index.html sw.js src/ deploy_to_github.bat deploy_to_github.ps1
+git add index.html dev.html sw.js manifest.json icon-192.png icon-512.png icon.svg apple-touch-icon.png favicon.png public/ src/ deploy_to_github.bat deploy_to_github.ps1
 
 Write-Host "Committing changes..." -ForegroundColor Yellow
-git commit -m "fix: Update invoice header to FIA CLEAN AND CARE, EDATHANATTUKARA, MOB: 8086452106, WHOLESALE/RETAIL INVOICE and SW v25 cache refresh"
+git commit -m "feat: Change app icon to official FIA logo for Add to Home Screen and PWA install"
 
 Write-Host "Pushing to GitHub origin main..." -ForegroundColor Yellow
 git push origin main

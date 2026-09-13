@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-v28';
+const CACHE_NAME = 'fia-clean-care-v29';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [
@@ -6,9 +6,10 @@ const PRECACHE_ASSETS = [
   './index.html',
   './style.css',
   './manifest.json',
-  './icon.svg',
   './icon-192.png',
   './icon-512.png',
+  './apple-touch-icon.png',
+  './favicon.png',
   './lib/tailwind.js',
   './lib/firebase-app-compat.js',
   './lib/firebase-database-compat.js',
