@@ -8,10 +8,10 @@ Write-Host "Checking git status..." -ForegroundColor Yellow
 git status -s
 
 Write-Host "Adding modified files..." -ForegroundColor Yellow
-git add index.html dev.html sw.js manifest.json icon-192.png icon-512.png icon.svg apple-touch-icon.png favicon.png public/ src/ deploy_to_github.bat deploy_to_github.ps1
+git add index.html dev.html sw.js manifest.json icon-192.png icon-512.png icon.svg apple-touch-icon.png favicon.png lib/ public/ src/ deploy_to_github.bat deploy_to_github.ps1
 
 Write-Host "Committing changes..." -ForegroundColor Yellow
-git commit -m "feat: Mobile-friendly bill slip design, header cleanup, and direct WhatsApp image sharing (v31)"
+git commit -m "fix: WhatsApp image-only sharing without attached text, and portrait mobile receipt layout for download/save (v32)"
 
 Write-Host "Pushing to GitHub origin main..." -ForegroundColor Yellow
 git push origin main

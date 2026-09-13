@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-v31';
+const CACHE_NAME = 'fia-clean-care-v32';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [
@@ -14,6 +14,7 @@ const PRECACHE_ASSETS = [
   './lib/firebase-app-compat.js',
   './lib/firebase-database-compat.js',
   './lib/firebase-auth-compat.js',
+  './lib/html2canvas.min.js',
   './lib/html2pdf.bundle.min.js',
   './lib/jspdf.umd.min.js',
   './lib/zxing.min.js'
