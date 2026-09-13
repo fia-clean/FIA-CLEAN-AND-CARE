@@ -335,7 +335,6 @@
     <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
         <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
         <div class="flex gap-2 flex-wrap items-center">
-            <button id="pwaInstallBtn" type="button" onclick="triggerPwaInstall()" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-emerald-500/50 bg-emerald-950/70 text-emerald-300 hover:bg-emerald-800/60 hover:text-white transition font-bold text-[11px] shadow-sm"><img src="./icon-192.png" alt="FIA" class="w-4 h-4 rounded-full"><span>📲 Install App</span></button>
             <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
             <button onclick="manualCloudSync()" class="hover:text-emerald-400 transition underline">Force Sync</button>
             <button type="button" onclick="openBackupModal()" class="hover:text-emerald-400 transition underline text-blue-400 font-bold">💾 Backup</button>
@@ -1348,24 +1347,38 @@
         </div>
     </div>
 
-    <div id="billPreviewModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-5 space-y-4">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-emerald-400 text-sm">Bill Preview</h3>
-                <button onclick="closeBillPreview()" class="text-slate-400 hover:text-white font-bold text-sm">✕ Close</button>
+    <div id="billPreviewModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full max-h-[92vh] overflow-y-auto p-3 sm:p-5 space-y-3.5 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">🧾</span>
+                    <h3 class="font-black text-emerald-400 text-sm tracking-wide">Invoice & Bill Preview</h3>
+                </div>
+                <button onclick="closeBillPreview()" class="text-slate-400 hover:text-white font-bold text-sm px-2 py-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">✕ Close</button>
             </div>
             
-            <div class="overflow-x-auto w-full">
-                <div id="billPreviewContent" class="bg-white text-black p-4 rounded-xl text-xs min-w-[280px]" style="background-color: #ffffff !important; color: #000000 !important;"></div>
+            <div class="w-full flex justify-center overflow-x-hidden">
+                <div id="billPreviewContent" class="bg-white text-black rounded-2xl w-full max-w-[390px]" style="background-color: #ffffff !important; color: #000000 !important; box-sizing: border-box;"></div>
             </div>
 
-            <div class="flex flex-col gap-2 pt-2">
-                <div class="flex gap-2">
-                    <button onclick="downloadBillPDF()" class="flex-1 bg-purple-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-purple-500 transition">📥 Download PDF</button>
-                    <button onclick="printBill()" class="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-500 transition">🖨️ Print</button>
-                    <button onclick="sendBillViaWhatsApp()" class="bg-green-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-green-500 transition">💬 WhatsApp</button>
+            <!-- Enhanced Action Buttons: WhatsApp Image Share, Save Image, PDF, Print -->
+            <div class="space-y-2 pt-1">
+                <button id="btnShareWhatsApp" type="button" onclick="shareBillImageWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white py-3 rounded-2xl text-xs font-black shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 transition cursor-pointer">
+                    <span class="text-base">💬</span>
+                    <span id="btnShareWhatsAppText">Share Bill on WhatsApp (Photo)</span>
+                </button>
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" onclick="downloadBillImage()" class="bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+                        <span>🖼️</span><span>Save Image</span>
+                    </button>
+                    <button type="button" onclick="downloadBillPDF()" class="bg-purple-600 hover:bg-purple-500 text-white py-2.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+                        <span>📥</span><span>PDF</span>
+                    </button>
+                    <button type="button" onclick="printBill()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 py-2.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border border-slate-600">
+                        <span>🖨️</span><span>Print</span>
+                    </button>
                 </div>
-                <button onclick="closeBillPreview()" class="bg-slate-800 text-slate-300 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-700">Close</button>
+                <button type="button" onclick="closeBillPreview()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer">Close</button>
             </div>
         </div>
     </div>
@@ -1400,6 +1413,12 @@
                     <button type="button" onclick="closeSettingsModal(); openBackupModal();" class="w-full bg-emerald-700 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-600">🕒 Auto-Snapshots & Restore</button>
                     <button type="button" onclick="openBackupFilePicker('backupFileInput')" class="block w-full bg-slate-800 text-slate-200 py-2.5 rounded-xl font-bold text-center cursor-pointer border border-slate-700 hover:bg-slate-700">📤 Restore from File</button>
                     <input type="file" id="backupFileInput" accept=".json,application/json,text/json,text/plain,*/*" class="hidden" onchange="restoreFullBackup(event)">
+                </div>
+                <div class="pt-2 border-t border-slate-800">
+                    <button type="button" onclick="closeSettingsModal(); triggerPwaInstall();" class="w-full bg-slate-800 text-emerald-300 py-2.5 rounded-xl font-bold hover:bg-slate-700 flex items-center justify-center gap-2 border border-slate-700 text-xs">
+                        <img src="./icon-192.png" alt="FIA" class="w-4 h-4 rounded-full">
+                        <span>Install App / Add to Home Screen</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -6391,14 +6410,26 @@
             activePreviewCustomer = c;
             const saleTypeStr = (c.saleType || 'Retail').toUpperCase();
             const isWholesale = saleTypeStr === 'WHOLESALE';
-            let itemsRows = sortBillItemsAlphabetically(c.items || []).map((item) => {
+            const themeColor = '#065f46';
+            const themeHeaderBg = '#064e3b';
+            
+            let itemsRows = sortBillItemsAlphabetically(c.items || []).map((item, idx) => {
                 const cleanName = getCleanInvoiceProductName(item.productName);
-                const qtyStr = `${item.qty} ${item.unitType && item.unitType !== 'Standard' ? item.unitType : ''}`.trim();
+                const rawQty = item.qty || '';
+                const unitStr = (item.unitType && item.unitType !== 'Standard') ? item.unitType : '';
                 const units = Number(item.numberOfUnits || 1);
+                let qtyDisplay = `${rawQty} ${unitStr}`.trim();
+                if (units > 1) qtyDisplay += ` (${units})`;
                 const rate = Number(item.rate || 0).toFixed(2);
                 const total = Number(item.total || 0).toFixed(2);
-                const cosTag = item.combinedCategory === 'Cosmetics' ? ` <small style="color:#db2777">(Cosmetics)</small>` : '';
-                return `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${cleanName}${cosTag}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${qtyStr}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${units}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${rate}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${total}</td></tr>`;
+                const cosTag = item.combinedCategory === 'Cosmetics' ? ` <span style="color:#db2777; font-size:9.5px; font-weight:bold;">(Cos)</span>` : '';
+                const bg = idx % 2 === 1 ? 'background:#f9fafb;' : 'background:#ffffff;';
+                return `<tr style="${bg}">
+                    <td style="padding:6px 4px; border-bottom:1px solid #e5e7eb; font-weight:600; color:#111827 !important; word-break:break-word;">${cleanName}${cosTag}</td>
+                    <td style="padding:6px 2px; border-bottom:1px solid #e5e7eb; text-align:center; color:#374151 !important; white-space:nowrap;">${qtyDisplay}</td>
+                    <td style="padding:6px 2px; border-bottom:1px solid #e5e7eb; text-align:right; color:#374151 !important; white-space:nowrap;">₹${rate}</td>
+                    <td style="padding:6px 4px; border-bottom:1px solid #e5e7eb; text-align:right; font-weight:700; color:#111827 !important; white-space:nowrap;">₹${total}</td>
+                </tr>`;
             }).join('');
 
             const grandVal = Number(c.grandTotal || 0);
@@ -6407,25 +6438,75 @@
             const excessVal = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paidVal - grandVal);
 
             const billHTML = `
-                <div style="font-family: Arial; color: #000000 !important; background-color: #ffffff !important; padding: 10px;">
-                    <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 10px;">
-                        <h2 style="margin:0; color: #065f46; font-size: 16px; font-weight: bold;">FIA CLEAN AND CARE</h2>
-                        <div style="margin:2px 0; font-size: 11px; font-weight: bold; color: #000000 !important;">EDATHANATTUKARA</div>
-                        <div style="margin:2px 0; font-size: 11px; font-weight: bold; color: #000000 !important;">MOB: 8086452106</div>
-                        <div style="margin:4px 0;"><span style="display:inline-block; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px; ${isWholesale ? 'background:#fef3c7; color:#92400e; border:1px solid #f59e0b;' : 'background:#ecfdf5; color:#065f46; border:1px solid #10b981;'}">${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}</span></div>
+                <div id="fiaInvoiceCaptureCard" style="font-family: Arial, Helvetica, sans-serif; color: #000000 !important; background-color: #ffffff !important; padding: 14px 12px; width: 100%; max-width: 380px; margin: 0 auto; box-sizing: border-box; border-radius: 12px; border: 2px solid ${themeColor};">
+                    <!-- Brand Header with Logo -->
+                    <div style="text-align: center; border-bottom: 2px solid ${themeColor}; padding-bottom: 8px; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <img src="./icon-192.png" alt="FIA" style="width: 38px; height: 38px; border-radius: 50%; object-fit: contain; border: 1.5px solid ${themeColor}; background: #000000; display: inline-block;">
+                            <div style="text-align: left;">
+                                <h2 style="margin: 0; color: ${themeColor}; font-size: 16px; font-weight: 900; letter-spacing: 0.5px; line-height: 1.15;">FIA CLEAN AND CARE</h2>
+                                <div style="margin: 0; font-size: 9.5px; font-weight: 700; color: #374151 !important;">EDATHANATTUKARA • MOB: 8086452106</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 5px;">
+                            <span style="display:inline-block; padding: 2px 10px; border-radius: 12px; font-weight: 800; font-size: 9.5px; ${isWholesale ? 'background:#fef3c7; color:#92400e; border:1px solid #f59e0b;' : 'background:#ecfdf5; color:#065f46; border:1px solid #10b981;'}">
+                                ${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}
+                            </span>
+                        </div>
                     </div>
-                    <p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Bill No:</strong> ${c.billNo || '—'} &nbsp; | &nbsp; <strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}</p><p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Customer:</strong> ${c.name}</p>
-                    <p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Mobile:</strong> ${c.phone || '—'}</p>
-                    <div style="border-top:1px solid #000; padding-top:6px; margin-top:8px; margin-bottom:6px; font-size:14px; font-weight:700; letter-spacing:0.3px; color:#000 !important;text-align:center;">PARTICULARS</div>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin: 10px 0; color: #000000 !important;">
-                        <thead><tr style="background:#f3f4f6"><th style="padding:6px; color:#000;">Product</th><th style="padding:6px; color:#000;">Quantity</th><th style="padding:6px; color:#000;">Unit</th><th style="padding:6px; color:#000;">Price</th><th style="padding:6px; color:#000;">Total</th></tr></thead>
-                        <tbody>${itemsRows}</tbody>
+
+                    <!-- Bill & Customer Details -->
+                    <div style="background: #f3f4f6; border-radius: 8px; padding: 6px 8px; margin-bottom: 8px; font-size: 10.5px; line-height: 1.35; color: #111827 !important;">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #d1d5db; padding-bottom: 3px; margin-bottom: 3px;">
+                            <span><strong>Bill No:</strong> <span style="color:${themeColor}; font-weight: 800;">${c.billNo || '—'}</span></span>
+                            <span><strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="max-width: 60%; word-break: break-word;"><strong>Customer:</strong> ${c.name || 'Walk-in'}</span>
+                            <span><strong>${c.phone ? 'Mob: ' + c.phone : 'Mode: ' + (c.paymentMode || 'Cash')}</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Particulars Table: 4 Columns, 100% Width, Zero Cutoff -->
+                    <table style="width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 11px; margin: 6px 0; color: #000000 !important;">
+                        <thead>
+                            <tr style="background: ${themeHeaderBg}; color: #ffffff !important;">
+                                <th style="width: 44%; padding: 6px 4px; text-align: left; color: #ffffff !important; border-top-left-radius: 4px;">Item</th>
+                                <th style="width: 22%; padding: 6px 2px; text-align: center; color: #ffffff !important;">Qty</th>
+                                <th style="width: 17%; padding: 6px 2px; text-align: right; color: #ffffff !important;">Rate</th>
+                                <th style="width: 17%; padding: 6px 4px; text-align: right; color: #ffffff !important; border-top-right-radius: 4px;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsRows}
+                        </tbody>
                     </table>
-                    <div style="text-align: right; font-size: 11px; line-height: 1.5; margin-top: 5px; color: #000000 !important;">
-                        <div style="color: #000000 !important;"><strong>Grand Total: ₹${grandVal.toFixed(2)}</strong></div>
-                        <div style="color:#047857 !important;"><strong>Paid: ₹${paidVal.toFixed(2)}</strong></div>
-                        ${pendingVal > 0 ? `<div style="color:#b91c1c !important;"><strong>Balance Due: ₹${pendingVal.toFixed(2)}</strong></div>` : ''}
-                        ${excessVal > 0 ? `<div style="color:#b45309 !important;"><strong>Balance Return: ₹${excessVal.toFixed(2)}</strong></div>` : ''}
+
+                    <!-- Totals & Payment Summary -->
+                    <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 8px; margin-top: 6px; font-size: 11px; line-height: 1.45; color: #111827 !important;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; margin-bottom: 3px;">
+                            <span style="font-size: 11.5px; font-weight: 800; color: #111827 !important;">Grand Total:</span>
+                            <span style="font-size: 13px; font-weight: 900; color: ${themeColor} !important;">₹${grandVal.toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; color: #047857 !important; font-weight: 700;">
+                            <span>Paid:</span>
+                            <span>₹${paidVal.toFixed(2)}</span>
+                        </div>
+                        ${pendingVal > 0 ? `
+                        <div style="display: flex; justify-content: space-between; align-items: center; color: #b91c1c !important; font-weight: 800; margin-top: 2px; padding: 2px 4px; background: #fef2f2; border-radius: 4px;">
+                            <span>⚠️ Balance Due:</span>
+                            <span>₹${pendingVal.toFixed(2)}</span>
+                        </div>` : ''}
+                        ${excessVal > 0 ? `
+                        <div style="display: flex; justify-content: space-between; align-items: center; color: #b45309 !important; font-weight: 800; margin-top: 2px; padding: 2px 4px; background: #fffbeb; border-radius: 4px;">
+                            <span>🔄 Return / Change:</span>
+                            <span>₹${excessVal.toFixed(2)}</span>
+                        </div>` : ''}
+                    </div>
+
+                    <!-- Footer Note -->
+                    <div style="text-align: center; margin-top: 8px; font-size: 9px; color: #6b7280 !important; font-style: italic;">
+                        Thank you for your business! Visit again 🙏
                     </div>
                 </div>`;
             document.getElementById('billPreviewContent').innerHTML = billHTML;
@@ -6470,6 +6551,136 @@
                 html2pdf().set(opt).from(printSection).save();
             } else {
                 printBill();
+            }
+        }
+
+        function generateBillImageBlob() {
+            return new Promise((resolve, reject) => {
+                const target = document.getElementById('fiaInvoiceCaptureCard') || document.getElementById('billPreviewContent');
+                if (!target) {
+                    reject(new Error('Bill preview content element not found.'));
+                    return;
+                }
+
+                if (typeof html2canvas !== 'undefined') {
+                    html2canvas(target, {
+                        scale: 2.5,
+                        useCORS: true,
+                        backgroundColor: '#ffffff',
+                        logging: false
+                    }).then(canvas => {
+                        canvas.toBlob(blob => {
+                            if (blob) resolve(blob);
+                            else reject(new Error('Canvas blob conversion failed'));
+                        }, 'image/png');
+                    }).catch(reject);
+                    return;
+                }
+
+                if (typeof html2pdf !== 'undefined') {
+                    const opt = {
+                        margin: 0,
+                        image: { type: 'png', quality: 1.0 },
+                        html2canvas: { scale: 2.5, useCORS: true, backgroundColor: '#ffffff', scrollY: 0 },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+                    html2pdf().set(opt).from(target).outputImg('dataurlstring').then(dataUrl => {
+                        try {
+                            const arr = dataUrl.split(',');
+                            const mime = arr[0].match(/:(.*?);/)[1];
+                            const bstr = atob(arr[1]);
+                            let n = bstr.length;
+                            const u8arr = new Uint8Array(n);
+                            while(n--) { u8arr[n] = bstr.charCodeAt(n); }
+                            resolve(new Blob([u8arr], { type: mime }));
+                        } catch (err) {
+                            reject(err);
+                        }
+                    }).catch(reject);
+                    return;
+                }
+
+                reject(new Error('No image generation library available.'));
+            });
+        }
+
+        async function shareBillImageWhatsApp() {
+            if (!activePreviewCustomer) return;
+            const c = activePreviewCustomer;
+            const billNo = c.billNo || 'BILL';
+            const btn = document.getElementById('btnShareWhatsApp');
+            const btnText = document.getElementById('btnShareWhatsAppText');
+            const originalText = btnText ? btnText.textContent : 'Share Bill on WhatsApp (Photo)';
+            
+            if (btnText) btnText.textContent = '⏳ Preparing Image...';
+            if (btn) btn.disabled = true;
+
+            const paidVal = c.paidAmount !== undefined ? Number(c.paidAmount) : Number(c.grandTotal || 0);
+            const pendingVal = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, Number(c.grandTotal || 0) - paidVal);
+            const dueLine = pendingVal > 0 ? `\n*Balance Due:* ₹${pendingVal.toFixed(2)}` : '';
+            const captionText = `*FIA CLEAN AND CARE*\n*Bill No:* ${billNo} | *Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${c.name || 'Customer'}\n*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${paidVal.toFixed(2)}${dueLine}\n_Thank you for your business!_`;
+
+            try {
+                const blob = await generateBillImageBlob();
+                const fileName = `FIA_Bill_${billNo}.png`;
+                const file = new File([blob], fileName, { type: 'image/png' });
+
+                // Check native file sharing support (Android Chrome, iOS Safari)
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    if (btnText) btnText.textContent = '📲 Opening WhatsApp...';
+                    await navigator.share({
+                        files: [file],
+                        title: `Invoice #${billNo} - FIA CLEAN AND CARE`,
+                        text: captionText
+                    });
+                } else {
+                    // Desktop / fallback:
+                    // 1. Download image
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    // 2. Open WhatsApp Web with caption
+                    const cleanPhone = (c.phone || '').replace(/\D/g, '');
+                    const waUrl = cleanPhone
+                        ? `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(captionText)}`
+                        : `https://api.whatsapp.com/send?text=${encodeURIComponent(captionText)}`;
+                    window.open(waUrl, '_blank');
+                    alert('ബില്ലിന്റെ ഫോട്ടോ നിങ്ങളുടെ ഗാലറിയിൽ / ഡൗൺലോഡ്സിൽ സേവ് ചെയ്തിട്ടുണ്ട്. വാട്സാപ്പിൽ ആ ഫോട്ടോ അറ്റാച്ച് ചെയ്ത് അയക്കാവുന്നതാണ്.');
+                }
+            } catch (err) {
+                console.warn('WhatsApp image share encountered issue:', err);
+                if (err && err.name !== 'AbortError') {
+                    sendBillViaWhatsApp();
+                }
+            } finally {
+                if (btnText) btnText.textContent = originalText;
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function downloadBillImage() {
+            if (!activePreviewCustomer) return;
+            const c = activePreviewCustomer;
+            const billNo = c.billNo || 'BILL';
+            try {
+                const blob = await generateBillImageBlob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `FIA_Bill_${billNo}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Download bill image error:', err);
+                alert('Could not download image: ' + err.message);
             }
         }
 
@@ -6883,6 +7094,8 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             if (!sale) { alert('Cosmetics bill not found.'); return; }
             const norm = normalizeCosSale(sale);
             const isWholesale = (norm.saleType || '').toUpperCase() === 'WHOLESALE';
+            const themeColor = '#db2777';
+            const themeHeaderBg = '#831843';
             activePreviewCustomer = {
                 name: sale.customer || '',
                 billNo: sale.billNo || 'COS-0001',
@@ -6902,37 +7115,99 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                 paymentMode: norm.paymentMode
             };
 
-            const itemsRows = sortBillItemsAlphabetically(norm.items).map((item) => {
+            let itemsRows = sortBillItemsAlphabetically(norm.items || []).map((item, idx) => {
                 const cleanName = getCleanInvoiceProductName(item.productName);
-                const qtyStr = `${item.qty} ${item.unitType && item.unitType !== 'Standard' ? item.unitType : ''}`.trim();
+                const rawQty = item.qty || '';
+                const unitStr = (item.unitType && item.unitType !== 'Standard') ? item.unitType : '';
                 const units = Number(item.numberOfUnits || 1);
+                let qtyDisplay = `${rawQty} ${unitStr}`.trim();
+                if (units > 1) qtyDisplay += ` (${units})`;
                 const rate = Number(item.rate || 0).toFixed(2);
                 const total = Number(item.total || 0).toFixed(2);
-                return `<tr><td style="padding:6px;border-bottom:1px solid #ddd">${cleanName}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${qtyStr}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:center">${units}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${rate}</td><td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">₹${total}</td></tr>`;
+                const bg = idx % 2 === 1 ? 'background:#fdf2f8;' : 'background:#ffffff;';
+                return `<tr style="${bg}">
+                    <td style="padding:6px 4px; border-bottom:1px solid #fbcfe8; font-weight:600; color:#111827 !important; word-break:break-word;">${cleanName}</td>
+                    <td style="padding:6px 2px; border-bottom:1px solid #fbcfe8; text-align:center; color:#374151 !important; white-space:nowrap;">${qtyDisplay}</td>
+                    <td style="padding:6px 2px; border-bottom:1px solid #fbcfe8; text-align:right; color:#374151 !important; white-space:nowrap;">₹${rate}</td>
+                    <td style="padding:6px 4px; border-bottom:1px solid #fbcfe8; text-align:right; font-weight:700; color:#111827 !important; white-space:nowrap;">₹${total}</td>
+                </tr>`;
             }).join('');
 
+            const grandVal = Number(norm.grandTotal || 0);
+            const paidVal = Number(norm.paidAmount || 0);
+            const pendingVal = Number(norm.pendingAmount || 0);
+            const excessVal = Math.max(0, paidVal - grandVal);
+
             const billHTML = `
-                <div style="font-family: Arial; color: #000000 !important; background-color: #ffffff !important; padding: 10px;">
-                    <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 10px;">
-                        <h2 style="margin:0; color: #db2777; font-size: 16px; font-weight: bold;">FIA CLEAN AND CARE</h2>
-                        <div style="margin:2px 0; font-size: 11px; font-weight: bold; color: #000000 !important;">EDATHANATTUKARA</div>
-                        <div style="margin:2px 0; font-size: 11px; font-weight: bold; color: #000000 !important;">MOB: 8086452106</div>
-                        <div style="margin:4px 0;"><span style="display:inline-block; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px; ${isWholesale ? 'background:#fef3c7; color:#92400e; border:1px solid #f59e0b;' : 'background:#ecfdf5; color:#065f46; border:1px solid #10b981;'}">${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}</span></div>
+                <div id="fiaInvoiceCaptureCard" style="font-family: Arial, Helvetica, sans-serif; color: #000000 !important; background-color: #ffffff !important; padding: 14px 12px; width: 100%; max-width: 380px; margin: 0 auto; box-sizing: border-box; border-radius: 12px; border: 2px solid ${themeColor};">
+                    <!-- Brand Header with Logo -->
+                    <div style="text-align: center; border-bottom: 2px solid ${themeColor}; padding-bottom: 8px; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <img src="./icon-192.png" alt="FIA" style="width: 38px; height: 38px; border-radius: 50%; object-fit: contain; border: 1.5px solid ${themeColor}; background: #000000; display: inline-block;">
+                            <div style="text-align: left;">
+                                <h2 style="margin: 0; color: ${themeColor}; font-size: 16px; font-weight: 900; letter-spacing: 0.5px; line-height: 1.15;">FIA CLEAN AND CARE</h2>
+                                <div style="margin: 0; font-size: 9.5px; font-weight: 700; color: #374151 !important;">EDATHANATTUKARA • MOB: 8086452106</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 5px;">
+                            <span style="display:inline-block; padding: 2px 10px; border-radius: 12px; font-weight: 800; font-size: 9.5px; ${isWholesale ? 'background:#fef3c7; color:#92400e; border:1px solid #f59e0b;' : 'background:#fdf2f8; color:#be185d; border:1px solid #f472b6;'}">
+                                ${isWholesale ? '🏷️ WHOLESALE INVOICE' : '💄 COSMETICS INVOICE'}
+                            </span>
+                        </div>
                     </div>
-                    <p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Bill No:</strong> ${sale.billNo || 'COS-0001'} &nbsp; | &nbsp; <strong>Date:</strong> ${formatDateDDMMYYYY(sale.date)}</p>
-                    <p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Customer:</strong> ${sale.customer || ''}</p>
-                    <p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Mobile:</strong> ${sale.phone || '—'}</p>
-                    <p style="font-size: 11px; margin:2px 0; color: #000000 !important;"><strong>Bill Type:</strong> ${norm.saleType} | <strong>Payment:</strong> ${norm.paymentMode}</p>
-                    <div style="border-top:1px solid #000; padding-top:6px; margin-top:8px; margin-bottom:6px; font-size:14px; font-weight:700; letter-spacing:0.3px; color:#000 !important;text-align:center;">PARTICULARS</div>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin: 10px 0; color: #000000 !important;">
-                        <thead><tr style="background:#f3f4f6"><th style="padding:6px; color:#000;">Product</th><th style="padding:6px; color:#000;">Quantity</th><th style="padding:6px; color:#000;">Unit</th><th style="padding:6px; color:#000;">Price</th><th style="padding:6px; color:#000;">Total</th></tr></thead>
-                        <tbody>${itemsRows}</tbody>
+
+                    <!-- Bill & Customer Details -->
+                    <div style="background: #fdf2f8; border-radius: 8px; padding: 6px 8px; margin-bottom: 8px; font-size: 10.5px; line-height: 1.35; color: #111827 !important;">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #fbcfe8; padding-bottom: 3px; margin-bottom: 3px;">
+                            <span><strong>Bill No:</strong> <span style="color:${themeColor}; font-weight: 800;">${sale.billNo || 'COS-0001'}</span></span>
+                            <span><strong>Date:</strong> ${formatDateDDMMYYYY(sale.date)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="max-width: 60%; word-break: break-word;"><strong>Customer:</strong> ${sale.customer || 'Walk-in'}</span>
+                            <span><strong>${sale.phone ? 'Mob: ' + sale.phone : 'Mode: ' + (norm.paymentMode || 'Cash')}</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Particulars Table: 4 Columns, 100% Width, Zero Cutoff -->
+                    <table style="width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 11px; margin: 6px 0; color: #000000 !important;">
+                        <thead>
+                            <tr style="background: ${themeHeaderBg}; color: #ffffff !important;">
+                                <th style="width: 44%; padding: 6px 4px; text-align: left; color: #ffffff !important; border-top-left-radius: 4px;">Item</th>
+                                <th style="width: 22%; padding: 6px 2px; text-align: center; color: #ffffff !important;">Qty</th>
+                                <th style="width: 17%; padding: 6px 2px; text-align: right; color: #ffffff !important;">Rate</th>
+                                <th style="width: 17%; padding: 6px 4px; text-align: right; color: #ffffff !important; border-top-right-radius: 4px;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsRows}
+                        </tbody>
                     </table>
-                    <div style="text-align: right; font-size: 11px; line-height: 1.5; margin-top: 5px; color: #000000 !important;">
-                        <div><strong>Grand Total: ₹${norm.grandTotal.toFixed(2)}</strong></div>
-                        <div style="color:#047857 !important;"><strong>Paid: ₹${norm.paidAmount.toFixed(2)}</strong></div>
-                        <div style="color:#b91c1c !important;"><strong>Balance Due: ₹${norm.pendingAmount.toFixed(2)}</strong></div>
-                        ${Math.max(0, Number(norm.paidAmount || 0) - Number(norm.grandTotal || 0)) > 0 ? `<div style="color:#b45309 !important;"><strong>Balance Return: ₹${Math.max(0, Number(norm.paidAmount || 0) - Number(norm.grandTotal || 0)).toFixed(2)}</strong></div>` : ''}
+
+                    <!-- Totals & Payment Summary -->
+                    <div style="background: #fff5f7; border: 1px solid #fce7f3; border-radius: 8px; padding: 6px 8px; margin-top: 6px; font-size: 11px; line-height: 1.45; color: #111827 !important;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #fbcfe8; padding-bottom: 3px; margin-bottom: 3px;">
+                            <span style="font-size: 11.5px; font-weight: 800; color: #111827 !important;">Grand Total:</span>
+                            <span style="font-size: 13px; font-weight: 900; color: ${themeColor} !important;">₹${grandVal.toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; color: #047857 !important; font-weight: 700;">
+                            <span>Paid:</span>
+                            <span>₹${paidVal.toFixed(2)}</span>
+                        </div>
+                        ${pendingVal > 0 ? `
+                        <div style="display: flex; justify-content: space-between; align-items: center; color: #b91c1c !important; font-weight: 800; margin-top: 2px; padding: 2px 4px; background: #fef2f2; border-radius: 4px;">
+                            <span>⚠️ Balance Due:</span>
+                            <span>₹${pendingVal.toFixed(2)}</span>
+                        </div>` : ''}
+                        ${excessVal > 0 ? `
+                        <div style="display: flex; justify-content: space-between; align-items: center; color: #b45309 !important; font-weight: 800; margin-top: 2px; padding: 2px 4px; background: #fffbeb; border-radius: 4px;">
+                            <span>🔄 Return / Change:</span>
+                            <span>₹${excessVal.toFixed(2)}</span>
+                        </div>` : ''}
+                    </div>
+
+                    <!-- Footer Note -->
+                    <div style="text-align: center; margin-top: 8px; font-size: 9px; color: #6b7280 !important; font-style: italic;">
+                        Thank you for your business! Visit again 🙏
                     </div>
                 </div>`;
             document.getElementById('billPreviewContent').innerHTML = billHTML;
@@ -8055,7 +8330,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=30')
+                navigator.serviceWorker.register('./sw.js?v=31')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
