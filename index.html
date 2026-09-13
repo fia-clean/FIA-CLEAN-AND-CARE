@@ -1208,33 +1208,17 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
-                    <div>
-                        <label class="text-[10px] text-slate-400 block mb-1">From Date:</label>
-                        <input type="date" id="filterFromDate" onchange="onDayBookDateInputChange()" aria-label="From Date" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:outline-none focus:border-purple-500">
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-slate-400 block mb-1">To Date:</label>
-                        <input type="date" id="filterToDate" onchange="onDayBookDateInputChange()" aria-label="To Date" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:outline-none focus:border-purple-500">
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <button type="button" id="dayBookTabToday" onclick="setFilterPreset('today')" class="flex-1 bg-purple-600 text-white py-2 rounded-xl text-xs font-black shadow-md border border-purple-400 transition cursor-pointer">📅 Today</button>
-                    <button type="button" id="dayBookTabMonth" onclick="setFilterPreset('month')" class="flex-1 bg-slate-900 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer">🗓️ This Month</button>
-                    <button type="button" id="dayBookTabAll" onclick="setFilterPreset('all')" class="flex-1 bg-slate-900 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer">🌐 All Time</button>
-                </div>
-
-                <!-- ================= STREAMLINED COMPACT PICTORIAL ANALYSIS ================= -->
-                <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-purple-500/30 p-3 rounded-xl shadow-inner space-y-2.5">
+                <!-- ================= STREAMLINED COMPACT PICTORIAL ANALYSIS (NO OVERLAP) ================= -->
+                <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-purple-500/30 p-3.5 rounded-xl shadow-inner space-y-3">
                     <div class="flex items-center justify-between">
-                        <span class="text-[10px] uppercase tracking-wider font-bold text-purple-300">📊 Net Profit & Margin Analysis</span>
-                        <span id="profitStatusBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/60">Healthy Margin</span>
+                        <span class="text-[11px] uppercase tracking-wider font-extrabold text-purple-300">📊 Net Profit & Margin Analysis</span>
+                        <span id="profitStatusBadge" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/60">Healthy Margin</span>
                     </div>
                     
-                    <div class="flex items-center gap-3">
-                        <!-- Compact SVG Donut Ring (Reduced to 56px / w-14 h-14) -->
-                        <div class="relative w-14 h-14 shrink-0 flex items-center justify-center">
-                            <svg class="w-14 h-14 transform -rotate-90" viewBox="0 0 80 80">
+                    <div class="flex flex-col sm:flex-row items-center gap-3">
+                        <!-- Compact SVG Donut Ring -->
+                        <div class="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                            <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 80 80">
                                 <circle cx="40" cy="40" r="32" stroke="#1e293b" stroke-width="8" fill="transparent" />
                                 <circle id="profitRingCircle" cx="40" cy="40" r="32" stroke="#10b981" stroke-width="8" stroke-dasharray="201.06" stroke-dashoffset="50" stroke-linecap="round" fill="transparent" class="transition-all duration-700 ease-out" />
                             </svg>
@@ -1244,30 +1228,30 @@
                             </div>
                         </div>
 
-                        <!-- 3 Compact Financial Stats Columns -->
-                        <div class="flex-1 grid grid-cols-3 gap-1.5 text-center bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-                            <div>
-                                <span class="text-[9px] text-slate-400 block truncate">Income (Sales)</span>
-                                <b id="dbIncomeText" class="text-xs font-black text-emerald-400">₹0.00</b>
+                        <!-- 3 Non-Overlapping Financial Stat Cards -->
+                        <div class="w-full flex-1 grid grid-cols-3 gap-2 text-center">
+                            <div class="bg-slate-950/80 p-2 rounded-lg border border-slate-800 flex flex-col justify-center min-w-0">
+                                <span class="text-[9px] text-slate-400 block font-semibold truncate">Income</span>
+                                <b id="dbIncomeText" class="text-xs font-black text-emerald-400 truncate mt-0.5">₹0.00</b>
                             </div>
-                            <div>
-                                <span class="text-[9px] text-slate-400 block truncate">Expense (Purch)</span>
-                                <b id="dbExpenseText" class="text-xs font-black text-rose-400">₹0.00</b>
+                            <div class="bg-slate-950/80 p-2 rounded-lg border border-slate-800 flex flex-col justify-center min-w-0">
+                                <span class="text-[9px] text-slate-400 block font-semibold truncate">Expense</span>
+                                <b id="dbExpenseText" class="text-xs font-black text-rose-400 truncate mt-0.5">₹0.00</b>
                             </div>
-                            <div class="border-l border-slate-800/80 pl-1">
-                                <span class="text-[9px] text-slate-400 block truncate">Net Profit</span>
-                                <b id="dbNetProfitText" class="text-xs font-black text-white">₹0.00</b>
+                            <div class="bg-slate-950/80 p-2 rounded-lg border border-slate-800 flex flex-col justify-center min-w-0">
+                                <span class="text-[9px] text-slate-400 block font-semibold truncate">Net Profit</span>
+                                <b id="dbNetProfitText" class="text-xs font-black text-white truncate mt-0.5">₹0.00</b>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Visual Income vs Expense Ratio Bar (Compact) -->
-                    <div class="space-y-0.5">
-                        <div class="flex justify-between text-[9px] font-bold">
-                            <span id="dbIncomeRatioText" class="text-emerald-400">Income: 0%</span>
-                            <span id="dbExpenseRatioText" class="text-rose-400">Expense: 0%</span>
+                    <!-- Clean Ratio Bar with clear non-colliding labels -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-[10px] font-bold px-0.5">
+                            <span id="dbIncomeRatioText" class="text-emerald-400 truncate mr-2">Income: 50%</span>
+                            <span id="dbExpenseRatioText" class="text-rose-400 truncate ml-2 text-right">Expense: 50%</span>
                         </div>
-                        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex border border-slate-700/60">
+                        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex border border-slate-700/60">
                             <div id="profitProgressBar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 50%;"></div>
                             <div id="expenseProgressBar" class="h-full bg-rose-500 transition-all duration-500" style="width: 50%;"></div>
                         </div>
@@ -1285,9 +1269,29 @@
                             <input type="number" id="dayBookOpeningExpenseInput" min="0" step="any" value="0" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-rose-300 font-bold focus:outline-none focus:border-purple-500">
                         </div>
                     </div>
-                    <button type="button" onclick="saveDayBookOpeningValues()" class="w-full bg-purple-800 hover:bg-purple-700 text-white py-2 rounded-lg text-[11px] font-bold transition">💾 Save Opening Values</button>
+                    <button type="button" onclick="saveDayBookOpeningValues()" class="w-full bg-purple-800 hover:bg-purple-700 text-white py-2 rounded-lg text-[11px] font-bold transition cursor-pointer">💾 Save Opening Values</button>
                 </div>
                 <div id="accountsSummaryContainer" class="text-xs space-y-2"></div>
+
+                <!-- ================= DATE FILTERS & PRESET TABS (Placed directly above the entries!) ================= -->
+                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs space-y-2.5">
+                    <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Filter Period</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">From Date:</label>
+                            <input type="date" id="filterFromDate" onchange="onDayBookDateInputChange()" aria-label="From Date" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">To Date:</label>
+                            <input type="date" id="filterToDate" onchange="onDayBookDateInputChange()" aria-label="To Date" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:outline-none focus:border-purple-500">
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" id="dayBookTabToday" onclick="setFilterPreset('today')" class="flex-1 bg-purple-600 text-white py-2 rounded-xl text-xs font-black shadow-md border border-purple-400 transition cursor-pointer">📅 Today</button>
+                        <button type="button" id="dayBookTabMonth" onclick="setFilterPreset('month')" class="flex-1 bg-slate-900 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer">🗓️ This Month</button>
+                        <button type="button" id="dayBookTabAll" onclick="setFilterPreset('all')" class="flex-1 bg-slate-900 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer">🌐 All Time</button>
+                    </div>
+                </div>
             </div>
 
             <div class="flex justify-between items-center px-1">
@@ -1774,6 +1778,155 @@
             }));
         }
 
+        function isItemDeleted(item) {
+            if (!item) return true;
+            if (item.id && isIdDeleted(item.id)) return true;
+            if (item.billNo && isIdDeleted(item.billNo)) return true;
+            return false;
+        }
+
+        function isCustItemDeleted(c) {
+            if (!c) return true;
+            if (c.billNo && isIdDeleted(c.billNo)) return true;
+            if (c.id && isIdDeleted(c.id)) return true;
+            return false;
+        }
+
+        function mergeCollection(localList, cloudList, idField = 'id') {
+            const map = new Map();
+            const rawCloud = Array.isArray(cloudList) ? cloudList : Object.values(cloudList || {});
+            rawCloud.forEach(item => {
+                if (!item || isRecordDeleted(null, item)) return;
+                const key = String(item[idField] || item.billNo || item.id || '').trim();
+                if (key) map.set(key, item);
+            });
+            const rawLocal = Array.isArray(localList) ? localList : Object.values(localList || {});
+            rawLocal.forEach(item => {
+                if (!item || isRecordDeleted(null, item)) return;
+                const key = String(item[idField] || item.billNo || item.id || '').trim();
+                if (!key) return;
+                if (!map.has(key)) {
+                    map.set(key, item);
+                } else {
+                    const existing = map.get(key);
+                    const localTime = Number(item.savedAt || item.updatedAt || item.createdAt || 0);
+                    const cloudTime = Number(existing.savedAt || existing.updatedAt || existing.createdAt || 0);
+                    if (localTime >= cloudTime) {
+                        map.set(key, { ...existing, ...item });
+                    }
+                }
+            });
+            return Array.from(map.values());
+        }
+
+        function mergeCustomerBills(localList, cloudList) {
+            const map = new Map();
+            const getKey = c => {
+                if (!c) return '';
+                if (c.billNo) return 'bill_' + String(c.billNo).trim().toUpperCase();
+                if (c.id) return 'id_' + String(c.id).trim().toLowerCase();
+                return 'named_' + String(c.name || '').trim().toLowerCase();
+            };
+
+            const rawCloud = Array.isArray(cloudList) ? cloudList : Object.values(cloudList || {});
+            rawCloud.forEach(c => {
+                if (!c || isCustItemDeleted(c)) return;
+                const k = getKey(c);
+                if (k) map.set(k, c);
+            });
+
+            const rawLocal = Array.isArray(localList) ? localList : Object.values(localList || {});
+            rawLocal.forEach(c => {
+                if (!c || isCustItemDeleted(c)) return;
+                const k = getKey(c);
+                if (!k) return;
+                if (!map.has(k)) {
+                    map.set(k, c);
+                } else {
+                    const existing = map.get(k);
+                    const localTime = Number(c.savedAt || c.createdAt || 0);
+                    const cloudTime = Number(existing.savedAt || existing.createdAt || 0);
+                    if (localTime >= cloudTime) {
+                        map.set(k, { ...existing, ...c });
+                    }
+                }
+            });
+            return Array.from(map.values());
+        }
+
+        function applyCloudData(data, isRealtimeEvent = false) {
+            if (!data) return;
+            if (isRealtimeEvent && data._meta && data._meta.clientId === myFiaClientId) {
+                return;
+            }
+
+            // 1. Sync remote tombstone deleted IDs into local tombstones
+            const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
+            remoteDeleted.forEach(k => {
+                const cleanKey = sanitizeTombstoneKey(k);
+                if (cleanKey) deletedRecordIds.add(cleanKey);
+            });
+            try {
+                localStorage.setItem('fia_deleted_ids', JSON.stringify(Array.from(deletedRecordIds)));
+            } catch(e) {}
+
+            // 2. Safe bidirectional union: local unsaved records are NEVER erased!
+            products = mergeCollection(products, data.products, 'id');
+            cosProducts = mergeCollection(cosProducts, data.cosProducts, 'id');
+            customers = mergeCustomerBills(customers, data.customers);
+            purchases = mergeCollection(purchases, data.purchases, 'id');
+            expenses = mergeCollection(expenses, data.expenses, 'id');
+            cosPurchases = mergeCollection(cosPurchases, data.cosPurchases, 'id');
+            cosSales = mergeCollection(cosSales, data.cosSales, 'id');
+            packages = mergeCollection(packages, data.packages, 'id');
+            stockReturns = mergeCollection(stockReturns, data.stockReturns, 'id');
+            normalizeLoadedProducts();
+
+            if (data.clearedDayBookEntries) {
+                const cloudCleared = Array.isArray(data.clearedDayBookEntries) ? data.clearedDayBookEntries : Object.values(data.clearedDayBookEntries);
+                clearedDayBookEntries = Array.from(new Set([...(clearedDayBookEntries || []), ...cloudCleared]));
+            }
+            if (data.dayBookOpeningBalance !== undefined) dayBookOpeningBalance = Number(data.dayBookOpeningBalance || 0);
+            if (data.dayBookOpeningExpense !== undefined) dayBookOpeningExpense = Number(data.dayBookOpeningExpense || 0);
+            if (data.appPin) appPin = data.appPin;
+
+            localStorage.removeItem('fia_has_pending_sync');
+            saveLocalStateSafely();
+            isFirebaseConnected = true;
+            updateSyncStatus(true, 'Cloud Data Synchronized');
+            renderAll();
+            updateStockReturnDropdowns();
+            renderStockReturnHistory();
+        }
+
+        function pullFromFirebase() {
+            if (!window.FB_DB) {
+                updateSyncStatus(false, 'Working under offline mode');
+                return Promise.resolve(false);
+            }
+            return window.FB_DB.ref('fia_data').once('value').then(function(snapshot) {
+                const data = snapshot.val();
+                if (data) {
+                    applyCloudData(data, false);
+                    return true;
+                } else {
+                    loadFromLocalStorage();
+                    loadPurchaseSuppliers();
+                    if (products.length || customers.length || cosProducts.length || purchases.length) {
+                        syncToFirebase();
+                    }
+                    return false;
+                }
+            }).catch(function(error) {
+                console.error("Firebase pull error:", error);
+                isFirebaseConnected = false;
+                updateSyncStatus(false, 'Working under offline mode');
+                loadFromLocalStorage();
+                renderAll();
+                return false;
+            });
+        }
+
         function startRealtimeSync() {
             if (!window.FB_DB) {
                 updateSyncStatus(false, 'Working under offline mode');
@@ -1786,23 +1939,20 @@
                 const isOnline = snap.val() === true;
                 if (isOnline) {
                     isFirebaseConnected = true;
-                    if (localStorage.getItem('fia_has_pending_sync') === 'true') {
-                        syncToFirebase();
-                    } else {
-                        updateSyncStatus(true, 'Cloud Database Connected');
-                    }
+                    updateSyncStatus(true, 'Cloud Database Connected');
+                    pullFromFirebase();
                 } else {
                     isFirebaseConnected = false;
                     updateSyncStatus(false, 'Working under offline mode');
                 }
             });
 
-            // Browser online/offline event listeners
+            // When returning online, PULL first so we never overwrite cloud with stale cache!
             window.addEventListener('online', function() {
                 if (window.FB_DB) {
                     try { window.FB_DB.goOnline(); } catch(e) {}
                 }
-                syncToFirebase();
+                pullFromFirebase();
             });
             window.addEventListener('offline', function() {
                 isFirebaseConnected = false;
@@ -1812,70 +1962,7 @@
             window.FB_DB.ref('fia_data').on('value', function(snapshot) {
                 const data = snapshot.val();
                 if (data) {
-                    // Skip self-echo: this client just wrote this exact data
-                    if (data._meta && data._meta.clientId === myFiaClientId) {
-                        return;
-                    }
-
-                    // 1. Sync remote tombstone deleted IDs into local tombstones (sanitizing legacy names)
-                    const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
-                    remoteDeleted.forEach(k => {
-                        const cleanKey = sanitizeTombstoneKey(k);
-                        if (cleanKey) deletedRecordIds.add(cleanKey);
-                    });
-                    try {
-                        localStorage.setItem('fia_deleted_ids', JSON.stringify(Array.from(deletedRecordIds)));
-                    } catch(e) {}
-
-                    // Helper to check if an item was deleted
-                    const isItemDeleted = (item) => {
-                        if (!item) return true;
-                        if (item.id && isIdDeleted(item.id)) return true;
-                        if (item.billNo && isIdDeleted(item.billNo)) return true;
-                        return false;
-                    };
-                    const isCustItemDeleted = (c) => {
-                        if (!c) return true;
-                        if (c.billNo && isIdDeleted(c.billNo)) return true;
-                        if (c.id && isIdDeleted(c.id)) return true;
-                        return false;
-                    };
-
-                    // 2. Parse cloud collections, strictly filtering out deleted items
-                    const cloudProducts = (Array.isArray(data.products) ? data.products : Object.entries(data.products || {}).map(([k, v]) => ({ ...(v || {}), id: String((v && v.id) || k) }))).filter(p => !isItemDeleted(p));
-                    const cloudCosProducts = (Array.isArray(data.cosProducts) ? data.cosProducts : Object.entries(data.cosProducts || {}).map(([k, v]) => ({ ...(v || {}), id: String((v && v.id) || k) }))).filter(p => !isItemDeleted(p));
-                    const cloudCustomers = (Array.isArray(data.customers) ? data.customers : Object.values(data.customers || {})).filter(c => !isCustItemDeleted(c));
-                    const cloudPurchases = (Array.isArray(data.purchases) ? data.purchases : Object.values(data.purchases || {})).filter(p => !isItemDeleted(p));
-                    const cloudExpenses = (Array.isArray(data.expenses) ? data.expenses : Object.values(data.expenses || {})).filter(e => !isItemDeleted(e));
-                    const cloudCosPurchases = (Array.isArray(data.cosPurchases) ? data.cosPurchases : Object.values(data.cosPurchases || {})).filter(p => !isItemDeleted(p));
-                    const cloudCosSales = (Array.isArray(data.cosSales) ? data.cosSales : Object.values(data.cosSales || {})).filter(s => !isItemDeleted(s));
-                    const cloudPackages = (Array.isArray(data.packages) ? data.packages : Object.entries(data.packages || {}).map(([k, v]) => ({ ...(v || {}), id: String((v && v.id) || k) }))).filter(p => !isItemDeleted(p));
-                    const cloudStockReturns = (Array.isArray(data.stockReturns) ? data.stockReturns : Object.values(data.stockReturns || {})).filter(r => !isItemDeleted(r));
-
-                    // 3. Realtime Synchronisation: Cloud is authoritative truth
-                    products = cloudProducts;
-                    cosProducts = cloudCosProducts;
-                    customers = cloudCustomers;
-                    purchases = cloudPurchases;
-                    expenses = cloudExpenses;
-                    cosPurchases = cloudCosPurchases;
-                    cosSales = cloudCosSales;
-                    packages = cloudPackages;
-                    stockReturns = cloudStockReturns;
-                    normalizeLoadedProducts();
-
-                    clearedDayBookEntries = Array.isArray(data.clearedDayBookEntries) ? data.clearedDayBookEntries : Object.values(data.clearedDayBookEntries || []);
-                    dayBookOpeningBalance = Number(data.dayBookOpeningBalance || dayBookOpeningBalance || 0);
-                    dayBookOpeningExpense = Number(data.dayBookOpeningExpense || dayBookOpeningExpense || 0);
-                    appPin = data.appPin || appPin || "1234";
-
-                    localStorage.removeItem('fia_has_pending_sync');
-                    saveLocalStateSafely();
-                    isFirebaseConnected = true;
-                    updateSyncStatus(true, 'Cloud Data Synchronized');
-                    renderAll();
-                    updateStockReturnDropdowns();
-                    renderStockReturnHistory();
+                    applyCloudData(data, true);
                 } else {
                     loadFromLocalStorage();
                     loadPurchaseSuppliers();
@@ -2130,55 +2217,79 @@
                 return Promise.resolve(false);
             }
 
-            const isItemDeleted = (item) => {
-                if (!item) return true;
-                if (item.id && isIdDeleted(item.id)) return true;
-                if (item.billNo && isIdDeleted(item.billNo)) return true;
-                return false;
-            };
-            const isCustItemDeleted = (c) => {
-                if (!c) return true;
-                if (c.billNo && isIdDeleted(c.billNo)) return true;
-                if (c.id && isIdDeleted(c.id)) return true;
-                return false;
-            };
+            // Safe Read-Merge-Write: Never let one device overwrite another's new transactions!
+            return window.FB_DB.ref('fia_data').once('value').then(function(snap) {
+                const cloud = snap.val();
+                let mergedProducts = products || [];
+                let mergedCosProducts = cosProducts || [];
+                let mergedCustomers = customers || [];
+                let mergedPurchases = purchases || [];
+                let mergedExpenses = expenses || [];
+                let mergedCosPurchases = cosPurchases || [];
+                let mergedCosSales = cosSales || [];
+                let mergedPackages = packages || [];
+                let mergedStockReturns = stockReturns || [];
 
-            const payload = {
-                products: (products || []).filter(p => !isItemDeleted(p)),
-                cosProducts: (cosProducts || []).filter(p => !isItemDeleted(p)),
-                customers: (customers || []).filter(c => !isCustItemDeleted(c)),
-                purchases: (purchases || []).filter(p => !isItemDeleted(p)),
-                expenses: (expenses || []).filter(e => !isItemDeleted(e)),
-                cosPurchases: (cosPurchases || []).filter(p => !isItemDeleted(p)),
-                cosSales: (cosSales || []).filter(s => !isItemDeleted(s)),
-                packages: (packages || []).filter(p => !isItemDeleted(p)),
-                stockReturns: stockReturns || [],
-                clearedDayBookEntries: clearedDayBookEntries || [],
-                dayBookOpeningBalance: Number(dayBookOpeningBalance || 0),
-                dayBookOpeningExpense: Number(dayBookOpeningExpense || 0),
-                appPin: appPin || "1234",
-                _deletedIds: Array.from(deletedRecordIds).map(sanitizeTombstoneKey).filter(Boolean).slice(-1500),
-                _deletedKeys: Array.from(deletedRecordIds).map(sanitizeTombstoneKey).filter(Boolean).slice(-1500),
-                _meta: {
-                    clientId: myFiaClientId,
-                    updatedAt: Date.now()
+                if (cloud) {
+                    mergedProducts = mergeCollection(products, cloud.products, 'id');
+                    mergedCosProducts = mergeCollection(cosProducts, cloud.cosProducts, 'id');
+                    mergedCustomers = mergeCustomerBills(customers, cloud.customers);
+                    mergedPurchases = mergeCollection(purchases, cloud.purchases, 'id');
+                    mergedExpenses = mergeCollection(expenses, cloud.expenses, 'id');
+                    mergedCosPurchases = mergeCollection(cosPurchases, cloud.cosPurchases, 'id');
+                    mergedCosSales = mergeCollection(cosSales, cloud.cosSales, 'id');
+                    mergedPackages = mergeCollection(packages, cloud.packages, 'id');
+                    mergedStockReturns = mergeCollection(stockReturns, cloud.stockReturns, 'id');
+
+                    // Synchronize local memory with the merged union
+                    products = mergedProducts;
+                    cosProducts = mergedCosProducts;
+                    customers = mergedCustomers;
+                    purchases = mergedPurchases;
+                    expenses = mergedExpenses;
+                    cosPurchases = mergedCosPurchases;
+                    cosSales = mergedCosSales;
+                    packages = mergedPackages;
+                    stockReturns = mergedStockReturns;
+                    saveLocalStateSafely();
                 }
-            };
 
-            const cleanPayload = sanitizeForFirebase(payload);
+                const payload = {
+                    products: mergedProducts.filter(p => !isItemDeleted(p)),
+                    cosProducts: mergedCosProducts.filter(p => !isItemDeleted(p)),
+                    customers: mergedCustomers.filter(c => !isCustItemDeleted(c)),
+                    purchases: mergedPurchases.filter(p => !isItemDeleted(p)),
+                    expenses: mergedExpenses.filter(e => !isItemDeleted(e)),
+                    cosPurchases: mergedCosPurchases.filter(p => !isItemDeleted(p)),
+                    cosSales: mergedCosSales.filter(s => !isItemDeleted(s)),
+                    packages: mergedPackages.filter(p => !isItemDeleted(p)),
+                    stockReturns: mergedStockReturns || [],
+                    clearedDayBookEntries: clearedDayBookEntries || [],
+                    dayBookOpeningBalance: Number(dayBookOpeningBalance || 0),
+                    dayBookOpeningExpense: Number(dayBookOpeningExpense || 0),
+                    appPin: appPin || "1234",
+                    _deletedIds: Array.from(deletedRecordIds).map(sanitizeTombstoneKey).filter(Boolean).slice(-1500),
+                    _deletedKeys: Array.from(deletedRecordIds).map(sanitizeTombstoneKey).filter(Boolean).slice(-1500),
+                    _meta: {
+                        clientId: myFiaClientId,
+                        updatedAt: Date.now()
+                    }
+                };
 
-            return window.FB_DB.ref('fia_data').set(cleanPayload)
-                .then(() => {
-                    localStorage.removeItem('fia_has_pending_sync');
-                    isFirebaseConnected = true;
-                    updateSyncStatus(true, 'Cloud Data Synchronized');
-                    return true;
-                })
-                .catch((err) => {
-                    console.error('Firebase write error:', err);
-                    updateSyncStatus(false, 'Working under offline mode');
-                    return false;
-                });
+                const cleanPayload = sanitizeForFirebase(payload);
+
+                return window.FB_DB.ref('fia_data').set(cleanPayload)
+                    .then(() => {
+                        localStorage.removeItem('fia_has_pending_sync');
+                        isFirebaseConnected = true;
+                        updateSyncStatus(true, 'Cloud Data Synchronized');
+                        return true;
+                    });
+            }).catch((err) => {
+                console.error('Firebase write error:', err);
+                updateSyncStatus(false, 'Working under offline mode');
+                return false;
+            });
         }
 
         function manualCloudSync() {
@@ -2459,6 +2570,7 @@
             setTimeout(() => { switchStockTopTab('product'); switchStockSubTab('cleaning'); switchPurchaseSubTab('cleaning'); updateCleaningPurchaseDropdown(); updateCosProductDropdowns(); updateStockReturnDropdowns(); renderStockReturnHistory(); updateBillTypeBadge(document.querySelector('input[name="saleType"]:checked')?.value || 'Retail'); }, 0);
             renderAll();
             startRealtimeSync();
+            pullFromFirebase();
             startAutomaticBackup();
         };
 
@@ -3419,7 +3531,9 @@
             const unit=document.getElementById('packageUnit').value;
             const stock=parseFloat(document.getElementById('packageStock').value)||0;
             if(!name) return; 
-            const data={id:id||'pkg_'+Date.now(), name, size, unit, stock}; 
+            const pkgId = id || ('pkg_' + Date.now());
+            unmarkIdDeleted(pkgId);
+            const data={id:pkgId, name, size, unit, stock}; 
             if(id){
                 const i=packages.findIndex(x=>String(x.id)===String(id));
                 if(i>=0) packages[i]={...packages[i],...data};
@@ -3666,8 +3780,10 @@
             const packageId=mapped.packageId, packageQty=mapped.packageQty, packageName=mapped.packageName;
             if(rawPackageId && !packageId){ alert('Selected package was not found. Please refresh the package list and select the package again.'); return; }
             const variants = getProductFormVariants('cleaning');
-            if(id === "") { products.push({ id: Date.now().toString(), name, barcode, stock, unit, wholesalePrice, retailPrice, packageId, packageQty, packageName, variants }); }
-            else { const idx = products.findIndex(p => String(p.id) === String(id)); if(idx !== -1) products[idx] = { ...products[idx], id, name, barcode, stock, unit, wholesalePrice, retailPrice, packageId, packageQty, packageName, variants }; }
+            const finalProdId = id === "" ? Date.now().toString() : id;
+            unmarkIdDeleted(finalProdId);
+            if(id === "") { products.push({ id: finalProdId, name, barcode, stock, unit, wholesalePrice, retailPrice, packageId, packageQty, packageName, variants }); }
+            else { const idx = products.findIndex(p => String(p.id) === String(id)); if(idx !== -1) products[idx] = { ...products[idx], id: finalProdId, name, barcode, stock, unit, wholesalePrice, retailPrice, packageId, packageQty, packageName, variants }; }
             syncToFirebase();
             resetProductForm();
             renderProducts();
@@ -4483,9 +4599,11 @@
             if (!name || !unit) return;
             if(rawPackageId && !packageId){ alert('Selected package was not found. Please refresh the package list and select the package again.'); return; }
             const variants = getProductFormVariants('cosmetics');
+            const finalCosId = id === '' ? ('cp_' + Date.now().toString()) : id;
+            unmarkIdDeleted(finalCosId);
             if (id === '') {
                 cosProducts.push({
-                    id: 'cp_' + Date.now().toString(),
+                    id: finalCosId,
                     name, barcode, stock, unit, costPrice, salePrice,
                     wholesalePrice: costPrice, retailPrice: salePrice,
                     packageId, packageQty, packageName, variants
@@ -4494,7 +4612,7 @@
                 const idx = cosProducts.findIndex(p => p.id === id);
                 if (idx !== -1) {
                     cosProducts[idx] = {
-                        ...cosProducts[idx], name, barcode, stock, unit, costPrice, salePrice,
+                        ...cosProducts[idx], id: finalCosId, name, barcode, stock, unit, costPrice, salePrice,
                         wholesalePrice: costPrice, retailPrice: salePrice,
                         packageId, packageQty, packageName, variants
                     };
@@ -6410,6 +6528,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             e.preventDefault();
             const idx=parseInt(document.getElementById('purchIndex').value), entryType=document.getElementById('purchaseEntryType').value, stockId=entryType==='stock'?document.getElementById('purchaseStockSelect').value:'', selectedProduct=stockId?products.find(p=>p.id===stockId):null, rawMaterial=selectedProduct?selectedProduct.name:document.getElementById('rawMaterial').value.trim(), rawQty=parseFloat(document.getElementById('rawQty').value)||0, rawUnit=document.getElementById('rawUnit').value, rawBarcode=document.getElementById('rawBarcode').value.trim()||(selectedProduct?.barcode||''), rawCost=parseFloat(document.getElementById('rawCost').value)||0, paid=parseFloat(document.getElementById('purchasePaid').value)||0, balance=Math.max(0,rawCost-paid), supplierName=document.getElementById('supplierName').value.trim(), supplierMobile=document.getElementById('supplierMobile').value.trim(), date=document.getElementById('purchaseDate').value||getTodayPurchaseDate();
             const purchaseId = (idx >= 0 && purchases[idx]?.id) || ('purch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
+            unmarkIdDeleted(purchaseId);
             const data={id:purchaseId,supplierName,supplierMobile,rawMaterial,rawBarcode,stockId,rawQty,rawUnit,rawUnitPrice:parseFloat(document.getElementById('rawUnitPrice').value)||0,rawCost,paid,balance,date,savedAt:(idx>=0&&purchases[idx]&&purchases[idx].savedAt)?purchases[idx].savedAt:Date.now()};
             if(idx>=0&&purchases[idx]){
                 const old=purchases[idx];
@@ -6481,6 +6600,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             e.preventDefault();
             const idx = parseInt(document.getElementById('expIndex').value);
             const expId = (idx >= 0 && expenses[idx]?.id) || ('exp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
+            unmarkIdDeleted(expId);
             const data = { id: expId, title: document.getElementById('expTitle').value.trim(), amount: parseFloat(document.getElementById('expAmount').value) || 0, date: parseDateDDMMYYYY(document.getElementById('expDate').value) };
             if (idx >= 0 && expenses[idx]) expenses[idx] = { ...expenses[idx], ...data };
             else expenses.push({...data, savedAt: Date.now()});
@@ -6535,6 +6655,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             e.preventDefault();
             const barcode=document.getElementById('cosPBarcode')?.value.trim()||'',entryType=document.getElementById('cosPurchaseEntryType').value,stockId=entryType==='stock'?document.getElementById('cosPurchaseStockSelect').value:'',selectedProduct=stockId?cosProducts.find(p=>p.id===stockId):null,item=selectedProduct?selectedProduct.name:document.getElementById('cosPItem').value.trim(),supplier=document.getElementById('cosPSupplier').value.trim(),supplierMobile=document.getElementById('cosPSupplierMobile').value.trim(),finalBarcode=barcode||(selectedProduct?.barcode||''),qty=parseFloat(document.getElementById('cosPQty').value)||0,unit=document.getElementById('cosPUnit').value,amount=parseFloat(document.getElementById('cosPAmount').value)||0,paid=parseFloat(document.getElementById('cosPPaid').value)||0,balance=Math.max(0,amount-paid),idx=parseInt(document.getElementById('cosPIndex').value),date=document.getElementById('cosPurchaseDate').value||getTodayPurchaseDate();
             const cosPId = (idx >= 0 && cosPurchases[idx]?.id) || ('cospurch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
+            unmarkIdDeleted(cosPId);
             if(idx>=0&&cosPurchases[idx]){
                 const old=cosPurchases[idx];
                 if(old.stockId){const op=cosProducts.find(p=>p.id===old.stockId);if(op)op.stock=Math.max(0,(parseFloat(op.stock)||0)-(parseFloat(old.qty)||0)+(Number(old.returnedQty)||0));}
@@ -7301,8 +7422,8 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                 }
             }
 
-            if (incomeRatioText) incomeRatioText.textContent = `Income: ₹${currentIncome.toFixed(2)} (${incPct}%)`;
-            if (expenseRatioText) expenseRatioText.textContent = `Expense: ₹${currentExpense.toFixed(2)} (${expPct}%)`;
+            if (incomeRatioText) incomeRatioText.textContent = `Income: ${incPct}% (₹${currentIncome.toFixed(2)})`;
+            if (expenseRatioText) expenseRatioText.textContent = `Expense: ${expPct}% (₹${currentExpense.toFixed(2)})`;
 
             if (progressBar) progressBar.style.width = incPct + '%';
             if (expProgressBar) expProgressBar.style.width = expPct + '%';
@@ -7650,34 +7771,44 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
 
         window.refreshSalesHistoryFromCloud = function() {
             const b = document.getElementById('centralSalesHistoryRefreshBtn');
-            if(b) { b.disabled = true; b.innerHTML = '⟳ Refreshing…'; }
-            renderSalesHistory();
-            setTimeout(()=>{
+            if (b) { b.disabled = true; b.innerHTML = '⟳ Syncing with Cloud…'; }
+            pullFromFirebase().then(() => {
                 renderSalesHistory();
-                if(b) { b.disabled = false; b.innerHTML = '↻ Refresh'; }
-            }, 400);
+                renderCustomers();
+                renderAccounts();
+                if (b) {
+                    b.disabled = false;
+                    b.innerHTML = '✓ Synced';
+                    setTimeout(() => { b.innerHTML = '↻ Refresh'; }, 1500);
+                }
+            }).catch(() => {
+                renderSalesHistory();
+                if (b) { b.disabled = false; b.innerHTML = '↻ Refresh'; }
+            });
         };
 
         function renderAll() {
-            updateDashboard(); 
-            renderProducts(); 
-            updateProductDropdown(); 
-            updateCleaningAddStockDropdown();
-            updateCosProductDropdowns(); 
-            renderCosProductStock(); 
-            renderCustomers(); 
-            updateCustomerDropdown(); 
-            updateCosCustomerDropdown();
-            updateCombinedProductSelect();
-            updateCombinedCustomerSelect();
-            renderPackages(); updatePackageSelectors();
-            renderPurchases(); 
-            renderExpenses(); 
-            renderCosPurchases(); 
-            renderCosSales(); 
-            renderCosmeticsSummary(); 
-            renderAccounts(); 
-            renderSalesHistory();
+            const safeRun = (fn) => { try { fn(); } catch(e) { console.warn(fn.name, e); } };
+            safeRun(updateDashboard); 
+            safeRun(renderProducts); 
+            safeRun(updateProductDropdown); 
+            safeRun(updateCleaningAddStockDropdown); 
+            safeRun(updateCosProductDropdowns); 
+            safeRun(renderCosProductStock); 
+            safeRun(renderCustomers); 
+            safeRun(updateCustomerDropdown); 
+            safeRun(updateCosCustomerDropdown); 
+            safeRun(updateCombinedProductSelect); 
+            safeRun(updateCombinedCustomerSelect); 
+            safeRun(renderPackages); 
+            safeRun(updatePackageSelectors); 
+            safeRun(renderPurchases); 
+            safeRun(renderExpenses); 
+            safeRun(renderCosPurchases); 
+            safeRun(renderCosSales); 
+            safeRun(renderCosmeticsSummary); 
+            safeRun(renderAccounts); 
+            safeRun(renderSalesHistory);
         }
 
         function openCosmeticsSalesEntry() {
@@ -7722,7 +7853,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=26')
+                navigator.serviceWorker.register('./sw.js?v=27')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
