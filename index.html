@@ -1766,6 +1766,7 @@
 
         function isRecordDeleted(type, item) {
             if (!item) return false;
+            if (type === 'customer') return isCustItemDeleted(item);
             if (item.id && isIdDeleted(item.id)) return true;
             if (item.billNo && isIdDeleted(item.billNo)) return true;
             return false;
@@ -1787,6 +1788,13 @@
 
         function isCustItemDeleted(c) {
             if (!c) return true;
+            // Active bills with line items or positive totals should never be discarded by tombstones
+            const safeItems = Array.isArray(c.items) ? c.items : (c.items && typeof c.items === 'object' ? Object.values(c.items) : []);
+            if (safeItems.length > 0 || Number(c.grandTotal || c.paidAmount || 0) > 0) {
+                if (c.billNo) unmarkIdDeleted(c.billNo);
+                if (c.id) unmarkIdDeleted(c.id);
+                return false;
+            }
             if (c.billNo && isIdDeleted(c.billNo)) return true;
             if (c.id && isIdDeleted(c.id)) return true;
             return false;
@@ -2482,9 +2490,13 @@
         }
 
         function openBillingSection(type) {
-            const billingTab = document.getElementById('tabBilling');
-            if (typeof switchTab === 'function') switchTab('billing');
-            if (billingTab) billingTab.classList.add('active');
+            const secBilling = document.getElementById('sectionBilling');
+            if (secBilling && (secBilling.classList.contains('hidden') || secBilling.style.display === 'none')) {
+                if (typeof switchTab === 'function') switchTab('billing');
+            } else {
+                const billingTab = document.getElementById('tabBilling');
+                if (billingTab) billingTab.className = "px-3 py-2 text-center font-bold text-emerald-400 border-b-2 border-emerald-400 whitespace-nowrap transition";
+            }
             const std = document.getElementById('billingStandardContent');
             const hist = document.getElementById('billingSalesHistoryPanel');
             const btnNew = document.getElementById('btnBillingNew');
@@ -2499,12 +2511,16 @@
                 if (btnHist) {
                     btnHist.className = 'py-3 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
                 }
-                try { window.__fiaSalesHistoryFilter = window.__fiaSalesHistoryFilter || 'all'; } catch(e) {}
-                if (typeof window.setSalesHistoryFilter === 'function') window.setSalesHistoryFilter(window.__fiaSalesHistoryFilter);
+                window.__fiaSalesHistoryFilter = window.__fiaSalesHistoryFilter || 'all';
+                if (typeof window.setSalesHistoryFilter === 'function') {
+                    window.setSalesHistoryFilter(window.__fiaSalesHistoryFilter);
+                } else {
+                    renderSalesHistory();
+                }
                 return;
             }
 
-            // 'new' (or legacy 'cleaning', 'combined', 'cosmetics')
+            // 'new' bill
             if (hist) hist.classList.add('hidden');
             if (std) std.classList.remove('hidden');
             if (btnNew) {
@@ -6233,7 +6249,17 @@
             renderCustomerConsolidationReport();
         }
 
-        function editCustomerBill(index) {
+        function editCustomerBill(identifier) {
+            let index = -1;
+            if (typeof identifier === 'number') {
+                index = identifier;
+            } else if (identifier !== undefined && identifier !== null) {
+                const idStr = String(identifier).trim();
+                index = customers.findIndex(c => c && (String(c.billNo) === idStr || String(c.id) === idStr));
+                if (index === -1 && /^\d+$/.test(idStr)) {
+                    index = parseInt(idStr, 10);
+                }
+            }
             const c = customers[index];
             if(!c) { alert('Bill not found.'); return; }
             if(c.billType === 'Combined') { editCombinedSavedBill(index); return; }
@@ -6334,8 +6360,18 @@
             calculateBalance();
         }
 
-        function previewBill(index) {
-            const c = customers[index];
+        function previewBill(identifier) {
+            let c = null;
+            if (typeof identifier === 'number') {
+                c = customers[identifier];
+            } else if (identifier !== undefined && identifier !== null) {
+                const idStr = String(identifier).trim();
+                c = customers.find(x => x && (String(x.billNo) === idStr || String(x.id) === idStr));
+                if (!c && /^\d+$/.test(idStr)) {
+                    c = customers[parseInt(idStr, 10)];
+                }
+            }
+            if(!c) { alert('Bill not found.'); return; }
             activePreviewCustomer = c;
             const saleTypeStr = (c.saleType || 'Retail').toUpperCase();
             const isWholesale = saleTypeStr === 'WHOLESALE';
@@ -6818,7 +6854,17 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             renderSalesHistory();
         }
 
-        function previewCosSaleBill(sale) {
+        function previewCosSaleBill(saleOrIdentifier) {
+            let sale = saleOrIdentifier;
+            if (typeof saleOrIdentifier === 'number') {
+                sale = cosSales[saleOrIdentifier];
+            } else if (typeof saleOrIdentifier === 'string') {
+                sale = cosSales.find(s => s && (String(s.billNo) === saleOrIdentifier || String(s.id) === saleOrIdentifier));
+                if (!sale && /^\d+$/.test(saleOrIdentifier)) {
+                    sale = cosSales[parseInt(saleOrIdentifier, 10)];
+                }
+            }
+            if (!sale) { alert('Cosmetics bill not found.'); return; }
             const norm = normalizeCosSale(sale);
             const isWholesale = (norm.saleType || '').toUpperCase() === 'WHOLESALE';
             activePreviewCustomer = {
@@ -6959,9 +7005,19 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             showRecordView('Expense Details', `<div class="space-y-2"><p><b>Title:</b> ${ex.title}</p><p><b>Amount:</b> ₹${Number(ex.amount || 0).toFixed(2)}</p><p><b>Date:</b> ${formatDateDDMMYYYY(ex.date)}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editExpense(${index});" class="bg-slate-800 text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteExpense(${index});" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
         }
         
-        function editCosSale(index) {
+        function editCosSale(saleOrIdentifier) {
+            let index = -1;
+            if (typeof saleOrIdentifier === 'number') {
+                index = saleOrIdentifier;
+            } else if (saleOrIdentifier !== undefined && saleOrIdentifier !== null) {
+                const idStr = String(saleOrIdentifier).trim();
+                index = cosSales.findIndex(s => s && (String(s.billNo) === idStr || String(s.id) === idStr));
+                if (index === -1 && /^\d+$/.test(idStr)) {
+                    index = parseInt(idStr, 10);
+                }
+            }
             const s = cosSales[index];
-            if (!s) return;
+            if (!s) { alert('Cosmetics bill not found.'); return; }
             const n = normalizeCosSale(s);
             
             openCosmeticsSalesEntry();
@@ -7660,25 +7716,60 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function getSalesHistoryRows() {
             const rows = [];
             customers.forEach((c, i) => {
-                if (c && Array.isArray(c.items) && c.items.length) {
+                if (!c) return;
+                const safeItems = Array.isArray(c.items) 
+                    ? c.items 
+                    : (c.items && typeof c.items === 'object' ? Object.values(c.items) : []);
+                const hasTotal = Number(c.grandTotal || c.paidAmount || 0) > 0;
+                const isBill = Boolean(c.billNo) || safeItems.length > 0 || hasTotal;
+                if (isBill) {
+                    const billNo = c.billNo || ('CLN-' + String(i + 1).padStart(4, '0'));
                     rows.push({
-                        type:(c.billType === 'Combined' ? 'combined' : 'cleaning'), index:i, date:c.date, name:c.name || 'Customer', phone:c.phone || '',
-                        total:Number(c.grandTotal||0), paid:Number(c.paidAmount||0), due:Number(c.pendingAmount||0),
-                        items:c.items || [], saleType:c.saleType || 'Retail', paymentMode:c.paymentMode || 'Cash'
+                        type: (c.billType === 'Combined' ? 'combined' : 'cleaning'),
+                        index: i,
+                        id: c.id || billNo,
+                        billNo: billNo,
+                        date: c.date,
+                        savedAt: c.savedAt || c.date,
+                        name: c.name || 'Customer',
+                        phone: c.phone || '',
+                        total: Number(c.grandTotal || 0),
+                        paid: Number(c.paidAmount !== undefined ? c.paidAmount : (c.grandTotal || 0)),
+                        due: Number(c.pendingAmount !== undefined ? c.pendingAmount : Math.max(0, Number(c.grandTotal || 0) - Number(c.paidAmount || 0))),
+                        items: safeItems,
+                        saleType: c.saleType || 'Retail',
+                        paymentMode: c.paymentMode || 'Cash'
                     });
                 }
             });
             cosSales.forEach((s, i) => {
+                if (!s) return;
                 const n = normalizeCosSale(s);
+                const billNo = s.billNo || ('COS-' + String(i + 1).padStart(4, '0'));
                 rows.push({
-                    type:'cosmetics', index:i, date:s.date, name:s.customer || 'Customer', phone:s.phone || '',
-                    total:n.grandTotal, paid:n.paidAmount, due:n.pendingAmount, items:n.items || [],
-                    saleType:n.saleType || 'Retail', paymentMode:n.paymentMode || 'Cash'
+                    type: 'cosmetics',
+                    index: i,
+                    id: s.id || billNo,
+                    billNo: billNo,
+                    date: s.date,
+                    savedAt: s.savedAt || s.date,
+                    name: s.customer || 'Customer',
+                    phone: s.phone || '',
+                    total: Number(n.grandTotal || 0),
+                    paid: Number(n.paidAmount || 0),
+                    due: Number(n.pendingAmount || 0),
+                    items: n.items || [],
+                    saleType: n.saleType || 'Retail',
+                    paymentMode: n.paymentMode || 'Cash'
                 });
             });
-            return rows.sort((a,b)=>{
+            return rows.sort((a, b) => {
                 const d = dateSortValue(b.date) - dateSortValue(a.date);
-                return d !== 0 ? d : (b.index - a.index);
+                if (d !== 0) return d;
+                const tB = b.savedAt ? new Date(b.savedAt).getTime() : 0;
+                const tA = a.savedAt ? new Date(a.savedAt).getTime() : 0;
+                if (tB && tA && tB !== tA) return tB - tA;
+                return b.index - a.index;
             });
         }
 
@@ -7699,12 +7790,24 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             }
             const label = r => r.type === 'cleaning' ? '🧹 Cleaning' : r.type === 'combined' ? '🧾 Combined' : '💄 Cosmetics';
             
+            if (!rows.length) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-500 text-xs space-y-3 bg-slate-900/40 rounded-xl border border-slate-800/80 p-4">
+                        <p class="font-medium">No sales bills found for <span class="text-slate-300 font-bold uppercase">${filter}</span> filter.</p>
+                        <div class="flex justify-center gap-2 pt-1">
+                            <button type="button" onclick="setSalesHistoryFilter('all')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-bold text-xs border border-slate-700 transition">Show All Bills</button>
+                            <button type="button" onclick="refreshSalesHistoryFromCloud()" class="bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 px-3 py-1.5 rounded-lg font-bold text-xs border border-emerald-700/60 transition">↻ Sync Cloud</button>
+                        </div>
+                    </div>`;
+                return;
+            }
+
             container.innerHTML = rows.map(r => {
                 const safeItems = Array.isArray(r.items) ? r.items : [];
                 const itemText = safeItems.map(i => i && (i.productName || i.item || 'Item')).join(', ');
-                const viewFn = (r.type === 'cleaning' || r.type === 'combined') ? `previewBill(${r.index})` : `previewCosSaleBill(cosSales[${r.index}])`;
-                const editFn = (r.type === 'cleaning' || r.type === 'combined') ? `editCustomerBill(${r.index})` : `editCosSale(${r.index})`;
-                const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `deleteCustomerBill(${r.index})` : `deleteCosSale(${r.index})`;
+                const viewFn = (r.type === 'cleaning' || r.type === 'combined') ? `previewBill('${r.billNo || r.id || r.index}')` : `previewCosSaleBill('${r.billNo || r.id || r.index}')`;
+                const editFn = (r.type === 'cleaning' || r.type === 'combined') ? `editCustomerBill('${r.billNo || r.id || r.index}')` : `editCosSale('${r.billNo || r.id || r.index}')`;
+                const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `deleteCustomerBill('${r.billNo || r.id || r.index}')` : `deleteCosSale('${r.billNo || r.id || r.index}')`;
                 const isWholesale = String(r.saleType || '').toLowerCase() === 'wholesale';
                 const badgeHtml = isWholesale
                     ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-950/80 text-amber-300 border border-amber-700/60">🏷️ Wholesale</span>`
@@ -7713,7 +7816,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                     <div class="flex justify-between items-start gap-2">
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — ${r.name}</span>
+                                <span class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — #${r.billNo} ${r.name}</span>
                                 ${badgeHtml}
                             </div>
                             <div class="text-slate-400 mt-0.5">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>
@@ -7722,34 +7825,34 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                             <div class="mt-1"><span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-300">Paid: ₹${r.paid.toFixed(2)}</span> · <span class="text-rose-300">Due: ₹${r.due.toFixed(2)}</span></div>
                         </div>
                         <div class="flex flex-wrap gap-1 justify-end shrink-0">
-                            <button type="button" onclick="${viewFn}" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button>
-                            <button type="button" onclick="${editFn}" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button>
-                            <button type="button" onclick="${deleteFn}" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button>
+                            <button type="button" onclick="${viewFn}" class="bg-blue-900 hover:bg-blue-800 text-blue-200 px-2.5 py-1.5 rounded-lg font-bold transition">View</button>
+                            <button type="button" onclick="${editFn}" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-2.5 py-1.5 rounded-lg font-bold border border-slate-700 transition">Edit</button>
+                            <button type="button" onclick="${deleteFn}" class="bg-red-900 hover:bg-red-800 text-red-200 px-2.5 py-1.5 rounded-lg font-bold transition">Delete</button>
                         </div>
                     </div>
                 </div>`;
-            }).join('') || `<p class="text-xs text-slate-500 text-center py-4">No sales history found.</p>`;
+            }).join('');
         }
 
         function renderCustomerSalesHistory() {
             const box = document.getElementById('salesHistoryContainer');
             if(!box) return;
             const q = (document.getElementById('salesHistoryCustomerQuery')?.value||'').trim().toLowerCase();
-            if(!q){ box.innerHTML='<div class="text-center py-8 text-slate-500 text-xs">Search by customer name or phone number.</div>'; return; }
+            if(!q){ box.innerHTML='<div class="text-center py-8 text-slate-500 text-xs">Search by customer name, phone number, or bill number.</div>'; return; }
             const allRows = getSalesHistoryRows();
-            const data = allRows.filter(r => String(r.name).toLowerCase().includes(q) || String(r.phone).toLowerCase().includes(q));
+            const data = allRows.filter(r => String(r.name).toLowerCase().includes(q) || String(r.phone).toLowerCase().includes(q) || String(r.billNo).toLowerCase().includes(q));
             const label = r => r.type === 'cleaning' ? '🧹 Cleaning' : r.type === 'combined' ? '🧾 Combined' : '💄 Cosmetics';
             box.innerHTML = data.length ? data.map(r => {
                 const safeItems = Array.isArray(r.items) ? r.items : [];
                 const itemText = safeItems.map(i => i && (i.productName || i.item || 'Item')).join(', ');
-                const viewFn = (r.type === 'cleaning' || r.type === 'combined') ? `previewBill(${r.index})` : `previewCosSaleBill(cosSales[${r.index}])`;
-                const editFn = (r.type === 'cleaning' || r.type === 'combined') ? `editCustomerBill(${r.index})` : `editCosSale(${r.index})`;
-                const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `deleteCustomerBill(${r.index})` : `deleteCosSale(${r.index})`;
+                const viewFn = (r.type === 'cleaning' || r.type === 'combined') ? `previewBill('${r.billNo || r.id || r.index}')` : `previewCosSaleBill('${r.billNo || r.id || r.index}')`;
+                const editFn = (r.type === 'cleaning' || r.type === 'combined') ? `editCustomerBill('${r.billNo || r.id || r.index}')` : `editCosSale('${r.billNo || r.id || r.index}')`;
+                const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `deleteCustomerBill('${r.billNo || r.id || r.index}')` : `deleteCosSale('${r.billNo || r.id || r.index}')`;
                 const isWholesale = String(r.saleType || '').toLowerCase() === 'wholesale';
                 const badgeHtml = isWholesale
                     ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-950/80 text-amber-300 border border-amber-700/60">🏷️ Wholesale</span>`
                     : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">🛍️ Retail</span>`;
-                return `<div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs"><div class="flex justify-between items-start gap-2"><div class="min-w-0 flex-1"><div class="flex items-center gap-2 flex-wrap"><div class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — ${r.name}</div>${badgeHtml}</div><div class="text-slate-400">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>${r.phone?`<div class="text-slate-500">📞 ${r.phone}</div>`:''}<div class="text-slate-300 mt-1">${itemText}</div><div class="mt-1">Total ₹${r.total.toFixed(2)} · <span class="text-emerald-300">Paid ₹${r.paid.toFixed(2)}</span> · <span class="text-rose-300">Due ₹${r.due.toFixed(2)}</span></div></div><div class="flex flex-wrap gap-1 justify-end shrink-0"><button type="button" onclick="${viewFn}" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button><button type="button" onclick="${editFn}" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button><button type="button" onclick="${deleteFn}" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button></div></div></div>`;
+                return `<div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs"><div class="flex justify-between items-start gap-2"><div class="min-w-0 flex-1"><div class="flex items-center gap-2 flex-wrap"><div class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — #${r.billNo} ${r.name}</div>${badgeHtml}</div><div class="text-slate-400">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>${r.phone?`<div class="text-slate-500">📞 ${r.phone}</div>`:''}<div class="text-slate-300 mt-1">${itemText}</div><div class="mt-1">Total ₹${r.total.toFixed(2)} · <span class="text-emerald-300">Paid ₹${r.paid.toFixed(2)}</span> · <span class="text-rose-300">Due ₹${r.due.toFixed(2)}</span></div></div><div class="flex flex-wrap gap-1 justify-end shrink-0"><button type="button" onclick="${viewFn}" class="bg-blue-900 hover:bg-blue-800 text-blue-200 px-2.5 py-1.5 rounded-lg font-bold transition">View</button><button type="button" onclick="${editFn}" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-2.5 py-1.5 rounded-lg font-bold border border-slate-700 transition">Edit</button><button type="button" onclick="${deleteFn}" class="bg-red-900 hover:bg-red-800 text-red-200 px-2.5 py-1.5 rounded-lg font-bold transition">Delete</button></div></div></div>`;
             }).join('') : '<div class="text-center py-8 text-slate-500 text-xs">No sales found for this customer.</div>';
         }
 
@@ -7761,12 +7864,27 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             });
             const key = f.charAt(0).toUpperCase() + f.slice(1);
             const activeBtn = document.getElementById('salesHistoryTab' + key);
-            if(activeBtn) activeBtn.className = 'py-2 rounded-lg bg-slate-700 text-white text-[10px] font-bold';
+            if(activeBtn) {
+                if(f === 'wholesale') activeBtn.className = 'py-2 rounded-lg bg-amber-600 text-white text-[10px] font-bold shadow';
+                else if(f === 'retail') activeBtn.className = 'py-2 rounded-lg bg-emerald-600 text-white text-[10px] font-bold shadow';
+                else if(f === 'customer') activeBtn.className = 'py-2 rounded-lg bg-cyan-700 text-white text-[10px] font-bold shadow';
+                else activeBtn.className = 'py-2 rounded-lg bg-slate-700 text-white text-[10px] font-bold shadow';
+            }
             
             const q = document.getElementById('salesHistoryCustomerSearch');
-            if(q) q.classList.toggle('hidden', f !== 'customer');
+            if(q) {
+                q.classList.toggle('hidden', f !== 'customer');
+                if(f === 'customer') {
+                    const input = document.getElementById('salesHistoryCustomerQuery');
+                    if(input) setTimeout(() => input.focus(), 50);
+                }
+            }
             
-            if(f === 'customer') renderCustomerSalesHistory();
+            if(f === 'customer') {
+                renderCustomerSalesHistory();
+            } else {
+                renderSalesHistory();
+            }
         };
 
         window.refreshSalesHistoryFromCloud = function() {
@@ -7853,7 +7971,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=27')
+                navigator.serviceWorker.register('./sw.js?v=28')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
