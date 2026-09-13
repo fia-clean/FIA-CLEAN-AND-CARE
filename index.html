@@ -3949,7 +3949,12 @@
             }
             m = s.match(/^(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{4})/);
             if (m) {
-                return `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+                let dNum = parseInt(m[1], 10);
+                let mNum = parseInt(m[2], 10);
+                if (mNum > 12 && dNum <= 12) {
+                    const temp = dNum; dNum = mNum; mNum = temp;
+                }
+                return `${m[3]}-${String(mNum).padStart(2, '0')}-${String(dNum).padStart(2, '0')}`;
             }
             const d = new Date(s);
             if (!isNaN(d.getTime())) {
@@ -4090,7 +4095,7 @@
                         grandTotal: 0,
                         paidAmount: 0,
                         pendingAmount: 0,
-                        date: new Date().toISOString().split('T')[0],
+                        date: getTodayDateString(),
                         savedAt: Date.now()
                     });
                 }
@@ -6101,7 +6106,7 @@
             if(idx>=0&&customers[idx]?.items){restorePackageStock(customers[idx].items);customers[idx].items.forEach(old=>{const p=combinedStockRecord(old);if(p)p.stock+=Number(old.stockDeductionQty||old.qty||0);});}
             const packageDeduction=checkAndDeductPackageStock(currentBillItems); if(!packageDeduction.ok){if(idx>=0&&customers[idx]?.items){(customers[idx].items||[]).forEach(old=>{const p=combinedStockRecord(old);if(p)p.stock-=Number(old.stockDeductionQty||old.qty||0);});} alert(`Insufficient package stock for ${packageDeduction.pkg?.name||'packaging item'}. Available: ${packageDeduction.pkg?.stock||0}`);return;} currentBillItems.forEach(item=>{const p=combinedStockRecord(item);if(p)p.stock-=Number(item.stockDeductionQty||0);});
             const total=currentBillItems.reduce((s,i)=>s+Number(i.total||0),0), paidRaw=parseFloat(document.getElementById('combinedPaidAmt').value), paid=Number.isFinite(paidRaw)?Math.max(0,paidRaw):total, due=Math.max(0,total-paid), excess=Math.max(0,paid-total), old=idx>=0?customers[idx]:null;
-            const bill={billNo:old?.billNo||getNextCombinedBillNumber(),billType:'Combined',name,phone,saleType,paymentMode:document.getElementById('combinedPaymentMode').value||'Cash',items:sortBillItemsAlphabetically(currentBillItems).map(i=>({...i})),grandTotal:total,paidAmount:paid,pendingAmount:due,excessAmount:excess,date:old?.date||new Date().toISOString().split('T')[0]};
+            const bill={billNo:old?.billNo||getNextCombinedBillNumber(),billType:'Combined',name,phone,saleType,paymentMode:document.getElementById('combinedPaymentMode').value||'Cash',items:sortBillItemsAlphabetically(currentBillItems).map(i=>({...i})),grandTotal:total,paidAmount:paid,pendingAmount:due,excessAmount:excess,date:old?.date||getTodayDateString(),savedAt:old?.savedAt||Date.now()};
             if(idx>=0)customers[idx]=bill;else customers.push(bill); syncToFirebase(); renderAll(); previewBill(idx>=0?idx:customers.length-1); resetCombinedBillForm(false);
         }
 
@@ -6222,7 +6227,7 @@
             unmarkIdDeleted(billNo);
             unmarkIdDeleted(billId);
             unmarkIdDeleted('cust_' + name.toLowerCase());
-            const customerData = { id: billId, billNo, name, phone, saleType, paymentMode, items: sortBillItemsAlphabetically(currentBillItems).map(i => ({...i})), grandTotal, paidAmount: safePaidAmount, pendingAmount, excessAmount, date: (index >= 0 && customers[index]?.date) || new Date().toISOString().split('T')[0], savedAt: Date.now() };
+            const customerData = { id: billId, billNo, name, phone, saleType, paymentMode, items: sortBillItemsAlphabetically(currentBillItems).map(i => ({...i})), grandTotal, paidAmount: safePaidAmount, pendingAmount, excessAmount, date: (index >= 0 && customers[index]?.date) || getTodayDateString(), savedAt: Date.now() };
 
             let savedIndex = index === -1 ? customers.push(customerData) - 1 : (customers[index] = customerData, index);
 
@@ -6339,6 +6344,9 @@
             const c = customers[index];
             if (c.billNo) markIdDeleted(c.billNo);
             if (c.id) markIdDeleted(c.id);
+            if (Array.isArray(clearedDayBookEntries)) {
+                clearedDayBookEntries = clearedDayBookEntries.filter(x => x !== c.billNo && x !== c.id && x !== ('cust_' + c.billNo) && x !== ('bill_' + c.billNo));
+            }
 
             if (c.items && Array.isArray(c.items)) {
                 restorePackageStock(c.items);
@@ -6559,7 +6567,7 @@
         }
         function calculatePurchaseTotal(){ const q=parseFloat(document.getElementById('rawQty')?.value)||0, up=parseFloat(document.getElementById('rawUnitPrice')?.value)||0; if(up>0) document.getElementById('rawCost').value=(q*up).toFixed(2); calculatePurchaseBalance(); }
         function calculatePurchaseBalance(){ const t=parseFloat(document.getElementById('rawCost')?.value)||0, p=parseFloat(document.getElementById('purchasePaid')?.value)||0; const b=Math.max(0,t-p); const el=document.getElementById('purchaseBalance'); if(el) el.value=b.toFixed(2); }
-        function getTodayPurchaseDate(){ return new Date().toISOString().split('T')[0]; }
+        function getTodayPurchaseDate(){ return getTodayDateString(); }
         function loadPurchaseSuppliers(){ try{ purchaseSuppliers=JSON.parse(localStorage.getItem('fia_purchase_suppliers'))||[]; }catch(e){ purchaseSuppliers=[]; } renderPurchaseSupplierList(); }
         function renderPurchaseSupplierList(){ const dl=document.getElementById('purchaseSupplierList'); const map=new Map(); [...purchaseSuppliers,...purchases.map(p=>({name:p.supplierName,mobile:p.supplierMobile})),...cosPurchases.map(p=>({name:p.supplier,mobile:p.supplierMobile}))].forEach(x=>{if(x&&x.name)map.set(String(x.name).toLowerCase(),{name:x.name,mobile:x.mobile||''});}); const vals=[...map.values()]; if(dl) dl.innerHTML=vals.map(x=>`<option value="${String(x.name).replace(/"/g,'&quot;')}" data-mobile="${String(x.mobile||'').replace(/"/g,'&quot;')}"></option>`).join(''); ['purchaseSupplierSelect','cosPurchaseSupplierSelect'].forEach(id=>{const el=document.getElementById(id);if(el){const current=el.value;el.innerHTML='<option value="">-- Select Supplier from List --</option>'+vals.map(x=>`<option value="${String(x.name).replace(/"/g,'&quot;')}">${String(x.name)}${x.mobile?' • '+String(x.mobile):''}</option>`).join(''); if(vals.some(x=>x.name===current))el.value=current;}}); ['purchaseHistorySupplier','cosPurchaseHistorySupplier'].forEach(id=>{const el=document.getElementById(id);if(el){const current=el.value;el.innerHTML='<option value="">-- All Suppliers --</option>'+vals.map(x=>`<option value="${String(x.name).replace(/"/g,'&quot;')}">${String(x.name)}</option>`).join(''); if(vals.some(x=>x.name===current))el.value=current;}}); }
 function selectPurchaseSupplier(el,type){const x=findPurchaseSupplier(el.value);if(!x)return;if(type==='cosmetics'){document.getElementById('cosPSupplier').value=x.name||'';document.getElementById('cosPSupplierMobile').value=x.mobile||'';}else{document.getElementById('supplierName').value=x.name||'';document.getElementById('supplierMobile').value=x.mobile||'';}}
@@ -6844,7 +6852,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                 customer, phone, saleType, paymentMode,
                 items: sortBillItemsAlphabetically(currentCosBillItems).map(i => ({...i})),
                 grandTotal, paidAmount, pendingAmount, excessAmount,
-                date: (idx >= 0 && cosSales[idx]?.date) || new Date().toISOString().split('T')[0],
+                date: (idx >= 0 && cosSales[idx]?.date) || getTodayDateString(),
                 savedAt: Date.now()
             };
 
@@ -7099,6 +7107,9 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             const s = cosSales[index];
             if (s.billNo) markIdDeleted(s.billNo);
             if (s.id) markIdDeleted(s.id);
+            if (Array.isArray(clearedDayBookEntries)) {
+                clearedDayBookEntries = clearedDayBookEntries.filter(x => x !== s.billNo && x !== s.id && x !== ('cos_' + s.billNo) && x !== ('cossale_' + s.billNo));
+            }
 
             restoreCosSaleStock(s);
             restorePackageStock(normalizeCosSale(s).items);
@@ -7148,10 +7159,10 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             }
         }
 
-        let currentDayBookPreset = 'all';
+        let currentDayBookPreset = 'today';
 
         function updateDayBookPresetButtons(preset) {
-            currentDayBookPreset = preset || 'all';
+            currentDayBookPreset = preset || 'today';
             const btnToday = document.getElementById('dayBookTabToday');
             const btnMonth = document.getElementById('dayBookTabMonth');
             const btnAll = document.getElementById('dayBookTabAll');
@@ -7177,10 +7188,10 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function setFilterPreset(preset) {
             const fromEl = document.getElementById('filterFromDate');
             const toEl = document.getElementById('filterToDate');
+            const todayStr = getTodayDateString();
             const d = new Date();
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
-            const todayStr = y + '-' + m + '-' + String(d.getDate()).padStart(2, '0');
 
             if (preset === 'today') {
                 if (fromEl) fromEl.value = todayStr;
@@ -7204,10 +7215,10 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
         function onDayBookDateInputChange() {
             const fromVal = document.getElementById('filterFromDate')?.value;
             const toVal = document.getElementById('filterToDate')?.value;
+            const todayStr = getTodayDateString();
             const d = new Date();
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
-            const todayStr = y + '-' + m + '-' + String(d.getDate()).padStart(2, '0');
             const firstDayStr = y + '-' + m + '-01';
             const lastDayNum = new Date(y, d.getMonth() + 1, 0).getDate();
             const lastDayStr = y + '-' + m + '-' + String(lastDayNum).padStart(2, '0');
@@ -7264,19 +7275,21 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             (customers || []).forEach((c, i) => { 
                 if (!c) return;
                 let incomeVal = Number(c.grandTotal || c.paidAmount || 0);
-                const entryId = c.billNo ? 'bill_' + c.billNo : ('c_' + (c.id || c.savedAt || i));
+                const entryId = c.id ? ('bill_' + c.id) : (c.billNo ? ('bill_' + c.billNo + '_' + (c.savedAt || i)) : ('c_' + (c.savedAt || i)));
                 if (incomeVal > 0) {
+                    const cleanDate = normalizeToDateKey(c.date) || normalizeToDateKey(c.savedAt) || getTodayDateString();
                     entries.push({ 
                         id: entryId, 
+                        originalId: c.id || c.billNo,
                         type: 'Income', 
                         category: c.billType === 'Combined' ? 'Combined Sale' : 'Cleaning Sale',
                         desc: `${c.billType === 'Combined' ? 'Bill' : 'Cleaning Bill'} #${c.billNo || (i + 1)} (${c.name || 'Customer'})`, 
                         amount: incomeVal, 
-                        paidAmount: Number(c.paidAmount || 0),
-                        pendingAmount: Number(c.pendingAmount || 0),
+                        paidAmount: Number(c.paidAmount !== undefined ? c.paidAmount : (incomeVal - Number(c.pendingAmount || 0))),
+                        pendingAmount: Math.max(0, Number(c.pendingAmount || 0)),
                         paymentMode: c.paymentMode || 'Cash',
-                        date: c.date || (c.savedAt ? normalizeToDateKey(c.savedAt) : getTodayDateString()),
-                        timestamp: Number(c.savedAt || c.createdAt || dateSortValue(c.date) || 0)
+                        date: cleanDate,
+                        timestamp: Number(c.savedAt || c.createdAt || dateSortValue(cleanDate) || 0)
                     });
                 }
             });
@@ -7284,71 +7297,79 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                 if (!s) return;
                 const norm = normalizeCosSale(s) || {};
                 let incomeVal = Number(norm.grandTotal || norm.paidAmount || 0);
-                const entryId = s.billNo ? 'cossale_' + s.billNo : ('cs_' + (s.id || s.savedAt || i));
+                const entryId = s.id ? ('cossale_' + s.id) : (s.billNo ? ('cossale_' + s.billNo + '_' + (s.savedAt || i)) : ('cs_' + (s.savedAt || i)));
                 if (incomeVal > 0) {
+                    const cleanDate = normalizeToDateKey(s.date) || normalizeToDateKey(s.savedAt) || getTodayDateString();
                     entries.push({ 
                         id: entryId, 
+                        originalId: s.id || s.billNo,
                         type: 'Income', 
                         category: 'Cosmetics Sale',
                         desc: `Cosmetics Bill #${s.billNo || (i + 1)} (${s.customer || s.name || 'Customer'})`, 
                         amount: incomeVal, 
-                        paidAmount: Number(norm.paidAmount || 0),
-                        pendingAmount: Number(norm.pendingAmount || 0),
+                        paidAmount: Number(norm.paidAmount !== undefined ? norm.paidAmount : (incomeVal - Number(norm.pendingAmount || 0))),
+                        pendingAmount: Math.max(0, Number(norm.pendingAmount || 0)),
                         paymentMode: s.paymentMode || 'Cash',
-                        date: s.date || (s.savedAt ? normalizeToDateKey(s.savedAt) : getTodayDateString()),
-                        timestamp: Number(s.savedAt || s.createdAt || dateSortValue(s.date) || 0)
+                        date: cleanDate,
+                        timestamp: Number(s.savedAt || s.createdAt || dateSortValue(cleanDate) || 0)
                     });
                 }
             });
             (purchases || []).forEach((p, i) => {
                 if (!p) return;
                 const amount = Number(p.rawCost || p.paid || 0);
-                const entryId = p.id ? 'purch_' + p.id : ('p_' + (p.savedAt || i));
+                const entryId = p.id ? ('purch_' + p.id) : ('p_' + (p.savedAt || i));
                 if (amount > 0) {
+                    const cleanDate = normalizeToDateKey(p.date) || normalizeToDateKey(p.savedAt) || getTodayDateString();
                     entries.push({ 
                         id: entryId, 
+                        originalId: p.id,
                         type: 'Expense', 
                         category: 'Purchase',
                         desc: `Purchase: ${p.rawMaterial || 'Item'} (${p.supplierName || 'Supplier'})`, 
                         amount, 
                         paidAmount: Number(p.paid || 0),
-                        pendingAmount: Number(p.balance || 0),
-                        date: p.date || (p.savedAt ? normalizeToDateKey(p.savedAt) : getTodayDateString()),
-                        timestamp: Number(p.savedAt || dateSortValue(p.date) || 0)
+                        pendingAmount: Math.max(0, Number(p.balance || 0)),
+                        date: cleanDate,
+                        timestamp: Number(p.savedAt || dateSortValue(cleanDate) || 0)
                     });
                 }
             });
             (expenses || []).forEach((ex, i) => {
                 if (!ex) return;
                 const amount = Number(ex.amount || 0);
-                const entryId = ex.id ? 'exp_' + ex.id : ('e_' + (ex.savedAt || i));
+                const entryId = ex.id ? ('exp_' + ex.id) : ('e_' + (ex.savedAt || i));
                 if (amount > 0) {
+                    const cleanDate = normalizeToDateKey(ex.date) || normalizeToDateKey(ex.savedAt) || getTodayDateString();
                     entries.push({ 
                         id: entryId, 
+                        originalId: ex.id,
                         type: 'Expense', 
                         category: 'Expense',
                         desc: `Expense: ${ex.title || 'General Expense'}`, 
                         amount, 
-                        date: ex.date || (ex.savedAt ? normalizeToDateKey(ex.savedAt) : getTodayDateString()),
-                        timestamp: Number(ex.savedAt || dateSortValue(ex.date) || 0)
+                        date: cleanDate,
+                        timestamp: Number(ex.savedAt || dateSortValue(cleanDate) || 0)
                     });
                 }
             });
             (cosPurchases || []).forEach((cp, i) => {
                 if (!cp) return;
                 const amount = Number(cp.amount || cp.paid || 0);
-                const entryId = cp.id ? 'cospurch_' + cp.id : ('cp_' + (cp.savedAt || i));
+                const entryId = cp.id ? ('cospurch_' + cp.id) : ('cp_' + (cp.savedAt || i));
                 if (amount > 0) {
+                    const cleanDate = normalizeToDateKey(cp.date) || normalizeToDateKey(cp.savedAt) || getTodayDateString();
                     entries.push({ 
                         id: entryId, 
+                        originalId: cp.id,
                         type: 'Expense', 
                         category: 'Cosmetics Purchase',
                         desc: `Cosmetics Purchase: ${cp.item || 'Item'} (${cp.supplier || 'Supplier'})`, 
                         amount, 
                         paidAmount: Number(cp.paid || 0),
-                        pendingAmount: Number(cp.balance || 0),
-                        date: cp.date || (cp.savedAt ? normalizeToDateKey(cp.savedAt) : getTodayDateString()),
-                        timestamp: Number(cp.savedAt || dateSortValue(cp.date) || 0)
+                        pendingAmount: Math.max(0, Number(cp.balance || 0)),
+                        date: cleanDate,
+                        timestamp: Number(cp.savedAt || dateSortValue(cleanDate) || 0)
                     });
                 }
             });
@@ -7395,12 +7416,22 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             if (openingBalanceInput && document.activeElement !== openingBalanceInput) openingBalanceInput.value = Number(dayBookOpeningBalance || 0);
             if (openingExpenseInput && document.activeElement !== openingExpenseInput) openingExpenseInput.value = Number(dayBookOpeningExpense || 0);
 
-            const fromDate = normalizeToDateKey(document.getElementById('filterFromDate')?.value);
-            const toDate = normalizeToDateKey(document.getElementById('filterToDate')?.value);
+            const fromEl = document.getElementById('filterFromDate');
+            const toEl = document.getElementById('filterToDate');
+            
+            // Auto-initialize with today's date if empty when preset is today
+            if (currentDayBookPreset === 'today' && fromEl && toEl && !fromEl.value && !toEl.value) {
+                const todayStr = getTodayDateString();
+                fromEl.value = todayStr;
+                toEl.value = todayStr;
+            }
+
+            const fromDate = normalizeToDateKey(fromEl?.value);
+            const toDate = normalizeToDateKey(toEl?.value);
 
             // Filter by date range and exclude cleared entries
             let filtered = getAllMasterEntries().filter(e => {
-                if (clearedDayBookEntries.includes(e.id)) return false;
+                if (clearedDayBookEntries.includes(e.id) || (e.originalId && clearedDayBookEntries.includes(e.originalId))) return false;
                 const ed = normalizeToDateKey(e.date);
                 if (fromDate && ed && ed < fromDate) return false;
                 if (toDate && ed && ed > toDate) return false;
@@ -7415,12 +7446,15 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
                 return (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0);
             });
 
-            let inc = filtered.filter(e => e.type === 'Income').reduce((s, e) => s + e.amount, 0);
-            let exp = filtered.filter(e => e.type === 'Expense').reduce((s, e) => s + e.amount, 0);
+            const incSales = filtered.filter(e => e.type === 'Income').reduce((s, e) => s + Number(e.amount || 0), 0);
+            const incCollection = filtered.filter(e => e.type === 'Income').reduce((s, e) => s + Number(e.paidAmount !== undefined ? e.paidAmount : (e.amount || 0)), 0);
+            const incDue = filtered.filter(e => e.type === 'Income').reduce((s, e) => s + Math.max(0, Number(e.pendingAmount || 0)), 0);
+            const expTotal = filtered.filter(e => e.type === 'Expense').reduce((s, e) => s + Number(e.amount || 0), 0);
+
             const openingBalance = Number(dayBookOpeningBalance || 0);
             const openingExpense = Number(dayBookOpeningExpense || 0);
-            const currentIncome = openingBalance + inc;
-            const currentExpense = openingExpense + exp;
+            const currentIncome = openingBalance + incSales;
+            const currentExpense = openingExpense + expTotal;
             const netBalance = currentIncome - currentExpense;
             
             const totalTurnover = currentIncome + currentExpense;
@@ -7492,25 +7526,34 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             if (progressBar) progressBar.style.width = incPct + '%';
             if (expProgressBar) expProgressBar.style.width = expPct + '%';
 
-            // Compact 4-cell financial summary
+            // Distinct & Actionable Financial Cards: Sales, Collection, Due & Expense
+            const periodLabel = (currentDayBookPreset === 'today') ? "Today's" : (currentDayBookPreset === 'month' ? "This Month" : "Period");
             document.getElementById('accountsSummaryContainer').innerHTML = `
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px] pt-1">
-                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800 flex flex-col">
-                        <span class="text-slate-400">Period Sales</span>
-                        <b class="text-emerald-400 font-extrabold text-xs mt-0.5">₹${inc.toFixed(2)}</b>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
+                    <div class="bg-slate-900/90 p-2.5 rounded-xl border border-emerald-700/50 flex flex-col justify-between shadow-sm">
+                        <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">${periodLabel} Sales</span>
+                        <b class="text-emerald-300 font-extrabold text-sm mt-1">₹${incSales.toFixed(2)}</b>
+                        <span class="text-[9px] text-slate-400 mt-0.5">Total Billed</span>
                     </div>
-                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800 flex flex-col">
-                        <span class="text-slate-400">Period Expenses</span>
-                        <b class="text-rose-400 font-extrabold text-xs mt-0.5">₹${exp.toFixed(2)}</b>
+                    <div class="bg-slate-900/90 p-2.5 rounded-xl border border-amber-700/50 flex flex-col justify-between shadow-sm">
+                        <span class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">${periodLabel} Collection</span>
+                        <b class="text-amber-300 font-extrabold text-sm mt-1">₹${incCollection.toFixed(2)}</b>
+                        <span class="text-[9px] text-slate-400 mt-0.5">Cash / Paid In</span>
                     </div>
-                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800 flex flex-col">
-                        <span class="text-slate-400">Opening Balance</span>
-                        <b class="text-slate-200 font-bold text-xs mt-0.5">₹${openingBalance.toFixed(2)}</b>
+                    <div class="bg-slate-900/90 p-2.5 rounded-xl border border-rose-700/50 flex flex-col justify-between shadow-sm">
+                        <span class="text-[10px] text-rose-400 font-bold uppercase tracking-wider">${periodLabel} Due</span>
+                        <b class="text-rose-300 font-extrabold text-sm mt-1">₹${incDue.toFixed(2)}</b>
+                        <span class="text-[9px] text-slate-400 mt-0.5">Credit Pending</span>
                     </div>
-                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800 flex flex-col">
-                        <span class="text-slate-400">Opening Expense</span>
-                        <b class="text-slate-200 font-bold text-xs mt-0.5">₹${openingExpense.toFixed(2)}</b>
+                    <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-700 flex flex-col justify-between shadow-sm">
+                        <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wider">${periodLabel} Expense</span>
+                        <b class="text-rose-400 font-extrabold text-sm mt-1">₹${expTotal.toFixed(2)}</b>
+                        <span class="text-[9px] text-slate-400 mt-0.5">Purchases & Costs</span>
                     </div>
+                </div>
+                <div class="flex justify-between items-center text-[10px] text-slate-400 px-1 pt-0.5">
+                    <span>Opening Bal: <b class="text-slate-200">₹${openingBalance.toFixed(2)}</b> · Opening Exp: <b class="text-slate-200">₹${openingExpense.toFixed(2)}</b></span>
+                    <span>Net Balance: <b class="${isProfit ? 'text-emerald-400' : 'text-rose-400'} font-bold">₹${netBalance.toFixed(2)}</b></span>
                 </div>`;
 
             // Render Day Book items
@@ -7694,14 +7737,16 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
             const mainLow = products.filter(p => Number(p.stock || 0) <= 5);
             const cosLow = cosProducts.filter(p => Number(p.stock || 0) <= 5);
             const packageLow = packages.filter(p => Number(p.stock || 0) <= 5);
-            const now = new Date();
-            const today = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+            const today = getTodayDateString();
             // Keep Today's Business exactly aligned with Day Book's master calculation.
-            const todayEntries = getAllMasterEntries().filter(e => dashboardDateKey(e.date) === today);
+            const todayEntries = getAllMasterEntries().filter(e => {
+                if (clearedDayBookEntries.includes(e.id) || (e.originalId && clearedDayBookEntries.includes(e.originalId))) return false;
+                return normalizeToDateKey(e.date) === today;
+            });
             const salesToday = todayEntries.filter(e => e.type === 'Income').reduce((s,e) => s + Number(e.amount || 0), 0);
-            const purchaseToday = purchases.filter(c => dashboardDateKey(c.date) === today).reduce((s,c) => s + Number(c.rawCost || 0), 0) + cosPurchases.filter(c => dashboardDateKey(c.date) === today).reduce((s,c) => s + Number(c.amount || 0), 0);
+            const purchaseToday = purchases.filter(c => normalizeToDateKey(c.date) === today).reduce((s,c) => s + Number(c.rawCost || 0), 0) + cosPurchases.filter(c => normalizeToDateKey(c.date) === today).reduce((s,c) => s + Number(c.amount || 0), 0);
             const expenseToday = todayEntries.filter(e => e.type === 'Expense').reduce((s,e) => s + Number(e.amount || 0), 0);
-            const collectionToday = salesToday;
+            const collectionToday = todayEntries.filter(e => e.type === 'Income').reduce((s,e) => s + Number(e.paidAmount !== undefined ? e.paidAmount : (e.amount || 0)), 0);
             
             let uniqueCustNames = [];
             customers.forEach(c => { if(c && c.name && !uniqueCustNames.includes(c.name.trim().toLowerCase())) uniqueCustNames.push(c.name.trim().toLowerCase()); });
@@ -8010,7 +8055,7 @@ function renderPurchaseHistory(type){const isCos=type==='cosmetics',arr=isCos?co
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=29')
+                navigator.serviceWorker.register('./sw.js?v=30')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
