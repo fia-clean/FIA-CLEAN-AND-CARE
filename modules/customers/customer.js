@@ -641,6 +641,7 @@ if (typeof window !== 'undefined') {
     window.fillExistingCustomer = fillExistingCustomer;
     window.updateCosCustomerDropdown = updateCosCustomerDropdown;
     window.fillCosExistingCustomer = fillCosExistingCustomer;
+    window.switchCustomerSubTab = switchCustomerSubTab;
     window.renderCustomerConsolidationList = renderCustomerConsolidationList;
     window.renderCustomerConsolidationReport = renderCustomerConsolidationReport;
     window.downloadCustomerConsolidationReportPDF = downloadCustomerConsolidationReportPDF;

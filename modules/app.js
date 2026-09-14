@@ -628,11 +628,31 @@ if (typeof window !== 'undefined') {
     };
 
     // ================= INITIALIZATION & MOUNTING =================
-    window.onload = function() {
+    let isAppBootstrapped = false;
+    function bootstrapApp() {
+        if (isAppBootstrapped) return;
+        isAppBootstrapped = true;
+
         loadFromLocalStorage();
+
+        // Check if user already logged in via instant synchronous authentication
+        if (window._isLoggedInFlag || (window.state && window.state.isLoggedIn)) {
+            state.isLoggedIn = true;
+            if (typeof window._dismissLoginOverlay === 'function') {
+                window._dismissLoginOverlay();
+            } else {
+                const overlay = document.getElementById('loginOverlay');
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                    overlay.setAttribute('hidden', 'true');
+                    overlay.style.setProperty('display', 'none', 'important');
+                }
+            }
+        }
+
         setupDateFields();
         if (window.history && window.history.replaceState) {
-            history.replaceState({ loggedIn: false, tab: 'home' }, "", window.location.href);
+            history.replaceState({ loggedIn: state.isLoggedIn, tab: 'home' }, "", window.location.href);
         }
 
         const expDateEl = document.getElementById('expDate');
@@ -654,15 +674,24 @@ if (typeof window !== 'undefined') {
         pullFromFirebase();
         startAutomaticBackup();
 
-        // Register Service Worker for offline PWA
-        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js?v=34').then(reg => {
+        // Register Service Worker for offline PWA (v35)
+        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
+            navigator.serviceWorker.register('./sw.js?v=35').then(reg => {
                 console.log('ServiceWorker registered with scope:', reg.scope);
+                reg.update();
             }).catch(err => {
                 console.warn('ServiceWorker registration failed:', err);
             });
         }
-    };
+    }
+
+    window.bootstrapApp = bootstrapApp;
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootstrapApp);
+    } else {
+        bootstrapApp();
+    }
 
     setInterval(hideUnwantedStockMenus, 500);
 

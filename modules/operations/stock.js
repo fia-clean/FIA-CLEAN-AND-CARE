@@ -1065,6 +1065,9 @@ if (typeof window !== 'undefined') {
     window.updateCosProductDropdowns = updateCosProductDropdowns;
     window.updateCleaningAddStockDropdown = updateCleaningAddStockDropdown;
     window.renderConsolidatedStockReport = renderConsolidatedStockReport;
+    window.switchStockTopTab = switchStockTopTab;
+    window.switchStockSubTab = switchStockSubTab;
+    window.switchStockActionTab = switchStockActionTab;
     window.viewProduct = viewProduct;
     window.viewCosProduct = viewCosProduct;
     window.viewPackage = viewPackage;

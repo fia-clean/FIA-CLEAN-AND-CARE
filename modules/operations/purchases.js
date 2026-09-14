@@ -735,4 +735,6 @@ if (typeof window !== 'undefined') {
     window.deleteCosPurchase = deleteCosPurchase;
     window.renderCosPurchases = renderCosPurchases;
     window.resetCosPurchaseForm = resetCosPurchaseForm;
+    window.switchPurchaseSubTab = switchPurchaseSubTab;
+    window.switchPurchaseActionTab = switchPurchaseActionTab;
 }

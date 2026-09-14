@@ -8,7 +8,9 @@ import { syncToFirebase } from './db.js';
 export function verifyLoginPin() {
     const input = document.getElementById('loginPinInput');
     const entered = (input ? input.value : '').trim();
-    const active = (state.appPin || '1234').trim();
+    let savedLocal = '1234';
+    try { savedLocal = localStorage.getItem('fia_app_pin') || '1234'; } catch(e) {}
+    const active = (state.appPin || savedLocal || '1234').trim();
     if (
         entered === active ||
         entered === '1234' ||
@@ -17,10 +19,22 @@ export function verifyLoginPin() {
         entered.toUpperCase() === MASTER_RECOVERY_KEY
     ) {
         state.isLoggedIn = true;
-        const overlay = document.getElementById('loginOverlay');
-        if (overlay) overlay.classList.add('hidden');
+        window._isLoggedInFlag = true;
+        if (typeof window._dismissLoginOverlay === 'function') {
+            window._dismissLoginOverlay();
+        } else {
+            const overlay = document.getElementById('loginOverlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.setAttribute('hidden', 'true');
+                overlay.style.setProperty('display', 'none', 'important');
+            }
+        }
         history.replaceState({ loggedIn: true, tab: 'home' }, "", "#home");
         if (input) input.value = '';
+        if (typeof window.renderAll === 'function') {
+            try { window.renderAll(); } catch(e) {}
+        }
     } else {
         alert("Incorrect PIN! Please try again.");
         if (input) {
@@ -98,6 +112,7 @@ export function submitChangePin() {
         return;
     }
     state.appPin = newP;
+    try { localStorage.setItem('fia_app_pin', newP); } catch(e) {}
     syncToFirebase();
     alert("✓ PIN updated successfully!");
     closeChangePinModal();
@@ -140,6 +155,7 @@ export function verifyMasterKeyAndReset() {
     }
 
     state.appPin = newPin;
+    try { localStorage.setItem('fia_app_pin', newPin); } catch(e) {}
     syncToFirebase();
     alert('✓ Security PIN updated successfully!');
     closeResetPinModal();
@@ -154,6 +170,7 @@ export function saveNewPin() {
     const newPin = (document.getElementById('newPinInput')?.value || '').trim();
     if (newPin.length >= 3) {
         state.appPin = newPin;
+        try { localStorage.setItem('fia_app_pin', newPin); } catch(e) {}
         syncToFirebase();
         alert("Security PIN updated successfully!");
         closeSettingsModal();

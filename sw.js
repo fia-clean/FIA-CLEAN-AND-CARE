@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-v34';
+const CACHE_NAME = 'fia-clean-care-v35';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [
@@ -104,8 +104,8 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => {
           // If offline or network fails, return cached index.html immediately!
-          return caches.match(request).then((cached) => {
-            return cached || caches.match('./index.html') || caches.match('./');
+          return caches.match(request, { ignoreSearch: true }).then((cached) => {
+            return cached || caches.match('./index.html', { ignoreSearch: true }) || caches.match('./');
           });
         })
     );
@@ -127,13 +127,13 @@ self.addEventListener('fetch', (event) => {
             }
             return networkResponse;
           })
-          .catch(() => caches.match(request))
+          .catch(() => caches.match(request, { ignoreSearch: true }))
       );
       return;
     }
 
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
+      caches.match(request, { ignoreSearch: true }).then((cachedResponse) => {
         const fetchPromise = fetch(request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
@@ -156,7 +156,7 @@ self.addEventListener('fetch', (event) => {
   const isCdn = CDN_HOSTS.some((host) => url.hostname.includes(host));
   if (isCdn) {
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
+      caches.match(request, { ignoreSearch: true }).then((cachedResponse) => {
         if (cachedResponse) {
           // Serve from cache immediately, and refresh cache in background if online
           fetch(request)
