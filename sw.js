@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-v32';
+const CACHE_NAME = 'fia-clean-care-v33';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [
@@ -17,8 +17,22 @@ const PRECACHE_ASSETS = [
   './lib/html2canvas.min.js',
   './lib/html2pdf.bundle.min.js',
   './lib/jspdf.umd.min.js',
-  './lib/zxing.min.js'
+  './lib/zxing.min.js',
+  './modules/app.js',
+  './modules/core/state.js',
+  './modules/core/db.js',
+  './modules/core/auth.js',
+  './modules/dashboard/dashboard.js',
+  './modules/customers/customer.js',
+  './modules/billing/invoice-preview.js',
+  './modules/billing/billing-history.js',
+  './modules/billing/billing.js',
+  './modules/operations/stock.js',
+  './modules/operations/purchases.js',
+  './modules/operations/expenses.js',
+  './modules/daybook/daybook.js'
 ];
+
 
 // External CDN dependencies to cache dynamically
 const CDN_HOSTS = [
