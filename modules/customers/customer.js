@@ -63,15 +63,12 @@ export function saveDirectCustomerProfile(e) {
     }
 
     const cleanNameKey = name.toLowerCase();
-    const custType = document.querySelector('input[name="directCustType"]:checked')?.value || 'Retail';
 
     if (originalIndex === -1) {
         const existingIdx = (state.customers || []).findIndex(c => c && !c.billNo && String(c.name || '').trim().toLowerCase() === cleanNameKey);
         if (existingIdx !== -1) {
             state.customers[existingIdx].name = name;
             state.customers[existingIdx].phone = phone;
-            state.customers[existingIdx].customerType = custType;
-            state.customers[existingIdx].saleType = custType;
             state.customers[existingIdx].savedAt = Date.now();
             if (state.customers[existingIdx].id) unmarkIdDeleted(state.customers[existingIdx].id);
         } else {
@@ -81,8 +78,6 @@ export function saveDirectCustomerProfile(e) {
                 id: custId,
                 name: name,
                 phone: phone,
-                customerType: custType,
-                saleType: custType,
                 items: [],
                 grandTotal: 0,
                 paidAmount: 0,
@@ -100,8 +95,6 @@ export function saveDirectCustomerProfile(e) {
                 if (c && String(c.name || '').trim().toLowerCase() === String(oldName || '').trim().toLowerCase()) {
                     c.name = name;
                     c.phone = phone;
-                    c.customerType = custType;
-                    c.saleType = custType;
                     c.savedAt = Date.now();
                     if (c.id) unmarkIdDeleted(c.id);
                 }
@@ -117,7 +110,7 @@ export function saveDirectCustomerProfile(e) {
     alert(`Customer "${name}" saved successfully!`);
 }
 
-export function editCustomerProfile(name, phone, custType) {
+export function editCustomerProfile(name, phone) {
     const nEl = document.getElementById('directCustName');
     const pEl = document.getElementById('directCustPhone');
     if (nEl) nEl.value = name;
@@ -129,16 +122,6 @@ export function editCustomerProfile(name, phone, custType) {
     if (titleEl) titleEl.innerText = "Edit Customer";
     const submitBtn = document.getElementById('directCustSubmitBtn');
     if (submitBtn) submitBtn.innerText = "Update Customer";
-
-    const cObj = idx !== -1 ? state.customers[idx] : null;
-    const cType = custType || cObj?.customerType || cObj?.saleType || 'Retail';
-    const rEl = document.getElementById('directCustTypeRetail');
-    const wEl = document.getElementById('directCustTypeWholesale');
-    if (cType === 'Wholesale' && wEl) {
-        wEl.checked = true;
-    } else if (rEl) {
-        rEl.checked = true;
-    }
 
     switchCustomerSubTab('list');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -185,26 +168,17 @@ export function renderDirectCustomerList() {
     filteredNames.sort().forEach(name => {
         let cObj = state.customers.find(c => c && c.name === name && c.phone) || state.customers.find(c => c && c.name === name);
         let phone = cObj ? cObj.phone : '';
-        const cType = cObj?.customerType || cObj?.saleType || 'Retail';
-        const isWholesale = String(cType).toLowerCase() === 'wholesale';
-        const tierBadge = isWholesale
-            ? '<span class="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-0.5">🏷️ Wholesale</span>'
-            : '<span class="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-0.5">🛍️ Retail</span>';
         const safeName = String(name).replace(/'/g, "\\'");
         const safePhone = String(phone || '').replace(/'/g, "\\'");
-        const safeType = String(cType).replace(/'/g, "\\'");
         container.innerHTML += `
             <div class="flex justify-between items-center bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs">
                 <div class="min-w-0 flex-1 pr-2 break-words">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <strong class="text-amber-300 text-sm">${name}</strong>
-                        ${tierBadge}
-                    </div>
+                    <strong class="text-amber-300 text-sm">${name}</strong>
                     <p class="text-slate-400 text-[11px] mt-0.5">Phone: ${phone || 'No Phone'}</p>
                 </div>
                 <div class="flex gap-1 shrink-0">
                     <button type="button" onclick="window.viewCustomerProfile('${safeName}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 hover:bg-blue-800 font-bold">View</button>
-                    <button type="button" onclick="window.editCustomerProfile('${safeName}', '${safePhone}', '${safeType}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Edit</button>
+                    <button type="button" onclick="window.editCustomerProfile('${safeName}', '${safePhone}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Edit</button>
                     <button type="button" onclick="window.deleteDirectCustomer('${safeName}')" class="bg-slate-800 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Delete</button>
                 </div>
             </div>`;
@@ -220,8 +194,6 @@ export function resetDirectCustomerForm() {
     if (title) title.innerText = "Add Customer";
     const btn = document.getElementById('directCustSubmitBtn');
     if (btn) btn.innerText = "Save Customer";
-    const rEl = document.getElementById('directCustTypeRetail');
-    if (rEl) rEl.checked = true;
 }
 
 export function updateCustomerDropdown() {
@@ -232,18 +204,11 @@ export function updateCustomerDropdown() {
     let uniqueCusts = {};
     (state.customers || []).forEach(c => {
         if (c && c.name) {
-            const existing = uniqueCusts[c.name];
-            const cType = c.customerType || c.saleType || 'Retail';
-            if (!existing || (!existing.phone && c.phone)) {
-                uniqueCusts[c.name] = { phone: c.phone || '', saleType: cType };
-            }
+            uniqueCusts[c.name] = c.phone || '';
         }
     });
     Object.keys(uniqueCusts).sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base', numeric: true })).forEach(name => {
-        const info = uniqueCusts[name];
-        const isWholesale = String(info.saleType).toLowerCase() === 'wholesale';
-        const badge = isWholesale ? ' [🏷️ Wholesale]' : ' [🛍️ Retail]';
-        select.innerHTML += `<option value="${name}" data-phone="${info.phone}" data-sale-type="${info.saleType}">${name}${badge}</option>`;
+        select.innerHTML += `<option value="${name}" data-phone="${uniqueCusts[name]}">${name}</option>`;
     });
     if (current && uniqueCusts[current] !== undefined) select.value = current;
 }
@@ -255,20 +220,6 @@ export function fillExistingCustomer() {
         document.getElementById('custName').value = name;
         const selectedOpt = select.options[select.selectedIndex];
         document.getElementById('custPhone').value = selectedOpt?.getAttribute('data-phone') || '';
-        const custSaleType = selectedOpt?.getAttribute('data-sale-type') || 'Retail';
-        const isWholesale = String(custSaleType).toLowerCase() === 'wholesale';
-        const rRadio = document.getElementById('billSaleTypeRetail');
-        const wRadio = document.getElementById('billSaleTypeWholesale');
-        if (isWholesale && wRadio) {
-            wRadio.checked = true;
-            if (rRadio) rRadio.checked = false;
-        } else if (rRadio) {
-            rRadio.checked = true;
-            if (wRadio) wRadio.checked = false;
-        }
-        if (typeof window.onSaleTypeChange === 'function') {
-            window.onSaleTypeChange();
-        }
     } else {
         document.getElementById('custName').value = '';
         document.getElementById('custPhone').value = '';

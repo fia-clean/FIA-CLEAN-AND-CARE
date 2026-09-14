@@ -962,17 +962,6 @@
                         <input type="hidden" id="directCustOriginalIndex" value="-1">
                         <input type="text" id="directCustName" placeholder="Customer Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-amber-500">
                         <input type="text" id="directCustPhone" placeholder="Phone Number" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-amber-500">
-                        <div class="space-y-1">
-                            <label class="text-[10px] text-slate-400 block mb-1">Customer Pricing Tier (Default Rate):</label>
-                            <div class="flex gap-4 p-2 bg-slate-900 rounded-xl border border-slate-700">
-                                <label class="flex items-center gap-2 text-xs cursor-pointer font-bold text-slate-200">
-                                    <input type="radio" id="directCustTypeRetail" name="directCustType" value="Retail" checked class="accent-emerald-500 scale-110"> 🛍️ Retail Customer
-                                </label>
-                                <label class="flex items-center gap-2 text-xs cursor-pointer font-bold text-slate-200">
-                                    <input type="radio" id="directCustTypeWholesale" name="directCustType" value="Wholesale" class="accent-amber-500 scale-110"> 🏷️ Wholesale Customer
-                                </label>
-                            </div>
-                        </div>
                         <div class="flex gap-2 pt-1">
                             <button type="submit" id="directCustSubmitBtn" class="flex-1 bg-amber-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-amber-500 transition shadow-lg shadow-amber-900/30">Save Customer</button>
                             <button type="button" onclick="resetDirectCustomerForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm hover:bg-slate-700 transition border border-slate-700">Clear</button>
@@ -1733,7 +1722,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=37"></script>
+    <script type="module" src="./modules/app.js?v=38"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-amber-300 border border-amber-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -1776,7 +1765,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=37')
+                navigator.serviceWorker.register('./sw.js?v=38')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

@@ -237,12 +237,6 @@ export function normalizeLoadedProducts() {
         if (!Number.isFinite(r) && Number.isFinite(s)) p.retailPrice = s;
         if (!Number.isFinite(s) && Number.isFinite(r)) p.salePrice = r;
     });
-    (state.customers || []).forEach(c => {
-        if (!c) return;
-        if (!c.customerType) {
-            c.customerType = c.saleType || 'Retail';
-        }
-    });
 }
 
 // -------------------------------------------------------------
