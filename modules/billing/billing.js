@@ -503,7 +503,10 @@ export function checkAndDeductPackageStock(items) {
     items.forEach(item => {
         if (!item.packageId) return;
         const pkg = (state.packages || []).find(p => String(p.id) === String(item.packageId));
-        if (pkg) pkg.stock = Math.max(0, (parseFloat(pkg.stock) || 0) - Number(item.numberOfUnits || 1));
+        if (pkg) {
+            pkg.stock = Math.max(0, (parseFloat(pkg.stock) || 0) - Number(item.numberOfUnits || 1));
+            pkg.savedAt = Date.now();
+        }
     });
     return { ok: true };
 }
@@ -512,7 +515,10 @@ export function restorePackageStock(items) {
     (items || []).forEach(item => {
         if (!item.packageId) return;
         const pkg = (state.packages || []).find(p => String(p.id) === String(item.packageId));
-        if (pkg) pkg.stock = (parseFloat(pkg.stock) || 0) + Number(item.numberOfUnits || 1);
+        if (pkg) {
+            pkg.stock = (parseFloat(pkg.stock) || 0) + Number(item.numberOfUnits || 1);
+            pkg.savedAt = Date.now();
+        }
     });
 }
 
@@ -711,13 +717,19 @@ export function saveCustomer(e) {
         restorePackageStock(oldBill.items || []);
         (oldBill.items || []).forEach(oldItem => {
             const rec = getStockProductRecord(oldItem);
-            if (rec && rec.product) rec.product.stock = (parseFloat(rec.product.stock) || 0) + (parseFloat(oldItem.stockDeductionQty || oldItem.qty) || 0);
+            if (rec && rec.product) {
+                rec.product.stock = (parseFloat(rec.product.stock) || 0) + (parseFloat(oldItem.stockDeductionQty || oldItem.qty) || 0);
+                rec.product.savedAt = Date.now();
+            }
         });
     }
 
     state.currentBillItems.forEach(item => {
         const rec = getStockProductRecord(item);
-        if (rec && rec.product) rec.product.stock = (parseFloat(rec.product.stock) || 0) - (parseFloat(item.stockDeductionQty) || 0);
+        if (rec && rec.product) {
+            rec.product.stock = (parseFloat(rec.product.stock) || 0) - (parseFloat(item.stockDeductionQty) || 0);
+            rec.product.savedAt = Date.now();
+        }
     });
     checkAndDeductPackageStock(state.currentBillItems);
 
@@ -1046,7 +1058,10 @@ export function restoreCosSaleStock(s) {
     norm.items.forEach(item => {
         if (item.stockId) {
             const p = (state.cosProducts || []).find(x => x.id === item.stockId);
-            if (p) p.stock = (parseFloat(p.stock) || 0) + (parseFloat(item.stockDeductionQty ?? item.qty) || 0);
+            if (p) {
+                p.stock = (parseFloat(p.stock) || 0) + (parseFloat(item.stockDeductionQty ?? item.qty) || 0);
+                p.savedAt = Date.now();
+            }
         }
     });
 }
@@ -1063,7 +1078,10 @@ export function deductCosSaleStock(items) {
     items.forEach(item => {
         if (!item.stockId) return;
         const p = (state.cosProducts || []).find(x => x.id === item.stockId);
-        if (p) p.stock = (parseFloat(p.stock) || 0) - (parseFloat(item.stockDeductionQty ?? item.qty) || 0);
+        if (p) {
+            p.stock = (parseFloat(p.stock) || 0) - (parseFloat(item.stockDeductionQty ?? item.qty) || 0);
+            p.savedAt = Date.now();
+        }
     });
     return { ok: true };
 }

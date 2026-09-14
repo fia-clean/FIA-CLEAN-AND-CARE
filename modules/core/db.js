@@ -50,6 +50,18 @@ export function updateSyncStatus(connected, customText) {
 
 export function ensureStableTransactionIds() {
     const stamp = Date.now();
+    (state.products || []).forEach((p, idx) => {
+        if (!p) return;
+        if (!p.id) p.id = 'prod_' + (stamp + idx);
+    });
+    (state.cosProducts || []).forEach((p, idx) => {
+        if (!p) return;
+        if (!p.id) p.id = 'cp_' + (stamp + idx);
+    });
+    (state.packages || []).forEach((p, idx) => {
+        if (!p) return;
+        if (!p.id) p.id = 'pkg_' + (stamp + idx);
+    });
     (state.customers || []).forEach((c, idx) => {
         if (!c) return;
         if (!c.id && !c.billNo) c.id = 'cust_' + (stamp + idx);
@@ -82,6 +94,59 @@ export function ensureStableTransactionIds() {
     });
 }
 
+export function mergeInventoryProducts(localList, cloudList) {
+    const map = new Map();
+    const nameToId = new Map();
+    const rawCloud = Array.isArray(cloudList) ? cloudList : Object.values(cloudList || {});
+    rawCloud.forEach(item => {
+        if (!item || isRecordDeleted(null, item)) return;
+        const idKey = String(item.id || '').trim();
+        const nameKey = String(item.name || '').trim().toLowerCase();
+        if (idKey) {
+            map.set(idKey, item);
+            if (nameKey) nameToId.set(nameKey, idKey);
+        } else if (nameKey) {
+            map.set(nameKey, item);
+        }
+    });
+
+    const rawLocal = Array.isArray(localList) ? localList : Object.values(localList || {});
+    rawLocal.forEach(item => {
+        if (!item || isRecordDeleted(null, item)) return;
+        const idKey = String(item.id || '').trim();
+        const nameKey = String(item.name || '').trim().toLowerCase();
+
+        let targetKey = idKey;
+        let existing = idKey ? map.get(idKey) : null;
+        if (!existing && nameKey && nameToId.has(nameKey)) {
+            targetKey = nameToId.get(nameKey);
+            existing = map.get(targetKey);
+        }
+        if (!existing && nameKey && map.has(nameKey)) {
+            targetKey = nameKey;
+            existing = map.get(targetKey);
+        }
+
+        if (!existing) {
+            const key = idKey || nameKey;
+            if (key) {
+                map.set(key, item);
+                if (nameKey) nameToId.set(nameKey, key);
+            }
+        } else {
+            const localTime = Number(item.savedAt || item.updatedAt || item.createdAt || 0);
+            const cloudTime = Number(existing.savedAt || existing.updatedAt || existing.createdAt || 0);
+            // Strict greater-than: local only overrides cloud if modified explicitly after cloud
+            if (localTime > cloudTime) {
+                const stableId = existing.id || item.id;
+                map.set(targetKey, { ...existing, ...item, id: stableId });
+            }
+        }
+    });
+
+    return Array.from(map.values());
+}
+
 export function mergeCollection(localList, cloudList, idField = 'id') {
     const map = new Map();
     const rawCloud = Array.isArray(cloudList) ? cloudList : Object.values(cloudList || {});
@@ -101,7 +166,7 @@ export function mergeCollection(localList, cloudList, idField = 'id') {
             const existing = map.get(key);
             const localTime = Number(item.savedAt || item.updatedAt || item.createdAt || 0);
             const cloudTime = Number(existing.savedAt || existing.updatedAt || existing.createdAt || 0);
-            if (localTime >= cloudTime) {
+            if (localTime > cloudTime) {
                 map.set(key, { ...existing, ...item });
             }
         }
@@ -136,7 +201,7 @@ export function mergeCustomerBills(localList, cloudList) {
             const existing = map.get(k);
             const localTime = Number(c.savedAt || c.createdAt || 0);
             const cloudTime = Number(existing.savedAt || existing.createdAt || 0);
-            if (localTime >= cloudTime) {
+            if (localTime > cloudTime) {
                 map.set(k, { ...existing, ...c });
             }
         }
@@ -172,6 +237,7 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     unmarkActive(data.cosPurchases, p => [p.id]);
     unmarkActive(data.expenses, e => [e.id]);
     unmarkActive(data.stockReturns, r => [r.id]);
+    unmarkActive(data.packages, p => [p.id, p.name]);
 
     // 2. Sync remote tombstone deleted IDs into local tombstones
     const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
@@ -184,14 +250,14 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     } catch(e) {}
 
     // 3. Safe bidirectional union: local unsaved records are NEVER erased!
-    state.products = mergeCollection(state.products, data.products, 'id');
-    state.cosProducts = mergeCollection(state.cosProducts, data.cosProducts, 'id');
+    state.products = mergeInventoryProducts(state.products, data.products);
+    state.cosProducts = mergeInventoryProducts(state.cosProducts, data.cosProducts);
     state.customers = mergeCustomerBills(state.customers, data.customers);
     state.purchases = mergeCollection(state.purchases, data.purchases, 'id');
     state.expenses = mergeCollection(state.expenses, data.expenses, 'id');
     state.cosPurchases = mergeCollection(state.cosPurchases, data.cosPurchases, 'id');
     state.cosSales = mergeCollection(state.cosSales, data.cosSales, 'id');
-    state.packages = mergeCollection(state.packages, data.packages, 'id');
+    state.packages = mergeInventoryProducts(state.packages, data.packages);
     state.stockReturns = mergeCollection(state.stockReturns, data.stockReturns, 'id');
     normalizeLoadedProducts();
 
@@ -212,6 +278,8 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     if (window.renderSalesHistory) window.renderSalesHistory();
     if (window.updateStockReturnDropdowns) window.updateStockReturnDropdowns();
     if (window.renderStockReturnHistory) window.renderStockReturnHistory();
+    if (typeof window.renderConsolidatedStockReport === 'function') window.renderConsolidatedStockReport();
+    if (typeof window.renderPackageConsolidationReport === 'function') window.renderPackageConsolidationReport();
 }
 
 export function syncToFirebase() {
@@ -238,14 +306,14 @@ export function syncToFirebase() {
         let mergedStockReturns = state.stockReturns || [];
 
         if (cloud) {
-            mergedProducts = mergeCollection(state.products, cloud.products, 'id');
-            mergedCosProducts = mergeCollection(state.cosProducts, cloud.cosProducts, 'id');
+            mergedProducts = mergeInventoryProducts(state.products, cloud.products);
+            mergedCosProducts = mergeInventoryProducts(state.cosProducts, cloud.cosProducts);
             mergedCustomers = mergeCustomerBills(state.customers, cloud.customers);
             mergedPurchases = mergeCollection(state.purchases, cloud.purchases, 'id');
             mergedExpenses = mergeCollection(state.expenses, cloud.expenses, 'id');
             mergedCosPurchases = mergeCollection(state.cosPurchases, cloud.cosPurchases, 'id');
             mergedCosSales = mergeCollection(state.cosSales, cloud.cosSales, 'id');
-            mergedPackages = mergeCollection(state.packages, cloud.packages, 'id');
+            mergedPackages = mergeInventoryProducts(state.packages, cloud.packages);
             mergedStockReturns = mergeCollection(state.stockReturns, cloud.stockReturns, 'id');
 
             // Synchronize state with the merged union
@@ -475,5 +543,8 @@ if (typeof window !== 'undefined') {
     window.downloadFullBackup = downloadFullBackup;
     window.openBackupFilePicker = openBackupFilePicker;
     window.restoreFullBackup = restoreFullBackup;
+    window.applyCloudData = applyCloudData;
+    window.mergeInventoryProducts = mergeInventoryProducts;
+    window.mergeCollection = mergeCollection;
 }
 

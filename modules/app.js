@@ -492,7 +492,7 @@ export function switchTab(tabName, pushToHistory = true) {
     }
     renderAll();
     hideUnwantedStockMenus();
-    if (tabName === 'billing' || tabName === 'customers') {
+    if (['billing', 'customers', 'stock', 'operations', 'cosmetics', 'purchase', 'expenses'].includes(tabName)) {
         if (typeof pullFromFirebase === 'function') pullFromFirebase();
     }
 }
@@ -501,6 +501,7 @@ export function openOperationSection(section) {
     switchTab(section);
     const tab = document.getElementById('tabOperations');
     if (tab) tab.className = "px-3 py-2 text-center font-bold text-emerald-400 border-b-2 border-emerald-400 whitespace-nowrap transition";
+    if (typeof pullFromFirebase === 'function') pullFromFirebase();
     if (section === 'stock') setTimeout(() => switchStockSubTab('cleaning'), 0);
     if (section === 'purchase') setTimeout(() => switchPurchaseSubTab('cleaning'), 0);
 }
@@ -691,9 +692,9 @@ if (typeof window !== 'undefined') {
         pullFromFirebase();
         startAutomaticBackup();
 
-        // Register Service Worker for offline PWA (v38)
+        // Register Service Worker for offline PWA (v39)
         if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
-            navigator.serviceWorker.register('./sw.js?v=38').then(reg => {
+            navigator.serviceWorker.register('./sw.js?v=39').then(reg => {
                 console.log('ServiceWorker registered with scope:', reg.scope);
                 reg.update();
             }).catch(err => {

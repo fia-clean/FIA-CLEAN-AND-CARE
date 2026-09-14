@@ -11,7 +11,7 @@ import {
     markIdDeleted,
     unmarkIdDeleted
 } from '../core/state.js';
-import { syncToFirebase } from '../core/db.js';
+import { syncToFirebase, pullFromFirebase } from '../core/db.js';
 import { getProductWholesalePrice, getProductRetailPrice, updateProductDropdown, updateCombinedProductSelect, updateBillQuantityTypeDropdown } from '../billing/billing.js';
 
 export function updatePackageSelectors() {
@@ -215,6 +215,7 @@ export function switchPackageActionTab(tab) {
 }
 
 export function switchStockTopTab(tab) {
+    if (typeof pullFromFirebase === 'function') pullFromFirebase();
     const productArea = document.getElementById('stockProductArea');
     const packageArea = document.getElementById('stockPackageArea');
     const p = document.getElementById('stockTopProduct');
@@ -240,6 +241,7 @@ export function switchStockTopTab(tab) {
 }
 
 export function switchStockSubTab(tab) {
+    if (typeof pullFromFirebase === 'function') pullFromFirebase();
     const cleaning = document.getElementById('stockCleaningContent');
     const cosmetics = document.getElementById('stockCosmeticsContent');
     const b1 = document.getElementById('subTabStockCleaning');
@@ -272,6 +274,9 @@ export function switchStockSubTab(tab) {
 }
 
 export function switchStockActionTab(type, tab) {
+    if (tab === 'view' || tab === 'consolidated') {
+        if (typeof pullFromFirebase === 'function') pullFromFirebase();
+    }
     const prefix = type === 'cosmetics' ? 'cos' : 'clean';
     const ids = ['add', 'view', 'return', 'consolidated'];
     ids.forEach(t => {
@@ -307,7 +312,8 @@ export function savePackage(e) {
     if (!name) return;
     const pkgId = id || ('pkg_' + Date.now());
     unmarkIdDeleted(pkgId);
-    const data = { id: pkgId, name, size, unit, stock };
+    const stamp = Date.now();
+    const data = { id: pkgId, name, size, unit, stock, savedAt: stamp };
     if (id) {
         const i = state.packages.findIndex(x => String(x.id) === String(id));
         if (i >= 0) state.packages[i] = { ...state.packages[i], ...data };
@@ -364,8 +370,9 @@ export function deletePackage(id) {
     if (!confirm(`Delete package item "${name}"?`)) return;
     markIdDeleted(id);
     state.packages = state.packages.filter(x => String(x.id) !== String(id));
-    state.products.forEach(p => { if (String(p.packageId) === String(id)) { p.packageId = ''; p.packageQty = 0; } });
-    state.cosProducts.forEach(p => { if (String(p.packageId) === String(id)) { p.packageId = ''; p.packageQty = 0; } });
+    const stamp = Date.now();
+    state.products.forEach(p => { if (String(p.packageId) === String(id)) { p.packageId = ''; p.packageQty = 0; p.savedAt = stamp; } });
+    state.cosProducts.forEach(p => { if (String(p.packageId) === String(id)) { p.packageId = ''; p.packageQty = 0; p.savedAt = stamp; } });
     syncToFirebase();
     if (typeof window.renderAll === 'function') window.renderAll();
     renderPackages();
@@ -376,6 +383,7 @@ export function addPackageStock(id, qty) {
     const x = state.packages.find(p => String(p.id) === String(id));
     if (!x || !(qty > 0)) return;
     x.stock = (Number(x.stock) || 0) + qty;
+    x.savedAt = Date.now();
     syncToFirebase();
     renderPackages();
     updatePackageSelectors();
@@ -577,10 +585,12 @@ export function saveProduct(e) {
     const packageId = mapped.packageId, packageQty = mapped.packageQty, packageName = mapped.packageName;
     if (rawPackageId && !packageId) { alert('Selected package was not found. Please refresh the package list and select the package again.'); return; }
     const variants = getProductFormVariants('cleaning');
-    const finalProdId = id === "" ? Date.now().toString() : id;
+    const finalProdId = id === "" ? ('prod_' + Date.now().toString()) : id;
     unmarkIdDeleted(finalProdId);
-    if (id === "") { state.products.push({ id: finalProdId, name, barcode, stock, unit, wholesalePrice, retailPrice, packageId, packageQty, packageName, variants }); }
-    else { const idx = state.products.findIndex(p => String(p.id) === String(id)); if (idx !== -1) state.products[idx] = { ...state.products[idx], id: finalProdId, name, barcode, stock, unit, wholesalePrice, retailPrice, packageId, packageQty, packageName, variants }; }
+    const stamp = Date.now();
+    const prodData = { id: finalProdId, name, barcode, stock, unit, wholesalePrice, retailPrice, packageId, packageQty, packageName, variants, savedAt: stamp };
+    if (id === "") { state.products.push(prodData); }
+    else { const idx = state.products.findIndex(p => String(p.id) === String(id)); if (idx !== -1) state.products[idx] = { ...state.products[idx], ...prodData }; }
     syncToFirebase();
     resetProductForm();
     renderProducts();
@@ -596,7 +606,9 @@ export function addCleaningStock() {
     const qty = parseFloat(document.getElementById('cleanAddStockQty')?.value);
     if (!id || !(qty > 0)) { alert('Product and valid stock quantity are required.'); return; }
     const p = state.products.find(x => x.id === id); if (!p) return;
-    p.stock = (parseFloat(p.stock) || 0) + qty; syncToFirebase();
+    p.stock = (parseFloat(p.stock) || 0) + qty;
+    p.savedAt = Date.now();
+    syncToFirebase();
     document.getElementById('cleanAddStockQty').value = ''; renderProducts();
     if (typeof updateProductDropdown === 'function') updateProductDropdown();
     updateCleaningAddStockDropdown();
@@ -635,6 +647,7 @@ export function saveStockReturn(event, type) {
 
     if (condition === 'Usable') {
         product.stock = (parseFloat(product.stock) || 0) + qty;
+        product.savedAt = Date.now();
     }
 
     state.stockReturns.push({
@@ -648,7 +661,8 @@ export function saveStockReturn(event, type) {
         condition,
         reason: (reasonEl?.value || '').trim(),
         remarks: (remarksEl?.value || '').trim(),
-        date: todayDDMMYYYY()
+        date: todayDDMMYYYY(),
+        savedAt: Date.now()
     });
 
     syncToFirebase();
@@ -812,21 +826,20 @@ export function saveCosProduct(e) {
     const variants = getProductFormVariants('cosmetics');
     const finalCosId = id === '' ? ('cp_' + Date.now().toString()) : id;
     unmarkIdDeleted(finalCosId);
+    const stamp = Date.now();
+    const cosData = {
+        id: finalCosId,
+        name, barcode, stock, unit, costPrice, salePrice,
+        wholesalePrice: costPrice, retailPrice: salePrice,
+        packageId, packageQty, packageName, variants,
+        savedAt: stamp
+    };
     if (id === '') {
-        state.cosProducts.push({
-            id: finalCosId,
-            name, barcode, stock, unit, costPrice, salePrice,
-            wholesalePrice: costPrice, retailPrice: salePrice,
-            packageId, packageQty, packageName, variants
-        });
+        state.cosProducts.push(cosData);
     } else {
         const idx = state.cosProducts.findIndex(p => p.id === id);
         if (idx !== -1) {
-            state.cosProducts[idx] = {
-                ...state.cosProducts[idx], id: finalCosId, name, barcode, stock, unit, costPrice, salePrice,
-                wholesalePrice: costPrice, retailPrice: salePrice,
-                packageId, packageQty, packageName, variants
-            };
+            state.cosProducts[idx] = { ...state.cosProducts[idx], ...cosData };
         }
     }
     syncToFirebase();
@@ -847,6 +860,7 @@ export function addCosmeticStock() {
     const p = state.cosProducts.find(x => x.id === id);
     if (!p) return;
     p.stock = (parseFloat(p.stock) || 0) + qty;
+    p.savedAt = Date.now();
     syncToFirebase();
     document.getElementById('cosAddStockQty').value = '';
     renderCosProductStock();

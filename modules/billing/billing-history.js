@@ -257,6 +257,7 @@ export function deleteCustomerBill(billIdentifier, askConfirm = true) {
             const rec = window.getStockProductRecord ? window.getStockProductRecord(oldItem) : null;
             if (rec && rec.product) {
                 rec.product.stock = (parseFloat(rec.product.stock) || 0) + (parseFloat(oldItem.stockDeductionQty ?? oldItem.qty) || 0);
+                rec.product.savedAt = Date.now();
             }
         });
     }
