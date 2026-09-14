@@ -10,7 +10,7 @@ import {
     startAutomaticBackup,
     todayDDMMYYYY,
     getTodayDateString
-} from './core/state.js?v=47.7';
+} from './core/state.js?v=47.8';
 import {
     startRealtimeSync,
     pullFromFirebase,
@@ -19,7 +19,7 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup
-} from './core/db.js?v=47.7';
+} from './core/db.js?v=47.8';
 import {
     verifyLoginPin,
     logoutApp,
@@ -33,7 +33,7 @@ import {
     saveNewPin,
     openSettingsModal,
     closeSettingsModal
-} from './core/auth.js?v=47.7';
+} from './core/auth.js?v=47.8';
 
 // Feature Modules
 import {
@@ -47,7 +47,7 @@ import {
     closeLowStockList,
     goToAddStockFromLowStock,
     pushDashboardModalState
-} from './dashboard/dashboard.js?v=47.7';
+} from './dashboard/dashboard.js?v=47.8';
 
 import {
     saveDirectCustomer,
@@ -67,7 +67,7 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport
-} from './customers/customer.js?v=47.7';
+} from './customers/customer.js?v=47.8';
 
 import {
     previewBill,
@@ -82,7 +82,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=47.7';
+} from './billing/invoice-preview.js?v=47.8';
 
 import {
     renderSalesHistory,
@@ -91,7 +91,7 @@ import {
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
-} from './billing/billing-history.js?v=47.7';
+} from './billing/billing-history.js?v=47.8';
 
 import {
     getProductWholesalePrice,
@@ -146,7 +146,7 @@ import {
     renderCosSales,
     resetCosSalesForm,
     renderCosmeticsSummary
-} from './billing/billing.js?v=47.7';
+} from './billing/billing.js?v=47.8';
 
 import {
     updatePackageSelectors,
@@ -196,7 +196,7 @@ import {
     viewProduct,
     viewCosProduct,
     viewPackage
-} from './operations/stock.js?v=47.7';
+} from './operations/stock.js?v=47.8';
 
 import {
     getTodayPurchaseDate,
@@ -251,7 +251,7 @@ import {
     shareSelectedSupplierConsolidatedDetail,
     sharePurchaseConsolidationReport,
     downloadPurchaseConsolidationReportPDF
-} from './operations/purchases.js?v=47.7';
+} from './operations/purchases.js?v=47.8';
 
 import {
     saveExpense,
@@ -260,7 +260,7 @@ import {
     renderExpenses,
     resetExpenseForm,
     viewExpense
-} from './operations/expenses.js?v=47.7';
+} from './operations/expenses.js?v=47.8';
 
 import {
     dashboardDateKey,
@@ -276,7 +276,7 @@ import {
     saveDayBookOpeningValues,
     renderAccounts,
     exportDayBookToCSV
-} from './daybook/daybook.js?v=47.7';
+} from './daybook/daybook.js?v=47.8';
 
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {
@@ -513,8 +513,11 @@ export function switchTab(tabName, pushToHistory = true) {
     }
     renderAll();
     hideUnwantedStockMenus();
-    if (['billing', 'customers', 'stock', 'operations', 'cosmetics', 'purchase', 'expenses'].includes(tabName)) {
+    if (['billing', 'customers', 'stock', 'operations', 'cosmetics', 'purchase', 'expenses', 'accounts'].includes(tabName)) {
         if (typeof pullFromFirebase === 'function') pullFromFirebase();
+    }
+    if (tabName === 'accounts' && typeof renderAccounts === 'function') {
+        renderAccounts();
     }
 }
 
@@ -871,7 +874,7 @@ if (typeof window !== 'undefined') {
                 deferredPwaPrompt = null;
             });
         } else {
-            alert("FIA CLEAN & CARE ആപ്പ് ഇൻസ്റ്റാൾ ചെയ്യാൻ:\n\n1. Android (Chrome): മുകളിൽ വലതുഭാഗത്തെ 3 കുത്തുകളിൽ (⋮) ക്ലിക്ക് ചെയ്ത് 'Install app' അല്ലെങ്കിൽ 'Add to Home screen' കൊടുക്കുക.\n2. iPhone (Safari): താഴെയുള്ള Share ചിഹ്നം (⬆️) ക്ലിക്ക് ചെയ്ത് 'Add to Home Screen' കൊടുക്കുക.\n\nഇപ്പോൾ ഒഫീഷ്യൽ ഫിയ ലോഗോയോടെ നിങ്ങളുടെ മൊബൈൽ ഹോം സ്ക്രീനിൽ ആപ്പ് ഐക്കൺ വരുന്നതാണ്!");
+            alert("To install FIA CLEAN & CARE:\n\n1. Android (Chrome): Tap the 3 dots (⋮) in the top-right and select 'Install app' or 'Add to Home screen'.\n2. iPhone (Safari): Tap the Share icon (⬆️) and select 'Add to Home Screen'.\n\nThe official FIA icon will now appear on your home screen!");
         }
     };
 

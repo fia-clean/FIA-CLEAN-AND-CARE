@@ -12,7 +12,8 @@ import {
     parseDateDDMMYYYY,
     getTodayDateString,
     todayDDMMYYYY,
-    saveLocalStateSafely
+    saveLocalStateSafely,
+    isItemDeleted
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
 import { normalizeCosSale } from '../billing/billing-history.js';
@@ -146,7 +147,7 @@ export function getAllMasterEntries() {
     ensureStableTransactionIds();
     let entries = [];
     (state.customers || []).forEach((c, i) => {
-        if (!c) return;
+        if (!c || c._deleted || isItemDeleted(c)) return;
         let incomeVal = Number(c.grandTotal || c.paidAmount || 0);
         const entryId = c.id ? ('bill_' + c.id) : (c.billNo ? ('bill_' + c.billNo + '_' + (c.savedAt || i)) : ('c_' + (c.savedAt || i)));
         if (incomeVal > 0) {
@@ -167,7 +168,7 @@ export function getAllMasterEntries() {
         }
     });
     (state.cosSales || []).forEach((s, i) => {
-        if (!s) return;
+        if (!s || s._deleted || isItemDeleted(s)) return;
         const norm = normalizeCosSale(s) || {};
         let incomeVal = Number(norm.grandTotal || norm.paidAmount || 0);
         const entryId = s.id ? ('cossale_' + s.id) : (s.billNo ? ('cossale_' + s.billNo + '_' + (s.savedAt || i)) : ('cs_' + (s.savedAt || i)));
@@ -189,7 +190,7 @@ export function getAllMasterEntries() {
         }
     });
     (state.purchases || []).forEach((p, i) => {
-        if (!p) return;
+        if (!p || p._deleted || isItemDeleted(p)) return;
         const gross = Number(p.rawCost || p.paid || 0);
         const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : gross;
         const entryId = p.id ? ('purch_' + p.id) : ('p_' + (p.savedAt || i));
@@ -210,7 +211,7 @@ export function getAllMasterEntries() {
         }
     });
     (state.cosPurchases || []).forEach((p, i) => {
-        if (!p) return;
+        if (!p || p._deleted || isItemDeleted(p)) return;
         const gross = Number(p.amount || p.paid || 0);
         const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : gross;
         const entryId = p.id ? ('cospurch_' + p.id) : ('cp_' + (p.savedAt || i));
@@ -231,7 +232,7 @@ export function getAllMasterEntries() {
         }
     });
     (state.expenses || []).forEach((ex, i) => {
-        if (!ex) return;
+        if (!ex || ex._deleted || isItemDeleted(ex)) return;
         const amount = Number(ex.amount || 0);
         const entryId = ex.id ? ('exp_' + ex.id) : ('e_' + (ex.savedAt || i));
         if (amount > 0) {
@@ -245,26 +246,6 @@ export function getAllMasterEntries() {
                 amount,
                 date: cleanDate,
                 timestamp: Number(ex.savedAt || dateSortValue(cleanDate) || 0)
-            });
-        }
-    });
-    (state.cosPurchases || []).forEach((cp, i) => {
-        if (!cp) return;
-        const amount = Number(cp.amount || cp.paid || 0);
-        const entryId = cp.id ? ('cospurch_' + cp.id) : ('cp_' + (cp.savedAt || i));
-        if (amount > 0) {
-            const cleanDate = normalizeToDateKey(cp.date) || normalizeToDateKey(cp.savedAt) || getTodayDateString();
-            entries.push({
-                id: entryId,
-                originalId: cp.id,
-                type: 'Expense',
-                category: 'Cosmetics Purchase',
-                desc: `Cosmetics Purchase: ${cp.item || 'Item'} (${cp.supplier || 'Supplier'})`,
-                amount,
-                paidAmount: Number(cp.paid || 0),
-                pendingAmount: Math.max(0, Number(cp.balance || 0)),
-                date: cleanDate,
-                timestamp: Number(cp.savedAt || dateSortValue(cleanDate) || 0)
             });
         }
     });

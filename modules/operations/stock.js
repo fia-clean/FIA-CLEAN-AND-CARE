@@ -58,7 +58,7 @@ export function addProductVariantRow(target = 'cleaning', data = null) {
     row.dataset.varId = v.id;
     row.innerHTML = `
         <div class="flex justify-between items-center gap-2">
-            <span class="text-[11px] font-extrabold ${target === 'cosmetics' ? 'text-pink-300' : 'text-emerald-300'}">📦 Pack Variant (പാക്ക് അളവ്)</span>
+            <span class="text-[11px] font-extrabold ${target === 'cosmetics' ? 'text-pink-300' : 'text-emerald-300'}">📦 Pack Variant</span>
             <button type="button" onclick="this.closest('.prod-variant-row').remove()" class="bg-red-950/80 hover:bg-red-900 text-red-300 px-2 py-0.5 rounded-lg text-[10px] font-bold border border-red-800" title="Delete Variant">✕ Remove</button>
         </div>
         <div>
@@ -67,7 +67,7 @@ export function addProductVariantRow(target = 'cleaning', data = null) {
         </div>
         <div class="grid grid-cols-2 gap-2">
             <div>
-                <label class="text-[10px] text-slate-400 block mb-0.5 font-semibold">Volume / Size (അളവ്):</label>
+                <label class="text-[10px] text-slate-400 block mb-0.5 font-semibold">Volume / Size:</label>
                 <div class="flex gap-1">
                     <input type="number" class="var-size w-3/5 p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white font-bold focus:outline-none focus:border-emerald-500" placeholder="Size" value="${v.size || ''}" min="0" step="any">
                     <select class="var-unit w-2/5 p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none">
@@ -89,11 +89,11 @@ export function addProductVariantRow(target = 'cleaning', data = null) {
         </div>
         <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
             <div>
-                <label class="text-[10px] text-emerald-400 block mb-0.5 font-extrabold">Retail Price (₹) [റീട്ടെയിൽ]:</label>
+                <label class="text-[10px] text-emerald-400 block mb-0.5 font-extrabold">Retail Price (₹):</label>
                 <input type="number" class="var-retail w-full p-2 bg-slate-900 border border-emerald-600/70 rounded-xl text-xs text-emerald-300 font-black focus:outline-none focus:border-emerald-400" placeholder="Enter Retail Price" value="${v.retailPrice !== undefined && v.retailPrice !== '' ? v.retailPrice : ''}" min="0" step="any">
             </div>
             <div>
-                <label class="text-[10px] text-amber-400 block mb-0.5 font-extrabold">Wholesale Price (₹) [ഹോൾസെയിൽ]:</label>
+                <label class="text-[10px] text-amber-400 block mb-0.5 font-extrabold">Wholesale Price (₹):</label>
                 <input type="number" class="var-wholesale w-full p-2 bg-slate-900 border border-amber-600/70 rounded-xl text-xs text-amber-300 font-black focus:outline-none focus:border-amber-400" placeholder="Enter Wholesale Price" value="${v.wholesalePrice !== undefined && v.wholesalePrice !== '' ? v.wholesalePrice : ''}" min="0" step="any">
             </div>
         </div>`;

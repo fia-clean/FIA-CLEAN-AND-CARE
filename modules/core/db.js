@@ -409,6 +409,7 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     }
 
     if (window.renderAll) window.renderAll();
+    if (typeof window.renderAccounts === 'function') window.renderAccounts();
     if (window.renderSalesHistory) window.renderSalesHistory();
     if (window.updateStockReturnDropdowns) window.updateStockReturnDropdowns();
     if (window.renderStockReturnHistory) window.renderStockReturnHistory();

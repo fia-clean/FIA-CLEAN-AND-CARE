@@ -596,7 +596,7 @@ export function addToBillItems() {
         const totalNeeded = Number((alreadyAdded + stockDeductionQty).toFixed(3));
         if (totalNeeded > currentStock) {
             const avail = Math.max(0, currentStock - alreadyAdded);
-            alert(`⚠️ ഇൻസഫിഷ്യന്റ് സ്റ്റോക്ക് (Insufficient Stock)!\n\nഉൽപ്പന്നം: ${product.name}\nലഭ്യമായ സ്റ്റോക്ക്: ${currentStock.toFixed(2)} ${product.unit || ''}\nഇതിനകം ചേർത്തത്: ${alreadyAdded.toFixed(2)} ${product.unit || ''}\nഇപ്പോൾ ആവശ്യമായത്: ${stockDeductionQty.toFixed(2)} ${product.unit || ''}\nബാക്കി നൽകാവുന്നത്: ${avail.toFixed(2)} ${product.unit || ''}`);
+            alert(`⚠️ Insufficient Stock!\n\nProduct: ${product.name}\nAvailable Stock: ${currentStock.toFixed(2)} ${product.unit || ''}\nAlready in bill: ${alreadyAdded.toFixed(2)} ${product.unit || ''}\nRequested Qty: ${stockDeductionQty.toFixed(2)} ${product.unit || ''}\nRemaining available: ${avail.toFixed(2)} ${product.unit || ''}`);
             return;
         }
     }
@@ -610,7 +610,7 @@ export function addToBillItems() {
             .reduce((sum, i) => sum + Number(i.numberOfUnits || 1), 0);
         const totalNeededPkg = alreadyAddedPkg + numberOfUnits;
         if (totalNeededPkg > currentPkgStock) {
-            alert(`⚠️ കണ്ടെയ്‌നർ പാക്കേജിംഗ് സ്റ്റോക്ക് ലഭ്യമല്ല!\n\nകണ്ടെയ്‌നർ: ${pkg.name}\nലഭ്യമായ സ്റ്റോക്ക്: ${currentPkgStock} ${pkg.unit || 'Pcs'}\nആവശ്യമായത്: ${totalNeededPkg} ${pkg.unit || 'Pcs'}`);
+            alert(`⚠️ Container packaging stock not available!\n\nContainer: ${pkg.name}\nAvailable Stock: ${currentPkgStock} ${pkg.unit || 'Pcs'}\nRequired: ${totalNeededPkg} ${pkg.unit || 'Pcs'}`);
             return;
         }
     }
@@ -668,7 +668,7 @@ export function editBillItem(index) {
             .filter(i => (i.stockId && product.id && String(i.stockId) === String(product.id)) || i.productName === product.name)
             .reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
         if (otherItemsStock + newStockDeduction > currentStock) {
-            alert(`⚠️ ഇൻസഫിഷ്യന്റ് സ്റ്റോക്ക്!\n\nലഭ്യമായ സ്റ്റോക്ക്: ${currentStock} ${product.unit || ''}\nആവശ്യമായത്: ${(otherItemsStock + newStockDeduction).toFixed(2)} ${product.unit || ''}`);
+            alert(`⚠️ Insufficient Stock!\n\nAvailable Stock: ${currentStock} ${product.unit || ''}\nRequired: ${(otherItemsStock + newStockDeduction).toFixed(2)} ${product.unit || ''}`);
             return;
         }
     }
@@ -682,7 +682,7 @@ export function editBillItem(index) {
                 .filter(i => String(i.packageId) === String(pkg.id))
                 .reduce((sum, i) => sum + Number(i.numberOfUnits || 1), 0);
             if (otherPkgUnits + newUnits > currentPkgStock) {
-                alert(`⚠️ കണ്ടെയ്‌നർ പാക്കേജിംഗ് സ്റ്റോക്ക് ലഭ്യമല്ല!\n\nകണ്ടെയ്‌നർ: ${pkg.name}\nലഭ്യമായ സ്റ്റോക്ക്: ${currentPkgStock} ${pkg.unit || 'Pcs'}\nആവശ്യമായത്: ${otherPkgUnits + newUnits} ${pkg.unit || 'Pcs'}`);
+                alert(`⚠️ Container packaging stock not available!\n\nContainer: ${pkg.name}\nAvailable Stock: ${currentPkgStock} ${pkg.unit || 'Pcs'}\nRequired: ${otherPkgUnits + newUnits} ${pkg.unit || 'Pcs'}`);
                 return;
             }
         }
@@ -823,7 +823,7 @@ export function saveCustomer(e) {
     for (const [_, info] of bulkNeededByProd) {
         const avail = Number(info.product.stock || 0);
         if (info.needed > avail) {
-            stockDeficits.push(`• ${info.product.name}: ആവശ്യമായത് ${info.needed.toFixed(2)} ${info.product.unit || ''}, ലഭ്യമായത് ${avail.toFixed(2)} ${info.product.unit || ''}`);
+            stockDeficits.push(`• ${info.product.name}: Needed ${info.needed.toFixed(2)} ${info.product.unit || ''}, Available ${avail.toFixed(2)} ${info.product.unit || ''}`);
         }
     }
 
@@ -843,7 +843,7 @@ export function saveCustomer(e) {
     for (const [_, info] of pkgNeededById) {
         const avail = Number(info.pkg.stock || 0);
         if (info.needed > avail) {
-            stockDeficits.push(`• കണ്ടെയ്‌നർ (${info.pkg.name}): ആവശ്യമായത് ${info.needed} ${info.pkg.unit || 'Pcs'}, ലഭ്യമായത് ${avail} ${info.pkg.unit || 'Pcs'}`);
+            stockDeficits.push(`• Container (${info.pkg.name}): Needed ${info.needed} ${info.pkg.unit || 'Pcs'}, Available ${avail} ${info.pkg.unit || 'Pcs'}`);
         }
     }
 
@@ -858,7 +858,7 @@ export function saveCustomer(e) {
                 }
             });
         }
-        alert(`⚠️ ബില്ലിംഗ് പൂർത്തിയാക്കാൻ സാധ്യമല്ല!\nചില ഉൽപ്പന്നങ്ങൾക്ക് ആവശ്യമായ സ്റ്റോക്ക് ലഭ്യമല്ല (Insufficient Stock):\n\n${stockDeficits.join('\n')}\n\nദയവായി അളവ് ക്രമീകരിക്കുകയോ സ്റ്റോക്ക് ചേർക്കുകയോ ചെയ്യുക.`);
+        alert(`⚠️ Cannot complete billing!\nInsufficient stock for the following items:\n\n${stockDeficits.join('\n')}\n\nPlease adjust quantities or add stock.`);
         return;
     }
 
@@ -1920,7 +1920,7 @@ export function saveCombinedBill(e) {
     for (const [_, info] of bulkNeeded) {
         const avail = Number(info.product.stock || 0);
         if (info.needed > avail) {
-            combinedDeficits.push(`• ${info.product.name}: ആവശ്യമായത് ${info.needed.toFixed(2)} ${info.product.unit || ''}, ലഭ്യമായത് ${avail.toFixed(2)} ${info.product.unit || ''}`);
+            combinedDeficits.push(`• ${info.product.name}: Needed ${info.needed.toFixed(2)} ${info.product.unit || ''}, Available ${avail.toFixed(2)} ${info.product.unit || ''}`);
         }
     }
 
@@ -1938,7 +1938,7 @@ export function saveCombinedBill(e) {
     for (const [_, info] of pkgNeeded) {
         const avail = Number(info.pkg.stock || 0);
         if (info.needed > avail) {
-            combinedDeficits.push(`• കണ്ടെയ്‌നർ (${info.pkg.name}): ആവശ്യമായത് ${info.needed} ${info.pkg.unit || 'Pcs'}, ലഭ്യമായത് ${avail} ${info.pkg.unit || 'Pcs'}`);
+            combinedDeficits.push(`• Container (${info.pkg.name}): Needed ${info.needed} ${info.pkg.unit || 'Pcs'}, Available ${avail} ${info.pkg.unit || 'Pcs'}`);
         }
     }
 
@@ -1950,7 +1950,7 @@ export function saveCombinedBill(e) {
                 if (p) p.stock = Math.max(0, (Number(p.stock) || 0) - Number(old.stockDeductionQty || old.qty || 0));
             });
         }
-        alert(`⚠️ ബില്ലിംഗ് പൂർത്തിയാക്കാൻ സാധ്യമല്ല!\nചില ഉൽപ്പന്നങ്ങൾക്ക് ആവശ്യമായ സ്റ്റോക്ക് ലഭ്യമല്ല (Insufficient Stock):\n\n${combinedDeficits.join('\n')}\n\nദയവായി അളവ് ക്രമീകരിക്കുകയോ സ്റ്റോക്ക് ചേർക്കുകയോ ചെയ്യുക.`);
+        alert(`⚠️ Cannot complete billing!\nInsufficient stock for the following items:\n\n${combinedDeficits.join('\n')}\n\nPlease adjust quantities or add stock.`);
         return;
     }
 

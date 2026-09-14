@@ -111,8 +111,8 @@ export function populatePurchaseReturnProductDropdown(isCos, matchedProdId = '',
     let html = '';
     
     if (!isDirectStock) {
-        html += '<option value="none" selected>ℹ️ റോ മെറ്റീരിയൽ റിട്ടേൺ (സപ്ലയർ അക്കൗണ്ട് മാത്രം അപ്ഡേറ്റ് ചെയ്യുക - സ്റ്റോക്ക് മാറ്റമില്ല)</option>';
-        html += '<optgroup label="നിർമ്മിത ഉൽപ്പന്നത്തിന്റെ സ്റ്റോക്കിൽ നിന്ന് കുറയ്ക്കണമെങ്കിൽ മാത്രം തിരഞ്ഞെടുക്കുക">';
+        html += '<option value="none" selected>ℹ️ Raw Material Return (Update supplier account only - no stock change)</option>';
+        html += '<optgroup label="Select only if deducting from finished product inventory">';
     } else {
         html += '<option value="">-- Select Product to Deduct Stock --</option>';
         html += `<optgroup label="${isCos ? 'Cosmetics Stock' : 'Cleaning Stock'}">`;
@@ -137,7 +137,7 @@ export function populatePurchaseReturnProductDropdown(isCos, matchedProdId = '',
     
     if (isDirectStock) {
         html += '<optgroup label="Options">';
-        html += '<option value="none">⚠️ ഇൻവെന്ററിയിൽ നിന്ന് കുറയ്ക്കേണ്ടതില്ല (Financial record only)</option>';
+        html += '<option value="none">⚠️ Do not deduct from inventory (Financial record only)</option>';
         html += '</optgroup>';
     }
     
@@ -427,7 +427,7 @@ export function savePurchase(e) {
     if (typeof window.renderAccounts === 'function') window.renderAccounts();
     renderPurchaseHistory('cleaning');
 
-    alert(isEdit ? '✅ പർച്ചേസ് വിവരങ്ങൾ വിജയകരമായി അപ്‌ഡേറ്റ് ചെയ്തു!' : '✅ പുതിയ പർച്ചേസ് വിജയകരമായി സേവ് ചെയ്തു!');
+    alert(isEdit ? '✓ Purchase updated successfully!' : '✓ New purchase saved successfully!');
     switchPurchaseActionTab('cleaning', 'view');
 }
 
@@ -653,11 +653,11 @@ export function fillPurchaseReturnDetails() {
     
     if (badge) {
         if (isDirectStock && matchedProd) {
-            badge.innerHTML = `<span class="text-emerald-400 font-bold">✓ ലിങ്ക് ചെയ്ത ഉൽപ്പന്നം: ${matchedProd.name} (സ്റ്റോക്ക് കുറയ്ക്കും)</span>`;
+            badge.innerHTML = `<span class="text-emerald-400 font-bold">✓ Linked Product: ${matchedProd.name} (will deduct stock)</span>`;
         } else if (matchedProd) {
-            badge.innerHTML = `<span class="text-sky-300 font-semibold">ℹ️ റോ മെറ്റീരിയൽ: സപ്ലയർ അക്കൗണ്ട് അപ്ഡേറ്റ് ചെയ്യും (സ്റ്റോക്ക് ഓപ്ഷണൽ)</span>`;
+            badge.innerHTML = `<span class="text-sky-300 font-semibold">ℹ️ Raw Material: Updates supplier account (stock optional)</span>`;
         } else {
-            badge.innerHTML = `<span class="text-slate-400 font-semibold">ℹ️ റോ മെറ്റീരിയൽ റിട്ടേൺ (സപ്ലയർ അക്കൗണ്ട് അപ്ഡേറ്റ് ചെയ്യും)</span>`;
+            badge.innerHTML = `<span class="text-slate-400 font-semibold">ℹ️ Raw Material Return (Updates supplier account)</span>`;
         }
     }
     
@@ -673,7 +673,7 @@ export function fillPurchaseReturnDetails() {
     if (d && !d.value) d.value = getTodayPurchaseDate();
     
     if (info) {
-        const retInfoBadge = retQty > 0 ? `<div class="text-[10px] text-rose-400 font-semibold pt-0.5">↩️ ഇതിനകം റിട്ടേൺ ചെയ്തത്: <b class="text-white">${retQty} ${unitName}</b> (-₹${p.returnedAmount.toFixed(2)})</div>` : '';
+        const retInfoBadge = retQty > 0 ? `<div class="text-[10px] text-rose-400 font-semibold pt-0.5">↩️ Already Returned: <b class="text-white">${retQty} ${unitName}</b> (-₹${p.returnedAmount.toFixed(2)})</div>` : '';
         info.innerHTML = `
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-xs space-y-1.5 mt-1">
                 <div class="flex justify-between items-start">
@@ -784,7 +784,7 @@ export function savePurchaseReturn(type) {
     const unit = String((isCos ? (p.unit || p.rawUnit) : (p.rawUnit || p.unit)) || '').trim();
     
     if (max <= 0) {
-        alert('⚠️ ഈ പർച്ചേസ് ഇതിനകം പൂർണ്ണമായി റിട്ടേൺ ചെയ്തിട്ടുണ്ട് (Already Fully Returned).');
+        alert('⚠️ This purchase is already fully returned.');
         return;
     }
     if (qty <= 0 || qty > max) {
@@ -823,9 +823,9 @@ export function savePurchaseReturn(type) {
         prod.updatedAt = now;
         prod.lastPurchaseReturn = { qty: deductionApplied, returnQtyInput: qty, date: retDate, updatedAt: now };
         stockDeducted = true;
-        stockNotice = `\n📦 ഇൻവെന്ററി സ്റ്റോക്ക് കുറച്ചു (${prod.name}): ${before} ➔ ${prod.stock} ${prod.unit || ''} (-${deductionApplied} ${prod.unit || ''})`;
+        stockNotice = `\n📦 Inventory stock deducted (${prod.name}): ${before} ➔ ${prod.stock} ${prod.unit || ''} (-${deductionApplied} ${prod.unit || ''})`;
     } else {
-        stockNotice = `\nℹ️ റോ മെറ്റീരിയൽ റിട്ടേൺ: സപ്ലയർ അക്കൗണ്ടും വാങ്ങൽ തുകയും കൃത്യമായി പുനർനിർണ്ണയിച്ചു.`;
+        stockNotice = `\nℹ️ Raw material return: Supplier account and net purchase updated.`;
     }
     
     const ret = {
@@ -868,8 +868,8 @@ export function savePurchaseReturn(type) {
     const reasonEl = document.getElementById(isCos ? 'cosPurchaseReturnReason' : 'purchaseReturnReason');
     if (reasonEl) reasonEl.value = '';
     
-    const balMsg = p.refundDue > 0 ? `റീഫണ്ട് ലഭിക്കാനുള്ള തുക: ₹${p.refundDue}` : `ബാക്കി നൽകാനുള്ളത്: ₹${p.balance}`;
-    alert(`✅ പർച്ചേസ് റിട്ടേൺ വിജയകരമായി സേവ് ചെയ്തു!\n• റിട്ടേൺ ചെയ്ത അളവ്: ${qty} ${unit || ''} (തുക: ₹${retAmount})\n• ബാക്കി നെറ്റ് പർച്ചേസ്: ₹${p.netPurchaseAmount} (നെറ്റ് സ്റ്റോക്ക്: ${p.netQty} ${unit || ''})\n• ${balMsg}${stockNotice}`);
+    const balMsg = p.refundDue > 0 ? `Refund due to you: ₹${p.refundDue}` : `Balance payable: ₹${p.balance}`;
+    alert(`✓ Purchase return saved successfully!\n• Returned Qty: ${qty} ${unit || ''} (Amount: ₹${retAmount})\n• Net Purchase: ₹${p.netPurchaseAmount} (Net Stock: ${p.netQty} ${unit || ''})\n• ${balMsg}${stockNotice}`);
 }
 
 export function deletePurchaseReturn(type, purchaseId, returnIndex) {
@@ -923,7 +923,7 @@ export function deletePurchaseReturn(type, purchaseId, returnIndex) {
     if (typeof renderPurchaseConsolidationView === 'function') renderPurchaseConsolidationView();
     if (typeof renderPurchaseConsolidationReport === 'function') renderPurchaseConsolidationReport();
     
-    alert('✅ പർച്ചേസ് റിട്ടേൺ നീക്കം ചെയ്യുകയും സ്റ്റോക്ക് തിരികെ ചേർക്കുകയും ചെയ്തു!');
+    alert('✓ Purchase return removed and stock restored!');
 }
 
 export function renderPurchaseReturnHistory() {
@@ -1018,11 +1018,11 @@ export function fillCosPurchaseReturnDetails() {
     
     if (badge) {
         if (isDirectStock && matchedProd) {
-            badge.innerHTML = `<span class="text-pink-400 font-bold">✓ ലിങ്ക് ചെയ്ത ഉൽപ്പന്നം: ${matchedProd.name} (സ്റ്റോക്ക് കുറയ്ക്കും)</span>`;
+            badge.innerHTML = `<span class="text-pink-400 font-bold">✓ Linked Product: ${matchedProd.name} (will deduct stock)</span>`;
         } else if (matchedProd) {
-            badge.innerHTML = `<span class="text-pink-300 font-semibold">ℹ️ റോ മെറ്റീരിയൽ: സപ്ലയർ അക്കൗണ്ട് അപ്ഡേറ്റ് ചെയ്യും (സ്റ്റോക്ക് ഓപ്ഷണൽ)</span>`;
+            badge.innerHTML = `<span class="text-pink-300 font-semibold">ℹ️ Raw Material: Updates supplier account (stock optional)</span>`;
         } else {
-            badge.innerHTML = `<span class="text-slate-400 font-semibold">ℹ️ റോ മെറ്റീരിയൽ റിട്ടേൺ (സപ്ലയർ അക്കൗണ്ട് അപ്ഡേറ്റ് ചെയ്യും)</span>`;
+            badge.innerHTML = `<span class="text-slate-400 font-semibold">ℹ️ Raw Material Return (Updates supplier account)</span>`;
         }
     }
     
@@ -1038,7 +1038,7 @@ export function fillCosPurchaseReturnDetails() {
     if (d && !d.value) d.value = getTodayPurchaseDate();
     
     if (info) {
-        const retInfoBadge = retQty > 0 ? `<div class="text-[10px] text-rose-400 font-semibold pt-0.5">↩️ ഇതിനകം റിട്ടേൺ ചെയ്തത്: <b class="text-white">${retQty} ${unitName}</b> (-₹${p.returnedAmount.toFixed(2)})</div>` : '';
+        const retInfoBadge = retQty > 0 ? `<div class="text-[10px] text-rose-400 font-semibold pt-0.5">↩️ Already Returned: <b class="text-white">${retQty} ${unitName}</b> (-₹${p.returnedAmount.toFixed(2)})</div>` : '';
         info.innerHTML = `
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-xs space-y-1.5 mt-1">
                 <div class="flex justify-between items-start">
@@ -1280,7 +1280,7 @@ export function saveCosPurchase(e) {
     if (typeof window.renderAccounts === 'function') window.renderAccounts();
     renderPurchaseHistory('cosmetics');
 
-    alert(isEdit ? '✅ കോസ്മെറ്റിക്സ് പർച്ചേസ് വിവരങ്ങൾ വിജയകരമായി അപ്‌ഡേറ്റ് ചെയ്തു!' : '✅ പുതിയ കോസ്മെറ്റിക്സ് പർച്ചേസ് വിജയകരമായി സേവ് ചെയ്തു!');
+    alert(isEdit ? '✓ Cosmetics purchase updated successfully!' : '✓ New cosmetics purchase saved successfully!');
     switchPurchaseActionTab('cosmetics', 'view');
 }
 

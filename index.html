@@ -350,7 +350,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("പുതിയ അപ്‌ഡേറ്റുകൾ ലോഡ് ചെയ്യാനും കാഷെ (Cache) ക്ലിയർ ചെയ്യാനും താല്പര്യപ്പെടുന്നുണ്ടോ?\n\nഇത് ആപ്പിലെ ഏറ്റവും പുതിയ വേർഷൻ (v47.7) ഉടനടി ആക്റ്റീവാക്കും.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v47.8) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -632,7 +632,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v47.7</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v47.8</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
@@ -648,7 +648,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v47.7</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v47.8</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -846,8 +846,8 @@
                             <div class="p-3 bg-slate-900/90 border border-emerald-500/40 rounded-xl space-y-2.5">
                                 <div class="flex items-center justify-between gap-2">
                                     <div>
-                                        <span class="text-xs font-bold text-emerald-300">📦 Pack Sizes & Pricing (മൾട്ടി പാക്ക് വേരിയന്റുകൾ)</span>
-                                        <p class="text-[10px] text-slate-400">500ml Bottle, 500ml Pouch, 1L Bottle, 5L Can മുതലായവ പ്രത്യേക റേറ്റും പാക്കേജുമായി നൽകാം.</p>
+                                        <span class="text-xs font-bold text-emerald-300">📦 Pack Sizes & Pricing (Multi-Pack Variants)</span>
+                                        <p class="text-[10px] text-slate-400">Specify custom rates and packaging for 500ml Bottle, 500ml Pouch, 1L Bottle, 5L Can, etc.</p>
                                     </div>
                                     <button type="button" onclick="addProductVariantRow('cleaning')" class="bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-emerald-500/50 shadow shrink-0">+ Add Pack</button>
                                 </div>
@@ -935,8 +935,8 @@
 <div class="p-3 bg-slate-900/90 border border-pink-500/40 rounded-xl space-y-2.5">
     <div class="flex items-center justify-between gap-2">
         <div>
-            <span class="text-xs font-bold text-pink-300">📦 Pack Sizes & Pricing (മൾട്ടി പാക്ക് വേരിയന്റുകൾ)</span>
-            <p class="text-[10px] text-slate-400">വിവിധ പാക്ക് അളവുകൾ, പാക്കേജിംഗ്, റേറ്റുകൾ ഇവിടെ നൽകാം.</p>
+            <span class="text-xs font-bold text-pink-300">📦 Pack Sizes & Pricing (Multi-Pack Variants)</span>
+            <p class="text-[10px] text-slate-400">Specify custom pack sizes, packaging containers, and rates here.</p>
         </div>
         <button type="button" onclick="addProductVariantRow('cosmetics')" class="bg-pink-700 hover:bg-pink-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-pink-500/50 shadow shrink-0">+ Add Pack</button>
     </div>
@@ -1366,11 +1366,11 @@
                     <div id="purchaseReturnInfo" class="text-[11px] text-slate-400">Select a purchase to return.</div>
                     <div class="space-y-1">
                         <label class="text-[11px] font-semibold text-slate-300 flex items-center justify-between">
-                            <span>📦 കുറയ്ക്കേണ്ട ഇൻവെന്ററി സ്റ്റോക്ക് (Inventory Stock to Deduct):</span>
+                            <span>📦 Inventory Stock to Deduct:</span>
                             <span id="purchaseReturnMatchBadge" class="text-[10px] font-bold"></span>
                         </label>
                         <select id="purchaseReturnProductSelect" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
-                            <option value="">-- ഓട്ടോമാറ്റിക് അല്ലെങ്കിൽ ലിസ്റ്റിൽ നിന്ന് തിരഞ്ഞെടുക്കുക --</option>
+                            <option value="">-- Automatic or Select from List --</option>
                         </select>
                     </div>
                     <div class="flex gap-2">
@@ -1484,11 +1484,11 @@
                     <div id="cosPurchaseReturnInfo" class="text-[11px] text-slate-400">Select a purchase to return.</div>
                     <div class="space-y-1">
                         <label class="text-[11px] font-semibold text-slate-300 flex items-center justify-between">
-                            <span>📦 കുറയ്ക്കേണ്ട ഇൻവെന്ററി സ്റ്റോക്ക് (Inventory Stock to Deduct):</span>
+                            <span>📦 Inventory Stock to Deduct:</span>
                             <span id="cosPurchaseReturnMatchBadge" class="text-[10px] font-bold"></span>
                         </label>
                         <select id="cosPurchaseReturnProductSelect" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
-                            <option value="">-- ഓട്ടോമാറ്റിക് അല്ലെങ്കിൽ ലിസ്റ്റിൽ നിന്ന് തിരഞ്ഞെടുക്കുക --</option>
+                            <option value="">-- Automatic or Select from List --</option>
                         </select>
                     </div>
                     <div class="flex gap-2">
@@ -1586,6 +1586,7 @@
                 <div class="flex justify-between items-center">
                     <h2 class="font-bold text-purple-400 text-sm">Day Book & Date-wise Reports</h2>
                     <div class="flex gap-1.5 flex-wrap justify-end">
+                        <button type="button" onclick="if(window.renderAccounts) window.renderAccounts(); if(window.pullFromFirebase) window.pullFromFirebase();" class="text-[10px] bg-purple-900/60 text-purple-300 border border-purple-700/50 px-2.5 py-1 rounded-lg hover:bg-purple-800 transition font-bold">🔄 Refresh</button>
                         <button id="restoreDayBookBtn" type="button" onclick="restoreClearedDayBook()" class="text-[10px] bg-amber-900/60 text-amber-300 border border-amber-700/50 px-2.5 py-1 rounded-lg hover:bg-amber-800 transition font-bold hidden">🔄 Restore</button>
                         <button onclick="exportDayBookToCSV()" class="text-[10px] bg-emerald-900/60 text-emerald-300 border border-emerald-700/50 px-2.5 py-1 rounded-lg hover:bg-emerald-800 transition font-bold">📥 Excel Export</button>
                         <button onclick="clearDayBook()" class="text-[10px] bg-red-900/60 text-red-300 border border-red-700/50 px-2.5 py-1 rounded-lg hover:bg-red-800 transition font-bold">🗑️ Clear</button>
@@ -1921,7 +1922,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=47.7"></script>
+    <script type="module" src="./modules/app.js?v=47.8"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-amber-300 border border-amber-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -1933,7 +1934,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("പുതിയ അപ്‌ഡേറ്റുകൾ ലോഡ് ചെയ്യാനും കാഷെ (Cache) ക്ലിയർ ചെയ്യാനും താല്പര്യപ്പെടുന്നുണ്ടോ?\n\nഇത് ആപ്പിലെ ഏറ്റവും പുതിയ വേർഷൻ (v47.7) ഉടനടി ആക്റ്റീവാക്കും.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v47.8) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -1975,7 +1976,7 @@
                     deferredPwaPrompt = null;
                 });
             } else {
-                alert("FIA CLEAN & CARE ആപ്പ് ഇൻസ്റ്റാൾ ചെയ്യാൻ:\n\n1. Android (Chrome): മുകളിൽ വലതുഭാഗത്തെ 3 കുത്തുകളിൽ (⋮) ക്ലിക്ക് ചെയ്ത് 'Install app' അല്ലെങ്കിൽ 'Add to Home screen' കൊടുക്കുക.\n2. iPhone (Safari): താഴെയുള്ള Share ചിഹ്നം (⬆️) ക്ലിക്ക് ചെയ്ത് 'Add to Home Screen' കൊടുക്കുക.\n\nഇപ്പോൾ ഒഫീഷ്യൽ ഫിയ ലോഗോയോടെ നിങ്ങളുടെ മൊബൈൽ ഹോം സ്ക്രീനിൽ ആപ്പ് ഐക്കൺ വരുന്നതാണ്!");
+                alert("To install FIA CLEAN & CARE:\n\n1. Android (Chrome): Tap the 3 dots (⋮) in the top-right and select 'Install app' or 'Add to Home screen'.\n2. iPhone (Safari): Tap the Share icon (⬆️) and select 'Add to Home Screen'.\n\nThe official FIA icon will now appear on your home screen!");
             }
         };
 
@@ -1987,7 +1988,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=47.7')
+                navigator.serviceWorker.register('./sw.js?v=47.8')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

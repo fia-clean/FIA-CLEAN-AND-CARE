@@ -44,7 +44,7 @@ export function saveExpense(e) {
     resetExpenseForm();
     renderExpenses();
     if (typeof window.renderAccounts === 'function') window.renderAccounts();
-    alert('✅ ചിലവ് വിവരങ്ങൾ വിജയകരമായി സേവ് ചെയ്തു!');
+    alert('✓ Expense details saved successfully!');
 }
 
 export function editExpense(index) {

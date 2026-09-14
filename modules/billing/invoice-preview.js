@@ -468,7 +468,7 @@ export function generateA4Pages(c) {
                 </table>
                 <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px dashed #9ca3af; padding: 8px 4px; margin-top: 10px; font-size: 11px; font-weight: bold; color: #4b5563;">
                     <span>📄 Bill No: ${c.billNo || '—'} (Page 1 of 2)</span>
-                    <span style="color: ${themeColor}; font-weight: 800;">(തുടർച്ച അടുത്ത പേജിൽ / Continued on Page 2 ➔)</span>
+                    <span style="color: ${themeColor}; font-weight: 800;">(Continued on Page 2 ➔)</span>
                 </div>
             </div>
         `;
@@ -480,7 +480,7 @@ export function generateA4Pages(c) {
                         <strong style="color: ${themeColor}; font-size: 13px; font-weight: 900;">${brandTitle} — BILL NO: ${c.billNo || '—'}</strong>
                         <span style="font-size: 11px; color: #4b5563; margin-left: 12px;">Customer: ${c.name || 'Walk-in'} • Date: ${formatDateDDMMYYYY(c.date)}</span>
                     </div>
-                    <span style="background: ${themeColor}; color: #ffffff; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 800; -webkit-print-color-adjust: exact; print-color-adjust: exact;">പേജ് 2 / PAGE 2 (CONTINUED)</span>
+                    <span style="background: ${themeColor}; color: #ffffff; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 800; -webkit-print-color-adjust: exact; print-color-adjust: exact;">PAGE 2 (CONTINUED)</span>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px;">
                     ${getA4TableHeadHtml(themeColor, themeHeaderBg)}
@@ -665,7 +665,7 @@ export async function downloadBillPDF() {
         setTimeout(() => URL.revokeObjectURL(url), 2000);
     } catch (err) {
         console.warn('PDF blob generation error, opening print dialog:', err);
-        alert('PDF ഡൗൺലോഡ് ചെയ്യുന്നതിൽ തടസ്സം നേരിട്ടു. പ്രിന്റ് വിൻഡോ തുറക്കുന്നു (അവിടെ നിന്നും Save as PDF നൽകാം).');
+        alert('PDF download encountered an issue. Opening print window (choose Save as PDF).');
         printBill();
     }
 }
@@ -708,13 +708,13 @@ export async function shareBillPdfWhatsApp() {
                 ? `https://api.whatsapp.com/send?phone=91${cleanPhone}`
                 : `https://api.whatsapp.com/send`;
             window.open(waUrl, '_blank');
-            alert(`ബില്ലിന്റെ PDF ഫയൽ (${fileName}) നിങ്ങളുടെ ഡൗൺലോഡ്സിൽ സേവ് ചെയ്തിട്ടുണ്ട്. വാട്സാപ്പിൽ ആ PDF ഫയൽ അറ്റാച്ച് ചെയ്ത് അയക്കാവുന്നതാണ്.`);
+            alert(`Invoice PDF (${fileName}) saved to your Downloads. You can attach it in WhatsApp.`);
         }
     } catch (err) {
         console.warn('WhatsApp PDF share issue:', err);
         if (err && err.name !== 'AbortError') {
             downloadBillPDF();
-            alert('PDF നേരിട്ട് വാട്സാപ്പിൽ ഷെയർ ചെയ്യാൻ സാധിച്ചില്ല. ബിൽ PDF നിങ്ങളുടെ ഡൗൺലോഡ്സിൽ സേവ് ചെയ്തിട്ടുണ്ട്.');
+            alert('Could not share PDF directly to WhatsApp. The file has been saved to your Downloads.');
         }
     } finally {
         if (btnText) btnText.textContent = originalText;
@@ -804,13 +804,13 @@ export async function shareBillImageWhatsApp() {
                 ? `https://api.whatsapp.com/send?phone=91${cleanPhone}`
                 : `https://api.whatsapp.com/send`;
             window.open(waUrl, '_blank');
-            alert('ബില്ലിന്റെ ഫോട്ടോ നിങ്ങളുടെ ഗാലറിയിൽ / ഡൗൺലോഡ്സിൽ സേവ് ചെയ്തിട്ടുണ്ട്. വാട്സാപ്പിൽ ആ ഫോട്ടോ മാത്രം അറ്റാച്ച് ചെയ്ത് അയക്കാവുന്നതാണ്.');
+            alert('Invoice image saved to your Gallery / Downloads. You can attach it in WhatsApp.');
         }
     } catch (err) {
         console.warn('WhatsApp image share encountered issue:', err);
         if (err && err.name !== 'AbortError') {
             downloadBillImage();
-            alert('ഇമേജ് നേരിട്ട് വാട്സാപ്പിൽ ഷെയർ ചെയ്യാൻ സാധിച്ചില്ല. ബിൽ ഫോട്ടോ നിങ്ങളുടെ ഡൗൺലോഡ്സിൽ സേവ് ചെയ്തിട്ടുണ്ട്.');
+            alert('Could not share image directly to WhatsApp. The image has been saved to your Downloads.');
         }
     } finally {
         if (btnText) btnText.textContent = originalText;
