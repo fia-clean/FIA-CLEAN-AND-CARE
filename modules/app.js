@@ -692,9 +692,9 @@ if (typeof window !== 'undefined') {
         pullFromFirebase();
         startAutomaticBackup();
 
-        // Register Service Worker for offline PWA (v39)
+        // Register Service Worker for offline PWA (v40)
         if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
-            navigator.serviceWorker.register('./sw.js?v=39').then(reg => {
+            navigator.serviceWorker.register('./sw.js?v=40').then(reg => {
                 console.log('ServiceWorker registered with scope:', reg.scope);
                 reg.update();
             }).catch(err => {

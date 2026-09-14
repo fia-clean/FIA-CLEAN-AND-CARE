@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-v39';
+const CACHE_NAME = 'fia-clean-care-v40';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [

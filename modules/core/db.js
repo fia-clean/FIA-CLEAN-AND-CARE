@@ -209,11 +209,139 @@ export function mergeCustomerBills(localList, cloudList) {
     return Array.from(map.values());
 }
 
+export function detectLocalUnsynced(localState, cloudData) {
+    if (!cloudData) return true;
+
+    // Check cleaning products
+    const cloudProducts = Array.isArray(cloudData.products) ? cloudData.products : Object.values(cloudData.products || {});
+    const cloudProdMap = new Map();
+    cloudProducts.forEach(p => {
+        if (!p) return;
+        if (p.id) cloudProdMap.set(String(p.id).trim(), p);
+        if (p.name) cloudProdMap.set('named_' + String(p.name).trim().toLowerCase(), p);
+    });
+    for (const lp of (localState.products || [])) {
+        if (!lp || isItemDeleted(lp)) continue;
+        const cp = (lp.id && cloudProdMap.get(String(lp.id).trim())) || (lp.name && cloudProdMap.get('named_' + String(lp.name).trim().toLowerCase()));
+        if (!cp) return true;
+        if (Number(lp.savedAt || 0) > Number(cp.savedAt || 0)) return true;
+    }
+
+    // Check cosmetic products
+    const cloudCos = Array.isArray(cloudData.cosProducts) ? cloudData.cosProducts : Object.values(cloudData.cosProducts || {});
+    const cloudCosMap = new Map();
+    cloudCos.forEach(p => {
+        if (!p) return;
+        if (p.id) cloudCosMap.set(String(p.id).trim(), p);
+        if (p.name) cloudCosMap.set('named_' + String(p.name).trim().toLowerCase(), p);
+    });
+    for (const lp of (localState.cosProducts || [])) {
+        if (!lp || isItemDeleted(lp)) continue;
+        const cp = (lp.id && cloudCosMap.get(String(lp.id).trim())) || (lp.name && cloudCosMap.get('named_' + String(lp.name).trim().toLowerCase()));
+        if (!cp) return true;
+        if (Number(lp.savedAt || 0) > Number(cp.savedAt || 0)) return true;
+    }
+
+    // Check packages
+    const cloudPkgs = Array.isArray(cloudData.packages) ? cloudData.packages : Object.values(cloudData.packages || {});
+    const cloudPkgMap = new Map();
+    cloudPkgs.forEach(p => {
+        if (!p) return;
+        if (p.id) cloudPkgMap.set(String(p.id).trim(), p);
+        if (p.name) cloudPkgMap.set('named_' + String(p.name).trim().toLowerCase(), p);
+    });
+    for (const lp of (localState.packages || [])) {
+        if (!lp || isItemDeleted(lp)) continue;
+        const cp = (lp.id && cloudPkgMap.get(String(lp.id).trim())) || (lp.name && cloudPkgMap.get('named_' + String(lp.name).trim().toLowerCase()));
+        if (!cp) return true;
+        if (Number(lp.savedAt || 0) > Number(cp.savedAt || 0)) return true;
+    }
+
+    // Check customers
+    const cloudCusts = Array.isArray(cloudData.customers) ? cloudData.customers : Object.values(cloudData.customers || {});
+    const cloudCustMap = new Map();
+    cloudCusts.forEach(c => {
+        if (!c) return;
+        if (c.id) cloudCustMap.set(String(c.id).trim().toLowerCase(), c);
+        if (c.billNo) cloudCustMap.set('b_' + String(c.billNo).trim().toUpperCase(), c);
+    });
+    for (const lc of (localState.customers || [])) {
+        if (!lc || isCustItemDeleted(lc)) continue;
+        const cc = (lc.id && cloudCustMap.get(String(lc.id).trim().toLowerCase())) || (lc.billNo && cloudCustMap.get('b_' + String(lc.billNo).trim().toUpperCase()));
+        if (!cc) return true;
+        if (Number(lc.savedAt || lc.createdAt || 0) > Number(cc.savedAt || cc.createdAt || 0)) return true;
+    }
+
+    // Check purchases, expenses, cosPurchases, cosSales, stockReturns
+    const listPairs = [
+        { local: localState.purchases, cloud: cloudData.purchases },
+        { local: localState.expenses, cloud: cloudData.expenses },
+        { local: localState.cosPurchases, cloud: cloudData.cosPurchases },
+        { local: localState.cosSales, cloud: cloudData.cosSales },
+        { local: localState.stockReturns, cloud: cloudData.stockReturns }
+    ];
+    for (const pair of listPairs) {
+        const rawCloud = Array.isArray(pair.cloud) ? pair.cloud : Object.values(pair.cloud || {});
+        const cMap = new Map();
+        rawCloud.forEach(item => {
+            if (!item) return;
+            const k = String(item.id || item.billNo || '').trim();
+            if (k) cMap.set(k, item);
+        });
+        for (const lItem of (pair.local || [])) {
+            if (!lItem || isRecordDeleted(null, lItem)) continue;
+            const k = String(lItem.id || lItem.billNo || '').trim();
+            if (!k) continue;
+            const cItem = cMap.get(k);
+            if (!cItem) return true;
+            if (Number(lItem.savedAt || lItem.createdAt || 0) > Number(cItem.savedAt || cItem.createdAt || 0)) return true;
+        }
+    }
+
+    return false;
+}
+
+let autoPushTimer = null;
+export function queueAutoPushToFirebase() {
+    if (autoPushTimer) clearTimeout(autoPushTimer);
+    autoPushTimer = setTimeout(() => {
+        autoPushTimer = null;
+        syncToFirebase();
+    }, 400);
+}
+
+export function buildSyncPayload() {
+    return {
+        products: (state.products || []).filter(p => !isItemDeleted(p)),
+        cosProducts: (state.cosProducts || []).filter(p => !isItemDeleted(p)),
+        customers: (state.customers || []).filter(c => !isCustItemDeleted(c)),
+        purchases: (state.purchases || []).filter(p => !isItemDeleted(p)),
+        expenses: (state.expenses || []).filter(e => !isItemDeleted(e)),
+        cosPurchases: (state.cosPurchases || []).filter(p => !isItemDeleted(p)),
+        cosSales: (state.cosSales || []).filter(s => !isItemDeleted(s)),
+        packages: (state.packages || []).filter(p => !isItemDeleted(p)),
+        stockReturns: state.stockReturns || [],
+        clearedDayBookEntries: state.clearedDayBookEntries || [],
+        dayBookOpeningBalance: Number(state.dayBookOpeningBalance || 0),
+        dayBookOpeningExpense: Number(state.dayBookOpeningExpense || 0),
+        appPin: state.appPin || "1234",
+        _deletedIds: Array.from(state.deletedRecordIds).map(sanitizeTombstoneKey).filter(Boolean).slice(-1500),
+        _meta: {
+            clientId: myFiaClientId,
+            updatedAt: Date.now()
+        }
+    };
+}
+
 export function applyCloudData(data, isRealtimeEvent = false) {
     if (!data) return;
     if (isRealtimeEvent && data._meta && data._meta.clientId === myFiaClientId) {
         return;
     }
+
+    // Detect un-pushed local items or newer timestamps before updating local state
+    const hadPendingFlag = localStorage.getItem('fia_has_pending_sync') === 'true';
+    const localHasAdditions = detectLocalUnsynced(state, data);
 
     // 1. Un-tombstone active records sent by cloud so remote devices never suppress them
     const unmarkActive = (list, keyFn) => {
@@ -269,10 +397,16 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     if (data.dayBookOpeningExpense !== undefined) state.dayBookOpeningExpense = Number(data.dayBookOpeningExpense || 0);
     if (data.appPin) state.appPin = data.appPin;
 
-    localStorage.removeItem('fia_has_pending_sync');
     saveLocalStateSafely();
     state.isFirebaseConnected = true;
     updateSyncStatus(true, 'Cloud Data Synchronized');
+
+    // If local device has additions or edits not present in Cloud, immediately auto-push to Cloud!
+    if (hadPendingFlag || localHasAdditions) {
+        console.log('[Sync Engine] Local additions or updates detected not yet in Cloud. Auto-pushing to Firebase...');
+        localStorage.setItem('fia_has_pending_sync', 'true');
+        queueAutoPushToFirebase();
+    }
 
     if (window.renderAll) window.renderAll();
     if (window.renderSalesHistory) window.renderSalesHistory();
@@ -281,6 +415,9 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     if (typeof window.renderConsolidatedStockReport === 'function') window.renderConsolidatedStockReport();
     if (typeof window.renderPackageConsolidationReport === 'function') window.renderPackageConsolidationReport();
 }
+
+let isSyncing = false;
+let queuedSync = false;
 
 export function syncToFirebase() {
     ensureStableTransactionIds();
@@ -293,74 +430,55 @@ export function syncToFirebase() {
         return Promise.resolve(false);
     }
 
-    return window.FB_DB.ref('fia_data').once('value').then(function(snap) {
-        const cloud = snap.val();
-        let mergedProducts = state.products || [];
-        let mergedCosProducts = state.cosProducts || [];
-        let mergedCustomers = state.customers || [];
-        let mergedPurchases = state.purchases || [];
-        let mergedExpenses = state.expenses || [];
-        let mergedCosPurchases = state.cosPurchases || [];
-        let mergedCosSales = state.cosSales || [];
-        let mergedPackages = state.packages || [];
-        let mergedStockReturns = state.stockReturns || [];
+    if (isSyncing) {
+        queuedSync = true;
+        return Promise.resolve(true);
+    }
 
-        if (cloud) {
-            mergedProducts = mergeInventoryProducts(state.products, cloud.products);
-            mergedCosProducts = mergeInventoryProducts(state.cosProducts, cloud.cosProducts);
-            mergedCustomers = mergeCustomerBills(state.customers, cloud.customers);
-            mergedPurchases = mergeCollection(state.purchases, cloud.purchases, 'id');
-            mergedExpenses = mergeCollection(state.expenses, cloud.expenses, 'id');
-            mergedCosPurchases = mergeCollection(state.cosPurchases, cloud.cosPurchases, 'id');
-            mergedCosSales = mergeCollection(state.cosSales, cloud.cosSales, 'id');
-            mergedPackages = mergeInventoryProducts(state.packages, cloud.packages);
-            mergedStockReturns = mergeCollection(state.stockReturns, cloud.stockReturns, 'id');
+    isSyncing = true;
 
-            // Synchronize state with the merged union
-            state.products = mergedProducts;
-            state.cosProducts = mergedCosProducts;
-            state.customers = mergedCustomers;
-            state.purchases = mergedPurchases;
-            state.expenses = mergedExpenses;
-            state.cosPurchases = mergedCosPurchases;
-            state.cosSales = mergedCosSales;
-            state.packages = mergedPackages;
-            state.stockReturns = mergedStockReturns;
-            saveLocalStateSafely();
-        }
+    // Fast-bounded cloud merge: attempt to read latest cloud state within 1200ms
+    const cloudFetchPromise = window.FB_DB.ref('fia_data').once('value')
+        .then(snap => snap.val())
+        .catch(() => null);
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 1200));
 
-        const payload = {
-            products: mergedProducts.filter(p => !isItemDeleted(p)),
-            cosProducts: mergedCosProducts.filter(p => !isItemDeleted(p)),
-            customers: mergedCustomers.filter(c => !isCustItemDeleted(c)),
-            purchases: mergedPurchases.filter(p => !isItemDeleted(p)),
-            expenses: mergedExpenses.filter(e => !isItemDeleted(e)),
-            cosPurchases: mergedCosPurchases.filter(p => !isItemDeleted(p)),
-            cosSales: mergedCosSales.filter(s => !isItemDeleted(s)),
-            packages: mergedPackages.filter(p => !isItemDeleted(p)),
-            stockReturns: mergedStockReturns || [],
-            clearedDayBookEntries: state.clearedDayBookEntries || [],
-            dayBookOpeningBalance: Number(state.dayBookOpeningBalance || 0),
-            dayBookOpeningExpense: Number(state.dayBookOpeningExpense || 0),
-            appPin: state.appPin || "1234",
-            _deletedIds: Array.from(state.deletedRecordIds).map(sanitizeTombstoneKey).filter(Boolean).slice(-1500),
-            _meta: {
-                clientId: myFiaClientId,
-                updatedAt: Date.now()
+    return Promise.race([cloudFetchPromise, timeoutPromise])
+        .then(function(cloud) {
+            if (cloud) {
+                state.products = mergeInventoryProducts(state.products, cloud.products);
+                state.cosProducts = mergeInventoryProducts(state.cosProducts, cloud.cosProducts);
+                state.customers = mergeCustomerBills(state.customers, cloud.customers);
+                state.purchases = mergeCollection(state.purchases, cloud.purchases, 'id');
+                state.expenses = mergeCollection(state.expenses, cloud.expenses, 'id');
+                state.cosPurchases = mergeCollection(state.cosPurchases, cloud.cosPurchases, 'id');
+                state.cosSales = mergeCollection(state.cosSales, cloud.cosSales, 'id');
+                state.packages = mergeInventoryProducts(state.packages, cloud.packages);
+                state.stockReturns = mergeCollection(state.stockReturns, cloud.stockReturns, 'id');
+                saveLocalStateSafely();
             }
-        };
 
-        return window.FB_DB.ref('fia_data').set(payload).then(function() {
-            localStorage.removeItem('fia_has_pending_sync');
-            state.isFirebaseConnected = true;
-            updateSyncStatus(true, 'Cloud Database Synced');
-            return true;
+            const payload = buildSyncPayload();
+
+            return window.FB_DB.ref('fia_data').set(payload).then(function() {
+                localStorage.removeItem('fia_has_pending_sync');
+                state.isFirebaseConnected = true;
+                updateSyncStatus(true, 'Cloud Database Synced');
+                return true;
+            });
+        })
+        .catch(function(err) {
+            console.error("Firebase write error:", err);
+            updateSyncStatus(false, 'Sync Pending (Offline Mode)');
+            return false;
+        })
+        .finally(function() {
+            isSyncing = false;
+            if (queuedSync) {
+                queuedSync = false;
+                syncToFirebase();
+            }
         });
-    }).catch(function(err) {
-        console.error("Firebase write error:", err);
-        updateSyncStatus(false, 'Sync Pending (Offline Mode)');
-        return false;
-    });
 }
 
 export function pullFromFirebase() {
@@ -546,5 +664,7 @@ if (typeof window !== 'undefined') {
     window.applyCloudData = applyCloudData;
     window.mergeInventoryProducts = mergeInventoryProducts;
     window.mergeCollection = mergeCollection;
+    window.detectLocalUnsynced = detectLocalUnsynced;
+    window.buildSyncPayload = buildSyncPayload;
 }
 
