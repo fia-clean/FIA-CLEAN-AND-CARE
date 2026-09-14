@@ -9,7 +9,7 @@ import {
     loadFromLocalStorage,
     startAutomaticBackup,
     todayDDMMYYYY
-} from './core/state.js?v=42';
+} from './core/state.js?v=43';
 import {
     startRealtimeSync,
     pullFromFirebase,
@@ -18,7 +18,7 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup
-} from './core/db.js?v=42';
+} from './core/db.js?v=43';
 import {
     verifyLoginPin,
     logoutApp,
@@ -32,7 +32,7 @@ import {
     saveNewPin,
     openSettingsModal,
     closeSettingsModal
-} from './core/auth.js?v=42';
+} from './core/auth.js?v=43';
 
 // Feature Modules
 import {
@@ -46,7 +46,7 @@ import {
     closeLowStockList,
     goToAddStockFromLowStock,
     pushDashboardModalState
-} from './dashboard/dashboard.js?v=42';
+} from './dashboard/dashboard.js?v=43';
 
 import {
     saveDirectCustomer,
@@ -66,7 +66,7 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport
-} from './customers/customer.js?v=42';
+} from './customers/customer.js?v=43';
 
 import {
     previewBill,
@@ -81,7 +81,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=42';
+} from './billing/invoice-preview.js?v=43';
 
 import {
     renderSalesHistory,
@@ -90,7 +90,7 @@ import {
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
-} from './billing/billing-history.js?v=42';
+} from './billing/billing-history.js?v=43';
 
 import {
     getProductWholesalePrice,
@@ -145,7 +145,7 @@ import {
     renderCosSales,
     resetCosSalesForm,
     renderCosmeticsSummary
-} from './billing/billing.js?v=42';
+} from './billing/billing.js?v=43';
 
 import {
     updatePackageSelectors,
@@ -195,7 +195,7 @@ import {
     viewProduct,
     viewCosProduct,
     viewPackage
-} from './operations/stock.js?v=42';
+} from './operations/stock.js?v=43';
 
 import {
     getTodayPurchaseDate,
@@ -238,7 +238,7 @@ import {
     deleteCosPurchase,
     renderCosPurchases,
     resetCosPurchaseForm
-} from './operations/purchases.js?v=42';
+} from './operations/purchases.js?v=43';
 
 import {
     saveExpense,
@@ -247,7 +247,7 @@ import {
     renderExpenses,
     resetExpenseForm,
     viewExpense
-} from './operations/expenses.js?v=42';
+} from './operations/expenses.js?v=43';
 
 import {
     dashboardDateKey,
@@ -263,7 +263,7 @@ import {
     saveDayBookOpeningValues,
     renderAccounts,
     exportDayBookToCSV
-} from './daybook/daybook.js?v=42';
+} from './daybook/daybook.js?v=43';
 
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {

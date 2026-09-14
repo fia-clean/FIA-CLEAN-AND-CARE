@@ -401,11 +401,11 @@ export function generateA4Pages(c) {
     const allItems = sortBillItemsAlphabetically(c.items || []);
     const itemsCount = allItems.length;
 
-    if (itemsCount <= 14) {
+    if (itemsCount <= 13) {
         // Single Page Layout
         const rows = allItems.map(getA4ItemRowHtml).join('');
         const page1 = `
-            <div class="print-page print-page-single" style="width: 100%; max-width: 680px; margin: 0 auto; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000;">
+            <div class="print-page print-page-single" style="width: 100%; max-width: 650px; margin: 0 auto; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000;">
                 ${getA4HeaderHtml(c, brandTitle, themeColor, isWholesale, brandBadge)}
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px;">
                     ${getA4TableHeadHtml(themeColor, themeHeaderBg)}
@@ -416,15 +416,15 @@ export function generateA4Pages(c) {
         `;
         return [page1];
     } else {
-        // Multi-page Layout: Page 1 (items 0-14), Page 2 (items 14-end)
-        const page1Items = allItems.slice(0, 14);
-        const page2Items = allItems.slice(14);
+        // Multi-page Layout: Page 1 (items 0-13), Page 2 (items 13-end)
+        const page1Items = allItems.slice(0, 13);
+        const page2Items = allItems.slice(13);
 
         const rows1 = page1Items.map(getA4ItemRowHtml).join('');
-        const rows2 = page2Items.map((it, idx) => getA4ItemRowHtml(it, idx + 14)).join('');
+        const rows2 = page2Items.map((it, idx) => getA4ItemRowHtml(it, idx + 13)).join('');
 
         const page1 = `
-            <div class="print-page print-page-1" style="width: 100%; max-width: 680px; margin: 0 auto; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000;">
+            <div class="print-page print-page-1" style="width: 100%; max-width: 650px; margin: 0 auto; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000;">
                 ${getA4HeaderHtml(c, brandTitle, themeColor, isWholesale, brandBadge)}
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px;">
                     ${getA4TableHeadHtml(themeColor, themeHeaderBg)}
@@ -438,7 +438,7 @@ export function generateA4Pages(c) {
         `;
 
         const page2 = `
-            <div class="print-page print-page-2" style="width: 100%; max-width: 680px; margin: 0 auto; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000; padding-top: 4px;">
+            <div class="print-page print-page-2" style="width: 100%; max-width: 650px; margin: 0 auto; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000; padding-top: 4px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; background: #f3f4f6; border: 1px solid #d1d5db; border-bottom: 2px solid ${themeColor}; padding: 8px 12px; margin-bottom: 12px; border-radius: 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
                     <div>
                         <strong style="color: ${themeColor}; font-size: 13px; font-weight: 900;">${brandTitle} — BILL NO: ${c.billNo || '—'}</strong>
@@ -484,8 +484,8 @@ export function printBill() {
     <title>FIA Bill ${c.billNo || ''}</title>
     <style>
         @page {
-            size: A4 portrait;
-            margin: 10mm 15mm 10mm 15mm;
+            size: letter portrait;
+            margin: 8mm 12mm 8mm 12mm;
         }
         *, *:before, *:after {
             box-sizing: border-box;
@@ -543,7 +543,7 @@ export async function generateBillPdfBlob() {
     container.style.position = 'fixed';
     container.style.left = '0px';
     container.style.top = '0px';
-    container.style.width = '794px'; // 210mm at 96 DPI
+    container.style.width = '816px'; // 8.5in (Letter) at 96 DPI
     container.style.background = '#ffffff';
     container.style.color = '#000000';
     container.style.zIndex = '999999';
@@ -551,9 +551,9 @@ export async function generateBillPdfBlob() {
     container.style.opacity = '1';
     container.style.visibility = 'visible';
 
-    // Insert each page wrapped with 794px width and white background
+    // Insert each page wrapped with 816px width and white background
     container.innerHTML = pages.map((pageHtml, idx) => `
-        <div id="fiaPdfPage_${idx}" style="width: 794px; min-height: 1080px; background: #ffffff; padding: 24px 32px; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000;">
+        <div id="fiaPdfPage_${idx}" style="width: 816px; min-height: 1020px; background: #ffffff; padding: 20px 28px; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000;">
             ${pageHtml}
         </div>
     `).join('');
@@ -567,13 +567,13 @@ export async function generateBillPdfBlob() {
         const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'mm',
-            format: 'a4'
+            format: 'letter'
         });
-        const pdfW = pdf.internal.pageSize.getWidth(); // 210mm
-        const pdfH = pdf.internal.pageSize.getHeight(); // 297mm
+        const pdfW = pdf.internal.pageSize.getWidth(); // 215.9mm
+        const pdfH = pdf.internal.pageSize.getHeight(); // 279.4mm
         const marginX = 8;
         const marginY = 8;
-        const printableW = pdfW - (marginX * 2); // 194mm
+        const printableW = pdfW - (marginX * 2); // 199.9mm
 
         for (let i = 0; i < pages.length; i++) {
             const pageEl = document.getElementById(`fiaPdfPage_${i}`);
