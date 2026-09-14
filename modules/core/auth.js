@@ -20,6 +20,9 @@ export function verifyLoginPin() {
     ) {
         state.isLoggedIn = true;
         window._isLoggedInFlag = true;
+        try {
+            sessionStorage.setItem('fia_logged_in', 'true');
+        } catch(e) {}
         if (typeof window._dismissLoginOverlay === 'function') {
             window._dismissLoginOverlay();
         } else {
@@ -29,9 +32,19 @@ export function verifyLoginPin() {
                 overlay.setAttribute('hidden', 'true');
                 overlay.style.setProperty('display', 'none', 'important');
             }
+            const mainApp = document.getElementById('mainAppContainer');
+            if (mainApp) {
+                mainApp.classList.remove('hidden');
+                mainApp.removeAttribute('hidden');
+                mainApp.style.removeProperty('display');
+                mainApp.style.setProperty('display', 'block', 'important');
+            }
         }
         history.replaceState({ loggedIn: true, tab: 'home' }, "", "#home");
         if (input) input.value = '';
+        if (typeof window.switchTab === 'function') {
+            try { window.switchTab('home', false); } catch(e) {}
+        }
         if (typeof window.renderAll === 'function') {
             try { window.renderAll(); } catch(e) {}
         }
@@ -46,21 +59,45 @@ export function verifyLoginPin() {
 
 export function logoutApp() {
     state.isLoggedIn = false;
+    window._isLoggedInFlag = false;
     state.isPreviewOpen = false;
+    try {
+        sessionStorage.removeItem('fia_logged_in');
+        sessionStorage.removeItem('fia_auth');
+    } catch(e) {}
     try {
         if (window.closeBarcodeScanner) window.closeBarcodeScanner();
     } catch(e) {}
-    ['billPreviewModal','recordViewModal','settingsModal','changePinModal','resetPinModal','dueAmountListModal','lowStockListModal'].forEach(id => {
+    ['billPreviewModal','recordViewModal','settingsModal','changePinModal','resetPinModal','dueAmountListModal','lowStockListModal','customerConsolidatedDetailModal','supplierConsolidatedDetailModal','backupModal','barcodeScannerModal'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
-    document.querySelectorAll('[id^="section"]').forEach(el => el.classList.add('hidden'));
-    document.getElementById('sectionHome')?.classList.remove('hidden');
-    const overlay = document.getElementById('loginOverlay');
-    if (overlay) overlay.classList.remove('hidden');
-    const pin = document.getElementById('loginPinInput');
-    if (pin) { pin.value = ''; pin.focus(); }
-    history.replaceState({ loggedIn: false, tab: 'home' }, '', '#login');
+    document.querySelectorAll('[id^="section"]').forEach(el => {
+        el.classList.add('hidden');
+        el.style.display = 'none';
+    });
+    const mainApp = document.getElementById('mainAppContainer');
+    if (mainApp) {
+        mainApp.classList.add('hidden');
+        mainApp.setAttribute('hidden', 'true');
+        mainApp.style.setProperty('display', 'none', 'important');
+    }
+    if (typeof window._showLoginOverlay === 'function') {
+        window._showLoginOverlay();
+    } else {
+        const overlay = document.getElementById('loginOverlay');
+        if (overlay) {
+            overlay.classList.remove('hidden');
+            overlay.removeAttribute('hidden');
+            overlay.style.removeProperty('display');
+            overlay.style.setProperty('display', 'flex', 'important');
+            const pin = document.getElementById('loginPinInput');
+            if (pin) { pin.value = ''; setTimeout(() => pin.focus(), 80); }
+        }
+    }
+    try {
+        history.replaceState({ loggedIn: false }, '', '#login');
+    } catch(e) {}
 }
 
 export function togglePinVisibility(inputId, buttonId) {

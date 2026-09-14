@@ -101,35 +101,52 @@ export function findInventoryProductForPurchase(p, isCos) {
     return matchCandidate(primaryList) || matchCandidate(secondaryList) || matchCandidate(packageList);
 }
 
-export function populatePurchaseReturnProductDropdown(isCos, matchedProdId = '') {
+export function populatePurchaseReturnProductDropdown(isCos, matchedProdId = '', isDirectStock = false) {
     const selId = isCos ? 'cosPurchaseReturnProductSelect' : 'purchaseReturnProductSelect';
     const sel = document.getElementById(selId);
     if (!sel) return;
     const primaryList = isCos ? (state.cosProducts || []) : (state.products || []);
     const secondaryList = isCos ? (state.products || []) : (state.cosProducts || []);
     
-    let html = '<option value="">-- Auto-Match or Select Product from Inventory --</option>';
-    html += `<optgroup label="${isCos ? 'Cosmetics Stock' : 'Cleaning Stock'}">`;
+    let html = '';
+    
+    if (!isDirectStock) {
+        html += '<option value="none" selected>ℹ️ റോ മെറ്റീരിയൽ റിട്ടേൺ (സപ്ലയർ അക്കൗണ്ട് മാത്രം അപ്ഡേറ്റ് ചെയ്യുക - സ്റ്റോക്ക് മാറ്റമില്ല)</option>';
+        html += '<optgroup label="നിർമ്മിത ഉൽപ്പന്നത്തിന്റെ സ്റ്റോക്കിൽ നിന്ന് കുറയ്ക്കണമെങ്കിൽ മാത്രം തിരഞ്ഞെടുക്കുക">';
+    } else {
+        html += '<option value="">-- Select Product to Deduct Stock --</option>';
+        html += `<optgroup label="${isCos ? 'Cosmetics Stock' : 'Cleaning Stock'}">`;
+    }
+    
     primaryList.forEach(prod => {
         if (!prod || !prod.name) return;
-        const isSel = String(prod.id) === String(matchedProdId);
+        const isSel = isDirectStock && String(prod.id) === String(matchedProdId);
         html += `<option value="${prod.id}" ${isSel ? 'selected' : ''}>${prod.name} (Stock: ${prod.stock ?? 0} ${prod.unit || ''})</option>`;
     });
     html += '</optgroup>';
+    
     if (secondaryList.length > 0) {
         html += `<optgroup label="${isCos ? 'Cleaning Stock' : 'Cosmetics Stock'}">`;
         secondaryList.forEach(prod => {
             if (!prod || !prod.name) return;
-            const isSel = String(prod.id) === String(matchedProdId);
+            const isSel = isDirectStock && String(prod.id) === String(matchedProdId);
             html += `<option value="${prod.id}" ${isSel ? 'selected' : ''}>${prod.name} (Stock: ${prod.stock ?? 0} ${prod.unit || ''})</option>`;
         });
         html += '</optgroup>';
     }
-    html += '<optgroup label="Options">';
-    html += '<option value="none">⚠️ ഇൻവെന്ററിയിൽ നിന്ന് കുറയ്ക്കേണ്ടതില്ല (Financial record only)</option>';
-    html += '</optgroup>';
+    
+    if (isDirectStock) {
+        html += '<optgroup label="Options">';
+        html += '<option value="none">⚠️ ഇൻവെന്ററിയിൽ നിന്ന് കുറയ്ക്കേണ്ടതില്ല (Financial record only)</option>';
+        html += '</optgroup>';
+    }
+    
     sel.innerHTML = html;
-    if (matchedProdId) sel.value = String(matchedProdId);
+    if (matchedProdId && isDirectStock) {
+        sel.value = String(matchedProdId);
+    } else if (!isDirectStock) {
+        sel.value = 'none';
+    }
 }
 
 export function reconcilePurchase(p, isCos) {
@@ -565,40 +582,50 @@ export function renderPurchaseReturnSelectors() {
     const el = document.getElementById('purchaseReturnSelect');
     if (!el) return;
     const currentVal = el.value;
-    const sorted = [...(state.purchases || [])].map((p, i) => ({ ...p, _idx: i })).sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date) || (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0));
+    
+    // Always reconcile all records so returnedQty, netQty, and balance are 100% current
+    (state.purchases || []).forEach(p => p && reconcilePurchase(p, false));
+    
+    const sorted = [...(state.purchases || [])].map((p, i) => {
+        if (!p.id) p.id = 'purch_' + (p.savedAt || (Date.now() + '_' + i));
+        return { ...p, _idx: i };
+    }).sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date) || (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0));
     
     let html = '<option value="">-- Select Purchase to Return --</option>';
     sorted.forEach(p => {
-        const origQty = Number(p.rawQty || p.qty || 0);
-        const retQty = Number(p.returnedQty || 0);
-        const availQty = Math.max(0, origQty - retQty);
-        const idVal = String(p.id || p._idx);
-        const prodName = p.rawMaterial || p.item || p.name || 'Item';
+        const origQty = parseFloat(p.rawQty || p.qty) || 0;
+        const retQty = Number(p.returnedQty) || 0;
+        const availQty = p.netQty !== undefined ? p.netQty : Math.max(0, Number((origQty - retQty).toFixed(2)));
+        const idVal = String(p.id);
+        const prodName = p.rawMaterial || p.item || p.name || 'Raw Material';
         const unitName = p.rawUnit || p.unit || '';
         const statusText = availQty > 0 ? `(Avail: ${availQty} ${unitName})` : `(Fully Returned)`;
-        html += `<option value="${idVal}">${formatDateDDMMYYYY(p.date)} • ${p.supplierName} • ${prodName} ${statusText}</option>`;
+        html += `<option value="${idVal}">${formatDateDDMMYYYY(p.date)} • ${p.supplierName || 'Supplier'} • ${prodName} ${statusText}</option>`;
     });
     el.innerHTML = html;
-    if (currentVal && sorted.some(p => String(p.id || p._idx) === currentVal)) {
+    if (currentVal && sorted.some(p => String(p.id) === currentVal)) {
         el.value = currentVal;
     }
     const d = document.getElementById('purchaseReturnDate');
     if (d && !d.value) d.value = getTodayPurchaseDate();
+    
+    // Immediately synchronize the card details below
+    fillPurchaseReturnDetails();
 }
 
 export function fillPurchaseReturnDetails() {
     const sel = document.getElementById('purchaseReturnSelect');
     const val = sel?.value;
-    const p = state.purchases.find(x => x && (String(x.id) === val || String(state.purchases.indexOf(x)) === val));
+    const p = (state.purchases || []).find(x => x && (String(x.id) === val || String(state.purchases.indexOf(x)) === val));
     const info = document.getElementById('purchaseReturnInfo');
     const qtyInput = document.getElementById('purchaseReturnQty');
     const badge = document.getElementById('purchaseReturnMatchBadge');
     
-    if (!p) {
+    if (!p || !val) {
         if (info) info.innerHTML = '<span class="text-slate-400">Select a purchase to return.</span>';
-        if (qtyInput) { qtyInput.value = ''; qtyInput.removeAttribute('max'); }
+        if (qtyInput) { qtyInput.value = ''; qtyInput.removeAttribute('max'); qtyInput.disabled = false; }
         if (badge) badge.innerHTML = '';
-        populatePurchaseReturnProductDropdown(false, '');
+        populatePurchaseReturnProductDropdown(false, 'none', false);
         updatePurchaseReturnLiveCalc('cleaning');
         return;
     }
@@ -606,51 +633,67 @@ export function fillPurchaseReturnDetails() {
     reconcilePurchase(p, false);
     
     const origQty = parseFloat(p.rawQty || p.qty) || 0;
-    const retQty = Number(p.returnedQty || 0);
-    const availQty = Math.max(0, Number((origQty - retQty).toFixed(2)));
+    const retQty = Number(p.returnedQty) || 0;
+    const availQty = p.netQty !== undefined ? p.netQty : Math.max(0, Number((origQty - retQty).toFixed(2)));
     const grossCost = parseFloat(p.rawCost || p.amount) || 0;
-    const unitPrice = parseFloat(p.rawUnitPrice) || (origQty > 0 ? (grossCost / origQty) : 0);
+    const explicitUnitPrice = parseFloat(p.rawUnitPrice) || 0;
+    const unitPrice = explicitUnitPrice > 0 ? explicitUnitPrice : (origQty > 0 ? (grossCost / origQty) : 0);
     const unitName = p.rawUnit || p.unit || '';
+    const itemName = p.rawMaterial || p.item || p.name || 'Raw Material';
+    const suppName = p.supplierName || p.supplier || 'Supplier';
     
-    // Auto-match inventory product
-    const matchedProd = findInventoryProductForPurchase(p, false);
-    populatePurchaseReturnProductDropdown(false, matchedProd?.id || '');
+    // Check whether this was a direct finished stock purchase or raw material purchase
+    const isDirectStock = !!(p.stockId && (state.products || []).some(x => x && String(x.id) === String(p.stockId)));
+    const matchedProd = isDirectStock 
+        ? state.products.find(x => x && String(x.id) === String(p.stockId))
+        : findInventoryProductForPurchase(p, false);
+    
+    const defaultSelection = (isDirectStock && matchedProd) ? matchedProd.id : 'none';
+    populatePurchaseReturnProductDropdown(false, defaultSelection, isDirectStock);
+    
     if (badge) {
-        if (matchedProd) {
-            badge.innerHTML = `<span class="text-emerald-400 font-bold">✓ മാച്ച് ചെയ്തു: ${matchedProd.name} (സ്റ്റോക്ക്: ${matchedProd.stock} ${matchedProd.unit || ''})</span>`;
+        if (isDirectStock && matchedProd) {
+            badge.innerHTML = `<span class="text-emerald-400 font-bold">✓ ലിങ്ക് ചെയ്ത ഉൽപ്പന്നം: ${matchedProd.name} (സ്റ്റോക്ക് കുറയ്ക്കും)</span>`;
+        } else if (matchedProd) {
+            badge.innerHTML = `<span class="text-sky-300 font-semibold">ℹ️ റോ മെറ്റീരിയൽ: സപ്ലയർ അക്കൗണ്ട് അപ്ഡേറ്റ് ചെയ്യും (സ്റ്റോക്ക് ഓപ്ഷണൽ)</span>`;
         } else {
-            badge.innerHTML = `<span class="text-amber-400 font-bold">⚠️ സ്റ്റോക്ക് കുറയ്ക്കാൻ ഉൽപ്പന്നം തിരഞ്ഞെടുക്കുക</span>`;
+            badge.innerHTML = `<span class="text-slate-400 font-semibold">ℹ️ റോ മെറ്റീരിയൽ റിട്ടേൺ (സപ്ലയർ അക്കൗണ്ട് അപ്ഡേറ്റ് ചെയ്യും)</span>`;
         }
     }
     
     if (qtyInput) {
         qtyInput.max = availQty;
-        qtyInput.placeholder = `Return Qty (Max: ${availQty} ${unitName})`;
-        if (parseFloat(qtyInput.value) > availQty) qtyInput.value = availQty;
+        qtyInput.placeholder = availQty > 0 ? `Return Qty (Max: ${availQty} ${unitName})` : `Fully Returned (0 ${unitName})`;
+        qtyInput.disabled = (availQty <= 0);
+        if (parseFloat(qtyInput.value) > availQty || availQty <= 0) {
+            qtyInput.value = availQty > 0 ? Math.min(parseFloat(qtyInput.value) || 0, availQty) : '';
+        }
     }
     const d = document.getElementById('purchaseReturnDate');
     if (d && !d.value) d.value = getTodayPurchaseDate();
     
     if (info) {
+        const retInfoBadge = retQty > 0 ? `<div class="text-[10px] text-rose-400 font-semibold pt-0.5">↩️ ഇതിനകം റിട്ടേൺ ചെയ്തത്: <b class="text-white">${retQty} ${unitName}</b> (-₹${p.returnedAmount.toFixed(2)})</div>` : '';
         info.innerHTML = `
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-xs space-y-1.5 mt-1">
                 <div class="flex justify-between items-start">
                     <div>
-                        <strong class="text-blue-300 text-sm">${p.supplierName}</strong>
+                        <strong class="text-blue-300 text-sm">${suppName}</strong>
                         <span class="text-slate-400 text-[11px] block">📞 ${p.supplierMobile || 'No mobile'}</span>
                     </div>
                     <span class="text-[11px] px-2 py-0.5 rounded bg-blue-950 text-blue-300 font-bold border border-blue-800/60">${formatDateDDMMYYYY(p.date)}</span>
                 </div>
                 <div class="pt-1 text-[11px] text-slate-300 grid grid-cols-2 gap-2 border-t border-slate-800/80">
-                    <div>Purchased Item: <b class="text-white">${p.rawMaterial}</b></div>
+                    <div>Purchased Item: <b class="text-white">${itemName}</b></div>
                     <div class="text-right">Unit Rate: <b class="text-amber-400">₹${unitPrice.toFixed(2)}</b> / ${unitName || 'unit'}</div>
                     <div>Original Qty: <b class="text-slate-200">${origQty} ${unitName}</b></div>
                     <div class="text-right">Available Return: <strong class="${availQty > 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}">${availQty} ${unitName}</strong></div>
                     <div>Gross Cost: <b class="text-slate-200">₹${grossCost.toFixed(2)}</b></div>
                     <div class="text-right">Current Net: <b class="text-white font-bold">₹${Number(p.netPurchaseAmount ?? grossCost).toFixed(2)}</b></div>
                     <div>Paid Amount: <b class="text-emerald-400">₹${Number(p.paid || 0).toFixed(2)}</b></div>
-                    <div class="text-right">${p.refundDue > 0 ? `Refund Due: <b class="text-amber-400 font-bold">₹${p.refundDue.toFixed(2)}</b>` : `Balance: <b class="text-rose-400 font-bold">₹${Number(p.netBalance ?? p.balance ?? 0).toFixed(2)}</b>`}</div>
+                    <div class="text-right">${p.refundDue > 0 ? `Refund Due: <b class="text-amber-400 font-bold">₹${p.refundDue.toFixed(2)}</b>` : `Balance: <b class="text-rose-400 font-bold">₹${Number(p.balance ?? 0).toFixed(2)}</b>`}</div>
                 </div>
+                ${retInfoBadge}
                 <div id="purchaseReturnLiveCalc" class="text-[11px] font-bold text-amber-300 pt-1 border-t border-slate-800/80"></div>
             </div>`;
     }
@@ -735,10 +778,15 @@ export function savePurchaseReturn(type) {
     
     const qtyEl = document.getElementById(isCos ? 'cosPurchaseReturnQty' : 'purchaseReturnQty');
     const qty = parseFloat(qtyEl?.value) || 0;
-    const already = Number(p.returnedQty) || 0;
     const originalQty = parseFloat(isCos ? (p.qty ?? p.rawQty) : (p.rawQty ?? p.qty)) || 0;
-    const max = Math.max(0, Number((originalQty - already).toFixed(2)));
+    const already = Number(p.returnedQty) || 0;
+    const max = p.netQty !== undefined ? p.netQty : Math.max(0, Number((originalQty - already).toFixed(2)));
     const unit = String((isCos ? (p.unit || p.rawUnit) : (p.rawUnit || p.unit)) || '').trim();
+    
+    if (max <= 0) {
+        alert('⚠️ ഈ പർച്ചേസ് ഇതിനകം പൂർണ്ണമായി റിട്ടേൺ ചെയ്തിട്ടുണ്ട് (Already Fully Returned).');
+        return;
+    }
     if (qty <= 0 || qty > max) {
         alert(`Enter a valid return quantity (1 to ${max} ${unit}).`);
         return;
@@ -752,11 +800,41 @@ export function savePurchaseReturn(type) {
     const retReason = document.getElementById(isCos ? 'cosPurchaseReturnReason' : 'purchaseReturnReason')?.value.trim() || 'Purchased Stock Return';
     
     const now = Date.now();
+    const isDirectStock = !!(p.stockId && (isCos ? state.cosProducts : state.products).some(x => x && String(x.id) === String(p.stockId)));
+    const chosenStockId = document.getElementById(isCos ? 'cosPurchaseReturnProductSelect' : 'purchaseReturnProductSelect')?.value;
+    let prod = null;
+    let stockNotice = '';
+    
+    if (chosenStockId && chosenStockId !== 'none') {
+        prod = (isCos ? state.cosProducts : state.products).find(x => x && String(x.id) === chosenStockId) ||
+               (isCos ? state.products : state.cosProducts).find(x => x && String(x.id) === chosenStockId);
+    } else if (isDirectStock && (!chosenStockId || chosenStockId !== 'none')) {
+        prod = (isCos ? state.cosProducts : state.products).find(x => x && String(x.id) === String(p.stockId));
+    }
+    
+    let deductionApplied = 0;
+    let stockDeducted = false;
+    if (prod) {
+        const factor = getUnitConversionFactor(unit, prod.unit);
+        deductionApplied = Number((qty * factor).toFixed(3));
+        const before = Number(prod.stock) || 0;
+        prod.stock = Math.max(0, parseFloat((before - deductionApplied).toFixed(3)));
+        prod.savedAt = now;
+        prod.updatedAt = now;
+        prod.lastPurchaseReturn = { qty: deductionApplied, returnQtyInput: qty, date: retDate, updatedAt: now };
+        stockDeducted = true;
+        stockNotice = `\n📦 ഇൻവെന്ററി സ്റ്റോക്ക് കുറച്ചു (${prod.name}): ${before} ➔ ${prod.stock} ${prod.unit || ''} (-${deductionApplied} ${prod.unit || ''})`;
+    } else {
+        stockNotice = `\nℹ️ റോ മെറ്റീരിയൽ റിട്ടേൺ: സപ്ലയർ അക്കൗണ്ടും വാങ്ങൽ തുകയും കൃത്യമായി പുനർനിർണ്ണയിച്ചു.`;
+    }
+    
     const ret = {
         qty,
         date: retDate,
         reason: retReason,
         amount: retAmount,
+        stockDeducted,
+        deductedProdId: prod ? prod.id : null,
         savedAt: now
     };
     
@@ -764,39 +842,6 @@ export function savePurchaseReturn(type) {
     reconcilePurchase(p, isCos);
     p.savedAt = now;
     p.updatedAt = now;
-    
-    // Deduct stock using selected dropdown OR comprehensive multi-level lookup & unit conversion
-    const chosenStockId = document.getElementById(isCos ? 'cosPurchaseReturnProductSelect' : 'purchaseReturnProductSelect')?.value;
-    let prod = null;
-    let skipStockDeduction = false;
-    
-    if (chosenStockId === 'none') {
-        skipStockDeduction = true;
-    } else if (chosenStockId) {
-        prod = (isCos ? state.cosProducts : state.products).find(x => x && String(x.id) === chosenStockId) ||
-               (isCos ? state.products : state.cosProducts).find(x => x && String(x.id) === chosenStockId);
-    }
-    if (!prod && !skipStockDeduction) {
-        prod = findInventoryProductForPurchase(p, isCos);
-    }
-    
-    let deductionApplied = 0;
-    let stockNotice = '';
-    if (skipStockDeduction) {
-        stockNotice = `\nℹ️ ഇൻവെന്ററി സ്റ്റോക്കിൽ മാറ്റം വരുത്തിയിട്ടില്ല (Financial record only).`;
-    } else if (prod) {
-        const factor = getUnitConversionFactor(unit, prod.unit);
-        deductionApplied = Number((qty * factor).toFixed(3));
-        const before = Number(prod.stock) || 0;
-        prod.stock = Math.max(0, parseFloat((before - deductionApplied).toFixed(3)));
-        prod.savedAt = now;
-        prod.updatedAt = now;
-        prod.lastPurchaseReturn = { qty: deductionApplied, returnQtyInput: qty, date: ret.date, updatedAt: now };
-        stockNotice = `\n📦 ഇൻവെന്ററി സ്റ്റോക്ക് കുറച്ചു (${prod.name}): ${before} ➔ ${prod.stock} ${prod.unit || ''} (-${deductionApplied} ${prod.unit || ''})`;
-    } else {
-        console.warn('[Purchase Return] Inventory product not selected or found for stock deduction:', p.rawMaterial || p.item);
-        stockNotice = `\n⚠️ ഇൻവെന്ററി സ്റ്റോക്ക് മാച്ച് ചെയ്തിട്ടില്ല. സ്റ്റോക്ക് സ്വമേധയാ പരിശോധിക്കുക.`;
-    }
     
     saveLocalStateSafely();
     syncToFirebase();
@@ -806,10 +851,14 @@ export function savePurchaseReturn(type) {
     if (typeof window.renderCosProductStock === 'function') window.renderCosProductStock();
     updateCleaningPurchaseDropdown();
     if (typeof window.updateCosProductDropdowns === 'function') window.updateCosProductDropdowns();
-    renderPurchaseReturnSelectors();
-    renderCosPurchaseReturnSelectors();
-    renderPurchaseReturnHistory();
-    renderCosPurchaseReturnHistory();
+    
+    if (isCos) {
+        renderCosPurchaseReturnSelectors();
+        renderCosPurchaseReturnHistory();
+    } else {
+        renderPurchaseReturnSelectors();
+        renderPurchaseReturnHistory();
+    }
     renderPurchaseHistory(type);
     if (typeof window.renderAccounts === 'function') window.renderAccounts();
     if (typeof renderPurchaseConsolidationView === 'function') renderPurchaseConsolidationView();
@@ -820,7 +869,7 @@ export function savePurchaseReturn(type) {
     if (reasonEl) reasonEl.value = '';
     
     const balMsg = p.refundDue > 0 ? `റീഫണ്ട് ലഭിക്കാനുള്ള തുക: ₹${p.refundDue}` : `ബാക്കി നൽകാനുള്ളത്: ₹${p.balance}`;
-    alert(`✅ പർച്ചേസ് റിട്ടേൺ വിജയകരമായി സേവ് ചെയ്തു!\n• റിട്ടേൺ ക്വാണ്ടിറ്റി: ${qty} ${unit || ''} (തുക: ₹${retAmount})\n• ബാക്കി നെറ്റ് പർച്ചേസ്: ₹${p.netPurchaseAmount} (നെറ്റ് ക്വാണ്ടിറ്റി: ${p.netQty} ${unit || ''})\n• ${balMsg}${stockNotice}`);
+    alert(`✅ പർച്ചേസ് റിട്ടേൺ വിജയകരമായി സേവ് ചെയ്തു!\n• റിട്ടേൺ ചെയ്ത അളവ്: ${qty} ${unit || ''} (തുക: ₹${retAmount})\n• ബാക്കി നെറ്റ് പർച്ചേസ്: ₹${p.netPurchaseAmount} (നെറ്റ് സ്റ്റോക്ക്: ${p.netQty} ${unit || ''})\n• ${balMsg}${stockNotice}`);
 }
 
 export function deletePurchaseReturn(type, purchaseId, returnIndex) {
@@ -836,9 +885,11 @@ export function deletePurchaseReturn(type, purchaseId, returnIndex) {
     const retQty = Number(ret.qty || 0);
     const now = Date.now();
     
-    // Restore stock to product
-    const prod = findInventoryProductForPurchase(p, isCos);
-    if (prod) {
+    // Restore stock to product if deducted
+    const prod = (ret.deductedProdId && (isCos ? state.cosProducts : state.products).find(x => x && String(x.id) === String(ret.deductedProdId))) ||
+                 (p.stockId && (isCos ? state.cosProducts : state.products).find(x => x && String(x.id) === String(p.stockId)));
+    
+    if (prod && ret.stockDeducted !== false) {
         const factor = getUnitConversionFactor(p.unit || p.rawUnit, prod.unit);
         const restoreQty = Number((retQty * factor).toFixed(3));
         const before = Number(prod.stock) || 0;
@@ -859,10 +910,14 @@ export function deletePurchaseReturn(type, purchaseId, returnIndex) {
     renderCosPurchases();
     if (typeof window.renderProducts === 'function') window.renderProducts();
     if (typeof window.renderCosProductStock === 'function') window.renderCosProductStock();
-    renderPurchaseReturnSelectors();
-    renderCosPurchaseReturnSelectors();
-    renderPurchaseReturnHistory();
-    renderCosPurchaseReturnHistory();
+    
+    if (isCos) {
+        renderCosPurchaseReturnSelectors();
+        renderCosPurchaseReturnHistory();
+    } else {
+        renderPurchaseReturnSelectors();
+        renderPurchaseReturnHistory();
+    }
     renderPurchaseHistory(type);
     if (typeof window.renderAccounts === 'function') window.renderAccounts();
     if (typeof renderPurchaseConsolidationView === 'function') renderPurchaseConsolidationView();
@@ -892,38 +947,50 @@ export function renderCosPurchaseReturnSelectors() {
     const el = document.getElementById('cosPurchaseReturnSelect');
     if (!el) return;
     const currentVal = el.value;
-    const sorted = [...(state.cosPurchases || [])].map((p, i) => ({ ...p, _idx: i })).sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date) || (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0));
+    
+    // Always reconcile all cosmetic records so returnedQty, netQty, and balance are 100% current
+    (state.cosPurchases || []).forEach(p => p && reconcilePurchase(p, true));
+    
+    const sorted = [...(state.cosPurchases || [])].map((p, i) => {
+        if (!p.id) p.id = 'cos_purch_' + (p.savedAt || (Date.now() + '_' + i));
+        return { ...p, _idx: i };
+    }).sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date) || (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0));
     
     let html = '<option value="">-- Select Purchase to Return --</option>';
     sorted.forEach(p => {
-        const origQty = Number(p.qty || 0);
-        const retQty = Number(p.returnedQty || 0);
-        const availQty = Math.max(0, origQty - retQty);
-        const idVal = String(p.id || p._idx);
-        const statusText = availQty > 0 ? `(Avail: ${availQty} ${p.unit || ''})` : `(Fully Returned)`;
-        html += `<option value="${idVal}">${formatDateDDMMYYYY(p.date)} • ${p.supplier} • ${p.item} ${statusText}</option>`;
+        const origQty = parseFloat(p.qty || p.rawQty) || 0;
+        const retQty = Number(p.returnedQty) || 0;
+        const availQty = p.netQty !== undefined ? p.netQty : Math.max(0, Number((origQty - retQty).toFixed(2)));
+        const idVal = String(p.id);
+        const prodName = p.item || p.rawMaterial || p.name || 'Cosmetics Item';
+        const unitName = p.unit || p.rawUnit || '';
+        const statusText = availQty > 0 ? `(Avail: ${availQty} ${unitName})` : `(Fully Returned)`;
+        html += `<option value="${idVal}">${formatDateDDMMYYYY(p.date)} • ${p.supplier || 'Supplier'} • ${prodName} ${statusText}</option>`;
     });
     el.innerHTML = html;
-    if (currentVal && sorted.some(p => String(p.id || p._idx) === currentVal)) {
+    if (currentVal && sorted.some(p => String(p.id) === currentVal)) {
         el.value = currentVal;
     }
     const d = document.getElementById('cosPurchaseReturnDate');
     if (d && !d.value) d.value = getTodayPurchaseDate();
+    
+    // Immediately synchronize the card details below
+    fillCosPurchaseReturnDetails();
 }
 
 export function fillCosPurchaseReturnDetails() {
     const sel = document.getElementById('cosPurchaseReturnSelect');
     const val = sel?.value;
-    const p = state.cosPurchases.find(x => x && (String(x.id) === val || String(state.cosPurchases.indexOf(x)) === val));
+    const p = (state.cosPurchases || []).find(x => x && (String(x.id) === val || String(state.cosPurchases.indexOf(x)) === val));
     const info = document.getElementById('cosPurchaseReturnInfo');
     const qtyInput = document.getElementById('cosPurchaseReturnQty');
     const badge = document.getElementById('cosPurchaseReturnMatchBadge');
     
-    if (!p) {
+    if (!p || !val) {
         if (info) info.innerHTML = '<span class="text-slate-400">Select a purchase to return.</span>';
-        if (qtyInput) { qtyInput.value = ''; qtyInput.removeAttribute('max'); }
+        if (qtyInput) { qtyInput.value = ''; qtyInput.removeAttribute('max'); qtyInput.disabled = false; }
         if (badge) badge.innerHTML = '';
-        populatePurchaseReturnProductDropdown(true, '');
+        populatePurchaseReturnProductDropdown(true, 'none', false);
         updatePurchaseReturnLiveCalc('cosmetics');
         return;
     }
@@ -931,51 +998,67 @@ export function fillCosPurchaseReturnDetails() {
     reconcilePurchase(p, true);
     
     const origQty = parseFloat(p.qty || p.rawQty) || 0;
-    const retQty = Number(p.returnedQty || 0);
-    const availQty = Math.max(0, Number((origQty - retQty).toFixed(2)));
+    const retQty = Number(p.returnedQty) || 0;
+    const availQty = p.netQty !== undefined ? p.netQty : Math.max(0, Number((origQty - retQty).toFixed(2)));
     const grossCost = parseFloat(p.amount || p.rawCost) || 0;
-    const unitPrice = parseFloat(p.unitPrice) || (origQty > 0 ? (grossCost / origQty) : 0);
+    const explicitUnitPrice = parseFloat(p.unitPrice) || 0;
+    const unitPrice = explicitUnitPrice > 0 ? explicitUnitPrice : (origQty > 0 ? (grossCost / origQty) : 0);
     const unitName = p.unit || p.rawUnit || '';
+    const itemName = p.item || p.rawMaterial || p.name || 'Cosmetics Item';
+    const suppName = p.supplier || p.supplierName || 'Supplier';
     
-    // Auto-match cosmetic inventory product
-    const matchedProd = findInventoryProductForPurchase(p, true);
-    populatePurchaseReturnProductDropdown(true, matchedProd?.id || '');
+    // Check whether this was a direct finished stock purchase or raw material purchase
+    const isDirectStock = !!(p.stockId && (state.cosProducts || []).some(x => x && String(x.id) === String(p.stockId)));
+    const matchedProd = isDirectStock 
+        ? state.cosProducts.find(x => x && String(x.id) === String(p.stockId))
+        : findInventoryProductForPurchase(p, true);
+    
+    const defaultSelection = (isDirectStock && matchedProd) ? matchedProd.id : 'none';
+    populatePurchaseReturnProductDropdown(true, defaultSelection, isDirectStock);
+    
     if (badge) {
-        if (matchedProd) {
-            badge.innerHTML = `<span class="text-pink-400 font-bold">✓ മാച്ച് ചെയ്തു: ${matchedProd.name} (സ്റ്റോക്ക്: ${matchedProd.stock} ${matchedProd.unit || ''})</span>`;
+        if (isDirectStock && matchedProd) {
+            badge.innerHTML = `<span class="text-pink-400 font-bold">✓ ലിങ്ക് ചെയ്ത ഉൽപ്പന്നം: ${matchedProd.name} (സ്റ്റോക്ക് കുറയ്ക്കും)</span>`;
+        } else if (matchedProd) {
+            badge.innerHTML = `<span class="text-pink-300 font-semibold">ℹ️ റോ മെറ്റീരിയൽ: സപ്ലയർ അക്കൗണ്ട് അപ്ഡേറ്റ് ചെയ്യും (സ്റ്റോക്ക് ഓപ്ഷണൽ)</span>`;
         } else {
-            badge.innerHTML = `<span class="text-amber-400 font-bold">⚠️ സ്റ്റോക്ക് കുറയ്ക്കാൻ ഉൽപ്പന്നം തിരഞ്ഞെടുക്കുക</span>`;
+            badge.innerHTML = `<span class="text-slate-400 font-semibold">ℹ️ റോ മെറ്റീരിയൽ റിട്ടേൺ (സപ്ലയർ അക്കൗണ്ട് അപ്ഡേറ്റ് ചെയ്യും)</span>`;
         }
     }
     
     if (qtyInput) {
         qtyInput.max = availQty;
-        qtyInput.placeholder = `Return Qty (Max: ${availQty} ${unitName})`;
-        if (parseFloat(qtyInput.value) > availQty) qtyInput.value = availQty;
+        qtyInput.placeholder = availQty > 0 ? `Return Qty (Max: ${availQty} ${unitName})` : `Fully Returned (0 ${unitName})`;
+        qtyInput.disabled = (availQty <= 0);
+        if (parseFloat(qtyInput.value) > availQty || availQty <= 0) {
+            qtyInput.value = availQty > 0 ? Math.min(parseFloat(qtyInput.value) || 0, availQty) : '';
+        }
     }
     const d = document.getElementById('cosPurchaseReturnDate');
     if (d && !d.value) d.value = getTodayPurchaseDate();
     
     if (info) {
+        const retInfoBadge = retQty > 0 ? `<div class="text-[10px] text-rose-400 font-semibold pt-0.5">↩️ ഇതിനകം റിട്ടേൺ ചെയ്തത്: <b class="text-white">${retQty} ${unitName}</b> (-₹${p.returnedAmount.toFixed(2)})</div>` : '';
         info.innerHTML = `
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-xs space-y-1.5 mt-1">
                 <div class="flex justify-between items-start">
                     <div>
-                        <strong class="text-pink-300 text-sm">${p.supplier}</strong>
+                        <strong class="text-pink-300 text-sm">${suppName}</strong>
                         <span class="text-slate-400 text-[11px] block">📞 ${p.supplierMobile || 'No mobile'}</span>
                     </div>
                     <span class="text-[11px] px-2 py-0.5 rounded bg-pink-950 text-pink-300 font-bold border border-pink-800/60">${formatDateDDMMYYYY(p.date)}</span>
                 </div>
                 <div class="pt-1 text-[11px] text-slate-300 grid grid-cols-2 gap-2 border-t border-slate-800/80">
-                    <div>Product: <b class="text-white">${p.item}</b></div>
-                    <div class="text-right">Rate: <b class="text-amber-400">₹${unitPrice.toFixed(2)}</b> / ${unitName || 'unit'}</div>
+                    <div>Purchased Item: <b class="text-white">${itemName}</b></div>
+                    <div class="text-right">Unit Rate: <b class="text-amber-400">₹${unitPrice.toFixed(2)}</b> / ${unitName || 'unit'}</div>
                     <div>Original Qty: <b class="text-slate-200">${origQty} ${unitName}</b></div>
                     <div class="text-right">Available Return: <strong class="${availQty > 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}">${availQty} ${unitName}</strong></div>
                     <div>Gross Cost: <b class="text-slate-200">₹${grossCost.toFixed(2)}</b></div>
                     <div class="text-right">Current Net: <b class="text-white font-bold">₹${Number(p.netPurchaseAmount ?? grossCost).toFixed(2)}</b></div>
                     <div>Paid Amount: <b class="text-emerald-400">₹${Number(p.paid || 0).toFixed(2)}</b></div>
-                    <div class="text-right">${p.refundDue > 0 ? `Refund Due: <b class="text-amber-400 font-bold">₹${p.refundDue.toFixed(2)}</b>` : `Balance: <b class="text-rose-400 font-bold">₹${Number(p.netBalance ?? p.balance ?? 0).toFixed(2)}</b>`}</div>
+                    <div class="text-right">${p.refundDue > 0 ? `Refund Due: <b class="text-amber-400 font-bold">₹${p.refundDue.toFixed(2)}</b>` : `Balance: <b class="text-rose-400 font-bold">₹${Number(p.balance ?? 0).toFixed(2)}</b>`}</div>
                 </div>
+                ${retInfoBadge}
                 <div id="cosPurchaseReturnLiveCalc" class="text-[11px] font-bold text-amber-300 pt-1 border-t border-slate-800/80"></div>
             </div>`;
     }

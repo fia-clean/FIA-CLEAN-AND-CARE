@@ -10,7 +10,7 @@ import {
     startAutomaticBackup,
     todayDDMMYYYY,
     getTodayDateString
-} from './core/state.js?v=47.3';
+} from './core/state.js?v=47.5';
 import {
     startRealtimeSync,
     pullFromFirebase,
@@ -19,7 +19,7 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup
-} from './core/db.js?v=47.3';
+} from './core/db.js?v=47.5';
 import {
     verifyLoginPin,
     logoutApp,
@@ -33,7 +33,7 @@ import {
     saveNewPin,
     openSettingsModal,
     closeSettingsModal
-} from './core/auth.js?v=47.3';
+} from './core/auth.js?v=47.5';
 
 // Feature Modules
 import {
@@ -47,7 +47,7 @@ import {
     closeLowStockList,
     goToAddStockFromLowStock,
     pushDashboardModalState
-} from './dashboard/dashboard.js?v=47.3';
+} from './dashboard/dashboard.js?v=47.5';
 
 import {
     saveDirectCustomer,
@@ -67,7 +67,7 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport
-} from './customers/customer.js?v=47.3';
+} from './customers/customer.js?v=47.5';
 
 import {
     previewBill,
@@ -82,7 +82,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=47.3';
+} from './billing/invoice-preview.js?v=47.5';
 
 import {
     renderSalesHistory,
@@ -91,7 +91,7 @@ import {
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
-} from './billing/billing-history.js?v=47.3';
+} from './billing/billing-history.js?v=47.5';
 
 import {
     getProductWholesalePrice,
@@ -146,7 +146,7 @@ import {
     renderCosSales,
     resetCosSalesForm,
     renderCosmeticsSummary
-} from './billing/billing.js?v=47.3';
+} from './billing/billing.js?v=47.5';
 
 import {
     updatePackageSelectors,
@@ -196,7 +196,7 @@ import {
     viewProduct,
     viewCosProduct,
     viewPackage
-} from './operations/stock.js?v=47.3';
+} from './operations/stock.js?v=47.5';
 
 import {
     getTodayPurchaseDate,
@@ -251,7 +251,7 @@ import {
     shareSelectedSupplierConsolidatedDetail,
     sharePurchaseConsolidationReport,
     downloadPurchaseConsolidationReportPDF
-} from './operations/purchases.js?v=47.3';
+} from './operations/purchases.js?v=47.5';
 
 import {
     saveExpense,
@@ -260,7 +260,7 @@ import {
     renderExpenses,
     resetExpenseForm,
     viewExpense
-} from './operations/expenses.js?v=47.3';
+} from './operations/expenses.js?v=47.5';
 
 import {
     dashboardDateKey,
@@ -276,7 +276,7 @@ import {
     saveDayBookOpeningValues,
     renderAccounts,
     exportDayBookToCSV
-} from './daybook/daybook.js?v=47.3';
+} from './daybook/daybook.js?v=47.5';
 
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {
@@ -477,6 +477,11 @@ export function hideUnwantedStockMenus() {
 }
 
 export function switchTab(tabName, pushToHistory = true) {
+    if (!state.isLoggedIn || !window._isLoggedInFlag) {
+        if (typeof logoutApp === 'function') logoutApp();
+        return;
+    }
+
     const sections = ['home', 'customers', 'billing', 'operations', 'stock', 'purchase', 'expenses', 'cosmetics', 'accounts'];
 
     sections.forEach(sec => {
@@ -511,6 +516,10 @@ export function switchTab(tabName, pushToHistory = true) {
 }
 
 export function openOperationSection(section) {
+    if (!state.isLoggedIn || !window._isLoggedInFlag) {
+        if (typeof logoutApp === 'function') logoutApp();
+        return;
+    }
     switchTab(section);
     const tab = document.getElementById('tabOperations');
     if (tab) tab.className = "px-3 py-2 text-center font-bold text-emerald-400 border-b-2 border-emerald-400 whitespace-nowrap transition";
@@ -520,6 +529,10 @@ export function openOperationSection(section) {
 }
 
 export function openBillingSection(type) {
+    if (!state.isLoggedIn || !window._isLoggedInFlag) {
+        if (typeof logoutApp === 'function') logoutApp();
+        return;
+    }
     const secBilling = document.getElementById('sectionBilling');
     if (secBilling && (secBilling.classList.contains('hidden') || secBilling.style.display === 'none')) {
         switchTab('billing');
@@ -580,6 +593,10 @@ export function openBillingSection(type) {
 }
 
 export function openCosmeticsSalesEntry() {
+    if (!state.isLoggedIn || !window._isLoggedInFlag) {
+        if (typeof logoutApp === 'function') logoutApp();
+        return;
+    }
     try { switchTab('cosmetics'); } catch (e) {}
     setTimeout(function() {
         const titleEl = document.getElementById('cosSalesFormTitle');
@@ -625,10 +642,8 @@ export function renderAll() {
 // ================= BROWSER POPSTATE & HISTORY =================
 if (typeof window !== 'undefined') {
     window.onpopstate = function(event) {
-        if (!state.isLoggedIn) {
-            state.isLoggedIn = true;
-            document.getElementById('loginOverlay')?.classList.add('hidden');
-            switchTab('billing', false);
+        if (!state.isLoggedIn || !window._isLoggedInFlag) {
+            if (typeof logoutApp === 'function') logoutApp();
             return;
         }
 
@@ -717,10 +732,12 @@ if (typeof window !== 'undefined') {
             console.error('loadFromLocalStorage error:', e);
         }
 
-        // Check if user already logged in via instant synchronous authentication
+        // Check if user already logged in via instant synchronous authentication or active session
         try {
-            if (window._isLoggedInFlag || (window.state && window.state.isLoggedIn)) {
+            const hasSession = sessionStorage.getItem('fia_logged_in') === 'true';
+            if (hasSession || window._isLoggedInFlag || (window.state && window.state.isLoggedIn)) {
                 state.isLoggedIn = true;
+                window._isLoggedInFlag = true;
                 if (typeof window._dismissLoginOverlay === 'function') {
                     window._dismissLoginOverlay();
                 } else {
@@ -730,6 +747,19 @@ if (typeof window !== 'undefined') {
                         overlay.setAttribute('hidden', 'true');
                         overlay.style.setProperty('display', 'none', 'important');
                     }
+                    const mainApp = document.getElementById('mainAppContainer');
+                    if (mainApp) {
+                        mainApp.classList.remove('hidden');
+                        mainApp.removeAttribute('hidden');
+                        mainApp.style.removeProperty('display');
+                        mainApp.style.setProperty('display', 'block', 'important');
+                    }
+                }
+            } else {
+                state.isLoggedIn = false;
+                window._isLoggedInFlag = false;
+                if (typeof window._showLoginOverlay === 'function') {
+                    window._showLoginOverlay();
                 }
             }
         } catch (e) {

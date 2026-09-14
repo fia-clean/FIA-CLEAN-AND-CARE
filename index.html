@@ -89,6 +89,10 @@
         /* ===== CRITICAL ANTI-FOUC & OFFLINE STYLES (Zero Blink on Load) ===== */
         .hidden, [hidden] { display: none !important; }
         
+        #mainAppContainer.hidden, #mainAppContainer[hidden] {
+            display: none !important;
+        }
+
         #loginOverlay {
             position: fixed !important;
             inset: 0 !important;
@@ -100,7 +104,7 @@
             height: 100vh !important;
             background-color: #020617 !important;
             background-image: radial-gradient(circle at center, #0f172a 0%, #020617 100%) !important;
-            z-index: 99999 !important;
+            z-index: 999999 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -110,7 +114,7 @@
             display: none !important;
         }
         #changePinModal, #resetPinModal {
-            z-index: 100000 !important;
+            z-index: 1000000 !important;
         }
 
         html, body {
@@ -314,16 +318,33 @@
                     overlay.setAttribute('hidden', 'true');
                     overlay.style.setProperty('display', 'none', 'important');
                 }
+                var mainApp = document.getElementById('mainAppContainer');
+                if (mainApp) {
+                    mainApp.classList.remove('hidden');
+                    mainApp.removeAttribute('hidden');
+                    mainApp.style.removeProperty('display');
+                    mainApp.style.setProperty('display', 'block', 'important');
+                }
             };
 
             window._showLoginOverlay = function() {
+                var mainApp = document.getElementById('mainAppContainer');
+                if (mainApp) {
+                    mainApp.classList.add('hidden');
+                    mainApp.setAttribute('hidden', 'true');
+                    mainApp.style.setProperty('display', 'none', 'important');
+                }
                 var overlay = document.getElementById('loginOverlay');
                 if (overlay) {
                     overlay.classList.remove('hidden');
                     overlay.removeAttribute('hidden');
                     overlay.style.removeProperty('display');
+                    overlay.style.setProperty('display', 'flex', 'important');
                     var pin = document.getElementById('loginPinInput');
-                    if (pin) { pin.value = ''; pin.focus(); }
+                    if (pin) {
+                        pin.value = '';
+                        setTimeout(function() { pin.focus(); }, 80);
+                    }
                 }
             };
 
@@ -347,19 +368,22 @@
                         window.state.isLoggedIn = true;
                     }
                     window._isLoggedInFlag = true;
+                    try {
+                        sessionStorage.setItem('fia_logged_in', 'true');
+                    } catch(e) {}
                     window._dismissLoginOverlay();
                     try {
                         history.replaceState({ loggedIn: true, tab: 'home' }, "", "#home");
                     } catch(e) {}
                     if (input) input.value = '';
 
+                    if (typeof window.switchTab === 'function') {
+                        try { window.switchTab('home', false); } catch(e) { console.warn(e); }
+                    }
                     if (typeof window.renderAll === 'function') {
                         try { window.renderAll(); } catch(e) { console.warn(e); }
                     } else if (typeof window.bootstrapApp === 'function') {
                         try { window.bootstrapApp(); } catch(e) { console.warn(e); }
-                    }
-                    if (typeof window.switchTab === 'function') {
-                        try { window.switchTab('home', false); } catch(e) { console.warn(e); }
                     }
                 } else {
                     alert("Incorrect PIN! Please try again.");
@@ -480,27 +504,36 @@
                 }
                 window._isLoggedInFlag = false;
                 try {
+                    sessionStorage.removeItem('fia_logged_in');
+                    sessionStorage.removeItem('fia_auth');
+                } catch(e) {}
+                try {
                     if (window.closeBarcodeScanner) window.closeBarcodeScanner();
                 } catch(e) {}
-                ['billPreviewModal','recordViewModal','settingsModal','changePinModal','resetPinModal','dueAmountListModal','lowStockListModal'].forEach(function(id) {
+                ['billPreviewModal','recordViewModal','settingsModal','changePinModal','resetPinModal','dueAmountListModal','lowStockListModal','customerConsolidatedDetailModal','supplierConsolidatedDetailModal','backupModal','barcodeScannerModal'].forEach(function(id) {
                     var el = document.getElementById(id);
                     if (el) el.classList.add('hidden');
                 });
                 document.querySelectorAll('[id^="section"]').forEach(function(el) {
                     el.classList.add('hidden');
+                    el.style.display = 'none';
                 });
-                var home = document.getElementById('sectionHome');
-                if (home) home.classList.remove('hidden');
+                var mainApp = document.getElementById('mainAppContainer');
+                if (mainApp) {
+                    mainApp.classList.add('hidden');
+                    mainApp.setAttribute('hidden', 'true');
+                    mainApp.style.setProperty('display', 'none', 'important');
+                }
                 window._showLoginOverlay();
                 try {
-                    history.replaceState({ loggedIn: false, tab: 'home' }, '', '#login');
+                    history.replaceState({ loggedIn: false }, '', '#login');
                 } catch(e) {}
             };
         })();
     </script>
 
     <!-- ================= LOGIN OVERLAY ================= -->
-    <div id="loginOverlay" class="fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+    <div id="loginOverlay" class="fixed inset-0 bg-slate-950/95 z-[999999] flex items-center justify-center p-4 backdrop-blur-md">
         <div class="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-3xl max-w-sm w-full space-y-5 shadow-2xl text-center">
             <!-- Official FIA Logo Badge -->
             <div class="w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-emerald-500/40 shadow-2xl shadow-emerald-950/60 bg-black flex items-center justify-center p-1">
@@ -532,20 +565,22 @@
         </div>
     </div>
 
-    <!-- Firebase Sync Status Indicator -->
-    <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
-        <div class="flex items-center gap-2">
-            <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v47.3</span>
+    <!-- ================= MAIN AUTHENTICATED APP CONTAINER ================= -->
+    <div id="mainAppContainer" class="hidden">
+
+        <!-- Firebase Sync Status Indicator -->
+        <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
+            <div class="flex items-center gap-2">
+                <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v47.5</span>
+            </div>
+            <div class="flex gap-2 flex-wrap items-center">
+                <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
+                <button onclick="manualCloudSync()" class="hover:text-emerald-400 transition underline">Force Sync</button>
+                <button type="button" onclick="openBackupModal()" class="hover:text-emerald-400 transition underline text-blue-400 font-bold">💾 Backup</button>
+                <button type="button" onclick="logoutApp()" aria-label="Logout" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-800 bg-rose-950/40 text-rose-300 hover:bg-rose-900/60 transition font-bold"><span>🚪</span><span>Logout</span></button>
+            </div>
         </div>
-        <div class="flex gap-2 flex-wrap items-center">
-            <button onclick="forceAppUpdate()" class="hover:text-amber-300 transition underline text-amber-400 font-bold" title="പുതിയ അപ്‌ഡേറ്റുകൾ ലോഡ് ചെയ്യാൻ കാഷെ ക്ലിയർ ചെയ്യുക">🔄 Update App</button>
-            <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
-            <button onclick="manualCloudSync()" class="hover:text-emerald-400 transition underline">Force Sync</button>
-            <button type="button" onclick="openBackupModal()" class="hover:text-emerald-400 transition underline text-blue-400 font-bold">💾 Backup</button>
-            <button type="button" onclick="logoutApp()" aria-label="Logout" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-800 bg-rose-950/40 text-rose-300 hover:bg-rose-900/60 transition font-bold"><span>🚪</span><span>Logout</span></button>
-        </div>
-    </div>
 
     <div class="max-w-md mx-auto bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl overflow-hidden md:max-w-2xl p-3 sm:p-6 mb-10 space-y-6">
         
@@ -553,7 +588,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v47.3</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v47.5</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -1592,6 +1627,7 @@
         </div>
 
     </div>
+    </div> <!-- /mainAppContainer -->
 
     <!-- Modals -->
     <div id="dueAmountListModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
@@ -1711,7 +1747,11 @@
                     <button type="button" onclick="openBackupFilePicker('backupFileInput')" class="block w-full bg-slate-800 text-slate-200 py-2.5 rounded-xl font-bold text-center cursor-pointer border border-slate-700 hover:bg-slate-700">📤 Restore from File</button>
                     <input type="file" id="backupFileInput" accept=".json,application/json,text/json,text/plain,*/*" class="hidden" onchange="restoreFullBackup(event)">
                 </div>
-                <div class="pt-2 border-t border-slate-800">
+                <div class="pt-2 border-t border-slate-800 space-y-2">
+                    <button type="button" onclick="closeSettingsModal(); forceAppUpdate();" class="w-full bg-slate-800 text-amber-300 py-2.5 rounded-xl font-bold hover:bg-slate-700 flex items-center justify-center gap-2 border border-slate-700 text-xs transition">
+                        <span>🔄</span>
+                        <span>Check for Updates / Clear Cache</span>
+                    </button>
                     <button type="button" onclick="closeSettingsModal(); triggerPwaInstall();" class="w-full bg-slate-800 text-emerald-300 py-2.5 rounded-xl font-bold hover:bg-slate-700 flex items-center justify-center gap-2 border border-slate-700 text-xs">
                         <img src="./icon-192.png" alt="FIA" class="w-4 h-4 rounded-full">
                         <span>Install App / Add to Home Screen</span>
@@ -1821,7 +1861,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=47.3"></script>
+    <script type="module" src="./modules/app.js?v=47.5"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-amber-300 border border-amber-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -1833,7 +1873,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("പുതിയ അപ്‌ഡേറ്റുകൾ ലോഡ് ചെയ്യാനും കാഷെ (Cache) ക്ലിയർ ചെയ്യാനും താല്പര്യപ്പെടുന്നുണ്ടോ?\n\nഇത് ആപ്പിലെ ഏറ്റവും പുതിയ വേർഷൻ (v47.3) ഉടനടി ആക്റ്റീവാക്കും.")) {
+            if (confirm("പുതിയ അപ്‌ഡേറ്റുകൾ ലോഡ് ചെയ്യാനും കാഷെ (Cache) ക്ലിയർ ചെയ്യാനും താല്പര്യപ്പെടുന്നുണ്ടോ?\n\nഇത് ആപ്പിലെ ഏറ്റവും പുതിയ വേർഷൻ (v47.5) ഉടനടി ആക്റ്റീവാക്കും.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -1887,7 +1927,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=47.3')
+                navigator.serviceWorker.register('./sw.js?v=47.5')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
