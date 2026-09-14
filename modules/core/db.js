@@ -136,8 +136,8 @@ export function mergeInventoryProducts(localList, cloudList) {
         } else {
             const localTime = Number(item.savedAt || item.updatedAt || item.createdAt || 0);
             const cloudTime = Number(existing.savedAt || existing.updatedAt || existing.createdAt || 0);
-            // Strict greater-than: local only overrides cloud if modified explicitly after cloud
-            if (localTime > cloudTime) {
+            // Local overrides or equals cloud if modified explicitly after or at same time as cloud
+            if (localTime >= cloudTime) {
                 const stableId = existing.id || item.id;
                 map.set(targetKey, { ...existing, ...item, id: stableId });
             }
@@ -166,7 +166,7 @@ export function mergeCollection(localList, cloudList, idField = 'id') {
             const existing = map.get(key);
             const localTime = Number(item.savedAt || item.updatedAt || item.createdAt || 0);
             const cloudTime = Number(existing.savedAt || existing.updatedAt || existing.createdAt || 0);
-            if (localTime > cloudTime) {
+            if (localTime >= cloudTime) {
                 map.set(key, { ...existing, ...item });
             }
         }
@@ -201,7 +201,7 @@ export function mergeCustomerBills(localList, cloudList) {
             const existing = map.get(k);
             const localTime = Number(c.savedAt || c.createdAt || 0);
             const cloudTime = Number(existing.savedAt || existing.createdAt || 0);
-            if (localTime > cloudTime) {
+            if (localTime >= cloudTime) {
                 map.set(k, { ...existing, ...c });
             }
         }

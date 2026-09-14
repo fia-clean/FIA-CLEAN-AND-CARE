@@ -27,8 +27,8 @@ export function findInventoryProductForPurchase(p, isCos) {
     const packageList = state.packages || [];
     
     const stockId = String(p.stockId || '').trim();
-    const barcode = String(isCos ? (p.barcode || '') : (p.rawBarcode || '')).trim();
-    const rawName = String(isCos ? (p.item || '') : (p.rawMaterial || '')).trim();
+    const barcode = String(p.rawBarcode || p.barcode || '').trim();
+    const rawName = String(p.rawMaterial || p.item || p.name || p.productName || '').trim();
     const cleanName = rawName.replace(/\(.*?\)/g, '').replace(/_/g, ' ').trim().toLowerCase();
     const exactName = rawName.toLowerCase();
 
@@ -464,12 +464,14 @@ export function renderPurchaseReturnSelectors() {
     
     let html = '<option value="">-- Select Purchase to Return --</option>';
     sorted.forEach(p => {
-        const origQty = Number(p.rawQty || 0);
+        const origQty = Number(p.rawQty || p.qty || 0);
         const retQty = Number(p.returnedQty || 0);
         const availQty = Math.max(0, origQty - retQty);
         const idVal = String(p.id || p._idx);
-        const statusText = availQty > 0 ? `(Avail: ${availQty} ${p.rawUnit || ''})` : `(Fully Returned)`;
-        html += `<option value="${idVal}">${formatDateDDMMYYYY(p.date)} • ${p.supplierName} • ${p.rawMaterial} ${statusText}</option>`;
+        const prodName = p.rawMaterial || p.item || p.name || 'Item';
+        const unitName = p.rawUnit || p.unit || '';
+        const statusText = availQty > 0 ? `(Avail: ${availQty} ${unitName})` : `(Fully Returned)`;
+        html += `<option value="${idVal}">${formatDateDDMMYYYY(p.date)} • ${p.supplierName} • ${prodName} ${statusText}</option>`;
     });
     el.innerHTML = html;
     if (currentVal && sorted.some(p => String(p.id || p._idx) === currentVal)) {
@@ -491,14 +493,15 @@ export function fillPurchaseReturnDetails() {
         updatePurchaseReturnLiveCalc('cleaning');
         return;
     }
-    const origQty = Number(p.rawQty || 0);
+    const origQty = Number(p.rawQty || p.qty || 0);
     const retQty = Number(p.returnedQty || 0);
     const availQty = Math.max(0, origQty - retQty);
-    const unitPrice = Number(p.rawUnitPrice || ((Number(p.rawCost) || 0) / (origQty || 1))) || 0;
+    const unitPrice = Number(p.rawUnitPrice || ((Number(p.rawCost || p.amount) || 0) / (origQty || 1))) || 0;
+    const unitName = p.rawUnit || p.unit || '';
     
     if (qtyInput) {
         qtyInput.max = availQty;
-        qtyInput.placeholder = `Return Qty (Max: ${availQty} ${p.rawUnit || ''})`;
+        qtyInput.placeholder = `Return Qty (Max: ${availQty} ${unitName})`;
         if (parseFloat(qtyInput.value) > availQty) qtyInput.value = availQty;
     }
     const d = document.getElementById('purchaseReturnDate');
@@ -590,15 +593,16 @@ export function savePurchaseReturn(type) {
     const qtyEl = document.getElementById(isCos ? 'cosPurchaseReturnQty' : 'purchaseReturnQty');
     const qty = parseFloat(qtyEl?.value) || 0;
     const already = Number(p.returnedQty) || 0;
-    const originalQty = Number(isCos ? p.qty : p.rawQty) || 0;
+    const originalQty = Number(isCos ? (p.qty || p.rawQty) : (p.rawQty || p.qty)) || 0;
     const max = Math.max(0, originalQty - already);
+    const unit = String((isCos ? (p.unit || p.rawUnit) : (p.rawUnit || p.unit)) || '').trim();
     if (qty <= 0 || qty > max) {
-        alert(`Enter a valid return quantity (1 to ${max} ${isCos ? (p.unit || '') : (p.rawUnit || '')}).`);
+        alert(`Enter a valid return quantity (1 to ${max} ${unit}).`);
         return;
     }
     
-    const unit = isCos ? p.unit : p.rawUnit;
-    const unitPrice = Number(isCos ? (p.unitPrice || (p.amount / (originalQty || 1))) : (p.rawUnitPrice || ((Number(p.rawCost) || 0) / (originalQty || 1)))) || 0;
+    const grossCost = Number(isCos ? (p.amount || p.rawCost) : (p.rawCost || p.amount)) || 0;
+    const unitPrice = Number(isCos ? (p.unitPrice || (grossCost / (originalQty || 1))) : (p.rawUnitPrice || (grossCost / (originalQty || 1)))) || 0;
     const retAmount = Number((qty * unitPrice).toFixed(2));
     const retDate = document.getElementById(isCos ? 'cosPurchaseReturnDate' : 'purchaseReturnDate')?.value || getTodayPurchaseDate();
     const retReason = document.getElementById(isCos ? 'cosPurchaseReturnReason' : 'purchaseReturnReason')?.value.trim() || 'Purchased Stock Return';
@@ -616,7 +620,7 @@ export function savePurchaseReturn(type) {
     p.returnedQty = Number((already + qty).toFixed(2));
     p.returnedAmount = Number(((Number(p.returnedAmount) || 0) + retAmount).toFixed(2));
     
-    const grossCost = Number(isCos ? p.amount : p.rawCost) || 0;
+    const grossCost = Number(isCos ? (p.amount || p.rawCost) : (p.rawCost || p.amount)) || 0;
     p.netPurchaseAmount = Math.max(0, Number((grossCost - p.returnedAmount).toFixed(2)));
     const paid = Number(p.paid) || 0;
     if (paid > p.netPurchaseAmount) {
@@ -704,7 +708,7 @@ export function deletePurchaseReturn(type, purchaseId, returnIndex) {
     p.returnedQty = Math.max(0, Number(((Number(p.returnedQty) || 0) - retQty).toFixed(2)));
     p.returnedAmount = Math.max(0, Number(((Number(p.returnedAmount) || 0) - retAmount).toFixed(2)));
     
-    const grossCost = Number(isCos ? p.amount : p.rawCost) || 0;
+    const grossCost = Number(isCos ? (p.amount || p.rawCost) : (p.rawCost || p.amount)) || 0;
     p.netPurchaseAmount = Math.max(0, Number((grossCost - p.returnedAmount).toFixed(2)));
     const paid = Number(p.paid) || 0;
     if (paid > p.netPurchaseAmount) {
@@ -789,14 +793,15 @@ export function fillCosPurchaseReturnDetails() {
         updatePurchaseReturnLiveCalc('cosmetics');
         return;
     }
-    const origQty = Number(p.qty || 0);
+    const origQty = Number(p.qty || p.rawQty || 0);
     const retQty = Number(p.returnedQty || 0);
     const availQty = Math.max(0, origQty - retQty);
-    const unitPrice = Number(p.unitPrice || (p.amount / (origQty || 1))) || 0;
+    const unitPrice = Number(p.unitPrice || ((Number(p.amount || p.rawCost) || 0) / (origQty || 1))) || 0;
+    const unitName = p.unit || p.rawUnit || '';
     
     if (qtyInput) {
         qtyInput.max = availQty;
-        qtyInput.placeholder = `Return Qty (Max: ${availQty} ${p.unit || ''})`;
+        qtyInput.placeholder = `Return Qty (Max: ${availQty} ${unitName})`;
         if (parseFloat(qtyInput.value) > availQty) qtyInput.value = availQty;
     }
     const d = document.getElementById('cosPurchaseReturnDate');

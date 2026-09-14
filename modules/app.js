@@ -10,7 +10,7 @@ import {
     startAutomaticBackup,
     todayDDMMYYYY,
     getTodayDateString
-} from './core/state.js?v=47';
+} from './core/state.js?v=47.1';
 import {
     startRealtimeSync,
     pullFromFirebase,
@@ -19,7 +19,7 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup
-} from './core/db.js?v=47';
+} from './core/db.js?v=47.1';
 import {
     verifyLoginPin,
     logoutApp,
@@ -33,7 +33,7 @@ import {
     saveNewPin,
     openSettingsModal,
     closeSettingsModal
-} from './core/auth.js?v=47';
+} from './core/auth.js?v=47.1';
 
 // Feature Modules
 import {
@@ -47,7 +47,7 @@ import {
     closeLowStockList,
     goToAddStockFromLowStock,
     pushDashboardModalState
-} from './dashboard/dashboard.js?v=47';
+} from './dashboard/dashboard.js?v=47.1';
 
 import {
     saveDirectCustomer,
@@ -67,7 +67,7 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport
-} from './customers/customer.js?v=47';
+} from './customers/customer.js?v=47.1';
 
 import {
     previewBill,
@@ -82,7 +82,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=47';
+} from './billing/invoice-preview.js?v=47.1';
 
 import {
     renderSalesHistory,
@@ -91,7 +91,7 @@ import {
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
-} from './billing/billing-history.js?v=47';
+} from './billing/billing-history.js?v=47.1';
 
 import {
     getProductWholesalePrice,
@@ -146,7 +146,7 @@ import {
     renderCosSales,
     resetCosSalesForm,
     renderCosmeticsSummary
-} from './billing/billing.js?v=47';
+} from './billing/billing.js?v=47.1';
 
 import {
     updatePackageSelectors,
@@ -196,7 +196,7 @@ import {
     viewProduct,
     viewCosProduct,
     viewPackage
-} from './operations/stock.js?v=47';
+} from './operations/stock.js?v=47.1';
 
 import {
     getTodayPurchaseDate,
@@ -251,7 +251,7 @@ import {
     shareSelectedSupplierConsolidatedDetail,
     sharePurchaseConsolidationReport,
     downloadPurchaseConsolidationReportPDF
-} from './operations/purchases.js?v=47';
+} from './operations/purchases.js?v=47.1';
 
 import {
     saveExpense,
@@ -260,7 +260,7 @@ import {
     renderExpenses,
     resetExpenseForm,
     viewExpense
-} from './operations/expenses.js?v=47';
+} from './operations/expenses.js?v=47.1';
 
 import {
     dashboardDateKey,
@@ -276,7 +276,7 @@ import {
     saveDayBookOpeningValues,
     renderAccounts,
     exportDayBookToCSV
-} from './daybook/daybook.js?v=47';
+} from './daybook/daybook.js?v=47.1';
 
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {
@@ -706,16 +706,6 @@ if (typeof window !== 'undefined') {
         startRealtimeSync();
         pullFromFirebase();
         startAutomaticBackup();
-
-        // Register Service Worker for offline PWA (v40)
-        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
-            navigator.serviceWorker.register('./sw.js?v=40').then(reg => {
-                console.log('ServiceWorker registered with scope:', reg.scope);
-                reg.update();
-            }).catch(err => {
-                console.warn('ServiceWorker registration failed:', err);
-            });
-        }
     }
 
     window.bootstrapApp = bootstrapApp;
