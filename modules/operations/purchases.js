@@ -623,8 +623,80 @@ export function resetCosPurchaseForm() {
     toggleCosPurchaseInputs();
 }
 
+export function switchPurchaseSubTab(tab) {
+    const cleaning = document.getElementById('purchaseCleaningContent');
+    const cosmetics = document.getElementById('purchaseCosmeticsContent');
+    const b1 = document.getElementById('subTabPurchaseCleaning');
+    const b2 = document.getElementById('subTabPurchaseCosmetics');
+    const ct = document.getElementById('purchaseActionTabsCleaning');
+    const xt = document.getElementById('purchaseActionTabsCosmetics');
+    [cleaning, cosmetics].forEach(el => el && el.classList.add('hidden'));
+    [ct, xt].forEach(el => el && el.classList.add('hidden'));
+    [b1, b2].forEach(btn => {
+        if (btn) {
+            btn.classList.remove('bg-blue-700', 'bg-pink-700', 'text-white', 'shadow-md');
+            btn.classList.add('text-slate-400');
+        }
+    });
+    if (tab === 'cosmetics') {
+        cosmetics?.classList.remove('hidden');
+        xt?.classList.remove('hidden');
+        b2?.classList.add('bg-pink-700', 'text-white', 'shadow-md');
+        b2?.classList.remove('text-slate-400');
+        renderCosPurchases();
+        if (typeof window.updateCosProductDropdowns === 'function') window.updateCosProductDropdowns();
+        switchPurchaseActionTab('cosmetics', window.purchaseActionCosmetics || 'add');
+    } else {
+        cleaning?.classList.remove('hidden');
+        ct?.classList.remove('hidden');
+        b1?.classList.add('bg-blue-700', 'text-white', 'shadow-md');
+        b1?.classList.remove('text-slate-400');
+        renderPurchases();
+        switchPurchaseActionTab('cleaning', window.purchaseActionCleaning || 'add');
+    }
+    renderPurchaseSupplierList();
+}
+
+export function switchPurchaseActionTab(type, tab) {
+    window['purchaseAction' + (type === 'cosmetics' ? 'Cosmetics' : 'Cleaning')] = tab;
+    const prefix = type === 'cosmetics' ? 'Cosmetics' : 'Cleaning';
+    const ids = ['add', 'view', 'return', 'history'];
+    ids.forEach(t => {
+        const b = document.getElementById('purchaseAction' + prefix + t.charAt(0).toUpperCase() + t.slice(1));
+        if (b) {
+            b.classList.remove('bg-blue-700', 'bg-pink-700', 'text-white', 'shadow-md');
+            b.classList.add('text-slate-400');
+        }
+    });
+    const active = document.getElementById('purchaseAction' + prefix + tab.charAt(0).toUpperCase() + tab.slice(1));
+    if (active) {
+        active.classList.add(type === 'cosmetics' ? 'bg-pink-700' : 'bg-blue-700', 'text-white', 'shadow-md');
+        active.classList.remove('text-slate-400');
+    }
+    const blocks = type === 'cosmetics' ?
+        { add: 'cosPurchaseAddContent', view: 'cosPurchaseViewContent', return: 'cosPurchaseReturnContent', history: 'cosPurchaseHistoryContent' } :
+        { add: 'purchaseAddContent', view: 'purchaseViewContent', return: 'purchaseReturnContent', history: 'purchaseHistoryContent' };
+    Object.values(blocks).forEach(id => document.getElementById(id)?.classList.add('hidden'));
+    document.getElementById(blocks[tab])?.classList.remove('hidden');
+    const supplierCard = document.querySelector('#sectionPurchase > div:nth-of-type(2)');
+    if (supplierCard) supplierCard.classList.toggle('hidden', tab !== 'add');
+    if (tab === 'view') {
+        if (type === 'cosmetics') renderCosPurchases(); else renderPurchases();
+    } else if (tab === 'return') {
+        if (type === 'cosmetics') {
+            if (typeof renderCosPurchaseReturnSelectors === 'function') renderCosPurchaseReturnSelectors();
+        } else {
+            if (typeof renderPurchaseReturnSelectors === 'function') renderPurchaseReturnSelectors();
+        }
+    } else if (tab === 'history') {
+        if (typeof renderPurchaseHistory === 'function') renderPurchaseHistory(type);
+    }
+}
+
 // Global window bindings for HTML inline onclick attributes
 if (typeof window !== 'undefined') {
+    window.switchPurchaseSubTab = switchPurchaseSubTab;
+    window.switchPurchaseActionTab = switchPurchaseActionTab;
     window.getTodayPurchaseDate = getTodayPurchaseDate;
     window.loadPurchaseSuppliers = loadPurchaseSuppliers;
     window.renderPurchaseSupplierList = renderPurchaseSupplierList;

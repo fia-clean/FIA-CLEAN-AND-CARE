@@ -151,6 +151,9 @@ import {
     clearProductVariants,
     normalizePackageMapping,
     switchPackageActionTab,
+    switchStockTopTab,
+    switchStockSubTab,
+    switchStockActionTab,
     savePackage,
     resetPackageForm,
     editPackage,
@@ -198,6 +201,8 @@ import {
     fillCosPurchaseSupplierMobile,
     selectPurchaseSupplier,
     addPurchaseSupplier,
+    switchPurchaseSubTab,
+    switchPurchaseActionTab,
     updateCleaningPurchaseDropdown,
     togglePurchaseInputs,
     fillPurchaseStockDetails,
@@ -651,7 +656,7 @@ if (typeof window !== 'undefined') {
 
         // Register Service Worker for offline PWA
         if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js?v=33').then(reg => {
+            navigator.serviceWorker.register('./sw.js?v=34').then(reg => {
                 console.log('ServiceWorker registered with scope:', reg.scope);
             }).catch(err => {
                 console.warn('ServiceWorker registration failed:', err);
@@ -679,6 +684,16 @@ if (typeof window !== 'undefined') {
     window.renderAll = renderAll;
     window.purchaseActionCleaning = 'add';
     window.purchaseActionCosmetics = 'add';
+    window.switchStockTopTab = switchStockTopTab;
+    window.switchStockSubTab = switchStockSubTab;
+    window.switchStockActionTab = switchStockActionTab;
+    window.switchPurchaseSubTab = switchPurchaseSubTab;
+    window.switchPurchaseActionTab = switchPurchaseActionTab;
+    window.switchCustomerSubTab = switchCustomerSubTab;
+    window.switchCustomerConsolidationView = switchCustomerConsolidationView;
+    window.renderCustomerConsolidationReport = renderCustomerConsolidationReport;
+    window.renderCustomerConsolidationView = renderCustomerConsolidationView;
+    window.renderConsolidatedStockReport = renderConsolidatedStockReport;
 
     if (typeof document !== 'undefined') {
         document.addEventListener('input', function(e) {

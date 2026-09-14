@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-v33';
+const CACHE_NAME = 'fia-clean-care-v34';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [
@@ -112,8 +112,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Local app assets (HTML, manifest, icons)
+  // 2. Local app assets (HTML, manifest, icons, JS modules)
   if (url.origin === location.origin) {
+    // For ES modules and JS, use Network-First to guarantee immediate updates on refresh, with cache fallback
+    if (url.pathname.includes('/modules/') || url.pathname.endsWith('.js')) {
+      event.respondWith(
+        fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseClone);
+              });
+            }
+            return networkResponse;
+          })
+          .catch(() => caches.match(request))
+      );
+      return;
+    }
+
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         const fetchPromise = fetch(request)

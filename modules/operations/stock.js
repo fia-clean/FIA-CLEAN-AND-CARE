@@ -214,6 +214,89 @@ export function switchPackageActionTab(tab) {
     }
 }
 
+export function switchStockTopTab(tab) {
+    const productArea = document.getElementById('stockProductArea');
+    const packageArea = document.getElementById('stockPackageArea');
+    const p = document.getElementById('stockTopProduct');
+    const q = document.getElementById('stockTopPackage');
+    if (tab === 'package') {
+        productArea?.classList.add('hidden');
+        packageArea?.classList.remove('hidden');
+        p?.classList.remove('bg-emerald-700', 'text-white', 'shadow-md');
+        p?.classList.add('text-slate-400');
+        q?.classList.add('bg-cyan-700', 'text-white', 'shadow-md');
+        q?.classList.remove('text-slate-400');
+        renderPackages();
+        updatePackageSelectors();
+        switchPackageActionTab(state.packages && state.packages.length > 0 ? 'view' : 'add');
+    } else {
+        packageArea?.classList.add('hidden');
+        productArea?.classList.remove('hidden');
+        q?.classList.remove('bg-cyan-700', 'text-white', 'shadow-md');
+        q?.classList.add('text-slate-400');
+        p?.classList.add('bg-emerald-700', 'text-white', 'shadow-md');
+        p?.classList.remove('text-slate-400');
+    }
+}
+
+export function switchStockSubTab(tab) {
+    const cleaning = document.getElementById('stockCleaningContent');
+    const cosmetics = document.getElementById('stockCosmeticsContent');
+    const b1 = document.getElementById('subTabStockCleaning');
+    const b2 = document.getElementById('subTabStockCosmetics');
+    [cleaning, cosmetics].forEach(el => el && el.classList.add('hidden'));
+    [b1, b2].forEach(btn => {
+        if (btn) {
+            btn.classList.remove('bg-emerald-700', 'bg-pink-700', 'text-white', 'shadow-md');
+            btn.classList.add('text-slate-400');
+        }
+    });
+    if (tab === 'cosmetics') {
+        cosmetics?.classList.remove('hidden');
+        b2?.classList.add('bg-pink-700', 'text-white', 'shadow-md');
+        b2?.classList.remove('text-slate-400');
+        renderCosProductStock();
+        updateCosProductDropdowns();
+        updateStockReturnDropdowns();
+        renderStockReturnHistory();
+        switchStockActionTab('cosmetics', 'add');
+    } else {
+        cleaning?.classList.remove('hidden');
+        b1?.classList.add('bg-emerald-700', 'text-white', 'shadow-md');
+        b1?.classList.remove('text-slate-400');
+        renderProducts();
+        updateStockReturnDropdowns();
+        renderStockReturnHistory();
+        switchStockActionTab('cleaning', 'add');
+    }
+}
+
+export function switchStockActionTab(type, tab) {
+    const prefix = type === 'cosmetics' ? 'cos' : 'clean';
+    const ids = ['add', 'view', 'return', 'consolidated'];
+    ids.forEach(t => {
+        const content = document.getElementById(prefix + 'Stock' + t.charAt(0).toUpperCase() + t.slice(1) + 'Content');
+        const button = document.getElementById(prefix + 'Stock' + t.charAt(0).toUpperCase() + t.slice(1) + 'Tab');
+        if (content) content.classList.toggle('hidden', t !== tab);
+        if (button) {
+            button.classList.remove('bg-emerald-700', 'bg-pink-700', 'text-white', 'shadow-md');
+            button.classList.add('text-slate-400');
+            if (t === tab) {
+                button.classList.add(type === 'cosmetics' ? 'bg-pink-700' : 'bg-emerald-700', 'text-white', 'shadow-md');
+                button.classList.remove('text-slate-400');
+            }
+        }
+    });
+    if (tab === 'view') {
+        if (type === 'cosmetics') renderCosProductStock(); else renderProducts();
+    } else if (tab === 'return') {
+        updateStockReturnDropdowns();
+        renderStockReturnHistory();
+    } else if (tab === 'consolidated') {
+        renderConsolidatedStockReport();
+    }
+}
+
 export function savePackage(e) {
     e.preventDefault();
     const id = document.getElementById('packageId').value;
@@ -948,6 +1031,9 @@ if (typeof window !== 'undefined') {
     window.clearProductVariants = clearProductVariants;
     window.normalizePackageMapping = normalizePackageMapping;
     window.switchPackageActionTab = switchPackageActionTab;
+    window.switchStockTopTab = switchStockTopTab;
+    window.switchStockSubTab = switchStockSubTab;
+    window.switchStockActionTab = switchStockActionTab;
     window.savePackage = savePackage;
     window.resetPackageForm = resetPackageForm;
     window.editPackage = editPackage;

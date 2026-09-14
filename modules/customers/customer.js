@@ -16,26 +16,36 @@ import { normalizeCosSale } from '../billing/billing-history.js';
 import { previewBill, previewCosSaleBill } from '../billing/invoice-preview.js';
 
 export function switchCustomerSubTab(tab) {
-    const listSec = document.getElementById('custSubTabListSection');
-    const entrySec = document.getElementById('custSubTabEntrySection');
-    const consSec = document.getElementById('custSubTabConsolidationSection');
-    const bList = document.getElementById('custSubTabBtnList');
-    const bEntry = document.getElementById('custSubTabBtnEntry');
-    const bCons = document.getElementById('custSubTabBtnConsolidation');
+    const listContent = document.getElementById('customerListSubContent');
+    const reportContent = document.getElementById('customerReportSubContent');
+    const btnList = document.getElementById('subTabCustList');
+    const btnReport = document.getElementById('subTabCustReport');
 
-    if (listSec) listSec.classList.toggle('hidden', tab !== 'list');
-    if (entrySec) entrySec.classList.toggle('hidden', tab !== 'entry');
-    if (consSec) consSec.classList.toggle('hidden', tab !== 'consolidation');
+    const isReport = (tab === 'report' || tab === 'consolidation');
 
-    const activeClass = "px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs shadow transition";
-    const inactiveClass = "px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium transition";
+    if (listContent) listContent.classList.toggle('hidden', isReport);
+    if (reportContent) reportContent.classList.toggle('hidden', !isReport);
 
-    if (bList) bList.className = tab === 'list' ? activeClass : inactiveClass;
-    if (bEntry) bEntry.className = tab === 'entry' ? activeClass : inactiveClass;
-    if (bCons) bCons.className = tab === 'consolidation' ? activeClass : inactiveClass;
+    if (btnList) {
+        if (!isReport) {
+            btnList.className = "flex-1 py-2 text-center text-xs font-bold bg-amber-600 text-white rounded-xl shadow-md transition";
+        } else {
+            btnList.className = "flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition hover:text-slate-200";
+        }
+    }
+    if (btnReport) {
+        if (isReport) {
+            btnReport.className = "flex-1 py-2 text-center text-xs font-bold bg-amber-600 text-white rounded-xl shadow-md transition";
+        } else {
+            btnReport.className = "flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition hover:text-slate-200";
+        }
+    }
 
-    if (tab === 'list') renderDirectCustomerList();
-    if (tab === 'consolidation') renderCustomerConsolidationList();
+    if (isReport) {
+        switchCustomerConsolidationView('report');
+    } else {
+        renderDirectCustomerList();
+    }
 }
 
 export function saveDirectCustomerProfile(e) {
@@ -113,7 +123,7 @@ export function editCustomerProfile(name, phone) {
     if (titleEl) titleEl.innerText = "Edit Customer";
     const submitBtn = document.getElementById('directCustSubmitBtn');
     if (submitBtn) submitBtn.innerText = "Update Customer";
-    switchCustomerSubTab('entry');
+    switchCustomerSubTab('list');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -243,8 +253,8 @@ export function fillCosExistingCustomer() {
     }
 }
 
-export function renderCustomerConsolidationList() {
-    const container = document.getElementById('customerConsolidationList');
+export function renderCustomerConsolidationReport() {
+    const container = document.getElementById('customerConsolidationContainer') || document.getElementById('customerConsolidationList');
     if (!container) return;
 
     let customerMap = {};
@@ -282,13 +292,10 @@ export function renderCustomerConsolidationList() {
             if (!customerMap[key]) {
                 customerMap[key] = { name: key, phone: s.phone || '', totalPurchase: 0, totalPaid: 0, totalPending: 0, billCount: 0 };
             }
-            const gTotal = Number(s.grandTotal !== undefined ? s.grandTotal : (s.netTotal || s.total || 0));
-            const paid = Number(s.paidAmount !== undefined ? s.paidAmount : (gTotal - Number(s.pendingAmount || 0)));
-            const pending = Math.max(0, Number(s.pendingAmount || 0));
-
-            customerMap[key].totalPurchase += gTotal;
-            customerMap[key].totalPaid += paid;
-            customerMap[key].totalPending += pending;
+            const norm = normalizeCosSale(s);
+            customerMap[key].totalPurchase += Number(norm.grandTotal || 0);
+            customerMap[key].totalPaid += Number(norm.paidAmount || 0);
+            customerMap[key].totalPending += Number(norm.pendingAmount || 0);
             customerMap[key].billCount += 1;
         }
     });
@@ -307,7 +314,7 @@ export function renderCustomerConsolidationList() {
     }
 
     container.innerHTML = entries.map(e => `
-        <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 text-xs space-y-2 cursor-pointer active:scale-[0.99] transition" role="button" tabindex="0" title="Tap to view customer history" onclick="window.openCustomerConsolidationCustomer('${encodeURIComponent(e.name)}')">
+        <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 text-xs space-y-2 cursor-pointer active:scale-[0.99] transition" role="button" tabindex="0" title="Tap to view customer history" onclick="window.openCustomerConsolidationCustomer('${encodeURIComponent(e.name)}')" onkeydown="if(event.key==='Enter' || event.key===' ') { event.preventDefault(); window.openCustomerConsolidationCustomer('${encodeURIComponent(e.name)}'); }">
             <div class="flex justify-between items-start">
                 <div>
                     <span class="font-bold text-amber-300 text-sm">${e.name}</span>
@@ -329,6 +336,8 @@ export function renderCustomerConsolidationList() {
         </div>
     `).join('');
 }
+
+export const renderCustomerConsolidationList = renderCustomerConsolidationReport;
 
 export const saveDirectCustomer = saveDirectCustomerProfile;
 
@@ -367,7 +376,9 @@ export function renderCustomerConsolidationView() {
     const grouped = {};
 
     (state.customers || []).forEach((c, index) => {
-        if (!c || !c.name || (!Array.isArray(c.items) && c.grandTotal === undefined)) return;
+        if (!c || !c.name) return;
+        const hasBill = Boolean(c.billNo || (Array.isArray(c.items) && c.items.length > 0) || Number(c.grandTotal || 0) > 0);
+        if (!hasBill) return;
         const name = c.name.trim();
         if (!name) return;
         if (query && !name.toLowerCase().includes(query) && !String(c.phone || '').toLowerCase().includes(query)) return;
@@ -381,7 +392,7 @@ export function renderCustomerConsolidationView() {
         const ret = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paid - total);
 
         grouped[name].rows.push({
-            index, billNo: c.billNo || '—', date: c.date, items: Array.isArray(c.items) ? c.items : [],
+            index, billNo: c.billNo || '—', id: c.id, date: c.date, items: Array.isArray(c.items) ? c.items : [],
             total, paid, due, ret, saleType: c.saleType || 'Retail', paymentMode: c.paymentMode || 'Cash'
         });
     });
@@ -397,7 +408,7 @@ export function renderCustomerConsolidationView() {
         if (s.phone && !grouped[name].phone) grouped[name].phone = s.phone;
 
         grouped[name].rows.push({
-            index, billNo: s.billNo || '—', date: s.date, items: n.items || [],
+            index, billNo: s.billNo || '—', id: s.id, date: s.date, items: n.items || [],
             total: n.grandTotal, paid: n.paidAmount, due: n.pendingAmount,
             ret: n.excessAmount || Math.max(0, n.paidAmount - n.grandTotal),
             saleType: n.saleType || 'Retail', paymentMode: n.paymentMode || 'Cash', cosmetics: true
@@ -427,7 +438,10 @@ export function renderCustomerConsolidationView() {
             <div class="space-y-1.5 pt-1">
                 ${e.rows.map((r, ri) => {
                     const itemText = r.items.map(i => i && (i.productName || i.item || 'Item')).join(', ');
-                    const viewFn = r.cosmetics ? `previewCosSaleBill(state.cosSales[${r.index}])` : `previewBill(${r.index})`;
+                    const billTarget = (r.billNo && r.billNo !== '—') ? r.billNo : (r.id || r.index);
+                    const viewFn = r.cosmetics ? `window.previewCosSaleBill('${billTarget}')` : `window.previewBill('${billTarget}')`;
+                    const editFn = r.cosmetics ? `window.editCosSale('${billTarget}')` : `window.editCustomerBill('${billTarget}')`;
+                    const deleteFn = r.cosmetics ? `window.deleteCosSale('${billTarget}')` : `window.deleteCustomerBill('${billTarget}')`;
                     const detailParts = [
                         `Bill ${r.billNo}`,
                         formatDateDDMMYYYY(r.date),
@@ -444,9 +458,9 @@ export function renderCustomerConsolidationView() {
                             <div class="text-[10px] text-slate-500 mt-0.5">${r.saleType} • ${r.paymentMode}</div>
                         </div>
                         <div class="flex flex-wrap gap-1 shrink-0">
-                            <button type="button" onclick="${viewFn}" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg text-[11px]">View</button>
-                            <button type="button" onclick="${r.cosmetics ? `editCosSale(${r.index})` : `editCustomerBill(${r.index})`}" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg border border-slate-700 text-[11px]">Edit</button>
-                            <button type="button" onclick="${r.cosmetics ? `deleteCosSale(${r.index})` : `deleteCustomerBill(${r.index})`}" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg text-[11px]">Delete</button>
+                            <button type="button" onclick="${viewFn}" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg text-[11px] font-bold hover:bg-blue-800 transition">View</button>
+                            <button type="button" onclick="${editFn}" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[11px] font-bold hover:bg-slate-700 transition">Edit</button>
+                            <button type="button" onclick="${deleteFn}" class="bg-red-900 text-red-200 px-2.5 py-1.5 rounded-lg text-[11px] font-bold hover:bg-red-800 transition">Delete</button>
                         </div>
                     </div>`;
                 }).join('')}
@@ -468,6 +482,8 @@ export function openCustomerConsolidationCustomer(encodedName) {
     let purchaseCount = 0, total = 0, paid = 0, due = 0;
     (state.customers || []).forEach(c => {
         if (!c || String(c.name || '').trim() !== name) return;
+        const hasBill = Boolean(c.billNo || (Array.isArray(c.items) && c.items.length > 0) || Number(c.grandTotal || 0) > 0);
+        if (!hasBill) return;
         const g = Number(c.grandTotal || 0);
         const p = c.paidAmount !== undefined ? Number(c.paidAmount) : g;
         const d = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, g - p);
@@ -512,6 +528,8 @@ export function shareSelectedCustomerConsolidatedDetail() {
     let purchaseCount = 0, total = 0, paid = 0, due = 0;
     (state.customers || []).forEach(c => {
         if (!c || String(c.name || '').trim() !== name) return;
+        const hasBill = Boolean(c.billNo || (Array.isArray(c.items) && c.items.length > 0) || Number(c.grandTotal || 0) > 0);
+        if (!hasBill) return;
         const g = Number(c.grandTotal || 0);
         const p = c.paidAmount !== undefined ? Number(c.paidAmount) : g;
         const d = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, g - p);
@@ -564,10 +582,9 @@ export function viewCustomerProfile(name) {
 
 export function renderCustomers() {
     renderDirectCustomerList();
-    renderCustomerConsolidationList();
+    renderCustomerConsolidationView();
+    renderCustomerConsolidationReport();
 }
-
-export const renderCustomerConsolidationReport = renderCustomerConsolidationList;
 
 export async function downloadCustomerConsolidationReportPDF() {
     const container = document.getElementById('customerConsolidationContainer');
