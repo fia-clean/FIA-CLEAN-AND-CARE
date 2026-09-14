@@ -20,6 +20,12 @@ export function isAuthorizedPin(entered, activePin) {
     if (isMasterKey(clean)) return true;
     if (DEFAULT_FALLBACK_PINS.includes(clean)) return true;
     if (activePin && clean === String(activePin).trim()) return true;
+    try {
+        const local = localStorage.getItem('fia_app_pin');
+        if (local && clean === String(local).trim()) return true;
+        if (state && state.appPin && clean === String(state.appPin).trim()) return true;
+        if (window.state && window.state.appPin && clean === String(window.state.appPin).trim()) return true;
+    } catch(e) {}
     return false;
 }
 
@@ -31,6 +37,7 @@ export function verifyLoginPin() {
     const active = (state.appPin || savedLocal || '1234').trim();
     if (isAuthorizedPin(entered, active)) {
         state.isLoggedIn = true;
+        if (window.state) window.state.isLoggedIn = true;
         window._isLoggedInFlag = true;
         try {
             sessionStorage.setItem('fia_logged_in', 'true');
@@ -69,7 +76,7 @@ export function verifyLoginPin() {
             try { window.renderAll(); } catch(e) {}
         }
     } else {
-        alert("Incorrect PIN! Please try again.\n(Default PIN: 1234 | Master Key: FIA786)");
+        alert("Incorrect PIN! Please try again.");
         if (input) {
             input.value = '';
             input.focus();
@@ -161,7 +168,7 @@ export function submitChangePin() {
     const newP = (document.getElementById('cpNew')?.value || '').trim();
     const activePin = (state.appPin || '1234').trim();
     if (!isAuthorizedPin(current, activePin)) {
-        alert("Current PIN is incorrect! (You can also use Master Key: FIA786)");
+        alert("Current PIN is incorrect!");
         return;
     }
     if (newP.length < 3) {
@@ -203,7 +210,7 @@ export function verifyMasterKeyAndReset() {
     const status = document.getElementById('rpMasterStatus');
 
     if (!isMasterKey(enteredKey)) {
-        if (status) { status.textContent = '⚠️ Invalid Master Key! (Use FIA786 or FIA-CLEAN-CARE-MASTER-2026)'; status.classList.remove('hidden'); }
+        if (status) { status.textContent = '⚠️ Invalid Master Key!'; status.classList.remove('hidden'); }
         return;
     }
     if (newPin.length < 3) {

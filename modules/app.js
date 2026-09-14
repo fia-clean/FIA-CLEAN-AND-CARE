@@ -10,7 +10,7 @@ import {
     startAutomaticBackup,
     todayDDMMYYYY,
     getTodayDateString
-} from './core/state.js?v=47.6';
+} from './core/state.js?v=47.7';
 import {
     startRealtimeSync,
     pullFromFirebase,
@@ -19,7 +19,7 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup
-} from './core/db.js?v=47.6';
+} from './core/db.js?v=47.7';
 import {
     verifyLoginPin,
     logoutApp,
@@ -33,7 +33,7 @@ import {
     saveNewPin,
     openSettingsModal,
     closeSettingsModal
-} from './core/auth.js?v=47.6';
+} from './core/auth.js?v=47.7';
 
 // Feature Modules
 import {
@@ -47,7 +47,7 @@ import {
     closeLowStockList,
     goToAddStockFromLowStock,
     pushDashboardModalState
-} from './dashboard/dashboard.js?v=47.6';
+} from './dashboard/dashboard.js?v=47.7';
 
 import {
     saveDirectCustomer,
@@ -67,7 +67,7 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport
-} from './customers/customer.js?v=47.6';
+} from './customers/customer.js?v=47.7';
 
 import {
     previewBill,
@@ -82,7 +82,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=47.6';
+} from './billing/invoice-preview.js?v=47.7';
 
 import {
     renderSalesHistory,
@@ -91,7 +91,7 @@ import {
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
-} from './billing/billing-history.js?v=47.6';
+} from './billing/billing-history.js?v=47.7';
 
 import {
     getProductWholesalePrice,
@@ -146,7 +146,7 @@ import {
     renderCosSales,
     resetCosSalesForm,
     renderCosmeticsSummary
-} from './billing/billing.js?v=47.6';
+} from './billing/billing.js?v=47.7';
 
 import {
     updatePackageSelectors,
@@ -196,7 +196,7 @@ import {
     viewProduct,
     viewCosProduct,
     viewPackage
-} from './operations/stock.js?v=47.6';
+} from './operations/stock.js?v=47.7';
 
 import {
     getTodayPurchaseDate,
@@ -251,7 +251,7 @@ import {
     shareSelectedSupplierConsolidatedDetail,
     sharePurchaseConsolidationReport,
     downloadPurchaseConsolidationReportPDF
-} from './operations/purchases.js?v=47.6';
+} from './operations/purchases.js?v=47.7';
 
 import {
     saveExpense,
@@ -260,7 +260,7 @@ import {
     renderExpenses,
     resetExpenseForm,
     viewExpense
-} from './operations/expenses.js?v=47.6';
+} from './operations/expenses.js?v=47.7';
 
 import {
     dashboardDateKey,
@@ -276,7 +276,7 @@ import {
     saveDayBookOpeningValues,
     renderAccounts,
     exportDayBookToCSV
-} from './daybook/daybook.js?v=47.6';
+} from './daybook/daybook.js?v=47.7';
 
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {
@@ -477,10 +477,13 @@ export function hideUnwantedStockMenus() {
 }
 
 export function switchTab(tabName, pushToHistory = true) {
-    if (!state.isLoggedIn || !window._isLoggedInFlag) {
+    const isAuthed = state.isLoggedIn || window._isLoggedInFlag || (sessionStorage.getItem('fia_logged_in') === 'true');
+    if (!isAuthed) {
         if (typeof logoutApp === 'function') logoutApp();
         return;
     }
+    state.isLoggedIn = true;
+    window._isLoggedInFlag = true;
 
     const sections = ['home', 'customers', 'billing', 'operations', 'stock', 'purchase', 'expenses', 'cosmetics', 'accounts'];
 
@@ -516,10 +519,13 @@ export function switchTab(tabName, pushToHistory = true) {
 }
 
 export function openOperationSection(section) {
-    if (!state.isLoggedIn || !window._isLoggedInFlag) {
+    const isAuthed = state.isLoggedIn || window._isLoggedInFlag || (sessionStorage.getItem('fia_logged_in') === 'true');
+    if (!isAuthed) {
         if (typeof logoutApp === 'function') logoutApp();
         return;
     }
+    state.isLoggedIn = true;
+    window._isLoggedInFlag = true;
     switchTab(section);
     const tab = document.getElementById('tabOperations');
     if (tab) tab.className = "px-3 py-2 text-center font-bold text-emerald-400 border-b-2 border-emerald-400 whitespace-nowrap transition";
@@ -529,10 +535,13 @@ export function openOperationSection(section) {
 }
 
 export function openBillingSection(type) {
-    if (!state.isLoggedIn || !window._isLoggedInFlag) {
+    const isAuthed = state.isLoggedIn || window._isLoggedInFlag || (sessionStorage.getItem('fia_logged_in') === 'true');
+    if (!isAuthed) {
         if (typeof logoutApp === 'function') logoutApp();
         return;
     }
+    state.isLoggedIn = true;
+    window._isLoggedInFlag = true;
     const secBilling = document.getElementById('sectionBilling');
     if (secBilling && (secBilling.classList.contains('hidden') || secBilling.style.display === 'none')) {
         switchTab('billing');
@@ -593,10 +602,13 @@ export function openBillingSection(type) {
 }
 
 export function openCosmeticsSalesEntry() {
-    if (!state.isLoggedIn || !window._isLoggedInFlag) {
+    const isAuthed = state.isLoggedIn || window._isLoggedInFlag || (sessionStorage.getItem('fia_logged_in') === 'true');
+    if (!isAuthed) {
         if (typeof logoutApp === 'function') logoutApp();
         return;
     }
+    state.isLoggedIn = true;
+    window._isLoggedInFlag = true;
     try { switchTab('cosmetics'); } catch (e) {}
     setTimeout(function() {
         const titleEl = document.getElementById('cosSalesFormTitle');
@@ -642,10 +654,13 @@ export function renderAll() {
 // ================= BROWSER POPSTATE & HISTORY =================
 if (typeof window !== 'undefined') {
     window.onpopstate = function(event) {
-        if (!state.isLoggedIn || !window._isLoggedInFlag) {
+        const isAuthed = state.isLoggedIn || window._isLoggedInFlag || (sessionStorage.getItem('fia_logged_in') === 'true');
+        if (!isAuthed) {
             if (typeof logoutApp === 'function') logoutApp();
             return;
         }
+        state.isLoggedIn = true;
+        window._isLoggedInFlag = true;
 
         const previewModal = document.getElementById('billPreviewModal');
         if (previewModal && !previewModal.classList.contains('hidden')) {

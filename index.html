@@ -324,12 +324,33 @@
                 if (window.isMasterKey(clean)) return true;
                 if (DEFAULT_PINS.indexOf(clean) !== -1) return true;
                 if (savedPin && clean === String(savedPin).trim()) return true;
+                try {
+                    var local = localStorage.getItem('fia_app_pin');
+                    if (local && clean === String(local).trim()) return true;
+                    if (window.state && window.state.appPin && clean === String(window.state.appPin).trim()) return true;
+                } catch(e) {}
                 return false;
             };
 
+            // If session already logged in, automatically dismiss overlay when DOM is ready
+            try {
+                if (sessionStorage.getItem('fia_logged_in') === 'true') {
+                    window._isLoggedInFlag = true;
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', function() {
+                            if (sessionStorage.getItem('fia_logged_in') === 'true') {
+                                window._dismissLoginOverlay();
+                            }
+                        });
+                    } else {
+                        window._dismissLoginOverlay();
+                    }
+                }
+            } catch(e) {}
+
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("പുതിയ അപ്‌ഡേറ്റുകൾ ലോഡ് ചെയ്യാനും കാഷെ (Cache) ക്ലിയർ ചെയ്യാനും താല്പര്യപ്പെടുന്നുണ്ടോ?\n\nഇത് ആപ്പിലെ ഏറ്റവും പുതിയ വേർഷൻ (v47.6) ഉടനടി ആക്റ്റീവാക്കും.")) {
+                if (confirm("പുതിയ അപ്‌ഡേറ്റുകൾ ലോഡ് ചെയ്യാനും കാഷെ (Cache) ക്ലിയർ ചെയ്യാനും താല്പര്യപ്പെടുന്നുണ്ടോ?\n\nഇത് ആപ്പിലെ ഏറ്റവും പുതിയ വേർഷൻ (v47.7) ഉടനടി ആക്റ്റീവാക്കും.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -423,11 +444,9 @@
                     }
                     if (typeof window.renderAll === 'function') {
                         try { window.renderAll(); } catch(e) { console.warn(e); }
-                    } else if (typeof window.bootstrapApp === 'function') {
-                        try { window.bootstrapApp(); } catch(e) { console.warn(e); }
                     }
                 } else {
-                    alert("Incorrect PIN! Please try again.\n(Default PIN: 1234 | Master Key: FIA786)");
+                    alert("Incorrect PIN! Please try again.");
                     if (input) {
                         input.value = '';
                         input.focus();
@@ -480,7 +499,7 @@
                 activePin = String(activePin).trim();
 
                 if (!window.isAuthorizedPin(cur, activePin)) {
-                    alert("Current PIN is incorrect! (You can also use Master Key: FIA786)");
+                    alert("Current PIN is incorrect!");
                     return;
                 }
                 if (np.length < 3) {
@@ -520,7 +539,7 @@
                 var status = document.getElementById('rpMasterStatus');
 
                 if (!window.isMasterKey(enteredKey)) {
-                    if (status) { status.textContent = '⚠️ Invalid Master Key! (Use FIA786 or FIA-CLEAN-CARE-MASTER-2026)'; status.classList.remove('hidden'); }
+                    if (status) { status.textContent = '⚠️ Invalid Master Key!'; status.classList.remove('hidden'); }
                     return;
                 }
                 if (newPin.length < 3) {
@@ -532,7 +551,7 @@
                     if (window.state) window.state.appPin = newPin;
                     if (typeof window.syncToFirebase === 'function') window.syncToFirebase();
                 } catch(e) {}
-                alert("✓ Security PIN updated successfully to: " + newPin);
+                alert("✓ Security PIN updated successfully!");
                 window.closeResetPinModal();
                 var loginInput = document.getElementById('loginPinInput');
                 if (loginInput) { loginInput.value = newPin; loginInput.focus(); }
@@ -582,14 +601,10 @@
             </div>
             <div>
                 <h2 class="text-xl font-extrabold text-emerald-400 tracking-tight">FIA CLEAN & CARE</h2>
-                <div class="flex items-center justify-center gap-2 mt-1.5">
-                    <span id="loginVersionBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80 shadow-sm">v47.6</span>
-                    <button type="button" onclick="window.forceAppUpdate()" class="text-[10px] text-amber-400 hover:text-amber-300 underline font-medium cursor-pointer">🔄 Update / Clear Cache</button>
-                </div>
             </div>
             
             <div class="relative">
-                <input type="password" id="loginPinInput" placeholder="Enter PIN or Master Key" onkeydown="if(event.key==='Enter'){event.preventDefault();verifyLoginPin();}" class="w-full p-3.5 pr-12 bg-slate-950 border border-slate-700 rounded-2xl text-center tracking-widest text-lg text-white focus:outline-none focus:border-emerald-500 transition shadow-inner" maxlength="50" autofocus autocomplete="current-password">
+                <input type="password" id="loginPinInput" placeholder="Enter PIN" onkeydown="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();verifyLoginPin();}" class="w-full p-3.5 pr-12 bg-slate-950 border border-slate-700 rounded-2xl text-center tracking-widest text-xl text-white focus:outline-none focus:border-emerald-500 transition shadow-inner" maxlength="32" autofocus autocomplete="current-password">
                 <button type="button" onclick="togglePinVisibility('loginPinInput','loginPinEye')" id="loginPinEye" aria-label="Toggle PIN Visibility" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-400 p-1 transition cursor-pointer">
                     <svg id="eyeIconShow" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -607,9 +622,6 @@
                 <button type="button" onclick="openChangePinModal()" class="text-emerald-400 hover:underline">Change PIN</button>
                 <button type="button" onclick="openResetPinModal()" class="text-amber-400 hover:underline">Forgot PIN?</button>
             </div>
-            <div class="text-[10px] text-slate-500 pt-1">
-                Default PIN: <span class="text-slate-400 font-mono">1234</span> • Master Key: <span class="text-slate-400 font-mono">FIA786</span>
-            </div>
         </div>
     </div>
 
@@ -620,7 +632,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v47.6</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v47.7</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
@@ -636,7 +648,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v47.6</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v47.7</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -1858,7 +1870,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 space-y-4 text-center shadow-2xl">
             <h3 class="font-bold text-emerald-400 text-sm">Change Security PIN</h3>
             <div class="space-y-3 text-xs text-left">
-                <input type="password" id="cpCurrent" placeholder="Current PIN or Master Key" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500" maxlength="50">
+                <input type="password" id="cpCurrent" placeholder="Current PIN" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500" maxlength="50">
                 <input type="password" id="cpNew" placeholder="New PIN (min 3 digits)" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500" maxlength="10">
             </div>
             <div class="flex gap-2">
@@ -1875,7 +1887,7 @@
             
             <div class="space-y-3 text-xs text-left">
                 <div>
-                    <input type="password" id="rpMasterKey" placeholder="Enter Master Key (e.g. FIA786)" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-500 text-sm" maxlength="50">
+                    <input type="password" id="rpMasterKey" placeholder="Enter Master Recovery Key" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-500 text-sm" maxlength="50">
                 </div>
                 <div>
                     <input type="password" id="rpNewDirect" placeholder="Enter New PIN (min 3 digits)" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 text-sm" maxlength="10">
@@ -1909,7 +1921,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=47.6"></script>
+    <script type="module" src="./modules/app.js?v=47.7"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-amber-300 border border-amber-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -1921,7 +1933,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("പുതിയ അപ്‌ഡേറ്റുകൾ ലോഡ് ചെയ്യാനും കാഷെ (Cache) ക്ലിയർ ചെയ്യാനും താല്പര്യപ്പെടുന്നുണ്ടോ?\n\nഇത് ആപ്പിലെ ഏറ്റവും പുതിയ വേർഷൻ (v47.6) ഉടനടി ആക്റ്റീവാക്കും.")) {
+            if (confirm("പുതിയ അപ്‌ഡേറ്റുകൾ ലോഡ് ചെയ്യാനും കാഷെ (Cache) ക്ലിയർ ചെയ്യാനും താല്പര്യപ്പെടുന്നുണ്ടോ?\n\nഇത് ആപ്പിലെ ഏറ്റവും പുതിയ വേർഷൻ (v47.7) ഉടനടി ആക്റ്റീവാക്കും.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -1975,7 +1987,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=47.6')
+                navigator.serviceWorker.register('./sw.js?v=47.7')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
