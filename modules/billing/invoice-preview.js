@@ -145,6 +145,14 @@ export function previewBill(identifier) {
     document.getElementById('printSection').innerHTML = billHTML.replace('id="fiaInvoiceCaptureCard"', 'id="fiaInvoicePrintCard"');
     state.isPreviewOpen = true;
     document.getElementById('billPreviewModal').classList.remove('hidden');
+
+    const itemsCount = (c.items || []).length;
+    const btnText = document.getElementById('btnShareWhatsAppText');
+    if (btnText) {
+        btnText.textContent = itemsCount > 15
+            ? `Share Bill on WhatsApp (PDF Document • ${itemsCount} Items)`
+            : `Share Bill on WhatsApp (Photo)`;
+    }
 }
 
 export function previewCosSaleBill(saleOrIdentifier) {
@@ -273,6 +281,14 @@ export function previewCosSaleBill(saleOrIdentifier) {
     document.getElementById('printSection').innerHTML = billHTML.replace('id="fiaInvoiceCaptureCard"', 'id="fiaInvoicePrintCard"');
     state.isPreviewOpen = true;
     document.getElementById('billPreviewModal').classList.remove('hidden');
+
+    const itemsCount = (sale.items || []).length;
+    const btnText = document.getElementById('btnShareWhatsAppText');
+    if (btnText) {
+        btnText.textContent = itemsCount > 15
+            ? `Share Bill on WhatsApp (PDF Document • ${itemsCount} Items)`
+            : `Share Bill on WhatsApp (Photo)`;
+    }
 }
 
 export function printBill() {
@@ -292,25 +308,132 @@ export function printBill() {
     setTimeout(() => { printWindow.focus(); printWindow.print(); }, 700);
 }
 
+export function generateBillPdfBlob() {
+    return new Promise((resolve, reject) => {
+        if (typeof window.html2pdf === 'undefined') {
+            reject(new Error('html2pdf library not loaded'));
+            return;
+        }
+
+        const c = state.activePreviewCustomer;
+        const billNo = c?.billNo || 'BILL';
+
+        // Create temporary print container with A4 proportional width (750px)
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.width = '750px';
+        container.style.background = '#ffffff';
+        container.style.color = '#000000';
+        container.style.padding = '16px';
+        container.style.boxSizing = 'border-box';
+        container.style.fontFamily = 'Arial, Helvetica, sans-serif';
+
+        const printContent = document.getElementById('printSection')?.innerHTML || document.getElementById('billPreviewContent')?.innerHTML || '';
+        const formattedHTML = printContent
+            .replace(/width:\s*380px/gi, 'width: 100%')
+            .replace(/max-width:\s*100%/gi, 'max-width: 100%')
+            .replace(/min-height:\s*520px/gi, 'min-height: auto');
+
+        container.innerHTML = `
+            <style>
+                table { width: 100% !important; border-collapse: collapse !important; }
+                tr { page-break-inside: avoid !important; }
+                thead { display: table-header-group !important; }
+                tfoot { display: table-footer-group !important; }
+            </style>
+            ${formattedHTML}
+        `;
+        document.body.appendChild(container);
+
+        const opt = {
+            margin: [8, 8, 8, 8],
+            filename: `FIA_Bill_${billNo}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        window.html2pdf().set(opt).from(container).outputPdf('blob').then(blob => {
+            if (document.body.contains(container)) document.body.removeChild(container);
+            resolve(blob);
+        }).catch(err => {
+            if (document.body.contains(container)) document.body.removeChild(container);
+            reject(err);
+        });
+    });
+}
+
 export function downloadBillPDF() {
-    const printSection = document.getElementById('printSection');
-    if (!printSection || !printSection.innerHTML.trim()) {
-        alert('Bill data is not available for download.');
-        return;
-    }
     const c = state.activePreviewCustomer;
     const billNo = c?.billNo || 'BILL';
-    const opt = {
-        margin: [8, 8, 8, 8],
-        filename: `FIA_Bill_${billNo}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-    if (typeof window.html2pdf !== 'undefined') {
-        window.html2pdf().set(opt).from(printSection).save();
-    } else {
+    const fileName = `FIA_Bill_${billNo}.pdf`;
+
+    generateBillPdfBlob().then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }).catch(err => {
+        console.warn('PDF blob generation error, falling back to print:', err);
         printBill();
+    });
+}
+
+export async function shareBillPdfWhatsApp() {
+    if (!state.activePreviewCustomer) return;
+    const c = state.activePreviewCustomer;
+    const billNo = c.billNo || 'BILL';
+    const btn = document.getElementById('btnShareWhatsApp');
+    const btnText = document.getElementById('btnShareWhatsAppText');
+    const originalText = btnText ? btnText.textContent : 'Share Bill on WhatsApp';
+
+    if (btnText) btnText.textContent = '⏳ Preparing PDF Document...';
+    if (btn) btn.disabled = true;
+
+    try {
+        const blob = await generateBillPdfBlob();
+        const fileName = `FIA_Bill_${billNo}.pdf`;
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            if (btnText) btnText.textContent = '📲 Opening WhatsApp...';
+            await navigator.share({
+                files: [file],
+                title: `FIA CLEAN & CARE Bill ${billNo}`,
+                text: `FIA CLEAN & CARE Invoice ${billNo} for ${c.name || 'Customer'}`
+            });
+        } else {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+            const cleanPhone = (c.phone || '').replace(/\D/g, '');
+            const waUrl = cleanPhone
+                ? `https://api.whatsapp.com/send?phone=91${cleanPhone}`
+                : `https://api.whatsapp.com/send`;
+            window.open(waUrl, '_blank');
+            alert(`ബില്ലിന്റെ PDF ഫയൽ (${fileName}) നിങ്ങളുടെ ഡൗൺലോഡ്സിൽ സേവ് ചെയ്തിട്ടുണ്ട്. വാട്സാപ്പിൽ ആ PDF ഫയൽ അറ്റാച്ച് ചെയ്ത് അയക്കാവുന്നതാണ്.`);
+        }
+    } catch (err) {
+        console.warn('WhatsApp PDF share issue:', err);
+        if (err && err.name !== 'AbortError') {
+            downloadBillPDF();
+            alert('PDF നേരിട്ട് വാട്സാപ്പിൽ ഷെയർ ചെയ്യാൻ സാധിച്ചില്ല. ബിൽ PDF നിങ്ങളുടെ ഡൗൺലോഡ്സിൽ സേവ് ചെയ്തിട്ടുണ്ട്.');
+        }
+    } finally {
+        if (btnText) btnText.textContent = originalText;
+        if (btn) btn.disabled = false;
     }
 }
 
@@ -326,8 +449,12 @@ export function generateBillImageBlob() {
             const targetWidth = Math.ceil(target.offsetWidth || 380);
             const targetHeight = Math.ceil(target.offsetHeight || 520);
 
+            let scale = 3;
+            if (targetHeight > 1600) scale = 1.5;
+            else if (targetHeight > 1000) scale = 2;
+
             window.html2canvas(target, {
-                scale: 3,
+                scale: scale,
                 useCORS: true,
                 backgroundColor: '#ffffff',
                 logging: false,
@@ -347,7 +474,7 @@ export function generateBillImageBlob() {
                 canvas.toBlob(blob => {
                     if (blob) resolve(blob);
                     else reject(new Error('Canvas blob conversion failed'));
-                }, 'image/png', 1.0);
+                }, 'image/png', 0.95);
             }).catch(reject);
             return;
         }
@@ -406,6 +533,19 @@ export async function shareBillImageWhatsApp() {
     }
 }
 
+export async function shareBillSmartWhatsApp() {
+    if (!state.activePreviewCustomer) return;
+    const c = state.activePreviewCustomer;
+    const itemsCount = (c.items || []).length;
+
+    // Smart logic: if > 15 items, automatically share as PDF Document; otherwise share as Photo
+    if (itemsCount > 15) {
+        await shareBillPdfWhatsApp();
+    } else {
+        await shareBillImageWhatsApp();
+    }
+}
+
 export async function downloadBillImage() {
     if (!state.activePreviewCustomer) return;
     const c = state.activePreviewCustomer;
@@ -461,7 +601,10 @@ if (typeof window !== 'undefined') {
     window.closeBillPreview = closeBillPreview;
     window.printBill = printBill;
     window.downloadBillPDF = downloadBillPDF;
+    window.generateBillPdfBlob = generateBillPdfBlob;
+    window.shareBillPdfWhatsApp = shareBillPdfWhatsApp;
     window.shareBillImageWhatsApp = shareBillImageWhatsApp;
+    window.shareBillSmartWhatsApp = shareBillSmartWhatsApp;
     window.downloadBillImage = downloadBillImage;
     window.sendBillViaWhatsApp = sendBillViaWhatsApp;
     window.sortBillItemsAlphabetically = sortBillItemsAlphabetically;

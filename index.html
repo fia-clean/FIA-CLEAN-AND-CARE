@@ -1559,18 +1559,18 @@
                 <div id="billPreviewContent" class="bg-white text-black rounded-2xl w-full max-w-[390px]" style="background-color: #ffffff !important; color: #000000 !important; box-sizing: border-box;"></div>
             </div>
 
-            <!-- Enhanced Action Buttons: WhatsApp Image Share, Save Image, PDF, Print -->
+            <!-- Enhanced Action Buttons: Smart WhatsApp Share, Save PDF, Save Photo, Print -->
             <div class="space-y-2 pt-1">
-                <button id="btnShareWhatsApp" type="button" onclick="shareBillImageWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white py-3 rounded-2xl text-xs font-black shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 transition cursor-pointer">
+                <button id="btnShareWhatsApp" type="button" onclick="shareBillSmartWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white py-3 rounded-2xl text-xs font-black shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 transition cursor-pointer">
                     <span class="text-base">💬</span>
-                    <span id="btnShareWhatsAppText">Share Bill on WhatsApp (Photo)</span>
+                    <span id="btnShareWhatsAppText">Share Bill on WhatsApp</span>
                 </button>
                 <div class="grid grid-cols-3 gap-2">
-                    <button type="button" onclick="downloadBillImage()" class="bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
-                        <span>🖼️</span><span>Save Image</span>
-                    </button>
                     <button type="button" onclick="downloadBillPDF()" class="bg-purple-600 hover:bg-purple-500 text-white py-2.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
                         <span>📥</span><span>PDF</span>
+                    </button>
+                    <button type="button" onclick="downloadBillImage()" class="bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+                        <span>🖼️</span><span>Photo</span>
                     </button>
                     <button type="button" onclick="printBill()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 py-2.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border border-slate-600">
                         <span>🖨️</span><span>Print</span>
@@ -1722,7 +1722,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=35"></script>
+    <script type="module" src="./modules/app.js?v=36"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-amber-300 border border-amber-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -1765,7 +1765,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=35')
+                navigator.serviceWorker.register('./sw.js?v=36')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

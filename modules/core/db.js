@@ -113,8 +113,8 @@ export function mergeCustomerBills(localList, cloudList) {
     const map = new Map();
     const getKey = c => {
         if (!c) return '';
-        if (c.billNo) return 'bill_' + String(c.billNo).trim().toUpperCase();
         if (c.id) return 'id_' + String(c.id).trim().toLowerCase();
+        if (c.billNo) return 'bill_' + String(c.billNo).trim().toUpperCase();
         return 'named_' + String(c.name || '').trim().toLowerCase();
     };
 
@@ -150,7 +150,30 @@ export function applyCloudData(data, isRealtimeEvent = false) {
         return;
     }
 
-    // 1. Sync remote tombstone deleted IDs into local tombstones
+    // 1. Un-tombstone active records sent by cloud so remote devices never suppress them
+    const unmarkActive = (list, keyFn) => {
+        const arr = Array.isArray(list) ? list : Object.values(list || {});
+        arr.forEach(item => {
+            if (!item) return;
+            const keys = keyFn(item);
+            keys.forEach(k => {
+                if (k) {
+                    const sk = sanitizeTombstoneKey(k);
+                    if (sk) state.deletedRecordIds.delete(sk);
+                }
+            });
+        });
+    };
+    unmarkActive(data.customers, c => [c.id, c.billNo]);
+    unmarkActive(data.cosSales, s => [s.id, s.billNo]);
+    unmarkActive(data.products, p => [p.id, p.barcode]);
+    unmarkActive(data.cosProducts, p => [p.id, p.barcode]);
+    unmarkActive(data.purchases, p => [p.id]);
+    unmarkActive(data.cosPurchases, p => [p.id]);
+    unmarkActive(data.expenses, e => [e.id]);
+    unmarkActive(data.stockReturns, r => [r.id]);
+
+    // 2. Sync remote tombstone deleted IDs into local tombstones
     const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
     remoteDeleted.forEach(k => {
         const cleanKey = sanitizeTombstoneKey(k);
@@ -160,7 +183,7 @@ export function applyCloudData(data, isRealtimeEvent = false) {
         localStorage.setItem('fia_deleted_ids', JSON.stringify(Array.from(state.deletedRecordIds)));
     } catch(e) {}
 
-    // 2. Safe bidirectional union: local unsaved records are NEVER erased!
+    // 3. Safe bidirectional union: local unsaved records are NEVER erased!
     state.products = mergeCollection(state.products, data.products, 'id');
     state.cosProducts = mergeCollection(state.cosProducts, data.cosProducts, 'id');
     state.customers = mergeCustomerBills(state.customers, data.customers);
@@ -186,6 +209,7 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     updateSyncStatus(true, 'Cloud Data Synchronized');
 
     if (window.renderAll) window.renderAll();
+    if (window.renderSalesHistory) window.renderSalesHistory();
     if (window.updateStockReturnDropdowns) window.updateStockReturnDropdowns();
     if (window.renderStockReturnHistory) window.renderStockReturnHistory();
 }

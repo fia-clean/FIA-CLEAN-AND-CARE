@@ -1738,7 +1738,12 @@ export function saveCombinedBill(e) {
     unmarkIdDeleted(billNo);
     unmarkIdDeleted('cust_' + name.toLowerCase());
 
+    const billId = (old && old.id) || ('bill_' + (billNo || Date.now()) + '_' + Math.random().toString(36).slice(2, 7));
+    unmarkIdDeleted(billNo);
+    unmarkIdDeleted(billId);
+
     const bill = {
+        id: billId,
         billNo,
         billType: 'Combined',
         name, phone, saleType,
@@ -1749,7 +1754,7 @@ export function saveCombinedBill(e) {
         pendingAmount: due,
         excessAmount: excess,
         date: old?.date || getTodayDateString(),
-        savedAt: old?.savedAt || Date.now()
+        savedAt: Date.now()
     };
 
     if (idx >= 0) state.customers[idx] = bill; else state.customers.push(bill);

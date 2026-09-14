@@ -73,7 +73,12 @@ import {
     previewCosSaleBill,
     printBill,
     downloadBillPDF,
+    generateBillPdfBlob,
     generateBillImageBlob,
+    shareBillSmartWhatsApp,
+    shareBillPdfWhatsApp,
+    shareBillImageWhatsApp,
+    downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
 } from './billing/invoice-preview.js';
@@ -487,6 +492,9 @@ export function switchTab(tabName, pushToHistory = true) {
     }
     renderAll();
     hideUnwantedStockMenus();
+    if (tabName === 'billing' || tabName === 'customers') {
+        if (typeof pullFromFirebase === 'function') pullFromFirebase();
+    }
 }
 
 export function openOperationSection(section) {
@@ -524,6 +532,15 @@ export function openBillingSection(type) {
             window.setSalesHistoryFilter(window.__fiaSalesHistoryFilter);
         } else {
             renderSalesHistory();
+        }
+        if (typeof pullFromFirebase === 'function') {
+            pullFromFirebase().then(() => {
+                if (typeof window.setSalesHistoryFilter === 'function') {
+                    window.setSalesHistoryFilter(window.__fiaSalesHistoryFilter || 'all');
+                } else {
+                    renderSalesHistory();
+                }
+            });
         }
         return;
     }
@@ -674,9 +691,9 @@ if (typeof window !== 'undefined') {
         pullFromFirebase();
         startAutomaticBackup();
 
-        // Register Service Worker for offline PWA (v35)
+        // Register Service Worker for offline PWA (v36)
         if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
-            navigator.serviceWorker.register('./sw.js?v=35').then(reg => {
+            navigator.serviceWorker.register('./sw.js?v=36').then(reg => {
                 console.log('ServiceWorker registered with scope:', reg.scope);
                 reg.update();
             }).catch(err => {
@@ -723,6 +740,9 @@ if (typeof window !== 'undefined') {
     window.renderCustomerConsolidationReport = renderCustomerConsolidationReport;
     window.renderCustomerConsolidationView = renderCustomerConsolidationView;
     window.renderConsolidatedStockReport = renderConsolidatedStockReport;
+    window.shareBillSmartWhatsApp = shareBillSmartWhatsApp;
+    window.shareBillPdfWhatsApp = shareBillPdfWhatsApp;
+    window.generateBillPdfBlob = generateBillPdfBlob;
 
     if (typeof document !== 'undefined') {
         document.addEventListener('input', function(e) {
@@ -732,6 +752,21 @@ if (typeof window !== 'undefined') {
             const pos = el.selectionStart;
             const upper = el.value.toUpperCase();
             if (el.value !== upper) { el.value = upper; try { el.setSelectionRange(pos, pos); } catch(err) {} }
+        });
+
+        // Auto-refresh when switching back to the app or turning phone screen back on
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                if (window.FB_DB) {
+                    try { window.FB_DB.goOnline(); } catch(e) {}
+                    if (typeof pullFromFirebase === 'function') pullFromFirebase();
+                }
+            }
+        });
+        window.addEventListener('focus', function() {
+            if (window.FB_DB && typeof pullFromFirebase === 'function') {
+                pullFromFirebase();
+            }
         });
     }
 
