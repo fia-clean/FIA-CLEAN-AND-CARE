@@ -10,7 +10,7 @@ import {
     startAutomaticBackup,
     todayDDMMYYYY,
     getTodayDateString
-} from './core/state.js?v=47.1';
+} from './core/state.js?v=47.2';
 import {
     startRealtimeSync,
     pullFromFirebase,
@@ -19,7 +19,7 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup
-} from './core/db.js?v=47.1';
+} from './core/db.js?v=47.2';
 import {
     verifyLoginPin,
     logoutApp,
@@ -33,7 +33,7 @@ import {
     saveNewPin,
     openSettingsModal,
     closeSettingsModal
-} from './core/auth.js?v=47.1';
+} from './core/auth.js?v=47.2';
 
 // Feature Modules
 import {
@@ -47,7 +47,7 @@ import {
     closeLowStockList,
     goToAddStockFromLowStock,
     pushDashboardModalState
-} from './dashboard/dashboard.js?v=47.1';
+} from './dashboard/dashboard.js?v=47.2';
 
 import {
     saveDirectCustomer,
@@ -67,7 +67,7 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport
-} from './customers/customer.js?v=47.1';
+} from './customers/customer.js?v=47.2';
 
 import {
     previewBill,
@@ -82,7 +82,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=47.1';
+} from './billing/invoice-preview.js?v=47.2';
 
 import {
     renderSalesHistory,
@@ -91,7 +91,7 @@ import {
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
-} from './billing/billing-history.js?v=47.1';
+} from './billing/billing-history.js?v=47.2';
 
 import {
     getProductWholesalePrice,
@@ -146,7 +146,7 @@ import {
     renderCosSales,
     resetCosSalesForm,
     renderCosmeticsSummary
-} from './billing/billing.js?v=47.1';
+} from './billing/billing.js?v=47.2';
 
 import {
     updatePackageSelectors,
@@ -196,7 +196,7 @@ import {
     viewProduct,
     viewCosProduct,
     viewPackage
-} from './operations/stock.js?v=47.1';
+} from './operations/stock.js?v=47.2';
 
 import {
     getTodayPurchaseDate,
@@ -251,7 +251,7 @@ import {
     shareSelectedSupplierConsolidatedDetail,
     sharePurchaseConsolidationReport,
     downloadPurchaseConsolidationReportPDF
-} from './operations/purchases.js?v=47.1';
+} from './operations/purchases.js?v=47.2';
 
 import {
     saveExpense,
@@ -260,7 +260,7 @@ import {
     renderExpenses,
     resetExpenseForm,
     viewExpense
-} from './operations/expenses.js?v=47.1';
+} from './operations/expenses.js?v=47.2';
 
 import {
     dashboardDateKey,
@@ -276,7 +276,7 @@ import {
     saveDayBookOpeningValues,
     renderAccounts,
     exportDayBookToCSV
-} from './daybook/daybook.js?v=47.1';
+} from './daybook/daybook.js?v=47.2';
 
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {
@@ -660,65 +660,8 @@ if (typeof window !== 'undefined') {
         }
     };
 
-    // ================= INITIALIZATION & MOUNTING =================
-    let isAppBootstrapped = false;
-    function bootstrapApp() {
-        if (isAppBootstrapped) return;
-        isAppBootstrapped = true;
-
-        loadFromLocalStorage();
-
-        // Check if user already logged in via instant synchronous authentication
-        if (window._isLoggedInFlag || (window.state && window.state.isLoggedIn)) {
-            state.isLoggedIn = true;
-            if (typeof window._dismissLoginOverlay === 'function') {
-                window._dismissLoginOverlay();
-            } else {
-                const overlay = document.getElementById('loginOverlay');
-                if (overlay) {
-                    overlay.classList.add('hidden');
-                    overlay.setAttribute('hidden', 'true');
-                    overlay.style.setProperty('display', 'none', 'important');
-                }
-            }
-        }
-
-        setupDateFields();
-        if (window.history && window.history.replaceState) {
-            history.replaceState({ loggedIn: state.isLoggedIn, tab: 'home' }, "", window.location.href);
-        }
-
-        const expDateEl = document.getElementById('expDate');
-        if (expDateEl && (!expDateEl.value || typeof expDateEl.value === 'function' || String(expDateEl.value).includes('function'))) expDateEl.value = getTodayDateString();
-
-        setTimeout(() => {
-            if (typeof switchStockTopTab === 'function') switchStockTopTab('product');
-            if (typeof switchStockSubTab === 'function') switchStockSubTab('cleaning');
-            if (typeof switchPurchaseSubTab === 'function') switchPurchaseSubTab('cleaning');
-            updateCleaningPurchaseDropdown();
-            updateCosProductDropdowns();
-            updateStockReturnDropdowns();
-            renderStockReturnHistory();
-            updateBillTypeBadge(document.querySelector('input[name="saleType"]:checked')?.value || 'Retail');
-        }, 0);
-
-        renderAll();
-        startRealtimeSync();
-        pullFromFirebase();
-        startAutomaticBackup();
-    }
-
-    window.bootstrapApp = bootstrapApp;
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', bootstrapApp);
-    } else {
-        bootstrapApp();
-    }
-
-    setInterval(hideUnwantedStockMenus, 500);
-
-    // Global window bindings for HTML inline onclick and legacy callers
+    // ================= GLOBAL WINDOW BINDINGS (ATTACHED FIRST) =================
+    // Guarantees all inline HTML onclick handlers (switchTab, modals, etc.) are available immediately
     window.showRecordView = showRecordView;
     window.closeRecordView = closeRecordView;
     window.openBarcodeScanner = openBarcodeScanner;
@@ -761,6 +704,80 @@ if (typeof window !== 'undefined') {
     window.shareBillSmartWhatsApp = shareBillSmartWhatsApp;
     window.shareBillPdfWhatsApp = shareBillPdfWhatsApp;
     window.generateBillPdfBlob = generateBillPdfBlob;
+
+    // ================= INITIALIZATION & MOUNTING =================
+    let isAppBootstrapped = false;
+    function bootstrapApp() {
+        if (isAppBootstrapped) return;
+        isAppBootstrapped = true;
+
+        try {
+            loadFromLocalStorage();
+        } catch (e) {
+            console.error('loadFromLocalStorage error:', e);
+        }
+
+        // Check if user already logged in via instant synchronous authentication
+        try {
+            if (window._isLoggedInFlag || (window.state && window.state.isLoggedIn)) {
+                state.isLoggedIn = true;
+                if (typeof window._dismissLoginOverlay === 'function') {
+                    window._dismissLoginOverlay();
+                } else {
+                    const overlay = document.getElementById('loginOverlay');
+                    if (overlay) {
+                        overlay.classList.add('hidden');
+                        overlay.setAttribute('hidden', 'true');
+                        overlay.style.setProperty('display', 'none', 'important');
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Auth overlay sync error:', e);
+        }
+
+        try { setupDateFields(); } catch (e) {}
+        try {
+            if (window.history && window.history.replaceState) {
+                history.replaceState({ loggedIn: state.isLoggedIn, tab: 'home' }, "", window.location.href);
+            }
+        } catch (e) {}
+
+        try {
+            const expDateEl = document.getElementById('expDate');
+            if (expDateEl && (!expDateEl.value || typeof expDateEl.value === 'function' || String(expDateEl.value).includes('function'))) expDateEl.value = getTodayDateString();
+        } catch (e) {}
+
+        setTimeout(() => {
+            try {
+                if (typeof switchStockTopTab === 'function') switchStockTopTab('product');
+                if (typeof switchStockSubTab === 'function') switchStockSubTab('cleaning');
+                if (typeof switchPurchaseSubTab === 'function') switchPurchaseSubTab('cleaning');
+                updateCleaningPurchaseDropdown();
+                updateCosProductDropdowns();
+                updateStockReturnDropdowns();
+                renderStockReturnHistory();
+                updateBillTypeBadge(document.querySelector('input[name="saleType"]:checked')?.value || 'Retail');
+            } catch (e) {
+                console.warn('Subtab init error:', e);
+            }
+        }, 0);
+
+        try { renderAll(); } catch (e) { console.error('renderAll error:', e); }
+        try { startRealtimeSync(); } catch (e) { console.error('startRealtimeSync error:', e); }
+        try { pullFromFirebase(); } catch (e) { console.error('pullFromFirebase error:', e); }
+        try { startAutomaticBackup(); } catch (e) { console.error('startAutomaticBackup error:', e); }
+    }
+
+    window.bootstrapApp = bootstrapApp;
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootstrapApp);
+    } else {
+        bootstrapApp();
+    }
+
+    setInterval(hideUnwantedStockMenus, 500);
 
     if (typeof document !== 'undefined') {
         document.addEventListener('input', function(e) {

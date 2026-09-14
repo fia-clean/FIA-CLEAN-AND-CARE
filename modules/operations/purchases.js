@@ -620,7 +620,6 @@ export function savePurchaseReturn(type) {
     p.returnedQty = Number((already + qty).toFixed(2));
     p.returnedAmount = Number(((Number(p.returnedAmount) || 0) + retAmount).toFixed(2));
     
-    const grossCost = Number(isCos ? (p.amount || p.rawCost) : (p.rawCost || p.amount)) || 0;
     p.netPurchaseAmount = Math.max(0, Number((grossCost - p.returnedAmount).toFixed(2)));
     const paid = Number(p.paid) || 0;
     if (paid > p.netPurchaseAmount) {
