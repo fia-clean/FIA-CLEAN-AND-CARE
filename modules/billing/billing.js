@@ -317,6 +317,7 @@ export function onSaleTypeChange() {
     if (currentVal && prodSelect) prodSelect.value = currentVal;
 
     fillProductPrice();
+    updateCurrentBillItemsSaleType(saleType);
 }
 
 export function fillProductPrice() {
@@ -343,6 +344,7 @@ export function fillProductPrice() {
 
     if (Array.isArray(product.variants) && product.variants.length > 0) {
         if (variantWrapper && variantSelect) {
+            const previousVariantId = variantSelect.value;
             variantWrapper.classList.remove('hidden');
             variantSelect.innerHTML = '<option value="">-- Select Pack Size (' + product.variants.length + ' options) --</option>' +
                 product.variants.map(v => {
@@ -350,8 +352,12 @@ export function fillProductPrice() {
                     return `<option value="${v.id}">${v.name} (${v.size} ${v.unit}) — ₹${Number(rate||0).toFixed(2)}${v.packageName ? ' [' + v.packageName + ']' : ''}</option>`;
                 }).join('');
             
-            const preferredIdx = product.variants.findIndex(v => (v.size == 500 && String(v.unit).toLowerCase() === 'ml') || (v.size == 1 && ['ltr','l'].includes(String(v.unit).toLowerCase())));
-            variantSelect.selectedIndex = preferredIdx !== -1 ? (preferredIdx + 1) : 1;
+            if (previousVariantId && product.variants.some(v => String(v.id) === String(previousVariantId))) {
+                variantSelect.value = previousVariantId;
+            } else {
+                const preferredIdx = product.variants.findIndex(v => (v.size == 500 && String(v.unit).toLowerCase() === 'ml') || (v.size == 1 && ['ltr','l'].includes(String(v.unit).toLowerCase())));
+                variantSelect.selectedIndex = preferredIdx !== -1 ? (preferredIdx + 1) : 1;
+            }
             onPackVariantSelected();
             return;
         }
@@ -727,12 +733,21 @@ export function saveCustomer(e) {
     unmarkIdDeleted(billNo);
     unmarkIdDeleted(billId);
 
+    const existingProfile = (state.customers || []).find(c => c && !c.billNo && String(c.name || '').trim().toLowerCase() === name.toLowerCase());
+    const customerType = existingProfile?.customerType || saleType;
+    if (existingProfile && (!existingProfile.customerType || existingProfile.customerType !== saleType)) {
+        existingProfile.customerType = saleType;
+        existingProfile.saleType = saleType;
+        existingProfile.savedAt = Date.now();
+    }
+
     const customerData = {
         id: billId,
         billNo,
         name,
         phone,
         saleType,
+        customerType,
         paymentMode,
         items: sortBillItemsAlphabetically(state.currentBillItems).map(i => ({...i})),
         grandTotal,
@@ -752,12 +767,19 @@ export function saveCustomer(e) {
 }
 
 export function resetCustomerForm() {
-    const form = document.getElementById('billingForm');
+    const form = document.getElementById('billingForm') || document.getElementById('customerForm');
     if (form) form.reset();
     document.getElementById('custIndex').value = "-1";
     document.getElementById('billNumberDisplay').textContent = getNextBillNumber();
     state.currentBillItems = [];
     renderBillPreviewInput();
+    const rRadio = document.getElementById('billSaleTypeRetail');
+    if (rRadio) rRadio.checked = true;
+    updateBillTypeBadge('Retail');
+    const existingSel = document.getElementById('existingCustomerSelect');
+    if (existingSel) existingSel.value = '';
+    const notice = document.getElementById('billRateNotice');
+    if (notice) notice.innerHTML = '';
 }
 
 export function editCustomerBill(identifier) {
