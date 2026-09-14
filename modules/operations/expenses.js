@@ -7,9 +7,11 @@ import {
     state,
     dateSortValue,
     formatDateDDMMYYYY,
-    parseDateDDMMYYYY,
+    normalizeToDateKey,
+    getTodayDateString,
     markIdDeleted,
-    unmarkIdDeleted
+    unmarkIdDeleted,
+    saveLocalStateSafely
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
 import { ensurePurchaseTimestamps } from './purchases.js';
@@ -19,21 +21,30 @@ export function saveExpense(e) {
     const idx = parseInt(document.getElementById('expIndex').value);
     const expId = (idx >= 0 && state.expenses[idx]?.id) || ('exp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
     unmarkIdDeleted(expId);
+    
+    const rawDate = document.getElementById('expDate')?.value;
+    const cleanDate = normalizeToDateKey(rawDate) || getTodayDateString();
+    const now = Date.now();
+
     const data = {
         id: expId,
         title: document.getElementById('expTitle').value.trim(),
         amount: parseFloat(document.getElementById('expAmount').value) || 0,
-        date: parseDateDDMMYYYY(document.getElementById('expDate').value)
+        date: cleanDate,
+        savedAt: now,
+        updatedAt: now
     };
     if (idx >= 0 && state.expenses[idx]) {
         state.expenses[idx] = { ...state.expenses[idx], ...data };
     } else {
-        state.expenses.push({ ...data, savedAt: Date.now() });
+        state.expenses.push({ ...data });
     }
+    saveLocalStateSafely();
     syncToFirebase();
     resetExpenseForm();
     renderExpenses();
     if (typeof window.renderAccounts === 'function') window.renderAccounts();
+    alert('✅ ചിലവ് വിവരങ്ങൾ വിജയകരമായി സേവ് ചെയ്തു!');
 }
 
 export function editExpense(index) {
@@ -42,7 +53,7 @@ export function editExpense(index) {
     document.getElementById('expIndex').value = index;
     document.getElementById('expTitle').value = ex.title || '';
     document.getElementById('expAmount').value = ex.amount ?? '';
-    document.getElementById('expDate').value = formatDateDDMMYYYY(ex.date);
+    document.getElementById('expDate').value = normalizeToDateKey(ex.date) || getTodayDateString();
     document.getElementById('expFormTitle').innerText = 'Edit Shop Expense';
     document.getElementById('expSubmitBtn').innerText = 'Update Expense';
     if (typeof window.switchTab === 'function') window.switchTab('expenses', false);
@@ -97,6 +108,8 @@ export function resetExpenseForm() {
     document.getElementById('expIndex').value = '-1';
     document.getElementById('expFormTitle').innerText = 'General Shop Expenses (Rent, Current, Wages)';
     document.getElementById('expSubmitBtn').innerText = 'Save Expense';
+    const expDateEl = document.getElementById('expDate');
+    if (expDateEl) expDateEl.value = getTodayDateString();
     if (typeof window.setupDateFields === 'function') window.setupDateFields();
 }
 

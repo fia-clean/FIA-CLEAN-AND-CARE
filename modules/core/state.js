@@ -265,6 +265,18 @@ export function normalizeLoadedProducts() {
             sanitizedNegativeStock = true;
         }
     });
+
+    // Expenses hygiene: fix corrupted/function dates
+    (state.expenses || []).forEach(e => {
+        if (!e) return;
+        if (typeof e.date === 'function' || !e.date || String(e.date).includes('function')) {
+            console.warn(`Sanitizing corrupted expense date for "${e.title || 'Expense'}": reset to valid date`);
+            e.date = normalizeToDateKey(e.savedAt) || getTodayDateString();
+            e.savedAt = Date.now();
+            sanitizedNegativeStock = true;
+        }
+    });
+
     if (sanitizedNegativeStock) {
         saveLocalStateSafely();
     }

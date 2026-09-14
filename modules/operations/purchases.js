@@ -11,12 +11,97 @@ import {
     getTodayDateString,
     todayDDMMYYYY,
     markIdDeleted,
-    unmarkIdDeleted
+    unmarkIdDeleted,
+    saveLocalStateSafely
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
 
 export function getTodayPurchaseDate() {
     return getTodayDateString();
+}
+
+export function findInventoryProductForPurchase(p, isCos) {
+    if (!p) return null;
+    const primaryList = isCos ? (state.cosProducts || []) : (state.products || []);
+    const secondaryList = isCos ? (state.products || []) : (state.cosProducts || []);
+    const packageList = state.packages || [];
+    
+    const stockId = String(p.stockId || '').trim();
+    const barcode = String(isCos ? (p.barcode || '') : (p.rawBarcode || '')).trim();
+    const rawName = String(isCos ? (p.item || '') : (p.rawMaterial || '')).trim();
+    const cleanName = rawName.replace(/\(.*?\)/g, '').replace(/_/g, ' ').trim().toLowerCase();
+    const exactName = rawName.toLowerCase();
+
+    // 1. Check stockId in primary
+    if (stockId) {
+        const found = primaryList.find(x => x && String(x.id).trim() === stockId);
+        if (found) return found;
+    }
+    // 2. Check barcode in primary
+    if (barcode) {
+        const found = primaryList.find(x => x && x.barcode && String(x.barcode).trim() === barcode);
+        if (found) return found;
+    }
+    // 3. Exact name in primary
+    if (exactName) {
+        const found = primaryList.find(x => x && String(x.name || '').trim().toLowerCase() === exactName);
+        if (found) return found;
+    }
+    // 4. Cleaned name in primary
+    if (cleanName) {
+        const found = primaryList.find(x => {
+            if (!x || !x.name) return false;
+            const xClean = String(x.name).replace(/\(.*?\)/g, '').replace(/_/g, ' ').trim().toLowerCase();
+            return xClean === cleanName || (cleanName.length > 2 && xClean.includes(cleanName)) || (xClean.length > 2 && cleanName.includes(xClean));
+        });
+        if (found) return found;
+    }
+
+    // 5. Check secondary list
+    if (stockId) {
+        const found = secondaryList.find(x => x && String(x.id).trim() === stockId);
+        if (found) return found;
+    }
+    if (barcode) {
+        const found = secondaryList.find(x => x && x.barcode && String(x.barcode).trim() === barcode);
+        if (found) return found;
+    }
+    if (exactName) {
+        const found = secondaryList.find(x => x && String(x.name || '').trim().toLowerCase() === exactName);
+        if (found) return found;
+    }
+    if (cleanName) {
+        const found = secondaryList.find(x => {
+            if (!x || !x.name) return false;
+            const xClean = String(x.name).replace(/\(.*?\)/g, '').replace(/_/g, ' ').trim().toLowerCase();
+            return xClean === cleanName || (cleanName.length > 2 && xClean.includes(cleanName)) || (xClean.length > 2 && cleanName.includes(xClean));
+        });
+        if (found) return found;
+    }
+
+    // 6. Check package list
+    if (stockId) {
+        const found = packageList.find(x => x && String(x.id).trim() === stockId);
+        if (found) return found;
+    }
+    if (exactName) {
+        const found = packageList.find(x => x && String(x.name || '').trim().toLowerCase() === exactName);
+        if (found) return found;
+    }
+
+    return null;
+}
+
+export function getUnitConversionFactor(purchaseUnit, productUnit) {
+    if (!purchaseUnit || !productUnit) return 1;
+    const pu = String(purchaseUnit).trim().toLowerCase();
+    const du = String(productUnit).trim().toLowerCase();
+    if (pu === du) return 1;
+    if ((pu === 'ml' || pu === 'millilitre') && (du === 'ltr' || du === 'litre' || du === 'l')) return 0.001;
+    if ((pu === 'ltr' || pu === 'litre' || pu === 'l') && (du === 'ml' || du === 'millilitre')) return 1000;
+    if ((pu === 'g' || pu === 'gram') && (du === 'kg' || du === 'kilogram')) return 0.001;
+    if ((pu === 'kg' || pu === 'kilogram') && (du === 'g' || du === 'gram')) return 1000;
+    return 1;
 }
 
 export function loadPurchaseSuppliers() {
@@ -208,22 +293,37 @@ export function savePurchase(e) {
         paid,
         balance,
         date,
-        savedAt: (isEdit && state.purchases[idx]?.savedAt) ? state.purchases[idx].savedAt : Date.now()
+        savedAt: Date.now(),
+        updatedAt: Date.now()
     };
 
+    const now = Date.now();
     if (isEdit) {
         const old = state.purchases[idx];
         if (old.stockId) {
             const op = state.products.find(p => p.id === old.stockId);
-            if (op) op.stock = Math.max(0, (parseFloat(op.stock) || 0) - (parseFloat(old.rawQty) || 0) + (Number(old.returnedQty) || 0));
+            if (op) {
+                op.stock = Math.max(0, (parseFloat(op.stock) || 0) - (parseFloat(old.rawQty) || 0) + (Number(old.returnedQty) || 0));
+                op.savedAt = now;
+                op.updatedAt = now;
+            }
         }
-        if (selectedProduct && rawQty > 0) selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + rawQty;
+        if (selectedProduct && rawQty > 0) {
+            selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + rawQty;
+            selectedProduct.savedAt = now;
+            selectedProduct.updatedAt = now;
+        }
         state.purchases[idx] = { ...old, ...data, returns: Array.isArray(old.returns) ? old.returns : [] };
     } else {
-        if (selectedProduct && rawQty > 0) selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + rawQty;
+        if (selectedProduct && rawQty > 0) {
+            selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + rawQty;
+            selectedProduct.savedAt = now;
+            selectedProduct.updatedAt = now;
+        }
         state.purchases.push({ ...data, returns: [] });
     }
 
+    saveLocalStateSafely();
     syncToFirebase();
     renderPurchaseSupplierList();
     resetPurchaseForm();
@@ -503,12 +603,13 @@ export function savePurchaseReturn(type) {
     const retDate = document.getElementById(isCos ? 'cosPurchaseReturnDate' : 'purchaseReturnDate')?.value || getTodayPurchaseDate();
     const retReason = document.getElementById(isCos ? 'cosPurchaseReturnReason' : 'purchaseReturnReason')?.value.trim() || 'Purchased Stock Return';
     
+    const now = Date.now();
     const ret = {
         qty,
         date: retDate,
         reason: retReason,
         amount: retAmount,
-        savedAt: Date.now()
+        savedAt: now
     };
     
     p.returns = [...(Array.isArray(p.returns) ? p.returns : []), ret];
@@ -516,30 +617,39 @@ export function savePurchaseReturn(type) {
     p.returnedAmount = Number(((Number(p.returnedAmount) || 0) + retAmount).toFixed(2));
     
     const grossCost = Number(isCos ? p.amount : p.rawCost) || 0;
-    p.netPurchaseAmount = Math.max(0, grossCost - p.returnedAmount);
-    p.balance = Math.max(0, p.netPurchaseAmount - (Number(p.paid) || 0));
-    p.netBalance = p.balance;
+    p.netPurchaseAmount = Math.max(0, Number((grossCost - p.returnedAmount).toFixed(2)));
+    const paid = Number(p.paid) || 0;
+    if (paid > p.netPurchaseAmount) {
+        p.balance = 0;
+        p.netBalance = 0;
+        p.refundDue = Number((paid - p.netPurchaseAmount).toFixed(2));
+    } else {
+        p.balance = Math.max(0, Number((p.netPurchaseAmount - paid).toFixed(2)));
+        p.netBalance = p.balance;
+        p.refundDue = 0;
+    }
+    p.savedAt = now;
+    p.updatedAt = now;
     
-    // Deduct stock: 1) stockId, 2) barcode, 3) product name
-    const prodList = isCos ? state.cosProducts : state.products;
-    let prod = null;
-    if (p.stockId) {
-        prod = prodList.find(x => x && x.id === p.stockId);
-    }
-    if (!prod) {
-        const bc = String(isCos ? (p.barcode || '') : (p.rawBarcode || '')).trim();
-        if (bc) prod = prodList.find(x => x && x.barcode && String(x.barcode).trim() === bc);
-    }
-    if (!prod) {
-        const nm = String(isCos ? (p.item || '') : (p.rawMaterial || '')).trim().toLowerCase();
-        if (nm) prod = prodList.find(x => x && x.name && x.name.trim().toLowerCase() === nm);
-    }
+    // Deduct stock using comprehensive multi-level lookup & unit conversion
+    const prod = findInventoryProductForPurchase(p, isCos);
+    let deductionApplied = 0;
+    let stockNotice = '';
     if (prod) {
+        const factor = getUnitConversionFactor(unit, prod.unit);
+        deductionApplied = Number((qty * factor).toFixed(3));
         const before = Number(prod.stock) || 0;
-        prod.stock = Math.max(0, parseFloat((before - qty).toFixed(2)));
-        prod.lastPurchaseReturn = { qty, date: ret.date, updatedAt: Date.now() };
+        prod.stock = Math.max(0, parseFloat((before - deductionApplied).toFixed(3)));
+        prod.savedAt = now;
+        prod.updatedAt = now;
+        prod.lastPurchaseReturn = { qty: deductionApplied, returnQtyInput: qty, date: ret.date, updatedAt: now };
+        stockNotice = `\n📦 സ്റ്റോക്ക്: ${before} ➔ ${prod.stock} ${prod.unit || ''} (-${deductionApplied} ${prod.unit || ''})`;
+    } else {
+        console.warn('[Purchase Return] Inventory product not found for stock deduction:', p.rawMaterial || p.item);
+        stockNotice = `\n⚠️ ശ്രദ്ധിക്കുക: ഈ ഉൽപ്പന്നം ഇൻവെന്ററി സ്റ്റോക്കുമായി മാച്ച് ചെയ്യാനായില്ല. ദയവായി സ്റ്റോക്ക് പരിശോധിക്കുക.`;
     }
     
+    saveLocalStateSafely();
     syncToFirebase();
     renderPurchases();
     renderCosPurchases();
@@ -560,7 +670,8 @@ export function savePurchaseReturn(type) {
     const reasonEl = document.getElementById(isCos ? 'cosPurchaseReturnReason' : 'purchaseReturnReason');
     if (reasonEl) reasonEl.value = '';
     
-    alert(`✅ പർച്ചേസ് റിട്ടേൺ വിജയകരമായി സേവ് ചെയ്തു! ${qty} ${unit || ''} സ്റ്റോക്കിൽ നിന്ന് കുറയ്ക്കുകയും, ബാക്കി തുക റീ-കാൽക്കുലേറ്റ് ചെയ്യുകയും ചെയ്തു.`);
+    const balMsg = p.refundDue > 0 ? `റീഫണ്ട് ലഭിക്കാനുള്ള തുക: ₹${p.refundDue}` : `ബാക്കി നൽകാനുള്ളത്: ₹${p.balance}`;
+    alert(`✅ പർച്ചേസ് റിട്ടേൺ വിജയകരമായി സേവ് ചെയ്തു!\n• റിട്ടേൺ ക്വാണ്ടിറ്റി: ${qty} ${unit || ''} (തുക: ₹${retAmount})\n• ${balMsg}${stockNotice}`);
 }
 
 export function deletePurchaseReturn(type, purchaseId, returnIndex) {
@@ -575,22 +686,17 @@ export function deletePurchaseReturn(type, purchaseId, returnIndex) {
     const ret = p.returns[returnIndex];
     const retQty = Number(ret.qty || 0);
     const retAmount = Number(ret.amount || 0);
+    const now = Date.now();
     
     // Restore stock to product
-    const prodList = isCos ? state.cosProducts : state.products;
-    let prod = null;
-    if (p.stockId) prod = prodList.find(x => x && x.id === p.stockId);
-    if (!prod) {
-        const bc = String(isCos ? (p.barcode || '') : (p.rawBarcode || '')).trim();
-        if (bc) prod = prodList.find(x => x && x.barcode && String(x.barcode).trim() === bc);
-    }
-    if (!prod) {
-        const nm = String(isCos ? (p.item || '') : (p.rawMaterial || '')).trim().toLowerCase();
-        if (nm) prod = prodList.find(x => x && x.name && x.name.trim().toLowerCase() === nm);
-    }
+    const prod = findInventoryProductForPurchase(p, isCos);
     if (prod) {
+        const factor = getUnitConversionFactor(p.unit || p.rawUnit, prod.unit);
+        const restoreQty = Number((retQty * factor).toFixed(3));
         const before = Number(prod.stock) || 0;
-        prod.stock = parseFloat((before + retQty).toFixed(2));
+        prod.stock = parseFloat((before + restoreQty).toFixed(3));
+        prod.savedAt = now;
+        prod.updatedAt = now;
     }
     
     // Remove return record
@@ -599,10 +705,21 @@ export function deletePurchaseReturn(type, purchaseId, returnIndex) {
     p.returnedAmount = Math.max(0, Number(((Number(p.returnedAmount) || 0) - retAmount).toFixed(2)));
     
     const grossCost = Number(isCos ? p.amount : p.rawCost) || 0;
-    p.netPurchaseAmount = Math.max(0, grossCost - p.returnedAmount);
-    p.balance = Math.max(0, p.netPurchaseAmount - (Number(p.paid) || 0));
-    p.netBalance = p.balance;
+    p.netPurchaseAmount = Math.max(0, Number((grossCost - p.returnedAmount).toFixed(2)));
+    const paid = Number(p.paid) || 0;
+    if (paid > p.netPurchaseAmount) {
+        p.balance = 0;
+        p.netBalance = 0;
+        p.refundDue = Number((paid - p.netPurchaseAmount).toFixed(2));
+    } else {
+        p.balance = Math.max(0, Number((p.netPurchaseAmount - paid).toFixed(2)));
+        p.netBalance = p.balance;
+        p.refundDue = 0;
+    }
+    p.savedAt = now;
+    p.updatedAt = now;
     
+    saveLocalStateSafely();
     syncToFirebase();
     renderPurchases();
     renderCosPurchases();
@@ -848,22 +965,37 @@ export function saveCosPurchase(e) {
         paid,
         balance,
         date,
-        savedAt: (isEdit && state.cosPurchases[idx]?.savedAt) ? state.cosPurchases[idx].savedAt : Date.now()
+        savedAt: Date.now(),
+        updatedAt: Date.now()
     };
 
+    const now = Date.now();
     if (isEdit) {
         const old = state.cosPurchases[idx];
         if (old.stockId) {
             const op = state.cosProducts.find(p => p.id === old.stockId);
-            if (op) op.stock = Math.max(0, (parseFloat(op.stock) || 0) - (parseFloat(old.qty) || 0) + (Number(old.returnedQty) || 0));
+            if (op) {
+                op.stock = Math.max(0, (parseFloat(op.stock) || 0) - (parseFloat(old.qty) || 0) + (Number(old.returnedQty) || 0));
+                op.savedAt = now;
+                op.updatedAt = now;
+            }
         }
-        if (selectedProduct && qty > 0) selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + qty;
+        if (selectedProduct && qty > 0) {
+            selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + qty;
+            selectedProduct.savedAt = now;
+            selectedProduct.updatedAt = now;
+        }
         state.cosPurchases[idx] = { ...old, ...data, returns: Array.isArray(old.returns) ? old.returns : [] };
     } else {
-        if (selectedProduct && qty > 0) selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + qty;
+        if (selectedProduct && qty > 0) {
+            selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + qty;
+            selectedProduct.savedAt = now;
+            selectedProduct.updatedAt = now;
+        }
         state.cosPurchases.push({ ...data, returns: [] });
     }
 
+    saveLocalStateSafely();
     syncToFirebase();
     renderPurchaseSupplierList();
     resetCosPurchaseForm();

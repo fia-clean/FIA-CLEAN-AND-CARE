@@ -8,8 +8,9 @@ import {
     state,
     loadFromLocalStorage,
     startAutomaticBackup,
-    todayDDMMYYYY
-} from './core/state.js?v=46';
+    todayDDMMYYYY,
+    getTodayDateString
+} from './core/state.js?v=47';
 import {
     startRealtimeSync,
     pullFromFirebase,
@@ -18,7 +19,7 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup
-} from './core/db.js?v=46';
+} from './core/db.js?v=47';
 import {
     verifyLoginPin,
     logoutApp,
@@ -32,7 +33,7 @@ import {
     saveNewPin,
     openSettingsModal,
     closeSettingsModal
-} from './core/auth.js?v=46';
+} from './core/auth.js?v=47';
 
 // Feature Modules
 import {
@@ -46,7 +47,7 @@ import {
     closeLowStockList,
     goToAddStockFromLowStock,
     pushDashboardModalState
-} from './dashboard/dashboard.js?v=46';
+} from './dashboard/dashboard.js?v=47';
 
 import {
     saveDirectCustomer,
@@ -66,7 +67,7 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport
-} from './customers/customer.js?v=46';
+} from './customers/customer.js?v=47';
 
 import {
     previewBill,
@@ -81,7 +82,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=46';
+} from './billing/invoice-preview.js?v=47';
 
 import {
     renderSalesHistory,
@@ -90,7 +91,7 @@ import {
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
-} from './billing/billing-history.js?v=46';
+} from './billing/billing-history.js?v=47';
 
 import {
     getProductWholesalePrice,
@@ -145,7 +146,7 @@ import {
     renderCosSales,
     resetCosSalesForm,
     renderCosmeticsSummary
-} from './billing/billing.js?v=46';
+} from './billing/billing.js?v=47';
 
 import {
     updatePackageSelectors,
@@ -195,7 +196,7 @@ import {
     viewProduct,
     viewCosProduct,
     viewPackage
-} from './operations/stock.js?v=46';
+} from './operations/stock.js?v=47';
 
 import {
     getTodayPurchaseDate,
@@ -250,7 +251,7 @@ import {
     shareSelectedSupplierConsolidatedDetail,
     sharePurchaseConsolidationReport,
     downloadPurchaseConsolidationReportPDF
-} from './operations/purchases.js?v=46';
+} from './operations/purchases.js?v=47';
 
 import {
     saveExpense,
@@ -259,7 +260,7 @@ import {
     renderExpenses,
     resetExpenseForm,
     viewExpense
-} from './operations/expenses.js?v=46';
+} from './operations/expenses.js?v=47';
 
 import {
     dashboardDateKey,
@@ -275,7 +276,7 @@ import {
     saveDayBookOpeningValues,
     renderAccounts,
     exportDayBookToCSV
-} from './daybook/daybook.js?v=46';
+} from './daybook/daybook.js?v=47';
 
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {
@@ -688,7 +689,7 @@ if (typeof window !== 'undefined') {
         }
 
         const expDateEl = document.getElementById('expDate');
-        if (expDateEl && !expDateEl.value) expDateEl.value = todayDDMMYYYY();
+        if (expDateEl && (!expDateEl.value || typeof expDateEl.value === 'function' || String(expDateEl.value).includes('function'))) expDateEl.value = getTodayDateString();
 
         setTimeout(() => {
             if (typeof switchStockTopTab === 'function') switchStockTopTab('product');

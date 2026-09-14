@@ -24,10 +24,10 @@ export function dashboardDateKey(v) {
 export function setupDateFields() {
     const expDateEl = document.getElementById('expDate');
     if (expDateEl) {
-        if (!expDateEl.value) {
-            expDateEl.value = todayDDMMYYYY();
+        if (!expDateEl.value || typeof expDateEl.value === 'function' || String(expDateEl.value).includes('function')) {
+            expDateEl.value = getTodayDateString();
         } else {
-            expDateEl.value = formatDateDDMMYYYY(expDateEl.value);
+            expDateEl.value = normalizeToDateKey(expDateEl.value) || getTodayDateString();
         }
     }
 }
