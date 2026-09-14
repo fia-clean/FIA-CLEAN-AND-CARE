@@ -1722,7 +1722,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=44"></script>
+    <script type="module" src="./modules/app.js?v=45"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-amber-300 border border-amber-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -1765,7 +1765,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=44')
+                navigator.serviceWorker.register('./sw.js?v=45')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

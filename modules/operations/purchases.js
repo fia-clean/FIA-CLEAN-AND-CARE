@@ -169,7 +169,14 @@ export function ensurePurchaseTimestamps(list) {
 
 export function savePurchase(e) {
     e.preventDefault();
-    const idx = parseInt(document.getElementById('purchIndex').value);
+    const formPurchId = document.getElementById('purchaseForm')?.dataset.purchaseId || '';
+    let idx = parseInt(document.getElementById('purchIndex')?.value);
+    if (formPurchId) {
+        const foundIdx = state.purchases.findIndex(p => p && String(p.id) === formPurchId);
+        if (foundIdx >= 0) idx = foundIdx;
+    }
+    const isEdit = idx >= 0 && state.purchases[idx];
+
     const entryType = document.getElementById('purchaseEntryType').value;
     const stockId = entryType === 'stock' ? document.getElementById('purchaseStockSelect').value : '';
     const selectedProduct = stockId ? state.products.find(p => p.id === stockId) : null;
@@ -184,7 +191,7 @@ export function savePurchase(e) {
     const supplierMobile = document.getElementById('supplierMobile').value.trim();
     const date = document.getElementById('purchaseDate').value || getTodayPurchaseDate();
 
-    const purchaseId = (idx >= 0 && state.purchases[idx]?.id) || ('purch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
+    const purchaseId = (isEdit && state.purchases[idx]?.id) || ('purch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
     unmarkIdDeleted(purchaseId);
     const data = {
         id: purchaseId,
@@ -200,10 +207,10 @@ export function savePurchase(e) {
         paid,
         balance,
         date,
-        savedAt: (idx >= 0 && state.purchases[idx] && state.purchases[idx].savedAt) ? state.purchases[idx].savedAt : Date.now()
+        savedAt: (isEdit && state.purchases[idx]?.savedAt) ? state.purchases[idx].savedAt : Date.now()
     };
 
-    if (idx >= 0 && state.purchases[idx]) {
+    if (isEdit) {
         const old = state.purchases[idx];
         if (old.stockId) {
             const op = state.products.find(p => p.id === old.stockId);
@@ -223,19 +230,48 @@ export function savePurchase(e) {
     if (typeof window.renderProducts === 'function') window.renderProducts();
     updateCleaningPurchaseDropdown();
     if (typeof window.renderAccounts === 'function') window.renderAccounts();
+    renderPurchaseHistory('cleaning');
+
+    alert(isEdit ? '✅ പർച്ചേസ് വിവരങ്ങൾ വിജയകരമായി അപ്‌ഡേറ്റ് ചെയ്തു!' : '✅ പുതിയ പർച്ചേസ് വിജയകരമായി സേവ് ചെയ്തു!');
+    switchPurchaseActionTab('cleaning', 'view');
 }
 
-export function editPurchase(index) {
+export function editPurchase(identifier) {
+    let index = -1;
+    if (typeof identifier === 'number') {
+        index = identifier;
+    } else if (identifier !== undefined && identifier !== null) {
+        const idStr = String(identifier).trim();
+        index = state.purchases.findIndex(p => p && String(p.id) === idStr);
+        if (index === -1 && /^\d+$/.test(idStr)) {
+            index = parseInt(idStr, 10);
+        }
+    }
+    if (index < 0 || !state.purchases[index]) {
+        alert('Purchase record not found.');
+        return;
+    }
     const p = state.purchases[index];
-    if (!p) return;
+
+    const form = document.getElementById('purchaseForm');
+    if (form) form.dataset.purchaseId = p.id || '';
     document.getElementById('purchIndex').value = index;
+
     document.getElementById('supplierName').value = p.supplierName || '';
     document.getElementById('supplierMobile').value = p.supplierMobile || '';
     document.getElementById('purchaseDate').value = p.date || getTodayPurchaseDate();
-    document.getElementById('purchaseEntryType').value = p.stockId ? 'stock' : 'manual';
-    togglePurchaseInputs();
-    if (p.stockId) document.getElementById('purchaseStockSelect').value = p.stockId;
-    else document.getElementById('rawMaterial').value = p.rawMaterial || '';
+
+    if (p.stockId && state.products.some(x => x && x.id === p.stockId)) {
+        document.getElementById('purchaseEntryType').value = 'stock';
+        togglePurchaseInputs();
+        const sel = document.getElementById('purchaseStockSelect');
+        if (sel) sel.value = p.stockId;
+    } else {
+        document.getElementById('purchaseEntryType').value = 'manual';
+        togglePurchaseInputs();
+        document.getElementById('rawMaterial').value = p.rawMaterial || '';
+    }
+
     document.getElementById('rawBarcode').value = p.rawBarcode || '';
     document.getElementById('rawQty').value = p.rawQty ?? '';
     document.getElementById('rawUnit').value = p.rawUnit || '';
@@ -243,12 +279,16 @@ export function editPurchase(index) {
     document.getElementById('rawCost').value = p.rawCost ?? '';
     document.getElementById('purchasePaid').value = p.paid ?? '';
     document.getElementById('purchaseBalance').value = p.balance ?? '';
-    document.getElementById('purchaseFormTitle').innerText = 'Edit Cleaning Products Purchase';
+
+    document.getElementById('purchaseFormTitle').innerText = '✏️ Edit Cleaning Products Purchase';
     document.getElementById('purchSubmitBtn').innerText = 'Update Purchase';
-    if (p.stockId) fillPurchaseStockDetails();
+
     if (typeof window.switchTab === 'function') window.switchTab('purchase', false);
     if (typeof window.switchPurchaseSubTab === 'function') window.switchPurchaseSubTab('cleaning');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    switchPurchaseActionTab('cleaning', 'add');
+
+    const formCard = document.getElementById('purchaseAddContent');
+    if (formCard) formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 export function deletePurchase(identifier) {
@@ -288,9 +328,9 @@ export function renderPurchases() {
                     <p class="text-slate-400">📞 ${p.supplierMobile || 'No mobile'} | ${formatDateDDMMYYYY(p.date)} | Qty: ${p.rawQty} ${p.rawUnit || ''} | Total: ₹${p.rawCost} | Return: ${p.returnedQty || 0} ${p.rawUnit || ''} | Net: ₹${Number(p.netPurchaseAmount ?? p.rawCost ?? 0).toFixed(2)} | <span class="text-rose-400">Bal: ₹${Number(p.netBalance ?? p.balance ?? 0).toFixed(2)}</span></p>
                 </div>
                 <div class="flex flex-wrap gap-1 shrink-0">
-                    <button type="button" onclick="viewPurchase(${p._originalIndex})" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button>
-                    <button type="button" onclick="editPurchase(${p._originalIndex})" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button>
-                    <button type="button" onclick="deletePurchase('${p.id || p._originalIndex}')" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button>
+                    <button type="button" onclick="viewPurchase('${p.id || p._originalIndex}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg font-semibold">View</button>
+                    <button type="button" onclick="editPurchase('${p.id || p._originalIndex}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-slate-700">✎ Edit</button>
+                    <button type="button" onclick="deletePurchase('${p.id || p._originalIndex}')" class="bg-red-900 text-red-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-red-800">Delete</button>
                 </div>
             </div>`).join('') || '<p class="text-xs text-slate-500 text-center">No purchases found.</p>';
     }
@@ -300,7 +340,10 @@ export function renderPurchases() {
 
 export function resetPurchaseForm() {
     const f = document.getElementById('purchaseForm');
-    if (f) f.reset();
+    if (f) {
+        f.reset();
+        delete f.dataset.purchaseId;
+    }
     document.getElementById('purchIndex').value = '-1';
     document.getElementById('purchaseFormTitle').innerText = 'Cleaning Products Purchase';
     document.getElementById('purchSubmitBtn').innerText = 'Save Purchase';
@@ -436,9 +479,15 @@ export function renderPurchaseHistory(type) {
         _balance: p.balance
     })).filter(p => !q || String(p._supplier || '').toLowerCase() === q).sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date) || (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0));
     container.innerHTML = rows.map(p => `
-        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs">
-            <div class="font-bold ${isCos ? 'text-pink-300' : 'text-blue-300'}">${p._supplier} — ${p._item}</div>
-            <div class="text-slate-400 mt-1">${formatDateDDMMYYYY(p.date)} | Qty: ${p._qty} ${p._unit || ''} | Total: ₹${Number(p._amount || 0).toFixed(2)} | Paid: ₹${Number(p._paid || 0).toFixed(2)} | Balance: ₹${Number(p._balance || 0).toFixed(2)}</div>
+        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs flex flex-col sm:flex-row justify-between gap-2 items-start">
+            <div>
+                <div class="font-bold ${isCos ? 'text-pink-300' : 'text-blue-300'}">${p._supplier} — ${p._item}</div>
+                <div class="text-slate-400 mt-1">${formatDateDDMMYYYY(p.date)} | Qty: ${p._qty} ${p._unit || ''} | Total: ₹${Number(p._amount || 0).toFixed(2)} | Paid: ₹${Number(p._paid || 0).toFixed(2)} | Balance: ₹${Number(p._balance || 0).toFixed(2)}</div>
+            </div>
+            <div class="flex gap-1 shrink-0">
+                <button type="button" onclick="${isCos ? 'editCosPurchase' : 'editPurchase'}('${p.id || p._i}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-700">✎ Edit</button>
+                <button type="button" onclick="${isCos ? 'deleteCosPurchase' : 'deletePurchase'}('${p.id || p._i}')" class="bg-red-900 text-red-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-800">Delete</button>
+            </div>
         </div>`).join('') || '<p class="text-xs text-slate-500 text-center">No purchase history found.</p>';
 }
 
@@ -487,6 +536,14 @@ export function calculateCosPurchaseBalance() {
 
 export function saveCosPurchase(e) {
     e.preventDefault();
+    const formCosId = document.getElementById('cosPurchaseForm')?.dataset.purchaseId || '';
+    let idx = parseInt(document.getElementById('cosPIndex')?.value);
+    if (formCosId) {
+        const foundIdx = state.cosPurchases.findIndex(p => p && String(p.id) === formCosId);
+        if (foundIdx >= 0) idx = foundIdx;
+    }
+    const isEdit = idx >= 0 && state.cosPurchases[idx];
+
     const barcode = document.getElementById('cosPBarcode')?.value.trim() || '';
     const entryType = document.getElementById('cosPurchaseEntryType').value;
     const stockId = entryType === 'stock' ? document.getElementById('cosPurchaseStockSelect').value : '';
@@ -498,25 +555,44 @@ export function saveCosPurchase(e) {
     const qty = parseFloat(document.getElementById('cosPQty').value) || 0;
     const unit = document.getElementById('cosPUnit').value;
     const amount = parseFloat(document.getElementById('cosPAmount').value) || 0;
+    const unitPrice = parseFloat(document.getElementById('cosPUnitPrice')?.value) || (qty > 0 ? Number((amount / qty).toFixed(2)) : 0);
     const paid = parseFloat(document.getElementById('cosPPaid').value) || 0;
     const balance = Math.max(0, amount - paid);
-    const idx = parseInt(document.getElementById('cosPIndex').value);
     const date = document.getElementById('cosPurchaseDate').value || getTodayPurchaseDate();
 
-    const cosPId = (idx >= 0 && state.cosPurchases[idx]?.id) || ('cospurch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
+    const cosPId = (isEdit && state.cosPurchases[idx]?.id) || ('cospurch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
     unmarkIdDeleted(cosPId);
-    if (idx >= 0 && state.cosPurchases[idx]) {
+
+    const data = {
+        id: cosPId,
+        supplier,
+        supplierMobile,
+        item,
+        stockId,
+        barcode: finalBarcode,
+        qty,
+        unit,
+        unitPrice,
+        amount,
+        paid,
+        balance,
+        date,
+        savedAt: (isEdit && state.cosPurchases[idx]?.savedAt) ? state.cosPurchases[idx].savedAt : Date.now()
+    };
+
+    if (isEdit) {
         const old = state.cosPurchases[idx];
         if (old.stockId) {
             const op = state.cosProducts.find(p => p.id === old.stockId);
             if (op) op.stock = Math.max(0, (parseFloat(op.stock) || 0) - (parseFloat(old.qty) || 0) + (Number(old.returnedQty) || 0));
         }
         if (selectedProduct && qty > 0) selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + qty;
-        state.cosPurchases[idx] = { ...old, id: cosPId, supplier, supplierMobile, item, stockId, barcode: finalBarcode, qty, unit, amount, paid, balance, date, returns: Array.isArray(old.returns) ? old.returns : [] };
+        state.cosPurchases[idx] = { ...old, ...data, returns: Array.isArray(old.returns) ? old.returns : [] };
     } else {
         if (selectedProduct && qty > 0) selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + qty;
-        state.cosPurchases.push({ id: cosPId, supplier, supplierMobile, item, stockId, barcode: finalBarcode, qty, unit, amount, paid, balance, date, savedAt: Date.now(), returns: [] });
+        state.cosPurchases.push({ ...data, returns: [] });
     }
+
     syncToFirebase();
     renderPurchaseSupplierList();
     resetCosPurchaseForm();
@@ -525,45 +601,139 @@ export function saveCosPurchase(e) {
     if (typeof window.updateCosProductDropdowns === 'function') window.updateCosProductDropdowns();
     if (typeof window.renderCosmeticsSummary === 'function') window.renderCosmeticsSummary();
     if (typeof window.renderAccounts === 'function') window.renderAccounts();
+    renderPurchaseHistory('cosmetics');
+
+    alert(isEdit ? '✅ കോസ്മെറ്റിക്സ് പർച്ചേസ് വിവരങ്ങൾ വിജയകരമായി അപ്‌ഡേറ്റ് ചെയ്തു!' : '✅ പുതിയ കോസ്മെറ്റിക്സ് പർച്ചേസ് വിജയകരമായി സേവ് ചെയ്തു!');
+    switchPurchaseActionTab('cosmetics', 'view');
 }
 
-export function viewPurchase(index) {
+export function viewPurchase(identifier) {
+    let index = -1;
+    if (typeof identifier === 'number') {
+        index = identifier;
+    } else if (identifier !== undefined && identifier !== null) {
+        const idStr = String(identifier).trim();
+        index = state.purchases.findIndex(p => p && String(p.id) === idStr);
+        if (index === -1 && /^\d+$/.test(idStr)) {
+            index = parseInt(idStr, 10);
+        }
+    }
+    if (index < 0 || !state.purchases[index]) return;
     const p = state.purchases[index];
-    if (!p) return;
+    const safeId = String(p.id || index).replace(/'/g, "\\'");
     if (typeof window.showRecordView === 'function') {
-        window.showRecordView('Cleaning Purchase Details', `<div class="space-y-2"><p><b>Supplier:</b> ${p.supplierName}</p><p><b>Mobile:</b> ${p.supplierMobile || '—'}</p><p><b>Product:</b> ${p.rawMaterial}</p><p><b>Barcode:</b> ${p.rawBarcode || '—'}</p><p><b>Quantity:</b> ${p.rawQty} ${p.rawUnit || ''}</p><p><b>Total:</b> ₹${Number(p.rawCost || 0).toFixed(2)}</p><p><b>Paid:</b> ₹${Number(p.paid || 0).toFixed(2)}</p><p><b>Balance:</b> ₹${Number(p.balance || 0).toFixed(2)}</p><p><b>Date:</b> ${formatDateDDMMYYYY(p.date)}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editPurchase(${index});" class="bg-slate-800 text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deletePurchase(${index});" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+        window.showRecordView('Cleaning Purchase Details', `
+            <div class="space-y-2">
+                <p><b>Supplier:</b> ${p.supplierName}</p>
+                <p><b>Mobile:</b> ${p.supplierMobile || '—'}</p>
+                <p><b>Product:</b> ${p.rawMaterial}</p>
+                <p><b>Barcode:</b> ${p.rawBarcode || '—'}</p>
+                <p><b>Quantity:</b> ${p.rawQty} ${p.rawUnit || ''}</p>
+                <p><b>Unit Price:</b> ₹${Number(p.rawUnitPrice || 0).toFixed(2)}</p>
+                <p><b>Total:</b> ₹${Number(p.rawCost || 0).toFixed(2)}</p>
+                <p><b>Paid:</b> ₹${Number(p.paid || 0).toFixed(2)}</p>
+                <p><b>Balance:</b> ₹${Number(p.balance || 0).toFixed(2)}</p>
+                <p><b>Date:</b> ${formatDateDDMMYYYY(p.date)}</p>
+            </div>
+            <div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end">
+                <button type="button" onclick="closeRecordView(); editPurchase('${safeId}');" class="bg-slate-800 text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700 font-bold hover:bg-slate-700">✎ Edit</button>
+                <button type="button" onclick="closeRecordView(); deletePurchase('${safeId}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold hover:bg-red-800">Delete</button>
+            </div>
+        `);
     }
 }
 
-export function viewCosPurchase(index) {
+export function viewCosPurchase(identifier) {
+    let index = -1;
+    if (typeof identifier === 'number') {
+        index = identifier;
+    } else if (identifier !== undefined && identifier !== null) {
+        const idStr = String(identifier).trim();
+        index = state.cosPurchases.findIndex(p => p && String(p.id) === idStr);
+        if (index === -1 && /^\d+$/.test(idStr)) {
+            index = parseInt(idStr, 10);
+        }
+    }
+    if (index < 0 || !state.cosPurchases[index]) return;
     const p = state.cosPurchases[index];
-    if (!p) return;
+    const safeId = String(p.id || index).replace(/'/g, "\\'");
     if (typeof window.showRecordView === 'function') {
-        window.showRecordView('Cosmetics Purchase Details', `<div class="space-y-2"><p><b>Supplier:</b> ${p.supplier}</p><p><b>Mobile:</b> ${p.supplierMobile || '—'}</p><p><b>Item:</b> ${p.item}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Qty:</b> ${p.qty} ${p.unit}</p><p><b>Total:</b> ₹${Number(p.amount || 0).toFixed(2)}</p><p><b>Paid:</b> ₹${Number(p.paid || 0).toFixed(2)}</p><p><b>Balance:</b> ₹${Number(p.balance || 0).toFixed(2)}</p><p><b>Date:</b> ${formatDateDDMMYYYY(p.date)}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editCosPurchase(${index});" class="bg-slate-800 text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteCosPurchase('${p.id || index}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+        window.showRecordView('Cosmetics Purchase Details', `
+            <div class="space-y-2">
+                <p><b>Supplier:</b> ${p.supplier}</p>
+                <p><b>Mobile:</b> ${p.supplierMobile || '—'}</p>
+                <p><b>Item:</b> ${p.item}</p>
+                <p><b>Barcode:</b> ${p.barcode || '—'}</p>
+                <p><b>Qty:</b> ${p.qty} ${p.unit || ''}</p>
+                <p><b>Unit Price:</b> ₹${Number(p.unitPrice || (p.qty ? p.amount / p.qty : 0)).toFixed(2)}</p>
+                <p><b>Total:</b> ₹${Number(p.amount || 0).toFixed(2)}</p>
+                <p><b>Paid:</b> ₹${Number(p.paid || 0).toFixed(2)}</p>
+                <p><b>Balance:</b> ₹${Number(p.balance || 0).toFixed(2)}</p>
+                <p><b>Date:</b> ${formatDateDDMMYYYY(p.date)}</p>
+            </div>
+            <div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end">
+                <button type="button" onclick="closeRecordView(); editCosPurchase('${safeId}');" class="bg-slate-800 text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700 font-bold hover:bg-slate-700">✎ Edit</button>
+                <button type="button" onclick="closeRecordView(); deleteCosPurchase('${safeId}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold hover:bg-red-800">Delete</button>
+            </div>
+        `);
     }
 }
 
-export function editCosPurchase(index) {
+export function editCosPurchase(identifier) {
+    let index = -1;
+    if (typeof identifier === 'number') {
+        index = identifier;
+    } else if (identifier !== undefined && identifier !== null) {
+        const idStr = String(identifier).trim();
+        index = state.cosPurchases.findIndex(p => p && String(p.id) === idStr);
+        if (index === -1 && /^\d+$/.test(idStr)) {
+            index = parseInt(idStr, 10);
+        }
+    }
+    if (index < 0 || !state.cosPurchases[index]) {
+        alert('Cosmetics purchase record not found.');
+        return;
+    }
     const p = state.cosPurchases[index];
-    if (!p) return;
+
+    const form = document.getElementById('cosPurchaseForm');
+    if (form) form.dataset.purchaseId = p.id || '';
     document.getElementById('cosPIndex').value = index;
+
     document.getElementById('cosPSupplier').value = p.supplier || '';
     document.getElementById('cosPSupplierMobile').value = p.supplierMobile || '';
     document.getElementById('cosPurchaseDate').value = p.date || getTodayPurchaseDate();
+
+    if (p.stockId && state.cosProducts.some(x => x && x.id === p.stockId)) {
+        document.getElementById('cosPurchaseEntryType').value = 'stock';
+        toggleCosPurchaseInputs();
+        const sel = document.getElementById('cosPurchaseStockSelect');
+        if (sel) sel.value = p.stockId;
+    } else {
+        document.getElementById('cosPurchaseEntryType').value = 'manual';
+        toggleCosPurchaseInputs();
+        document.getElementById('cosPItem').value = p.item || '';
+    }
+
     document.getElementById('cosPBarcode').value = p.barcode || '';
     document.getElementById('cosPQty').value = p.qty ?? '';
     document.getElementById('cosPUnit').value = p.unit || '';
+    const unitPrice = p.unitPrice ?? (p.qty ? (Number(p.amount || 0) / Number(p.qty)).toFixed(2) : '');
+    const upEl = document.getElementById('cosPUnitPrice');
+    if (upEl) upEl.value = unitPrice;
     document.getElementById('cosPAmount').value = p.amount ?? '';
     document.getElementById('cosPPaid').value = p.paid ?? '';
     document.getElementById('cosPBalance').value = p.balance ?? '';
-    document.getElementById('cosPurchaseEntryType').value = p.stockId ? 'stock' : 'manual';
-    toggleCosPurchaseInputs();
-    if (p.stockId) document.getElementById('cosPurchaseStockSelect').value = p.stockId;
-    else document.getElementById('cosPItem').value = p.item || '';
-    document.getElementById('cosPFormTitle').innerText = 'Edit Cosmetics Purchase';
+
+    document.getElementById('cosPFormTitle').innerText = '✏️ Edit Cosmetics Purchase';
     document.getElementById('cosPSubmitBtn').innerText = 'Update Purchase';
+
     if (typeof window.switchTab === 'function') window.switchTab('purchase', false);
     if (typeof window.switchPurchaseSubTab === 'function') window.switchPurchaseSubTab('cosmetics');
+    switchPurchaseActionTab('cosmetics', 'add');
+
+    const formCard = document.getElementById('cosPurchaseAddContent');
+    if (formCard) formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 export function deleteCosPurchase(identifier) {
@@ -603,9 +773,9 @@ export function renderCosPurchases() {
                     <p class="text-slate-400">📞 ${p.supplierMobile || 'No mobile'} | ${formatDateDDMMYYYY(p.date)} | Qty: ${p.qty} ${p.unit || ''} | Total: ₹${p.amount} | Return: ${p.returnedQty || 0} ${p.unit || ''} | Net: ₹${Number(p.netPurchaseAmount ?? p.amount ?? 0).toFixed(2)} | <span class="text-rose-400">Bal: ₹${Number(p.netBalance ?? p.balance ?? 0).toFixed(2)}</span></p>
                 </div>
                 <div class="flex flex-wrap gap-1 shrink-0">
-                    <button type="button" onclick="viewCosPurchase(${p._originalIndex})" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg">View</button>
-                    <button type="button" onclick="editCosPurchase(${p._originalIndex})" class="bg-slate-800 text-amber-400 px-2 py-1.5 rounded-lg">Edit</button>
-                    <button type="button" onclick="deleteCosPurchase('${p.id || p._originalIndex}')" class="bg-red-900 text-red-200 px-2 py-1.5 rounded-lg">Delete</button>
+                    <button type="button" onclick="viewCosPurchase('${p.id || p._originalIndex}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg font-semibold">View</button>
+                    <button type="button" onclick="editCosPurchase('${p.id || p._originalIndex}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-slate-700">✎ Edit</button>
+                    <button type="button" onclick="deleteCosPurchase('${p.id || p._originalIndex}')" class="bg-red-900 text-red-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-red-800">Delete</button>
                 </div>
             </div>`).join('') || '<p class="text-xs text-slate-500 text-center">No cosmetics purchases found.</p>';
     }
@@ -615,11 +785,15 @@ export function renderCosPurchases() {
 
 export function resetCosPurchaseForm() {
     const f = document.getElementById('cosPurchaseForm');
-    if (f) f.reset();
+    if (f) {
+        f.reset();
+        delete f.dataset.purchaseId;
+    }
     document.getElementById('cosPIndex').value = '-1';
     document.getElementById('cosPFormTitle').innerText = 'Cosmetics Purchase Entry';
     document.getElementById('cosPSubmitBtn').innerText = 'Save Purchase';
     document.getElementById('cosPurchaseDate').value = getTodayPurchaseDate();
+    document.getElementById('cosPurchaseEntryType').value = 'stock';
     toggleCosPurchaseInputs();
 }
 
