@@ -22,6 +22,54 @@ export function getCleanInvoiceProductName(name) {
         .trim();
 }
 
+export function formatInvoiceItemQty(item) {
+    if (!item) return '1';
+    let rawQty = item.qty;
+    let unit = (item.unitType && item.unitType !== 'Standard' && item.unitType !== 'General') ? String(item.unitType).trim() : '';
+    const units = Number(item.numberOfUnits || 1);
+
+    // If unit is missing or empty, search product in state for its base unit
+    if (!unit) {
+        const name = item.productName;
+        const p = (state.products || []).find(x => x && (x.name === name || (x.id && item.stockId && String(x.id) === String(item.stockId))))
+            || (state.cosProducts || []).find(x => x && (x.name === name || (x.id && item.stockId && String(x.id) === String(item.stockId))))
+            || (state.packages || []).find(x => x && (x.name === name || (x.id && item.packageId && String(x.id) === String(item.packageId))));
+        if (p && p.unit && p.unit !== 'Standard' && p.unit !== 'General') {
+            unit = String(p.unit).trim();
+        }
+    }
+
+    // Standardize unit representation
+    let cleanUnit = unit || '';
+    if (/^(l|ltr|litre|litres|liter)$/i.test(cleanUnit)) cleanUnit = 'Ltr';
+    else if (/^(ml|millilitre|millilitres)$/i.test(cleanUnit)) cleanUnit = 'ml';
+    else if (/^(kg|kilogram|kilograms)$/i.test(cleanUnit)) cleanUnit = 'Kg';
+    else if (/^(g|gram|grams|gm)$/i.test(cleanUnit)) cleanUnit = 'Gram';
+    else if (/^(pcs|piece|pieces|pc)$/i.test(cleanUnit)) cleanUnit = 'Pcs';
+    else if (/^(bottle|bottles)$/i.test(cleanUnit)) cleanUnit = 'Bottle';
+    else if (/^(can|cans)$/i.test(cleanUnit)) cleanUnit = 'Can';
+    else if (/^(pouch|pouches)$/i.test(cleanUnit)) cleanUnit = 'Pouch';
+    else if (/^(box|boxes)$/i.test(cleanUnit)) cleanUnit = 'Box';
+
+    // If still empty, check item quantityType or default to Ltr
+    if (!cleanUnit) {
+        if (item.quantityType && !/^(other|standard|general)$/i.test(item.quantityType)) {
+            cleanUnit = item.quantityType;
+        } else {
+            cleanUnit = 'Ltr';
+        }
+    }
+
+    let qtyVal = (rawQty !== undefined && rawQty !== null && rawQty !== '') ? Number(rawQty) : 1;
+    if (isNaN(qtyVal) || qtyVal <= 0) qtyVal = 1;
+
+    let displayStr = `${qtyVal} ${cleanUnit}`.trim();
+    if (units > 1) {
+        displayStr += ` (${units})`;
+    }
+    return displayStr;
+}
+
 export function previewBill(identifier) {
     let c = null;
     if (typeof identifier === 'number') {
@@ -42,11 +90,7 @@ export function previewBill(identifier) {
     
     let itemsRows = sortBillItemsAlphabetically(c.items || []).map((item, idx) => {
         const cleanName = getCleanInvoiceProductName(item.productName);
-        const rawQty = item.qty || '';
-        const unitStr = (item.unitType && item.unitType !== 'Standard') ? item.unitType : '';
-        const units = Number(item.numberOfUnits || 1);
-        let qtyDisplay = `${rawQty} ${unitStr}`.trim();
-        if (units > 1) qtyDisplay += ` (${units})`;
+        const qtyDisplay = formatInvoiceItemQty(item);
         const rate = Number(item.rate || 0).toFixed(2);
         const total = Number(item.total || 0).toFixed(2);
         const cosTag = item.combinedCategory === 'Cosmetics' ? ` <span style="color:#db2777; font-size:9.5px; font-weight:bold;">(Cos)</span>` : '';
@@ -179,11 +223,7 @@ export function previewCosSaleBill(saleOrIdentifier) {
 
     let itemsRows = sortBillItemsAlphabetically(sale.items || []).map((item, idx) => {
         const cleanName = getCleanInvoiceProductName(item.productName);
-        const rawQty = item.qty || '';
-        const unitStr = (item.unitType && item.unitType !== 'Standard') ? item.unitType : '';
-        const units = Number(item.numberOfUnits || 1);
-        let qtyDisplay = `${rawQty} ${unitStr}`.trim();
-        if (units > 1) qtyDisplay += ` (${units})`;
+        const qtyDisplay = formatInvoiceItemQty(item);
         const rate = Number(item.rate || 0).toFixed(2);
         const total = Number(item.total || 0).toFixed(2);
         const bg = idx % 2 === 1 ? 'background:#fdf2f8;' : 'background:#ffffff;';
@@ -336,11 +376,7 @@ function getA4TableHeadHtml(themeColor, themeHeaderBg) {
 
 function getA4ItemRowHtml(item, idx) {
     const cleanName = getCleanInvoiceProductName(item.productName);
-    const rawQty = item.qty || '';
-    const unitStr = (item.unitType && item.unitType !== 'Standard') ? item.unitType : '';
-    const units = Number(item.numberOfUnits || 1);
-    let qtyDisplay = `${rawQty} ${unitStr}`.trim();
-    if (units > 1) qtyDisplay += ` (${units})`;
+    const qtyDisplay = formatInvoiceItemQty(item);
     const rate = Number(item.rate || 0).toFixed(2);
     const total = Number(item.total || 0).toFixed(2);
     const cosTag = item.combinedCategory === 'Cosmetics' ? ` <span style="color:#db2777; font-size:10px; font-weight:bold;">(Cos)</span>` : '';
@@ -821,11 +857,10 @@ export function sendBillViaWhatsApp() {
     const isWholesale = (c.saleType || '').toLowerCase() === 'wholesale';
     let itemsText = (c.items || []).map((i, idx) => {
         const cleanName = getCleanInvoiceProductName(i.productName);
-        const qtyStr = `${i.qty} ${i.unitType && i.unitType !== 'Standard' ? i.unitType : ''}`.trim();
-        const units = Number(i.numberOfUnits || 1);
+        const qtyDisplay = formatInvoiceItemQty(i);
         const rate = Number(i.rate || 0).toFixed(2);
         const total = Number(i.total || 0).toFixed(2);
-        return `${idx + 1}. *${cleanName}* | ${qtyStr} | ${units} | ₹${rate} | ₹${total}`;
+        return `${idx + 1}. *${cleanName}* | ${qtyDisplay} | ₹${rate} | ₹${total}`;
     }).join('\n');
     const paidVal = c.paidAmount !== undefined ? c.paidAmount : c.grandTotal;
     const pendingVal = c.pendingAmount !== undefined ? c.pendingAmount : 0;
@@ -858,6 +893,7 @@ if (typeof window !== 'undefined') {
     window.sendBillViaWhatsApp = sendBillViaWhatsApp;
     window.sortBillItemsAlphabetically = sortBillItemsAlphabetically;
     window.getCleanInvoiceProductName = getCleanInvoiceProductName;
+    window.formatInvoiceItemQty = formatInvoiceItemQty;
     window.generateA4Pages = generateA4Pages;
     window.generateA4PrintHTML = generateA4PrintHTML;
 }

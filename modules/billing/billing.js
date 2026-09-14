@@ -8,12 +8,12 @@ import {
     getTodayDateString
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
-import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName } from './invoice-preview.js';
+import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName, formatInvoiceItemQty } from './invoice-preview.js';
 import { normalizeCosSale } from './billing-history.js';
 import { renderCustomers, renderCustomerConsolidationReport } from '../customers/customer.js';
 
 export { renderCustomers };
-export { sortBillItemsAlphabetically };
+export { sortBillItemsAlphabetically, formatInvoiceItemQty };
 
 export function getProductWholesalePrice(p) {
     if (!p) return 0;
@@ -393,6 +393,18 @@ export function fillProductPrice() {
 
     if (variantWrapper) variantWrapper.classList.add('hidden');
     if (badgeEl) badgeEl.textContent = '';
+    const qtyEl = document.getElementById('billQty');
+    if (qtyEl && (!qtyEl.value || parseFloat(qtyEl.value) <= 0)) {
+        qtyEl.value = '1';
+    }
+    const unitEl = document.getElementById('billUnitType');
+    if (unitEl && product?.unit) {
+        const u = product.unit;
+        if (![...unitEl.options].some(x => x.value.toLowerCase() === u.toLowerCase())) {
+            unitEl.add(new Option(u, u));
+        }
+        unitEl.value = u;
+    }
     const rateEl = document.getElementById('billRate');
     rateEl.value = baseRate ? baseRate.toFixed(2) : '';
     rateEl.dataset.autoRate = rateEl.value;
@@ -547,12 +559,13 @@ export function addToBillItems() {
     const productName = select ? select.value : '';
     const qty = parseFloat(document.getElementById('billQty').value);
     const rate = parseFloat(document.getElementById('billRate').value);
-    const unitType = document.getElementById('billUnitType').value;
+    const rawUnitType = document.getElementById('billUnitType')?.value || '';
     const quantityType = document.getElementById('billQuantityType')?.value || 'Bottle';
     const numberOfUnits = Math.max(1, parseInt(document.getElementById('billNumberOfUnits')?.value, 10) || 1);
     if (!productName || isNaN(qty) || qty <= 0 || isNaN(rate)) { alert("Please select product, quantity, and rate."); return; }
 
     const product = findUnifiedProduct(productName);
+    const unitType = (rawUnitType && rawUnitType !== 'Standard' && rawUnitType !== 'General') ? rawUnitType : (product?.unit || 'Ltr');
     const variantId = document.getElementById('billPackVariantSelect')?.value || document.getElementById('billRate')?.dataset.variantId || '';
     const variant = product?.variants?.find(v => String(v.id) === String(variantId));
 
@@ -696,7 +709,8 @@ export function renderBillPreviewInput() {
     state.currentBillItems.forEach((item, index) => {
         grandTotal += Number(item.total || 0);
         const cleanName = getCleanInvoiceProductName(item.productName);
-        const qtyStr = `${item.qty} ${item.unitType || ''}`.trim();
+        const unitDisplay = (item.unitType && item.unitType !== 'Standard' && item.unitType !== 'General') ? item.unitType : ((findUnifiedProduct(item.productName)?.unit) || 'Ltr');
+        const qtyStr = `${item.qty} ${unitDisplay}`.trim();
         const units = Number(item.numberOfUnits || 1);
         container.innerHTML += `
             <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
@@ -1051,7 +1065,8 @@ export function addToCosBillItems() {
     const product = (state.cosProducts || []).find(p => p.id === productId);
     const qty = parseFloat(document.getElementById('cosSQty')?.value);
     const rate = parseFloat(document.getElementById('cosSUnitPrice')?.value);
-    const unitType = document.getElementById('cosSUnit')?.value || 'Pcs';
+    const rawUnit = document.getElementById('cosSUnit')?.value;
+    const unitType = (rawUnit && rawUnit !== 'Standard' && rawUnit !== 'General') ? rawUnit : (product?.unit || 'Pcs');
     const numberOfUnits = Math.max(1, parseInt(document.getElementById('cosSNumberOfUnits')?.value, 10) || 1);
     if (!productId || !product || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(rate)) {
         alert('Please select product, quantity, and rate.');
@@ -1101,7 +1116,8 @@ export function renderCosBillPreviewInput() {
     state.currentCosBillItems.forEach((item, index) => {
         grandTotal += Number(item.total || 0);
         const cleanName = getCleanInvoiceProductName(item.productName);
-        const qtyStr = `${item.qty} ${item.unitType || ''}`.trim();
+        const unitDisplay = (item.unitType && item.unitType !== 'Standard' && item.unitType !== 'General') ? item.unitType : ((state.cosProducts || []).find(p => p.id === item.stockId || p.name === item.productName)?.unit || 'Pcs');
+        const qtyStr = `${item.qty} ${unitDisplay}`.trim();
         const units = Number(item.numberOfUnits || 1);
         container.innerHTML += `
             <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
@@ -1605,7 +1621,7 @@ export function addToCombinedBill() {
     const selected = getCombinedSelected();
     const qty = parseFloat(document.getElementById('combinedQty')?.value);
     const rate = parseFloat(document.getElementById('combinedRate')?.value);
-    const unitType = document.getElementById('combinedUnitType')?.value || 'Pcs';
+    const rawUnitType = document.getElementById('combinedUnitType')?.value || '';
     const numberOfUnits = Math.max(1, parseInt(document.getElementById('combinedNumberOfUnits')?.value, 10) || 1);
 
     if (!selected || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(rate)) {
@@ -1620,6 +1636,7 @@ export function addToCombinedBill() {
 
     if (isPackage) {
         const pkg = (state.packages || []).find(p => p.name === selected.name);
+        const unitType = (rawUnitType && rawUnitType !== 'Standard' && rawUnitType !== 'General') ? rawUnitType : (pkg?.unit || 'Pcs');
         const stockDeductionQty = (qty > 0 ? qty : 1) * numberOfUnits;
         const total = stockDeductionQty * rate;
         if (pkg) {
@@ -1650,6 +1667,7 @@ export function addToCombinedBill() {
 
     const variantId = document.getElementById('combinedPackVariantSelect')?.value || document.getElementById('combinedRate')?.dataset.variantId || '';
     const variant = product?.variants?.find(v => String(v.id) === String(variantId));
+    const unitType = (rawUnitType && rawUnitType !== 'Standard' && rawUnitType !== 'General') ? rawUnitType : (variant?.unit || product?.unit || 'Pcs');
 
     let stockDeductionQty = 0;
     let packageInfo = null;
@@ -1746,7 +1764,9 @@ export function renderCombinedBillItems() {
     c.innerHTML = state.currentBillItems.map((item, i) => {
         total += Number(item.total || 0);
         const cleanName = getCleanInvoiceProductName(item.productName);
-        const qtyStr = `${item.qty} ${item.unitType || ''}`.trim();
+        const rec = combinedStockRecord({ category: item.combinedCategory, productName: item.productName });
+        const unitDisplay = (item.unitType && item.unitType !== 'Standard' && item.unitType !== 'General') ? item.unitType : (rec?.unit || 'Pcs');
+        const qtyStr = `${item.qty} ${unitDisplay}`.trim();
         const units = Number(item.numberOfUnits || 1);
         return `<div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
             <div class="hidden sm:grid sm:grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
