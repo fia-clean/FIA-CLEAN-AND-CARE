@@ -20,6 +20,17 @@ export function getTodayPurchaseDate() {
     return getTodayDateString();
 }
 
+export function normalizeItemSearchText(str) {
+    if (!str) return '';
+    return String(str)
+        .toLowerCase()
+        .replace(/\(.*?\)/g, '')
+        .replace(/(\d+)\s*(ltr|litre|l|kg|g|gram|ml|pcs|bottle|box|can|pk|nos)/gi, '')
+        .replace(/[^a-z0-9\u0D00-\u0D7F]/gi, ' ')
+        .trim()
+        .replace(/\s+/g, ' ');
+}
+
 export function findInventoryProductForPurchase(p, isCos) {
     if (!p) return null;
     const primaryList = isCos ? (state.cosProducts || []) : (state.products || []);
@@ -29,67 +40,130 @@ export function findInventoryProductForPurchase(p, isCos) {
     const stockId = String(p.stockId || '').trim();
     const barcode = String(p.rawBarcode || p.barcode || '').trim();
     const rawName = String(p.rawMaterial || p.item || p.name || p.productName || '').trim();
-    const cleanName = rawName.replace(/\(.*?\)/g, '').replace(/_/g, ' ').trim().toLowerCase();
-    const exactName = rawName.toLowerCase();
+    const cleanName = normalizeItemSearchText(rawName);
+    const compactName = cleanName.replace(/\s+/g, '');
+    const tokens = cleanName.split(' ').filter(t => t.length > 2);
 
-    // 1. Check stockId in primary
-    if (stockId) {
-        const found = primaryList.find(x => x && String(x.id).trim() === stockId);
-        if (found) return found;
-    }
-    // 2. Check barcode in primary
-    if (barcode) {
-        const found = primaryList.find(x => x && x.barcode && String(x.barcode).trim() === barcode);
-        if (found) return found;
-    }
-    // 3. Exact name in primary
-    if (exactName) {
-        const found = primaryList.find(x => x && String(x.name || '').trim().toLowerCase() === exactName);
-        if (found) return found;
-    }
-    // 4. Cleaned name in primary
-    if (cleanName) {
-        const found = primaryList.find(x => {
-            if (!x || !x.name) return false;
-            const xClean = String(x.name).replace(/\(.*?\)/g, '').replace(/_/g, ' ').trim().toLowerCase();
-            return xClean === cleanName || (cleanName.length > 2 && xClean.includes(cleanName)) || (xClean.length > 2 && cleanName.includes(xClean));
+    const matchCandidate = (list) => {
+        if (!list || !list.length) return null;
+        
+        // 1. By stockId
+        if (stockId) {
+            const found = list.find(x => x && String(x.id).trim() === stockId);
+            if (found) return found;
+        }
+        // 2. By barcode
+        if (barcode) {
+            const found = list.find(x => x && x.barcode && String(x.barcode).trim() === barcode);
+            if (found) return found;
+        }
+        // 3. Exact raw name (case-insensitive)
+        if (rawName) {
+            const found = list.find(x => x && String(x.name || '').trim().toLowerCase() === rawName.toLowerCase());
+            if (found) return found;
+        }
+        // 4. Normalized & compact name match
+        if (cleanName) {
+            const found = list.find(x => {
+                if (!x || !x.name) return false;
+                const xNorm = normalizeItemSearchText(x.name);
+                return xNorm === cleanName || (compactName.length > 2 && xNorm.replace(/\s+/g, '') === compactName);
+            });
+            if (found) return found;
+        }
+        // 5. Substring inclusion
+        if (cleanName && cleanName.length > 3) {
+            const found = list.find(x => {
+                if (!x || !x.name) return false;
+                const xNorm = normalizeItemSearchText(x.name);
+                return (xNorm.length > 3 && cleanName.includes(xNorm)) || (cleanName.length > 3 && xNorm.includes(cleanName));
+            });
+            if (found) return found;
+        }
+        // 6. Token overlap matching (fuzzy)
+        if (tokens.length > 0) {
+            let best = null;
+            let maxOverlap = 0;
+            list.forEach(x => {
+                if (!x || !x.name) return;
+                const xTokens = normalizeItemSearchText(x.name).split(' ').filter(t => t.length > 2);
+                const overlap = tokens.filter(t => xTokens.some(xt => xt.includes(t) || t.includes(xt))).length;
+                if (overlap > maxOverlap) {
+                    maxOverlap = overlap;
+                    best = x;
+                }
+            });
+            if (maxOverlap >= 1 && best) return best;
+        }
+        return null;
+    };
+
+    return matchCandidate(primaryList) || matchCandidate(secondaryList) || matchCandidate(packageList);
+}
+
+export function populatePurchaseReturnProductDropdown(isCos, matchedProdId = '') {
+    const selId = isCos ? 'cosPurchaseReturnProductSelect' : 'purchaseReturnProductSelect';
+    const sel = document.getElementById(selId);
+    if (!sel) return;
+    const primaryList = isCos ? (state.cosProducts || []) : (state.products || []);
+    const secondaryList = isCos ? (state.products || []) : (state.cosProducts || []);
+    
+    let html = '<option value="">-- Auto-Match or Select Product from Inventory --</option>';
+    html += `<optgroup label="${isCos ? 'Cosmetics Stock' : 'Cleaning Stock'}">`;
+    primaryList.forEach(prod => {
+        if (!prod || !prod.name) return;
+        const isSel = String(prod.id) === String(matchedProdId);
+        html += `<option value="${prod.id}" ${isSel ? 'selected' : ''}>${prod.name} (Stock: ${prod.stock ?? 0} ${prod.unit || ''})</option>`;
+    });
+    html += '</optgroup>';
+    if (secondaryList.length > 0) {
+        html += `<optgroup label="${isCos ? 'Cleaning Stock' : 'Cosmetics Stock'}">`;
+        secondaryList.forEach(prod => {
+            if (!prod || !prod.name) return;
+            const isSel = String(prod.id) === String(matchedProdId);
+            html += `<option value="${prod.id}" ${isSel ? 'selected' : ''}>${prod.name} (Stock: ${prod.stock ?? 0} ${prod.unit || ''})</option>`;
         });
-        if (found) return found;
+        html += '</optgroup>';
     }
+    html += '<optgroup label="Options">';
+    html += '<option value="none">⚠️ ഇൻവെന്ററിയിൽ നിന്ന് കുറയ്ക്കേണ്ടതില്ല (Financial record only)</option>';
+    html += '</optgroup>';
+    sel.innerHTML = html;
+    if (matchedProdId) sel.value = String(matchedProdId);
+}
 
-    // 5. Check secondary list
-    if (stockId) {
-        const found = secondaryList.find(x => x && String(x.id).trim() === stockId);
-        if (found) return found;
+export function reconcilePurchase(p, isCos) {
+    if (!p) return;
+    const origQty = parseFloat(isCos ? (p.qty ?? p.rawQty) : (p.rawQty ?? p.qty)) || 0;
+    const grossCost = parseFloat(isCos ? (p.amount ?? p.rawCost) : (p.rawCost ?? p.amount)) || 0;
+    const explicitUnitPrice = parseFloat(isCos ? p.unitPrice : p.rawUnitPrice) || 0;
+    const unitPrice = explicitUnitPrice > 0 ? explicitUnitPrice : (origQty > 0 ? (grossCost / origQty) : 0);
+    
+    let retQty = 0;
+    let retAmount = 0;
+    if (Array.isArray(p.returns) && p.returns.length > 0) {
+        retQty = p.returns.reduce((sum, r) => sum + (parseFloat(r.qty) || 0), 0);
+        retAmount = p.returns.reduce((sum, r) => sum + (parseFloat(r.amount) || ((parseFloat(r.qty) || 0) * unitPrice)), 0);
+    } else {
+        retQty = parseFloat(p.returnedQty) || 0;
+        retAmount = parseFloat(p.returnedAmount) || (retQty * unitPrice);
     }
-    if (barcode) {
-        const found = secondaryList.find(x => x && x.barcode && String(x.barcode).trim() === barcode);
-        if (found) return found;
+    
+    p.returnedQty = Number(retQty.toFixed(2));
+    p.returnedAmount = Number(retAmount.toFixed(2));
+    p.netQty = Math.max(0, Number((origQty - p.returnedQty).toFixed(2)));
+    p.netPurchaseAmount = Math.max(0, Number((grossCost - p.returnedAmount).toFixed(2)));
+    
+    const paid = parseFloat(p.paid) || 0;
+    if (paid > p.netPurchaseAmount) {
+        p.balance = 0;
+        p.netBalance = 0;
+        p.refundDue = Number((paid - p.netPurchaseAmount).toFixed(2));
+    } else {
+        p.balance = Math.max(0, Number((p.netPurchaseAmount - paid).toFixed(2)));
+        p.netBalance = p.balance;
+        p.refundDue = 0;
     }
-    if (exactName) {
-        const found = secondaryList.find(x => x && String(x.name || '').trim().toLowerCase() === exactName);
-        if (found) return found;
-    }
-    if (cleanName) {
-        const found = secondaryList.find(x => {
-            if (!x || !x.name) return false;
-            const xClean = String(x.name).replace(/\(.*?\)/g, '').replace(/_/g, ' ').trim().toLowerCase();
-            return xClean === cleanName || (cleanName.length > 2 && xClean.includes(cleanName)) || (xClean.length > 2 && cleanName.includes(xClean));
-        });
-        if (found) return found;
-    }
-
-    // 6. Check package list
-    if (stockId) {
-        const found = packageList.find(x => x && String(x.id).trim() === stockId);
-        if (found) return found;
-    }
-    if (exactName) {
-        const found = packageList.find(x => x && String(x.name || '').trim().toLowerCase() === exactName);
-        if (found) return found;
-    }
-
-    return null;
 }
 
 export function getUnitConversionFactor(purchaseUnit, productUnit) {
@@ -314,13 +388,16 @@ export function savePurchase(e) {
             selectedProduct.updatedAt = now;
         }
         state.purchases[idx] = { ...old, ...data, returns: Array.isArray(old.returns) ? old.returns : [] };
+        reconcilePurchase(state.purchases[idx], false);
     } else {
         if (selectedProduct && rawQty > 0) {
             selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + rawQty;
             selectedProduct.savedAt = now;
             selectedProduct.updatedAt = now;
         }
-        state.purchases.push({ ...data, returns: [] });
+        const newRecord = { ...data, returns: [] };
+        reconcilePurchase(newRecord, false);
+        state.purchases.push(newRecord);
     }
 
     saveLocalStateSafely();
@@ -418,23 +495,51 @@ export function deletePurchase(identifier) {
 
 export function renderPurchases() {
     ensurePurchaseTimestamps(state.purchases);
+    (state.purchases || []).forEach(p => reconcilePurchase(p, false));
     const q = (document.getElementById('purchaseSearch')?.value || '').trim().toLowerCase();
     const sorted = state.purchases.map((p, i) => ({ ...p, _originalIndex: i })).filter(p => !q || [p.supplierName, p.supplierMobile, p.rawMaterial, p.rawBarcode].some(v => String(v || '').toLowerCase().includes(q))).sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date) || (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0) || b._originalIndex - a._originalIndex);
     const container = document.getElementById('purchaseListContainer');
     if (container) {
-        container.innerHTML = '<div class="text-[10px] text-slate-500 text-right mb-1">Latest Purchase First</div>' + sorted.map(p => `
+        container.innerHTML = '<div class="text-[10px] text-slate-500 text-right mb-1">Latest Purchase First</div>' + sorted.map(p => {
+            const origQty = parseFloat(p.rawQty || p.qty) || 0;
+            const grossCost = parseFloat(p.rawCost || p.amount) || 0;
+            const retQty = Number(p.returnedQty || 0);
+            const retAmount = Number(p.returnedAmount || 0);
+            const unit = p.rawUnit || p.unit || '';
+            const netQty = p.netQty !== undefined ? p.netQty : Math.max(0, Number((origQty - retQty).toFixed(2)));
+            const netCost = Number(p.netPurchaseAmount ?? grossCost);
+            const paid = parseFloat(p.paid) || 0;
+            const balance = Number(p.netBalance ?? p.balance ?? 0);
+            const refundDue = Number(p.refundDue || 0);
+
+            return `
             <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between gap-2 text-xs">
-                <div>
-                    <span class="font-bold text-blue-300">${p.supplierName} - ${p.rawMaterial}</span>
-                    <p class="text-slate-400">📞 ${p.supplierMobile || 'No mobile'} | ${formatDateDDMMYYYY(p.date)} | Qty: ${p.rawQty} ${p.rawUnit || ''} | Total: ₹${p.rawCost} | Return: ${p.returnedQty || 0} ${p.rawUnit || ''} | Net: ₹${Number(p.netPurchaseAmount ?? p.rawCost ?? 0).toFixed(2)} | <span class="text-rose-400">Bal: ₹${Number(p.netBalance ?? p.balance ?? 0).toFixed(2)}</span></p>
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-blue-300 text-sm">${p.supplierName} - ${p.rawMaterial}</span>
+                        ${retQty > 0 ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold">↩️ Returned: ${retQty} ${unit} (-₹${retAmount.toFixed(2)})</span>` : ''}
+                    </div>
+                    <div class="text-[11px] text-slate-300 flex flex-wrap gap-x-2.5 gap-y-1">
+                        <span class="text-slate-400">📞 ${p.supplierMobile || 'No mobile'}</span>
+                        <span class="text-slate-400">📅 ${formatDateDDMMYYYY(p.date)}</span>
+                        <span>Original: <b class="text-slate-200">${origQty} ${unit} (₹${grossCost.toFixed(2)})</b></span>
+                        <span class="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-emerald-300 font-semibold">Net Qty: ${netQty} ${unit}</span>
+                        <span class="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-white font-bold">Net Total: ₹${netCost.toFixed(2)}</span>
+                        <span>Paid: <b class="text-emerald-400">₹${paid.toFixed(2)}</b></span>
+                        ${refundDue > 0
+                            ? `<span class="text-amber-300 font-extrabold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">💰 Refund Due: ₹${refundDue.toFixed(2)}</span>`
+                            : `<span class="${balance > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Bal: ₹${balance.toFixed(2)}</span>`
+                        }
+                    </div>
                 </div>
-                <div class="flex flex-wrap gap-1 shrink-0">
+                <div class="flex flex-wrap gap-1 shrink-0 self-end sm:self-center">
                     <button type="button" onclick="viewPurchase('${p.id || p._originalIndex}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-blue-800 transition">View</button>
                     <button type="button" onclick="editPurchase('${p.id || p._originalIndex}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-slate-700 transition">✎ Edit</button>
                     <button type="button" onclick="openPurchaseReturn('${p.id || p._originalIndex}', 'cleaning')" class="bg-rose-900/80 text-rose-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-rose-800 transition">↩️ Return</button>
                     <button type="button" onclick="deletePurchase('${p.id || p._originalIndex}')" class="bg-red-900 text-red-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-red-800 transition">Delete</button>
                 </div>
-            </div>`).join('') || '<p class="text-xs text-slate-500 text-center">No purchases found.</p>';
+            </div>`;
+        }).join('') || '<p class="text-xs text-slate-500 text-center">No purchases found.</p>';
     }
     renderPurchaseReturnSelectors();
     renderPurchaseReturnHistory();
@@ -487,17 +592,36 @@ export function fillPurchaseReturnDetails() {
     const p = state.purchases.find(x => x && (String(x.id) === val || String(state.purchases.indexOf(x)) === val));
     const info = document.getElementById('purchaseReturnInfo');
     const qtyInput = document.getElementById('purchaseReturnQty');
+    const badge = document.getElementById('purchaseReturnMatchBadge');
+    
     if (!p) {
         if (info) info.innerHTML = '<span class="text-slate-400">Select a purchase to return.</span>';
         if (qtyInput) { qtyInput.value = ''; qtyInput.removeAttribute('max'); }
+        if (badge) badge.innerHTML = '';
+        populatePurchaseReturnProductDropdown(false, '');
         updatePurchaseReturnLiveCalc('cleaning');
         return;
     }
-    const origQty = Number(p.rawQty || p.qty || 0);
+    
+    reconcilePurchase(p, false);
+    
+    const origQty = parseFloat(p.rawQty || p.qty) || 0;
     const retQty = Number(p.returnedQty || 0);
-    const availQty = Math.max(0, origQty - retQty);
-    const unitPrice = Number(p.rawUnitPrice || ((Number(p.rawCost || p.amount) || 0) / (origQty || 1))) || 0;
+    const availQty = Math.max(0, Number((origQty - retQty).toFixed(2)));
+    const grossCost = parseFloat(p.rawCost || p.amount) || 0;
+    const unitPrice = parseFloat(p.rawUnitPrice) || (origQty > 0 ? (grossCost / origQty) : 0);
     const unitName = p.rawUnit || p.unit || '';
+    
+    // Auto-match inventory product
+    const matchedProd = findInventoryProductForPurchase(p, false);
+    populatePurchaseReturnProductDropdown(false, matchedProd?.id || '');
+    if (badge) {
+        if (matchedProd) {
+            badge.innerHTML = `<span class="text-emerald-400 font-bold">✓ മാച്ച് ചെയ്തു: ${matchedProd.name} (സ്റ്റോക്ക്: ${matchedProd.stock} ${matchedProd.unit || ''})</span>`;
+        } else {
+            badge.innerHTML = `<span class="text-amber-400 font-bold">⚠️ സ്റ്റോക്ക് കുറയ്ക്കാൻ ഉൽപ്പന്നം തിരഞ്ഞെടുക്കുക</span>`;
+        }
+    }
     
     if (qtyInput) {
         qtyInput.max = availQty;
@@ -518,12 +642,14 @@ export function fillPurchaseReturnDetails() {
                     <span class="text-[11px] px-2 py-0.5 rounded bg-blue-950 text-blue-300 font-bold border border-blue-800/60">${formatDateDDMMYYYY(p.date)}</span>
                 </div>
                 <div class="pt-1 text-[11px] text-slate-300 grid grid-cols-2 gap-2 border-t border-slate-800/80">
-                    <div>Product: <b class="text-white">${p.rawMaterial}</b></div>
-                    <div class="text-right">Rate: <b class="text-amber-400">₹${unitPrice.toFixed(2)}</b> / ${p.rawUnit || 'unit'}</div>
-                    <div>Original Qty: <b class="text-slate-200">${origQty} ${p.rawUnit || ''}</b></div>
-                    <div class="text-right">Available Return: <strong class="${availQty > 0 ? 'text-emerald-400' : 'text-rose-400'}">${availQty} ${p.rawUnit || ''}</strong></div>
-                    <div>Net Cost: <b class="text-slate-200">₹${Number(p.netPurchaseAmount ?? p.rawCost ?? 0).toFixed(2)}</b></div>
-                    <div class="text-right">Balance Due: <b class="text-rose-400">₹${Number(p.netBalance ?? p.balance ?? 0).toFixed(2)}</b></div>
+                    <div>Purchased Item: <b class="text-white">${p.rawMaterial}</b></div>
+                    <div class="text-right">Unit Rate: <b class="text-amber-400">₹${unitPrice.toFixed(2)}</b> / ${unitName || 'unit'}</div>
+                    <div>Original Qty: <b class="text-slate-200">${origQty} ${unitName}</b></div>
+                    <div class="text-right">Available Return: <strong class="${availQty > 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}">${availQty} ${unitName}</strong></div>
+                    <div>Gross Cost: <b class="text-slate-200">₹${grossCost.toFixed(2)}</b></div>
+                    <div class="text-right">Current Net: <b class="text-white font-bold">₹${Number(p.netPurchaseAmount ?? grossCost).toFixed(2)}</b></div>
+                    <div>Paid Amount: <b class="text-emerald-400">₹${Number(p.paid || 0).toFixed(2)}</b></div>
+                    <div class="text-right">${p.refundDue > 0 ? `Refund Due: <b class="text-amber-400 font-bold">₹${p.refundDue.toFixed(2)}</b>` : `Balance: <b class="text-rose-400 font-bold">₹${Number(p.netBalance ?? p.balance ?? 0).toFixed(2)}</b>`}</div>
                 </div>
                 <div id="purchaseReturnLiveCalc" class="text-[11px] font-bold text-amber-300 pt-1 border-t border-slate-800/80"></div>
             </div>`;
@@ -545,18 +671,33 @@ export function updatePurchaseReturnLiveCalc(type) {
         return;
     }
     const q = parseFloat(qtyInput?.value) || 0;
-    const origQty = Number(isCos ? p.qty : p.rawQty) || 0;
-    const unitPrice = Number(isCos ? (p.unitPrice || (p.amount / (origQty || 1))) : (p.rawUnitPrice || ((Number(p.rawCost) || 0) / (origQty || 1)))) || 0;
+    const origQty = parseFloat(isCos ? (p.qty ?? p.rawQty) : (p.rawQty ?? p.qty)) || 0;
+    const grossCost = parseFloat(isCos ? (p.amount ?? p.rawCost) : (p.rawCost ?? p.amount)) || 0;
+    const explicitUnitPrice = parseFloat(isCos ? p.unitPrice : p.rawUnitPrice) || 0;
+    const unitPrice = explicitUnitPrice > 0 ? explicitUnitPrice : (origQty > 0 ? (grossCost / origQty) : 0);
     const refundAmount = Number((q * unitPrice).toFixed(2));
-    const currentNet = Number(p.netPurchaseAmount ?? (isCos ? p.amount : p.rawCost) ?? 0);
-    const newNet = Math.max(0, currentNet - refundAmount);
-    const currentPaid = Number(p.paid || 0);
-    const newBalance = Math.max(0, newNet - currentPaid);
+    
+    // Existing returns total
+    let priorRetAmt = 0;
+    if (Array.isArray(p.returns)) {
+        priorRetAmt = p.returns.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+    } else {
+        priorRetAmt = parseFloat(p.returnedAmount) || 0;
+    }
+    
+    const newTotalRet = priorRetAmt + refundAmount;
+    const newNet = Math.max(0, Number((grossCost - newTotalRet).toFixed(2)));
+    const currentPaid = parseFloat(p.paid) || 0;
+    const newBalance = Math.max(0, Number((newNet - currentPaid).toFixed(2)));
+    const newRefundDue = currentPaid > newNet ? Number((currentPaid - newNet).toFixed(2)) : 0;
     
     if (q > 0) {
-        calcEl.innerHTML = `↩️ Return Value: <span class="text-rose-300">₹${refundAmount.toFixed(2)}</span> | New Net Total: <span class="text-white">₹${newNet.toFixed(2)}</span> | New Bal: <span class="text-emerald-300">₹${newBalance.toFixed(2)}</span>`;
+        const refundTag = newRefundDue > 0 
+            ? ` | New Refund Due: <span class="text-amber-300 font-extrabold">₹${newRefundDue.toFixed(2)}</span>`
+            : ` | New Bal Due: <span class="text-emerald-300 font-bold">₹${newBalance.toFixed(2)}</span>`;
+        calcEl.innerHTML = `↩️ Return Value: <span class="text-rose-300 font-bold">₹${refundAmount.toFixed(2)}</span> | New Net Purchase: <span class="text-white font-bold">₹${newNet.toFixed(2)}</span>${refundTag}`;
     } else {
-        calcEl.innerHTML = `<span class="text-slate-400 font-normal">Enter return quantity to calculate refund value.</span>`;
+        calcEl.innerHTML = `<span class="text-slate-400 font-normal">Enter return quantity to preview live refund and balance.</span>`;
     }
 }
 
@@ -590,19 +731,22 @@ export function savePurchaseReturn(type) {
     const p = arr.find(x => x && (String(x.id) === val || String(arr.indexOf(x)) === val));
     if (!p) { alert('Select a purchase to return.'); return; }
     
+    reconcilePurchase(p, isCos);
+    
     const qtyEl = document.getElementById(isCos ? 'cosPurchaseReturnQty' : 'purchaseReturnQty');
     const qty = parseFloat(qtyEl?.value) || 0;
     const already = Number(p.returnedQty) || 0;
-    const originalQty = Number(isCos ? (p.qty || p.rawQty) : (p.rawQty || p.qty)) || 0;
-    const max = Math.max(0, originalQty - already);
+    const originalQty = parseFloat(isCos ? (p.qty ?? p.rawQty) : (p.rawQty ?? p.qty)) || 0;
+    const max = Math.max(0, Number((originalQty - already).toFixed(2)));
     const unit = String((isCos ? (p.unit || p.rawUnit) : (p.rawUnit || p.unit)) || '').trim();
     if (qty <= 0 || qty > max) {
         alert(`Enter a valid return quantity (1 to ${max} ${unit}).`);
         return;
     }
     
-    const grossCost = Number(isCos ? (p.amount || p.rawCost) : (p.rawCost || p.amount)) || 0;
-    const unitPrice = Number(isCos ? (p.unitPrice || (grossCost / (originalQty || 1))) : (p.rawUnitPrice || (grossCost / (originalQty || 1)))) || 0;
+    const grossCost = parseFloat(isCos ? (p.amount ?? p.rawCost) : (p.rawCost ?? p.amount)) || 0;
+    const explicitUnitPrice = parseFloat(isCos ? p.unitPrice : p.rawUnitPrice) || 0;
+    const unitPrice = explicitUnitPrice > 0 ? explicitUnitPrice : (originalQty > 0 ? (grossCost / originalQty) : 0);
     const retAmount = Number((qty * unitPrice).toFixed(2));
     const retDate = document.getElementById(isCos ? 'cosPurchaseReturnDate' : 'purchaseReturnDate')?.value || getTodayPurchaseDate();
     const retReason = document.getElementById(isCos ? 'cosPurchaseReturnReason' : 'purchaseReturnReason')?.value.trim() || 'Purchased Stock Return';
@@ -617,28 +761,30 @@ export function savePurchaseReturn(type) {
     };
     
     p.returns = [...(Array.isArray(p.returns) ? p.returns : []), ret];
-    p.returnedQty = Number((already + qty).toFixed(2));
-    p.returnedAmount = Number(((Number(p.returnedAmount) || 0) + retAmount).toFixed(2));
-    
-    p.netPurchaseAmount = Math.max(0, Number((grossCost - p.returnedAmount).toFixed(2)));
-    const paid = Number(p.paid) || 0;
-    if (paid > p.netPurchaseAmount) {
-        p.balance = 0;
-        p.netBalance = 0;
-        p.refundDue = Number((paid - p.netPurchaseAmount).toFixed(2));
-    } else {
-        p.balance = Math.max(0, Number((p.netPurchaseAmount - paid).toFixed(2)));
-        p.netBalance = p.balance;
-        p.refundDue = 0;
-    }
+    reconcilePurchase(p, isCos);
     p.savedAt = now;
     p.updatedAt = now;
     
-    // Deduct stock using comprehensive multi-level lookup & unit conversion
-    const prod = findInventoryProductForPurchase(p, isCos);
+    // Deduct stock using selected dropdown OR comprehensive multi-level lookup & unit conversion
+    const chosenStockId = document.getElementById(isCos ? 'cosPurchaseReturnProductSelect' : 'purchaseReturnProductSelect')?.value;
+    let prod = null;
+    let skipStockDeduction = false;
+    
+    if (chosenStockId === 'none') {
+        skipStockDeduction = true;
+    } else if (chosenStockId) {
+        prod = (isCos ? state.cosProducts : state.products).find(x => x && String(x.id) === chosenStockId) ||
+               (isCos ? state.products : state.cosProducts).find(x => x && String(x.id) === chosenStockId);
+    }
+    if (!prod && !skipStockDeduction) {
+        prod = findInventoryProductForPurchase(p, isCos);
+    }
+    
     let deductionApplied = 0;
     let stockNotice = '';
-    if (prod) {
+    if (skipStockDeduction) {
+        stockNotice = `\nℹ️ ഇൻവെന്ററി സ്റ്റോക്കിൽ മാറ്റം വരുത്തിയിട്ടില്ല (Financial record only).`;
+    } else if (prod) {
         const factor = getUnitConversionFactor(unit, prod.unit);
         deductionApplied = Number((qty * factor).toFixed(3));
         const before = Number(prod.stock) || 0;
@@ -646,10 +792,10 @@ export function savePurchaseReturn(type) {
         prod.savedAt = now;
         prod.updatedAt = now;
         prod.lastPurchaseReturn = { qty: deductionApplied, returnQtyInput: qty, date: ret.date, updatedAt: now };
-        stockNotice = `\n📦 സ്റ്റോക്ക്: ${before} ➔ ${prod.stock} ${prod.unit || ''} (-${deductionApplied} ${prod.unit || ''})`;
+        stockNotice = `\n📦 ഇൻവെന്ററി സ്റ്റോക്ക് കുറച്ചു (${prod.name}): ${before} ➔ ${prod.stock} ${prod.unit || ''} (-${deductionApplied} ${prod.unit || ''})`;
     } else {
-        console.warn('[Purchase Return] Inventory product not found for stock deduction:', p.rawMaterial || p.item);
-        stockNotice = `\n⚠️ ശ്രദ്ധിക്കുക: ഈ ഉൽപ്പന്നം ഇൻവെന്ററി സ്റ്റോക്കുമായി മാച്ച് ചെയ്യാനായില്ല. ദയവായി സ്റ്റോക്ക് പരിശോധിക്കുക.`;
+        console.warn('[Purchase Return] Inventory product not selected or found for stock deduction:', p.rawMaterial || p.item);
+        stockNotice = `\n⚠️ ഇൻവെന്ററി സ്റ്റോക്ക് മാച്ച് ചെയ്തിട്ടില്ല. സ്റ്റോക്ക് സ്വമേധയാ പരിശോധിക്കുക.`;
     }
     
     saveLocalStateSafely();
@@ -674,7 +820,7 @@ export function savePurchaseReturn(type) {
     if (reasonEl) reasonEl.value = '';
     
     const balMsg = p.refundDue > 0 ? `റീഫണ്ട് ലഭിക്കാനുള്ള തുക: ₹${p.refundDue}` : `ബാക്കി നൽകാനുള്ളത്: ₹${p.balance}`;
-    alert(`✅ പർച്ചേസ് റിട്ടേൺ വിജയകരമായി സേവ് ചെയ്തു!\n• റിട്ടേൺ ക്വാണ്ടിറ്റി: ${qty} ${unit || ''} (തുക: ₹${retAmount})\n• ${balMsg}${stockNotice}`);
+    alert(`✅ പർച്ചേസ് റിട്ടേൺ വിജയകരമായി സേവ് ചെയ്തു!\n• റിട്ടേൺ ക്വാണ്ടിറ്റി: ${qty} ${unit || ''} (തുക: ₹${retAmount})\n• ബാക്കി നെറ്റ് പർച്ചേസ്: ₹${p.netPurchaseAmount} (നെറ്റ് ക്വാണ്ടിറ്റി: ${p.netQty} ${unit || ''})\n• ${balMsg}${stockNotice}`);
 }
 
 export function deletePurchaseReturn(type, purchaseId, returnIndex) {
@@ -688,7 +834,6 @@ export function deletePurchaseReturn(type, purchaseId, returnIndex) {
     }
     const ret = p.returns[returnIndex];
     const retQty = Number(ret.qty || 0);
-    const retAmount = Number(ret.amount || 0);
     const now = Date.now();
     
     // Restore stock to product
@@ -704,21 +849,7 @@ export function deletePurchaseReturn(type, purchaseId, returnIndex) {
     
     // Remove return record
     p.returns.splice(returnIndex, 1);
-    p.returnedQty = Math.max(0, Number(((Number(p.returnedQty) || 0) - retQty).toFixed(2)));
-    p.returnedAmount = Math.max(0, Number(((Number(p.returnedAmount) || 0) - retAmount).toFixed(2)));
-    
-    const grossCost = Number(isCos ? (p.amount || p.rawCost) : (p.rawCost || p.amount)) || 0;
-    p.netPurchaseAmount = Math.max(0, Number((grossCost - p.returnedAmount).toFixed(2)));
-    const paid = Number(p.paid) || 0;
-    if (paid > p.netPurchaseAmount) {
-        p.balance = 0;
-        p.netBalance = 0;
-        p.refundDue = Number((paid - p.netPurchaseAmount).toFixed(2));
-    } else {
-        p.balance = Math.max(0, Number((p.netPurchaseAmount - paid).toFixed(2)));
-        p.netBalance = p.balance;
-        p.refundDue = 0;
-    }
+    reconcilePurchase(p, isCos);
     p.savedAt = now;
     p.updatedAt = now;
     
@@ -786,17 +917,36 @@ export function fillCosPurchaseReturnDetails() {
     const p = state.cosPurchases.find(x => x && (String(x.id) === val || String(state.cosPurchases.indexOf(x)) === val));
     const info = document.getElementById('cosPurchaseReturnInfo');
     const qtyInput = document.getElementById('cosPurchaseReturnQty');
+    const badge = document.getElementById('cosPurchaseReturnMatchBadge');
+    
     if (!p) {
         if (info) info.innerHTML = '<span class="text-slate-400">Select a purchase to return.</span>';
         if (qtyInput) { qtyInput.value = ''; qtyInput.removeAttribute('max'); }
+        if (badge) badge.innerHTML = '';
+        populatePurchaseReturnProductDropdown(true, '');
         updatePurchaseReturnLiveCalc('cosmetics');
         return;
     }
-    const origQty = Number(p.qty || p.rawQty || 0);
+    
+    reconcilePurchase(p, true);
+    
+    const origQty = parseFloat(p.qty || p.rawQty) || 0;
     const retQty = Number(p.returnedQty || 0);
-    const availQty = Math.max(0, origQty - retQty);
-    const unitPrice = Number(p.unitPrice || ((Number(p.amount || p.rawCost) || 0) / (origQty || 1))) || 0;
+    const availQty = Math.max(0, Number((origQty - retQty).toFixed(2)));
+    const grossCost = parseFloat(p.amount || p.rawCost) || 0;
+    const unitPrice = parseFloat(p.unitPrice) || (origQty > 0 ? (grossCost / origQty) : 0);
     const unitName = p.unit || p.rawUnit || '';
+    
+    // Auto-match cosmetic inventory product
+    const matchedProd = findInventoryProductForPurchase(p, true);
+    populatePurchaseReturnProductDropdown(true, matchedProd?.id || '');
+    if (badge) {
+        if (matchedProd) {
+            badge.innerHTML = `<span class="text-pink-400 font-bold">✓ മാച്ച് ചെയ്തു: ${matchedProd.name} (സ്റ്റോക്ക്: ${matchedProd.stock} ${matchedProd.unit || ''})</span>`;
+        } else {
+            badge.innerHTML = `<span class="text-amber-400 font-bold">⚠️ സ്റ്റോക്ക് കുറയ്ക്കാൻ ഉൽപ്പന്നം തിരഞ്ഞെടുക്കുക</span>`;
+        }
+    }
     
     if (qtyInput) {
         qtyInput.max = availQty;
@@ -818,11 +968,13 @@ export function fillCosPurchaseReturnDetails() {
                 </div>
                 <div class="pt-1 text-[11px] text-slate-300 grid grid-cols-2 gap-2 border-t border-slate-800/80">
                     <div>Product: <b class="text-white">${p.item}</b></div>
-                    <div class="text-right">Rate: <b class="text-amber-400">₹${unitPrice.toFixed(2)}</b> / ${p.unit || 'unit'}</div>
-                    <div>Original Qty: <b class="text-slate-200">${origQty} ${p.unit || ''}</b></div>
-                    <div class="text-right">Available Return: <strong class="${availQty > 0 ? 'text-emerald-400' : 'text-rose-400'}">${availQty} ${p.unit || ''}</strong></div>
-                    <div>Net Cost: <b class="text-slate-200">₹${Number(p.netPurchaseAmount ?? p.amount ?? 0).toFixed(2)}</b></div>
-                    <div class="text-right">Balance Due: <b class="text-rose-400">₹${Number(p.netBalance ?? p.balance ?? 0).toFixed(2)}</b></div>
+                    <div class="text-right">Rate: <b class="text-amber-400">₹${unitPrice.toFixed(2)}</b> / ${unitName || 'unit'}</div>
+                    <div>Original Qty: <b class="text-slate-200">${origQty} ${unitName}</b></div>
+                    <div class="text-right">Available Return: <strong class="${availQty > 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}">${availQty} ${unitName}</strong></div>
+                    <div>Gross Cost: <b class="text-slate-200">₹${grossCost.toFixed(2)}</b></div>
+                    <div class="text-right">Current Net: <b class="text-white font-bold">₹${Number(p.netPurchaseAmount ?? grossCost).toFixed(2)}</b></div>
+                    <div>Paid Amount: <b class="text-emerald-400">₹${Number(p.paid || 0).toFixed(2)}</b></div>
+                    <div class="text-right">${p.refundDue > 0 ? `Refund Due: <b class="text-amber-400 font-bold">₹${p.refundDue.toFixed(2)}</b>` : `Balance: <b class="text-rose-400 font-bold">₹${Number(p.netBalance ?? p.balance ?? 0).toFixed(2)}</b>`}</div>
                 </div>
                 <div id="cosPurchaseReturnLiveCalc" class="text-[11px] font-bold text-amber-300 pt-1 border-t border-slate-800/80"></div>
             </div>`;
@@ -854,27 +1006,59 @@ export function renderPurchaseHistory(type) {
     const container = document.getElementById(isCos ? 'cosPurchaseHistoryContainer' : 'purchaseHistoryContainer');
     if (!container) return;
     const q = (sel?.value || '').toLowerCase();
-    const rows = arr.map((p, i) => ({
-        ...p,
-        _i: i,
-        _supplier: isCos ? p.supplier : p.supplierName,
-        _item: isCos ? p.item : p.rawMaterial,
-        _qty: isCos ? p.qty : p.rawQty,
-        _unit: isCos ? p.unit : p.rawUnit,
-        _amount: isCos ? p.amount : p.rawCost,
-        _netAmount: p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : Number(isCos ? p.amount : p.rawCost),
-        _paid: Number(p.paid || 0),
-        _balance: Number(p.netBalance ?? p.balance ?? 0),
-        _retQty: Number(p.returnedQty || 0)
-    })).filter(p => !q || String(p._supplier || '').toLowerCase() === q).sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date) || (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0));
+    
+    // Ensure all items are reconciled with up-to-date return calculations
+    arr.forEach(p => p && reconcilePurchase(p, isCos));
+    
+    const rows = arr.map((p, i) => {
+        const origQty = parseFloat(isCos ? (p.qty ?? p.rawQty) : (p.rawQty ?? p.qty)) || 0;
+        const grossCost = parseFloat(isCos ? (p.amount ?? p.rawCost) : (p.rawCost ?? p.amount)) || 0;
+        const unit = isCos ? (p.unit || p.rawUnit || '') : (p.rawUnit || p.unit || '');
+        const supplier = String(isCos ? p.supplier : p.supplierName || 'Unknown');
+        const item = String(isCos ? p.item : p.rawMaterial || 'Item');
+        const retQty = Number(p.returnedQty || 0);
+        const retAmount = Number(p.returnedAmount || 0);
+        const netQty = p.netQty !== undefined ? p.netQty : Math.max(0, origQty - retQty);
+        const netCost = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : Math.max(0, grossCost - retAmount);
+        const paid = parseFloat(p.paid) || 0;
+        const balance = p.balance !== undefined ? p.balance : (p.netBalance ?? Math.max(0, netCost - paid));
+        const refundDue = Number(p.refundDue || 0);
+        
+        return {
+            ...p,
+            _i: i,
+            _supplier: supplier,
+            _item: item,
+            _origQty: origQty,
+            _unit: unit,
+            _grossCost: grossCost,
+            _retQty: retQty,
+            _retAmount: retAmount,
+            _netQty: netQty,
+            _netCost: netCost,
+            _paid: paid,
+            _balance: balance,
+            _refundDue: refundDue
+        };
+    }).filter(p => !q || p._supplier.toLowerCase() === q)
+      .sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date) || (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0));
     
     container.innerHTML = rows.map(p => `
         <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs flex flex-col sm:flex-row justify-between gap-2 items-start">
-            <div>
-                <div class="font-bold ${isCos ? 'text-pink-300' : 'text-blue-300'}">${p._supplier} — ${p._item}</div>
-                <div class="text-slate-400 mt-1">${formatDateDDMMYYYY(p.date)} | Qty: ${p._qty} ${p._unit || ''} | Total: ₹${Number(p._amount || 0).toFixed(2)}${p._retQty > 0 ? ` | Return: ${p._retQty} ${p._unit || ''}` : ''} | Net: ₹${p._netAmount.toFixed(2)} | Paid: ₹${p._paid.toFixed(2)} | <span class="${p._balance > 0 ? 'text-rose-400 font-bold' : 'text-slate-300'}">Balance: ₹${p._balance.toFixed(2)}</span></div>
+            <div class="space-y-1">
+                <div class="font-bold ${isCos ? 'text-pink-300' : 'text-blue-300'} text-sm">${p._supplier} — ${p._item}</div>
+                <div class="text-slate-400 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px]">
+                    <span>📅 ${formatDateDDMMYYYY(p.date)}</span>
+                    <span>Qty: <b class="text-slate-200">${p._origQty} ${p._unit}</b></span>
+                    ${p._retQty > 0 ? `<span class="text-rose-400 font-bold">↩️ Ret: ${p._retQty} ${p._unit} (-₹${p._retAmount.toFixed(2)})</span>` : ''}
+                    ${p._retQty > 0 ? `<span>Net Qty: <b class="text-white font-bold">${p._netQty} ${p._unit}</b></span>` : ''}
+                    <span>Total: <b class="text-slate-200">₹${p._grossCost.toFixed(2)}</b></span>
+                    ${p._retQty > 0 ? `<span>Net Total: <b class="text-white font-bold">₹${p._netCost.toFixed(2)}</b></span>` : ''}
+                    <span>Paid: <b class="text-emerald-400">₹${p._paid.toFixed(2)}</b></span>
+                    ${p._refundDue > 0 ? `<span class="text-amber-400 font-bold">💰 Refund Due: ₹${p._refundDue.toFixed(2)}</span>` : `<span class="${p._balance > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Bal: ₹${p._balance.toFixed(2)}</span>`}
+                </div>
             </div>
-            <div class="flex flex-wrap gap-1 shrink-0">
+            <div class="flex flex-wrap gap-1 shrink-0 self-end sm:self-center">
                 <button type="button" onclick="${isCos ? 'viewCosPurchase' : 'viewPurchase'}('${p.id || p._i}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-800 transition">View</button>
                 <button type="button" onclick="${isCos ? 'editCosPurchase' : 'editPurchase'}('${p.id || p._i}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-700 transition">✎ Edit</button>
                 <button type="button" onclick="openPurchaseReturn('${p.id || p._i}', '${isCos ? 'cosmetics' : 'cleaning'}')" class="bg-rose-900/80 text-rose-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-rose-800 transition">↩️ Return</button>
@@ -990,13 +1174,16 @@ export function saveCosPurchase(e) {
             selectedProduct.updatedAt = now;
         }
         state.cosPurchases[idx] = { ...old, ...data, returns: Array.isArray(old.returns) ? old.returns : [] };
+        reconcilePurchase(state.cosPurchases[idx], true);
     } else {
         if (selectedProduct && qty > 0) {
             selectedProduct.stock = (parseFloat(selectedProduct.stock) || 0) + qty;
             selectedProduct.savedAt = now;
             selectedProduct.updatedAt = now;
         }
-        state.cosPurchases.push({ ...data, returns: [] });
+        const newRecord = { ...data, returns: [] };
+        reconcilePurchase(newRecord, true);
+        state.cosPurchases.push(newRecord);
     }
 
     saveLocalStateSafely();
@@ -1027,23 +1214,39 @@ export function viewPurchase(identifier) {
     }
     if (index < 0 || !state.purchases[index]) return;
     const p = state.purchases[index];
+    reconcilePurchase(p, false);
     const safeId = String(p.id || index).replace(/'/g, "\\'");
+    const origQty = parseFloat(p.rawQty || p.qty) || 0;
+    const grossCost = parseFloat(p.rawCost || p.amount) || 0;
+    const retQty = Number(p.returnedQty || 0);
+    const retAmount = Number(p.returnedAmount || 0);
+    const netQty = p.netQty !== undefined ? p.netQty : Math.max(0, Number((origQty - retQty).toFixed(2)));
+    const netCost = Number(p.netPurchaseAmount ?? grossCost);
+    const paid = parseFloat(p.paid) || 0;
+    const balance = Number(p.netBalance ?? p.balance ?? 0);
+    const refundDue = Number(p.refundDue || 0);
+
     if (typeof window.showRecordView === 'function') {
         window.showRecordView('Cleaning Purchase Details', `
-            <div class="space-y-2">
+            <div class="space-y-2 text-xs">
                 <p><b>Supplier:</b> ${p.supplierName}</p>
                 <p><b>Mobile:</b> ${p.supplierMobile || '—'}</p>
                 <p><b>Product:</b> ${p.rawMaterial}</p>
                 <p><b>Barcode:</b> ${p.rawBarcode || '—'}</p>
-                <p><b>Quantity:</b> ${p.rawQty} ${p.rawUnit || ''}</p>
-                <p><b>Unit Price:</b> ₹${Number(p.rawUnitPrice || 0).toFixed(2)}</p>
-                <p><b>Total:</b> ₹${Number(p.rawCost || 0).toFixed(2)}</p>
-                <p><b>Paid:</b> ₹${Number(p.paid || 0).toFixed(2)}</p>
-                <p><b>Balance:</b> ₹${Number(p.balance || 0).toFixed(2)}</p>
+                <p><b>Original Qty:</b> ${origQty} ${p.rawUnit || ''}</p>
+                <p><b>Unit Price:</b> ₹${Number(p.rawUnitPrice || (origQty > 0 ? grossCost / origQty : 0)).toFixed(2)}</p>
+                <p><b>Gross Total:</b> ₹${grossCost.toFixed(2)}</p>
+                ${retQty > 0 ? `<p class="text-rose-400 font-bold"><b>Returned:</b> ${retQty} ${p.rawUnit || ''} (Value: ₹${retAmount.toFixed(2)})</p>` : ''}
+                <p class="text-emerald-300 font-bold"><b>Net Quantity:</b> ${netQty} ${p.rawUnit || ''}</p>
+                <p class="text-white font-bold"><b>Net Purchase Amount:</b> ₹${netCost.toFixed(2)}</p>
+                <p><b>Paid Amount:</b> ₹${paid.toFixed(2)}</p>
+                <p class="${balance > 0 ? 'text-rose-400 font-bold' : ''}"><b>Balance Due:</b> ₹${balance.toFixed(2)}</p>
+                ${refundDue > 0 ? `<p class="text-amber-400 font-extrabold"><b>Refund Due to You:</b> ₹${refundDue.toFixed(2)}</p>` : ''}
                 <p><b>Date:</b> ${formatDateDDMMYYYY(p.date)}</p>
             </div>
             <div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end">
                 <button type="button" onclick="closeRecordView(); editPurchase('${safeId}');" class="bg-slate-800 text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700 font-bold hover:bg-slate-700">✎ Edit</button>
+                <button type="button" onclick="closeRecordView(); openPurchaseReturn('${safeId}', 'cleaning');" class="bg-rose-900 text-rose-200 px-3 py-1.5 rounded-lg font-bold hover:bg-rose-800">↩️ Return</button>
                 <button type="button" onclick="closeRecordView(); deletePurchase('${safeId}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold hover:bg-red-800">Delete</button>
             </div>
         `);
@@ -1063,23 +1266,39 @@ export function viewCosPurchase(identifier) {
     }
     if (index < 0 || !state.cosPurchases[index]) return;
     const p = state.cosPurchases[index];
+    reconcilePurchase(p, true);
     const safeId = String(p.id || index).replace(/'/g, "\\'");
+    const origQty = parseFloat(p.qty || p.rawQty) || 0;
+    const grossCost = parseFloat(p.amount || p.rawCost) || 0;
+    const retQty = Number(p.returnedQty || 0);
+    const retAmount = Number(p.returnedAmount || 0);
+    const netQty = p.netQty !== undefined ? p.netQty : Math.max(0, Number((origQty - retQty).toFixed(2)));
+    const netCost = Number(p.netPurchaseAmount ?? grossCost);
+    const paid = parseFloat(p.paid) || 0;
+    const balance = Number(p.netBalance ?? p.balance ?? 0);
+    const refundDue = Number(p.refundDue || 0);
+
     if (typeof window.showRecordView === 'function') {
         window.showRecordView('Cosmetics Purchase Details', `
-            <div class="space-y-2">
+            <div class="space-y-2 text-xs">
                 <p><b>Supplier:</b> ${p.supplier}</p>
                 <p><b>Mobile:</b> ${p.supplierMobile || '—'}</p>
                 <p><b>Item:</b> ${p.item}</p>
                 <p><b>Barcode:</b> ${p.barcode || '—'}</p>
-                <p><b>Qty:</b> ${p.qty} ${p.unit || ''}</p>
-                <p><b>Unit Price:</b> ₹${Number(p.unitPrice || (p.qty ? p.amount / p.qty : 0)).toFixed(2)}</p>
-                <p><b>Total:</b> ₹${Number(p.amount || 0).toFixed(2)}</p>
-                <p><b>Paid:</b> ₹${Number(p.paid || 0).toFixed(2)}</p>
-                <p><b>Balance:</b> ₹${Number(p.balance || 0).toFixed(2)}</p>
+                <p><b>Original Qty:</b> ${origQty} ${p.unit || ''}</p>
+                <p><b>Unit Price:</b> ₹${Number(p.unitPrice || (origQty > 0 ? grossCost / origQty : 0)).toFixed(2)}</p>
+                <p><b>Gross Total:</b> ₹${grossCost.toFixed(2)}</p>
+                ${retQty > 0 ? `<p class="text-rose-400 font-bold"><b>Returned:</b> ${retQty} ${p.unit || ''} (Value: ₹${retAmount.toFixed(2)})</p>` : ''}
+                <p class="text-pink-300 font-bold"><b>Net Quantity:</b> ${netQty} ${p.unit || ''}</p>
+                <p class="text-white font-bold"><b>Net Purchase Amount:</b> ₹${netCost.toFixed(2)}</p>
+                <p><b>Paid Amount:</b> ₹${paid.toFixed(2)}</p>
+                <p class="${balance > 0 ? 'text-rose-400 font-bold' : ''}"><b>Balance Due:</b> ₹${balance.toFixed(2)}</p>
+                ${refundDue > 0 ? `<p class="text-amber-400 font-extrabold"><b>Refund Due to You:</b> ₹${refundDue.toFixed(2)}</p>` : ''}
                 <p><b>Date:</b> ${formatDateDDMMYYYY(p.date)}</p>
             </div>
             <div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end">
                 <button type="button" onclick="closeRecordView(); editCosPurchase('${safeId}');" class="bg-slate-800 text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700 font-bold hover:bg-slate-700">✎ Edit</button>
+                <button type="button" onclick="closeRecordView(); openPurchaseReturn('${safeId}', 'cosmetics');" class="bg-rose-900 text-rose-200 px-3 py-1.5 rounded-lg font-bold hover:bg-rose-800">↩️ Return</button>
                 <button type="button" onclick="closeRecordView(); deleteCosPurchase('${safeId}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold hover:bg-red-800">Delete</button>
             </div>
         `);
@@ -1169,23 +1388,51 @@ export function deleteCosPurchase(identifier) {
 
 export function renderCosPurchases() {
     ensurePurchaseTimestamps(state.cosPurchases);
+    (state.cosPurchases || []).forEach(p => reconcilePurchase(p, true));
     const q = (document.getElementById('cosPurchaseSearch')?.value || '').trim().toLowerCase();
     const sorted = state.cosPurchases.map((p, i) => ({ ...p, _originalIndex: i })).filter(p => !q || [p.supplier, p.supplierMobile, p.item, p.barcode].some(v => String(v || '').toLowerCase().includes(q))).sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date) || (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0) || b._originalIndex - a._originalIndex);
     const container = document.getElementById('cosPurchaseListContainer');
     if (container) {
-        container.innerHTML = '<div class="text-[10px] text-slate-500 text-right mb-1">Latest Purchase First</div>' + sorted.map(p => `
+        container.innerHTML = '<div class="text-[10px] text-slate-500 text-right mb-1">Latest Purchase First</div>' + sorted.map(p => {
+            const origQty = parseFloat(p.qty || p.rawQty) || 0;
+            const grossCost = parseFloat(p.amount || p.rawCost) || 0;
+            const retQty = Number(p.returnedQty || 0);
+            const retAmount = Number(p.returnedAmount || 0);
+            const unit = p.unit || p.rawUnit || '';
+            const netQty = p.netQty !== undefined ? p.netQty : Math.max(0, Number((origQty - retQty).toFixed(2)));
+            const netCost = Number(p.netPurchaseAmount ?? grossCost);
+            const paid = parseFloat(p.paid) || 0;
+            const balance = Number(p.netBalance ?? p.balance ?? 0);
+            const refundDue = Number(p.refundDue || 0);
+
+            return `
             <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between gap-2 items-start text-xs">
-                <div>
-                    <span class="font-bold text-pink-300">${p.supplier} - ${p.item}</span>
-                    <p class="text-slate-400">📞 ${p.supplierMobile || 'No mobile'} | ${formatDateDDMMYYYY(p.date)} | Qty: ${p.qty} ${p.unit || ''} | Total: ₹${p.amount} | Return: ${p.returnedQty || 0} ${p.unit || ''} | Net: ₹${Number(p.netPurchaseAmount ?? p.amount ?? 0).toFixed(2)} | <span class="text-rose-400">Bal: ₹${Number(p.netBalance ?? p.balance ?? 0).toFixed(2)}</span></p>
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-pink-300 text-sm">${p.supplier} - ${p.item}</span>
+                        ${retQty > 0 ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold">↩️ Returned: ${retQty} ${unit} (-₹${retAmount.toFixed(2)})</span>` : ''}
+                    </div>
+                    <div class="text-[11px] text-slate-300 flex flex-wrap gap-x-2.5 gap-y-1">
+                        <span class="text-slate-400">📞 ${p.supplierMobile || 'No mobile'}</span>
+                        <span class="text-slate-400">📅 ${formatDateDDMMYYYY(p.date)}</span>
+                        <span>Original: <b class="text-slate-200">${origQty} ${unit} (₹${grossCost.toFixed(2)})</b></span>
+                        <span class="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-pink-300 font-semibold">Net Qty: ${netQty} ${unit}</span>
+                        <span class="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-white font-bold">Net Total: ₹${netCost.toFixed(2)}</span>
+                        <span>Paid: <b class="text-emerald-400">₹${paid.toFixed(2)}</b></span>
+                        ${refundDue > 0
+                            ? `<span class="text-amber-300 font-extrabold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">💰 Refund Due: ₹${refundDue.toFixed(2)}</span>`
+                            : `<span class="${balance > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Bal: ₹${balance.toFixed(2)}</span>`
+                        }
+                    </div>
                 </div>
-                <div class="flex flex-wrap gap-1 shrink-0">
+                <div class="flex flex-wrap gap-1 shrink-0 self-end sm:self-center">
                     <button type="button" onclick="viewCosPurchase('${p.id || p._originalIndex}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-blue-800 transition">View</button>
                     <button type="button" onclick="editCosPurchase('${p.id || p._originalIndex}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-slate-700 transition">✎ Edit</button>
                     <button type="button" onclick="openPurchaseReturn('${p.id || p._originalIndex}', 'cosmetics')" class="bg-rose-900/80 text-rose-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-rose-800 transition">↩️ Return</button>
                     <button type="button" onclick="deleteCosPurchase('${p.id || p._originalIndex}')" class="bg-red-900 text-red-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-red-800 transition">Delete</button>
                 </div>
-            </div>`).join('') || '<p class="text-xs text-slate-500 text-center">No cosmetics purchases found.</p>';
+            </div>`;
+        }).join('') || '<p class="text-xs text-slate-500 text-center">No cosmetics purchases found.</p>';
     }
     renderCosPurchaseReturnSelectors();
     renderCosPurchaseReturnHistory();
@@ -1213,6 +1460,7 @@ export function getConsolidatedPurchaseData() {
     // 1. Cleaning Purchases
     (state.purchases || []).forEach((p, idx) => {
         if (!p) return;
+        reconcilePurchase(p, false);
         const name = String(p.supplierName || 'Unknown Dealer').trim();
         if (!name) return;
         const key = name.toLowerCase();
@@ -1225,11 +1473,15 @@ export function getConsolidatedPurchaseData() {
         }
         if (p.supplierMobile && !map[key].phone) map[key].phone = p.supplierMobile;
         
-        const grossCost = Number(p.rawCost || 0);
+        const origQty = parseFloat(p.rawQty || p.qty) || 0;
+        const grossCost = parseFloat(p.rawCost || p.amount) || 0;
         const retAmount = Number(p.returnedAmount || 0);
+        const retQty = Number(p.returnedQty || 0);
+        const netQty = p.netQty !== undefined ? p.netQty : Math.max(0, origQty - retQty);
         const netCost = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : Math.max(0, grossCost - retAmount);
-        const paid = Number(p.paid || 0);
-        const balance = p.netBalance !== undefined ? Number(p.netBalance) : Math.max(0, netCost - paid);
+        const paid = parseFloat(p.paid) || 0;
+        const balance = p.balance !== undefined ? Number(p.balance) : (p.netBalance !== undefined ? Number(p.netBalance) : Math.max(0, netCost - paid));
+        const refundDue = Number(p.refundDue || 0);
         
         map[key].allPurchases.push({
             id: p.id || ('clean_' + idx),
@@ -1239,15 +1491,17 @@ export function getConsolidatedPurchaseData() {
             date: p.date,
             item: p.rawMaterial || 'Cleaning Item',
             barcode: p.rawBarcode || '',
-            qty: Number(p.rawQty || 0),
+            qty: origQty,
             unit: p.rawUnit || '',
-            unitPrice: Number(p.rawUnitPrice || 0),
+            unitPrice: parseFloat(p.rawUnitPrice) || (origQty > 0 ? grossCost / origQty : 0),
             grossCost,
-            returnedQty: Number(p.returnedQty || 0),
+            returnedQty: retQty,
             returnedAmount: retAmount,
+            netQty,
             netCost,
             paid,
             balance,
+            refundDue,
             savedAt: Number(p.savedAt || 0)
         });
     });
@@ -1255,6 +1509,7 @@ export function getConsolidatedPurchaseData() {
     // 2. Cosmetics Purchases
     (state.cosPurchases || []).forEach((p, idx) => {
         if (!p) return;
+        reconcilePurchase(p, true);
         const name = String(p.supplier || 'Unknown Dealer').trim();
         if (!name) return;
         const key = name.toLowerCase();
@@ -1267,11 +1522,15 @@ export function getConsolidatedPurchaseData() {
         }
         if (p.supplierMobile && !map[key].phone) map[key].phone = p.supplierMobile;
         
-        const grossCost = Number(p.amount || 0);
+        const origQty = parseFloat(p.qty || p.rawQty) || 0;
+        const grossCost = parseFloat(p.amount || p.rawCost) || 0;
         const retAmount = Number(p.returnedAmount || 0);
+        const retQty = Number(p.returnedQty || 0);
+        const netQty = p.netQty !== undefined ? p.netQty : Math.max(0, origQty - retQty);
         const netCost = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : Math.max(0, grossCost - retAmount);
-        const paid = Number(p.paid || 0);
-        const balance = p.netBalance !== undefined ? Number(p.netBalance) : Math.max(0, netCost - paid);
+        const paid = parseFloat(p.paid) || 0;
+        const balance = p.balance !== undefined ? Number(p.balance) : (p.netBalance !== undefined ? Number(p.netBalance) : Math.max(0, netCost - paid));
+        const refundDue = Number(p.refundDue || 0);
         
         map[key].allPurchases.push({
             id: p.id || ('cos_' + idx),
@@ -1281,15 +1540,17 @@ export function getConsolidatedPurchaseData() {
             date: p.date,
             item: p.item || 'Cosmetics Item',
             barcode: p.barcode || '',
-            qty: Number(p.qty || 0),
+            qty: origQty,
             unit: p.unit || '',
-            unitPrice: Number(p.unitPrice || 0),
+            unitPrice: parseFloat(p.unitPrice) || (origQty > 0 ? grossCost / origQty : 0),
             grossCost,
-            returnedQty: Number(p.returnedQty || 0),
+            returnedQty: retQty,
             returnedAmount: retAmount,
+            netQty,
             netCost,
             paid,
             balance,
+            refundDue,
             savedAt: Number(p.savedAt || 0)
         });
     });
@@ -1312,6 +1573,7 @@ export function getConsolidatedPurchaseData() {
         dealer.totalNet = dealer.allPurchases.reduce((sum, r) => sum + r.netCost, 0);
         dealer.totalPaid = dealer.allPurchases.reduce((sum, r) => sum + r.paid, 0);
         dealer.totalBalance = dealer.allPurchases.reduce((sum, r) => sum + r.balance, 0);
+        dealer.totalRefundDue = dealer.allPurchases.reduce((sum, r) => sum + (r.refundDue || 0), 0);
         
         dealer.allPurchases.sort((a, b) => {
             const d = dateSortValue(b.date) - dateSortValue(a.date);
@@ -1402,8 +1664,8 @@ export function renderPurchaseConsolidationView() {
                         <div class="font-extrabold text-emerald-400 text-sm mt-0.5">₹${d.totalPaid.toFixed(2)}</div>
                     </div>
                     <div class="bg-slate-900/90 rounded-xl p-2.5 border border-slate-800">
-                        <div class="text-[10px] text-slate-400 uppercase font-semibold">Balance Due</div>
-                        <div class="font-extrabold ${d.totalBalance > 0 ? 'text-rose-400' : 'text-slate-400'} text-sm mt-0.5">₹${d.totalBalance.toFixed(2)}</div>
+                        <div class="text-[10px] text-slate-400 uppercase font-semibold">${d.totalRefundDue > 0 ? 'Refund Due' : 'Balance Due'}</div>
+                        <div class="font-extrabold ${d.totalRefundDue > 0 ? 'text-amber-400' : (d.totalBalance > 0 ? 'text-rose-400' : 'text-slate-400')} text-sm mt-0.5">₹${(d.totalRefundDue > 0 ? d.totalRefundDue : d.totalBalance).toFixed(2)}</div>
                     </div>
                     <div class="bg-slate-900/90 rounded-xl p-2.5 border border-slate-800">
                         <div class="text-[10px] text-slate-400 uppercase font-semibold">Total Returns</div>
@@ -1436,15 +1698,16 @@ export function renderPurchaseConsolidationView() {
                                         <span>Qty: <b class="text-white">${p.qty} ${p.unit}</b></span>
                                         <span>Rate: <b class="text-slate-200">₹${p.unitPrice.toFixed(2)}</b></span>
                                         <span>Total: <b class="text-white">₹${p.grossCost.toFixed(2)}</b></span>
-                                        ${p.returnedQty > 0 ? `<span class="text-rose-400 font-bold">↩️ Return: ${p.returnedQty} ${p.unit} (₹${p.returnedAmount.toFixed(2)})</span>` : ''}
+                                        ${p.returnedQty > 0 ? `<span class="text-rose-400 font-bold">↩️ Return: ${p.returnedQty} ${p.unit} (-₹${p.returnedAmount.toFixed(2)})</span>` : ''}
+                                        ${p.returnedQty > 0 ? `<span>Net Qty: <b class="text-white font-bold">${p.netQty} ${p.unit}</b></span>` : ''}
                                         <span>Net: <b class="text-white">₹${p.netCost.toFixed(2)}</b></span>
                                         <span>Paid: <b class="text-emerald-400">₹${p.paid.toFixed(2)}</b></span>
-                                        <span class="${p.balance > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Bal: ₹${p.balance.toFixed(2)}</span>
+                                        ${p.refundDue > 0 ? `<span class="text-amber-400 font-bold">💰 Refund: ₹${p.refundDue.toFixed(2)}</span>` : `<span class="${p.balance > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Bal: ₹${p.balance.toFixed(2)}</span>`}
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap gap-1 shrink-0 self-end sm:self-center">
                                     <button type="button" onclick="${viewFn}" class="bg-blue-950 text-blue-300 border border-blue-800/60 px-2 py-1 rounded-lg text-[11px] font-semibold hover:bg-blue-900 transition">View</button>
-                                    <button type="button" onclick="${editFn}" class="bg-slate-800 text-amber-400 border border-slate-700 px-2 py-1 rounded-lg text-[11px] font-semibold hover:bg-slate-700 transition">✎ Edit</button>
+                                    <button type="button" onclick="${editFn}" class="bg-slate-800 text-amber-400 border border-slate-700 px-2.5 py-1 rounded-lg text-[11px] font-semibold hover:bg-slate-700 transition">✎ Edit</button>
                                     <button type="button" onclick="${returnFn}" class="bg-rose-950 text-rose-300 border border-rose-800/60 px-2 py-1 rounded-lg text-[11px] font-semibold hover:bg-rose-900 transition">↩️ Return</button>
                                     <button type="button" onclick="${deleteFn}" class="bg-red-950 text-red-300 border border-red-800/60 px-2 py-1 rounded-lg text-[11px] font-semibold hover:bg-red-900 transition">Delete</button>
                                 </div>
@@ -1477,6 +1740,7 @@ export function renderPurchaseConsolidationReport() {
     const totalNet = filtered.reduce((s, d) => s + d.totalNet, 0);
     const totalPaid = filtered.reduce((s, d) => s + d.totalPaid, 0);
     const totalBalance = filtered.reduce((s, d) => s + d.totalBalance, 0);
+    const totalRefundDue = filtered.reduce((s, d) => s + (d.totalRefundDue || 0), 0);
     
     if (summaryCardsEl) {
         summaryCardsEl.innerHTML = `
@@ -1493,8 +1757,8 @@ export function renderPurchaseConsolidationReport() {
                 <div class="font-extrabold text-emerald-400 text-sm mt-0.5">₹${totalPaid.toFixed(2)}</div>
             </div>
             <div class="bg-slate-900/90 rounded-xl p-2.5 border border-slate-800 text-center">
-                <div class="text-[10px] text-slate-400 uppercase font-semibold">Balance Due</div>
-                <div class="font-extrabold ${totalBalance > 0 ? 'text-rose-400' : 'text-slate-400'} text-sm mt-0.5">₹${totalBalance.toFixed(2)}</div>
+                <div class="text-[10px] text-slate-400 uppercase font-semibold">${totalRefundDue > 0 ? 'Refund Due' : 'Balance Due'}</div>
+                <div class="font-extrabold ${totalRefundDue > 0 ? 'text-amber-400' : (totalBalance > 0 ? 'text-rose-400' : 'text-slate-400')} text-sm mt-0.5">₹${(totalRefundDue > 0 ? totalRefundDue : totalBalance).toFixed(2)}</div>
             </div>`;
     }
     
@@ -1520,7 +1784,7 @@ export function renderPurchaseConsolidationReport() {
                     <span class="text-slate-400">Total Paid:</span> <strong class="text-emerald-400">₹${d.totalPaid.toFixed(2)}</strong>
                 </div>
                 <div class="text-right">
-                    <span class="text-slate-400">Balance Due:</span> <strong class="${d.totalBalance > 0 ? 'text-rose-400 font-bold' : 'text-slate-300'}">₹${d.totalBalance.toFixed(2)}</strong>
+                    <span class="text-slate-400">${d.totalRefundDue > 0 ? 'Refund Due:' : 'Balance Due:'}</span> <strong class="${d.totalRefundDue > 0 ? 'text-amber-400 font-bold' : (d.totalBalance > 0 ? 'text-rose-400 font-bold' : 'text-slate-300')}">₹${(d.totalRefundDue > 0 ? d.totalRefundDue : d.totalBalance).toFixed(2)}</strong>
                 </div>
             </div>
         </div>
@@ -1569,8 +1833,8 @@ export function openSupplierConsolidatedDetail(encodedName) {
                         <b class="text-emerald-400 text-xs">₹${d.totalPaid.toFixed(2)}</b>
                     </div>
                     <div class="bg-slate-900 rounded-lg p-2.5">
-                        <div class="text-slate-400 text-[10px]">Balance Due</div>
-                        <b class="${d.totalBalance > 0 ? 'text-rose-400' : 'text-slate-300'} text-xs">₹${d.totalBalance.toFixed(2)}</b>
+                        <div class="text-slate-400 text-[10px]">${d.totalRefundDue > 0 ? 'Refund Due' : 'Balance Due'}</div>
+                        <b class="${d.totalRefundDue > 0 ? 'text-amber-400 font-bold' : (d.totalBalance > 0 ? 'text-rose-400' : 'text-slate-300')} text-xs">₹${(d.totalRefundDue > 0 ? d.totalRefundDue : d.totalBalance).toFixed(2)}</b>
                     </div>
                 </div>
             </div>
@@ -1591,9 +1855,9 @@ export function openSupplierConsolidatedDetail(encodedName) {
                                 <div>Qty: <b class="text-white">${p.qty} ${p.unit}</b> @ ₹${p.unitPrice.toFixed(2)}</div>
                                 <div class="text-right">Net: <b class="text-white">₹${p.netCost.toFixed(2)}</b></div>
                                 <div>Paid: <b class="text-emerald-400">₹${p.paid.toFixed(2)}</b></div>
-                                <div class="text-right">Bal: <b class="${p.balance > 0 ? 'text-rose-400' : 'text-slate-400'}">₹${p.balance.toFixed(2)}</b></div>
+                                <div class="text-right">${p.refundDue > 0 ? `Refund: <b class="text-amber-400 font-bold">₹${p.refundDue.toFixed(2)}</b>` : `Bal: <b class="${p.balance > 0 ? 'text-rose-400' : 'text-slate-400'}">₹${p.balance.toFixed(2)}</b>`}</div>
                             </div>
-                            ${p.returnedQty > 0 ? `<div class="text-[10px] text-rose-400 font-semibold mt-0.5">↩️ Returned: ${p.returnedQty} ${p.unit} (₹${p.returnedAmount.toFixed(2)})</div>` : ''}
+                            ${p.returnedQty > 0 ? `<div class="text-[10px] text-rose-400 font-semibold mt-0.5">↩️ Returned: ${p.returnedQty} ${p.unit} (₹${p.returnedAmount.toFixed(2)}) • Net Qty: ${p.netQty} ${p.unit}</div>` : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -1628,16 +1892,19 @@ export function shareSelectedSupplierConsolidatedDetail(encodedSupplierName) {
         ``,
         `*📊 ACCOUNT SUMMARY:*`,
         `• Total Purchases: ${d.purchaseCount} bills`,
-        `• Total Purchased Value: ₹${d.totalNet.toFixed(2)}`,
+        `• Gross Purchase Value: ₹${d.totalGross.toFixed(2)}`,
+        d.totalReturned > 0 ? `• Total Returns: ₹${d.totalReturned.toFixed(2)}` : null,
+        `• Net Purchased Value: ₹${d.totalNet.toFixed(2)}`,
         `• Total Amount Paid: ₹${d.totalPaid.toFixed(2)}`,
-        `• Balance Due to Dealer: ₹${d.totalBalance.toFixed(2)}`,
+        d.totalRefundDue > 0 ? `• Refund Due from Dealer: ₹${d.totalRefundDue.toFixed(2)}` : `• Balance Due to Dealer: ₹${d.totalBalance.toFixed(2)}`,
         ``,
         `*📋 ITEM-WISE PURCHASE BREAKDOWN:*`
-    ];
+    ].filter(Boolean);
     
     d.allPurchases.forEach((p, i) => {
-        let retInfo = p.returnedQty > 0 ? ` (↩️ Ret: ${p.returnedQty} ${p.unit})` : '';
-        lines.push(`${i + 1}. ${formatDateDDMMYYYY(p.date)} | [${p.type === 'cosmetics' ? 'Cosmetics' : 'Cleaning'}] ${p.item} (Qty: ${p.qty} ${p.unit}${retInfo}) - Total: ₹${p.netCost.toFixed(2)} | Paid: ₹${p.paid.toFixed(2)} | Bal: ₹${p.balance.toFixed(2)}`);
+        let retInfo = p.returnedQty > 0 ? ` (↩️ Ret: ${p.returnedQty} ${p.unit} | Net Qty: ${p.netQty} ${p.unit})` : '';
+        let balOrRefund = p.refundDue > 0 ? `Refund: ₹${p.refundDue.toFixed(2)}` : `Bal: ₹${p.balance.toFixed(2)}`;
+        lines.push(`${i + 1}. ${formatDateDDMMYYYY(p.date)} | [${p.type === 'cosmetics' ? 'Cosmetics' : 'Cleaning'}] ${p.item} (Qty: ${p.qty} ${p.unit}${retInfo}) - Total: ₹${p.netCost.toFixed(2)} | Paid: ₹${p.paid.toFixed(2)} | ${balOrRefund}`);
     });
     
     lines.push(``);
@@ -1655,13 +1922,14 @@ export function sharePurchaseConsolidationReport() {
     const q = (document.getElementById('purchaseConsolidationSearchInput')?.value || '').trim().toLowerCase();
     let filtered = dealers;
     if (q) {
-        filtered = filtered.filter(d => d.name.toLowerCase().includes(query) || d.phone.toLowerCase().includes(query));
+        filtered = filtered.filter(d => d.name.toLowerCase().includes(q) || d.phone.toLowerCase().includes(q));
     }
     
     const totalPurchasesCount = filtered.reduce((s, d) => s + d.purchaseCount, 0);
     const totalNet = filtered.reduce((s, d) => s + d.totalNet, 0);
     const totalPaid = filtered.reduce((s, d) => s + d.totalPaid, 0);
     const totalBalance = filtered.reduce((s, d) => s + d.totalBalance, 0);
+    const totalRefundDue = filtered.reduce((s, d) => s + (d.totalRefundDue || 0), 0);
     
     const lines = [
         `*FIA CLEAN & CARE*`,
@@ -1673,7 +1941,7 @@ export function sharePurchaseConsolidationReport() {
         `• Total Purchases Count: ${totalPurchasesCount}`,
         `• Total Purchase Value: ₹${totalNet.toFixed(2)}`,
         `• Total Amount Paid: ₹${totalPaid.toFixed(2)}`,
-        `• Balance Due to Dealers: ₹${totalBalance.toFixed(2)}`,
+        totalRefundDue > 0 ? `• Refund Due to FIA: ₹${totalRefundDue.toFixed(2)}` : `• Balance Due to Dealers: ₹${totalBalance.toFixed(2)}`,
         ``,
         `*📋 DEALER-WISE SUMMARY:*`
     ];
@@ -1681,7 +1949,8 @@ export function sharePurchaseConsolidationReport() {
     filtered.sort((a, b) => b.totalNet - a.totalNet);
     filtered.forEach((d, i) => {
         lines.push(`${i + 1}. *${d.name}* (📞 ${d.phone || '—'})`);
-        lines.push(`   Orders: ${d.purchaseCount} | Total: ₹${d.totalNet.toFixed(2)} | Paid: ₹${d.totalPaid.toFixed(2)} | Due: ₹${d.totalBalance.toFixed(2)}`);
+        const balOrRefund = d.totalRefundDue > 0 ? `Refund: ₹${d.totalRefundDue.toFixed(2)}` : `Due: ₹${d.totalBalance.toFixed(2)}`;
+        lines.push(`   Orders: ${d.purchaseCount} | Total: ₹${d.totalNet.toFixed(2)} | Paid: ₹${d.totalPaid.toFixed(2)} | ${balOrRefund}`);
     });
     
     lines.push(``);

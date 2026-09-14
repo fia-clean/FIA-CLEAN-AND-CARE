@@ -271,8 +271,8 @@ export function updateDashboard() {
         });
     }
 
-    const purchaseToday = (state.purchases || []).filter(c => normalizeToDateKey(c.date) === today).reduce((s, c) => s + Number(c.rawCost || 0), 0) +
-        (state.cosPurchases || []).filter(c => normalizeToDateKey(c.date) === today).reduce((s, c) => s + Number(c.amount || 0), 0);
+    const purchaseToday = (state.purchases || []).filter(c => normalizeToDateKey(c.date) === today).reduce((s, c) => s + Number(c.netPurchaseAmount !== undefined ? c.netPurchaseAmount : (c.rawCost || 0)), 0) +
+        (state.cosPurchases || []).filter(c => normalizeToDateKey(c.date) === today).reduce((s, c) => s + Number(c.netPurchaseAmount !== undefined ? c.netPurchaseAmount : (c.amount || 0)), 0);
     
     let uniqueCustNames = [];
     (state.customers || []).forEach(c => {
