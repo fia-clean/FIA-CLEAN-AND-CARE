@@ -1169,8 +1169,9 @@
             <div class="flex justify-between items-center bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1">
                 <button type="button" onclick="switchPurchaseSubTab('cleaning')" id="subTabPurchaseCleaning" class="flex-1 py-2 text-center text-xs font-bold bg-blue-700 text-white rounded-xl shadow-md transition">🧹 Cleaning</button>
                 <button type="button" onclick="switchPurchaseSubTab('cosmetics')" id="subTabPurchaseCosmetics" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">💄 Cosmetics</button>
+                <button type="button" onclick="switchPurchaseSubTab('consolidated')" id="subTabPurchaseConsolidated" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">📊 Consolidated</button>
             </div>
-            <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner space-y-3">
+            <div id="purchaseAddSupplierCard" class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner space-y-3">
                 <div class="flex justify-between items-center"><h3 class="font-bold text-blue-300 text-sm">👤 Add Supplier</h3><span class="text-[10px] text-slate-500">Purchase suppliers</span></div>
                 <div class="flex gap-2 purchase-mobile-stack">
                     <input id="newPurchaseSupplierName" type="text" placeholder="Supplier Name" class="flex-1 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100">
@@ -1252,14 +1253,19 @@
                     <div id="purchaseListContainer" class="space-y-2.5"></div>
                 </div>
                 <div id="purchaseReturnContent" class="bg-slate-950/60 p-4 rounded-2xl border border-rose-900/40 shadow-inner space-y-3">
-                    <div class="flex justify-between items-center"><h3 class="font-bold text-rose-300 text-sm">↩️ Purchase Return</h3><span class="text-[10px] text-slate-500">Return purchased stock</span></div>
+                    <div class="flex justify-between items-center"><h3 class="font-bold text-rose-300 text-sm">↩️ Purchase Return (Cleaning)</h3><span class="text-[10px] text-slate-500">Return purchased stock</span></div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <select id="purchaseReturnSelect" onchange="fillPurchaseReturnDetails()" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100"><option value="">-- Select Purchase --</option></select>
-                        <input id="purchaseReturnDate" type="date" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100">
+                        <select id="purchaseReturnSelect" onchange="fillPurchaseReturnDetails()" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500"><option value="">-- Select Purchase to Return --</option></select>
+                        <input id="purchaseReturnDate" type="date" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
                     </div>
                     <div id="purchaseReturnInfo" class="text-[11px] text-slate-400">Select a purchase to return.</div>
-                    <div class="flex gap-2"><input id="purchaseReturnQty" type="number" min="0" step="any" placeholder="Return Quantity" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100"><input id="purchaseReturnReason" type="text" placeholder="Return Reason" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100"><button type="button" onclick="savePurchaseReturn('cleaning')" class="bg-rose-700 text-white px-4 py-3 rounded-xl font-bold text-xs">Return Purchase</button></div>
-                    <h3 class="font-bold text-slate-300 text-xs">Purchase Return History</h3><div id="purchaseReturnHistoryContainer" class="space-y-2"></div>
+                    <div class="flex gap-2">
+                        <input id="purchaseReturnQty" type="number" min="0" step="any" oninput="updatePurchaseReturnLiveCalc('cleaning')" placeholder="Return Quantity" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
+                        <input id="purchaseReturnReason" type="text" placeholder="Return Reason" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
+                        <button type="button" onclick="savePurchaseReturn('cleaning')" class="bg-rose-700 hover:bg-rose-600 text-white px-4 py-3 rounded-xl font-bold text-xs transition shadow-lg shadow-rose-950/40">Return Purchase</button>
+                    </div>
+                    <h3 class="font-bold text-slate-300 text-xs pt-1 border-t border-slate-800/80">Purchase Return History</h3>
+                    <div id="purchaseReturnHistoryContainer" class="space-y-2"></div>
                 </div>
             </div>
             <div id="purchaseActionTabsCosmetics" class="flex flex-wrap gap-1 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 hidden">
@@ -1356,11 +1362,62 @@
                     <div class="space-y-2.5" id="cosPurchaseListContainer"></div>
                 </div>
                 <div id="cosPurchaseReturnContent" class="bg-slate-950/60 p-4 rounded-2xl border border-rose-900/40 shadow-inner space-y-3">
-                    <div class="flex justify-between items-center"><h3 class="font-bold text-rose-300 text-sm">↩️ Purchase Return</h3><span class="text-[10px] text-slate-500">Return purchased stock</span></div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><select id="cosPurchaseReturnSelect" onchange="fillCosPurchaseReturnDetails()" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100"><option value="">-- Select Purchase --</option></select><input id="cosPurchaseReturnDate" type="date" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100"></div>
+                    <div class="flex justify-between items-center"><h3 class="font-bold text-rose-300 text-sm">↩️ Purchase Return (Cosmetics)</h3><span class="text-[10px] text-slate-500">Return purchased stock</span></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <select id="cosPurchaseReturnSelect" onchange="fillCosPurchaseReturnDetails()" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500"><option value="">-- Select Purchase to Return --</option></select>
+                        <input id="cosPurchaseReturnDate" type="date" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
+                    </div>
                     <div id="cosPurchaseReturnInfo" class="text-[11px] text-slate-400">Select a purchase to return.</div>
-                    <div class="flex gap-2"><input id="cosPurchaseReturnQty" type="number" min="0" step="any" placeholder="Return Quantity" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100"><input id="cosPurchaseReturnReason" type="text" placeholder="Return Reason" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100"><button type="button" onclick="savePurchaseReturn('cosmetics')" class="bg-rose-700 text-white px-4 py-3 rounded-xl font-bold text-xs">Return Purchase</button></div>
-                    <h3 class="font-bold text-slate-300 text-xs">Purchase Return History</h3><div id="cosPurchaseReturnHistoryContainer" class="space-y-2"></div>
+                    <div class="flex gap-2">
+                        <input id="cosPurchaseReturnQty" type="number" min="0" step="any" oninput="updatePurchaseReturnLiveCalc('cosmetics')" placeholder="Return Quantity" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
+                        <input id="cosPurchaseReturnReason" type="text" placeholder="Return Reason" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
+                        <button type="button" onclick="savePurchaseReturn('cosmetics')" class="bg-rose-700 hover:bg-rose-600 text-white px-4 py-3 rounded-xl font-bold text-xs transition shadow-lg shadow-rose-950/40">Return Purchase</button>
+                    </div>
+                    <h3 class="font-bold text-slate-300 text-xs pt-1 border-t border-slate-800/80">Purchase Return History</h3>
+                    <div id="cosPurchaseReturnHistoryContainer" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab 3: Consolidated Purchase Content -->
+            <div id="purchaseConsolidatedContent" class="space-y-4 hidden">
+                <div class="flex justify-between items-center bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1">
+                    <button type="button" onclick="switchPurchaseConsolidationView('view')" id="purchaseConsolidationViewTab" class="flex-1 py-2 text-center text-xs font-bold bg-amber-600 text-white rounded-xl shadow-md transition">👁️ Dealer Ledger</button>
+                    <button type="button" onclick="switchPurchaseConsolidationView('report')" id="purchaseConsolidationReportTab" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">📊 Summary Report</button>
+                </div>
+
+                <!-- View Mode: Dealer-wise Itemized Ledger -->
+                <div id="purchaseConsolidationViewContent" class="space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800">
+                        <div>
+                            <h3 class="font-bold text-amber-300 text-sm">🏢 Dealer Purchase Ledger</h3>
+                            <p class="text-[10px] text-slate-400">All purchases grouped by dealer • Cleaning + Cosmetics</p>
+                        </div>
+                        <input id="purchaseConsolidationViewSearchInput" type="search" oninput="renderPurchaseConsolidationView()" placeholder="Search dealer, phone, or item..." class="p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-amber-500 w-full sm:w-60">
+                    </div>
+                    <div id="purchaseConsolidationViewContainer" class="space-y-3"></div>
+                </div>
+
+                <!-- Report Mode: KPI Metrics, WhatsApp & PDF Sharing, Dealer Cards -->
+                <div id="purchaseConsolidationReportContent" class="space-y-4 hidden">
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner space-y-3">
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                            <div>
+                                <h3 class="font-bold text-amber-400 text-sm">📊 Purchase Consolidation Report</h3>
+                                <p class="text-[10px] text-slate-500">Summary across all Cleaning & Cosmetics suppliers</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="sharePurchaseConsolidationReport()" class="bg-green-700 hover:bg-green-600 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 transition shadow-md">💬 WhatsApp</button>
+                                <button type="button" onclick="downloadPurchaseConsolidationReportPDF()" class="bg-purple-700 hover:bg-purple-600 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 transition shadow-md">📥 PDF</button>
+                            </div>
+                        </div>
+
+                        <!-- Top summary metric boxes -->
+                        <div id="purchaseConsolidationSummaryCards" class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1"></div>
+
+                        <input id="purchaseConsolidationSearchInput" type="search" oninput="renderPurchaseConsolidationReport()" placeholder="Search dealer name or phone..." class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-amber-500">
+                    </div>
+
+                    <div id="purchaseConsolidationContainer" class="space-y-2.5"></div>
                 </div>
             </div>
         </div>
@@ -1531,6 +1588,20 @@
             <div id="customerConsolidatedDetailContent" class="p-4 overflow-y-auto max-h-[68vh] text-xs text-slate-200"></div>
             <div class="p-3 border-t border-slate-800">
                 <button type="button" onclick="shareSelectedCustomerConsolidatedDetail()" class="w-full bg-green-700 text-white py-2.5 rounded-xl text-xs font-bold">💬 Share Customer Details on WhatsApp</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dealer / Supplier Consolidated Detail Modal -->
+    <div id="supplierConsolidatedDetailModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg max-h-[88vh] overflow-hidden shadow-2xl flex flex-col">
+            <div class="flex justify-between items-center p-3 border-b border-slate-800 shrink-0">
+                <h3 id="supplierConsolidatedDetailTitle" class="font-bold text-amber-400 text-sm">Dealer Purchase Ledger</h3>
+                <button type="button" onclick="closeSupplierConsolidatedDetail()" class="text-slate-400 hover:text-white font-bold text-sm">✕ Close</button>
+            </div>
+            <div id="supplierConsolidatedDetailContent" class="p-4 overflow-y-auto max-h-[68vh] text-xs text-slate-200"></div>
+            <div class="p-3 border-t border-slate-800 shrink-0 flex gap-2">
+                <button type="button" onclick="shareSelectedSupplierConsolidatedDetail()" class="w-full bg-green-700 hover:bg-green-600 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md">💬 Share Statement on WhatsApp</button>
             </div>
         </div>
     </div>
@@ -1722,7 +1793,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=45"></script>
+    <script type="module" src="./modules/app.js?v=46"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-amber-300 border border-amber-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -1765,7 +1836,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=45')
+                navigator.serviceWorker.register('./sw.js?v=46')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

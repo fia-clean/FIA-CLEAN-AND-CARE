@@ -9,7 +9,7 @@ import {
     loadFromLocalStorage,
     startAutomaticBackup,
     todayDDMMYYYY
-} from './core/state.js?v=45';
+} from './core/state.js?v=46';
 import {
     startRealtimeSync,
     pullFromFirebase,
@@ -18,7 +18,7 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup
-} from './core/db.js?v=45';
+} from './core/db.js?v=46';
 import {
     verifyLoginPin,
     logoutApp,
@@ -32,7 +32,7 @@ import {
     saveNewPin,
     openSettingsModal,
     closeSettingsModal
-} from './core/auth.js?v=45';
+} from './core/auth.js?v=46';
 
 // Feature Modules
 import {
@@ -46,7 +46,7 @@ import {
     closeLowStockList,
     goToAddStockFromLowStock,
     pushDashboardModalState
-} from './dashboard/dashboard.js?v=45';
+} from './dashboard/dashboard.js?v=46';
 
 import {
     saveDirectCustomer,
@@ -66,7 +66,7 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport
-} from './customers/customer.js?v=45';
+} from './customers/customer.js?v=46';
 
 import {
     previewBill,
@@ -81,7 +81,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=45';
+} from './billing/invoice-preview.js?v=46';
 
 import {
     renderSalesHistory,
@@ -90,7 +90,7 @@ import {
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
-} from './billing/billing-history.js?v=45';
+} from './billing/billing-history.js?v=46';
 
 import {
     getProductWholesalePrice,
@@ -145,7 +145,7 @@ import {
     renderCosSales,
     resetCosSalesForm,
     renderCosmeticsSummary
-} from './billing/billing.js?v=45';
+} from './billing/billing.js?v=46';
 
 import {
     updatePackageSelectors,
@@ -195,7 +195,7 @@ import {
     viewProduct,
     viewCosProduct,
     viewPackage
-} from './operations/stock.js?v=45';
+} from './operations/stock.js?v=46';
 
 import {
     getTodayPurchaseDate,
@@ -237,8 +237,20 @@ import {
     editCosPurchase,
     deleteCosPurchase,
     renderCosPurchases,
-    resetCosPurchaseForm
-} from './operations/purchases.js?v=45';
+    resetCosPurchaseForm,
+    updatePurchaseReturnLiveCalc,
+    openPurchaseReturn,
+    deletePurchaseReturn,
+    getConsolidatedPurchaseData,
+    switchPurchaseConsolidationView,
+    renderPurchaseConsolidationView,
+    renderPurchaseConsolidationReport,
+    openSupplierConsolidatedDetail,
+    closeSupplierConsolidatedDetail,
+    shareSelectedSupplierConsolidatedDetail,
+    sharePurchaseConsolidationReport,
+    downloadPurchaseConsolidationReportPDF
+} from './operations/purchases.js?v=46';
 
 import {
     saveExpense,
@@ -247,7 +259,7 @@ import {
     renderExpenses,
     resetExpenseForm,
     viewExpense
-} from './operations/expenses.js?v=45';
+} from './operations/expenses.js?v=46';
 
 import {
     dashboardDateKey,
@@ -263,7 +275,7 @@ import {
     saveDayBookOpeningValues,
     renderAccounts,
     exportDayBookToCSV
-} from './daybook/daybook.js?v=45';
+} from './daybook/daybook.js?v=46';
 
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {
@@ -605,6 +617,8 @@ export function renderAll() {
     safeRun(renderCosmeticsSummary);
     safeRun(renderAccounts);
     safeRun(renderSalesHistory);
+    safeRun(renderPurchaseConsolidationView);
+    safeRun(renderPurchaseConsolidationReport);
 }
 
 // ================= BROWSER POPSTATE & HISTORY =================
@@ -623,7 +637,7 @@ if (typeof window !== 'undefined') {
             return;
         }
 
-        const modals = ['barcodeScannerModal', 'settingsModal', 'changePinModal', 'resetPinModal', 'dueAmountListModal', 'lowStockListModal', 'recordViewModal'];
+        const modals = ['barcodeScannerModal', 'settingsModal', 'changePinModal', 'resetPinModal', 'dueAmountListModal', 'lowStockListModal', 'recordViewModal', 'customerConsolidatedDetailModal', 'supplierConsolidatedDetailModal'];
         let modalClosed = false;
         modals.forEach(mId => {
             const mEl = document.getElementById(mId);
@@ -741,6 +755,18 @@ if (typeof window !== 'undefined') {
     window.renderCustomerConsolidationReport = renderCustomerConsolidationReport;
     window.renderCustomerConsolidationView = renderCustomerConsolidationView;
     window.renderConsolidatedStockReport = renderConsolidatedStockReport;
+    window.updatePurchaseReturnLiveCalc = updatePurchaseReturnLiveCalc;
+    window.openPurchaseReturn = openPurchaseReturn;
+    window.deletePurchaseReturn = deletePurchaseReturn;
+    window.getConsolidatedPurchaseData = getConsolidatedPurchaseData;
+    window.switchPurchaseConsolidationView = switchPurchaseConsolidationView;
+    window.renderPurchaseConsolidationView = renderPurchaseConsolidationView;
+    window.renderPurchaseConsolidationReport = renderPurchaseConsolidationReport;
+    window.openSupplierConsolidatedDetail = openSupplierConsolidatedDetail;
+    window.closeSupplierConsolidatedDetail = closeSupplierConsolidatedDetail;
+    window.shareSelectedSupplierConsolidatedDetail = shareSelectedSupplierConsolidatedDetail;
+    window.sharePurchaseConsolidationReport = sharePurchaseConsolidationReport;
+    window.downloadPurchaseConsolidationReportPDF = downloadPurchaseConsolidationReportPDF;
     window.shareBillSmartWhatsApp = shareBillSmartWhatsApp;
     window.shareBillPdfWhatsApp = shareBillPdfWhatsApp;
     window.generateBillPdfBlob = generateBillPdfBlob;

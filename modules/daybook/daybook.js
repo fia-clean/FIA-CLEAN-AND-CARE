@@ -190,19 +190,41 @@ export function getAllMasterEntries() {
     });
     (state.purchases || []).forEach((p, i) => {
         if (!p) return;
-        const amount = Number(p.rawCost || p.paid || 0);
+        const gross = Number(p.rawCost || p.paid || 0);
+        const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : gross;
         const entryId = p.id ? ('purch_' + p.id) : ('p_' + (p.savedAt || i));
-        if (amount > 0) {
+        if (amount > 0 || gross > 0) {
             const cleanDate = normalizeToDateKey(p.date) || normalizeToDateKey(p.savedAt) || getTodayDateString();
             entries.push({
                 id: entryId,
                 originalId: p.id,
                 type: 'Expense',
                 category: 'Purchase',
-                desc: `Purchase: ${p.rawMaterial || 'Item'} (${p.supplierName || 'Supplier'})`,
+                desc: `Purchase: ${p.rawMaterial || 'Item'} (${p.supplierName || 'Supplier'})${p.returnedQty > 0 ? ` [↩️ Ret: ${p.returnedQty} ${p.rawUnit || ''}]` : ''}`,
                 amount,
                 paidAmount: Number(p.paid || 0),
-                pendingAmount: Math.max(0, Number(p.balance || 0)),
+                pendingAmount: Math.max(0, Number(p.netBalance ?? p.balance ?? 0)),
+                date: cleanDate,
+                timestamp: Number(p.savedAt || dateSortValue(cleanDate) || 0)
+            });
+        }
+    });
+    (state.cosPurchases || []).forEach((p, i) => {
+        if (!p) return;
+        const gross = Number(p.amount || p.paid || 0);
+        const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : gross;
+        const entryId = p.id ? ('cospurch_' + p.id) : ('cp_' + (p.savedAt || i));
+        if (amount > 0 || gross > 0) {
+            const cleanDate = normalizeToDateKey(p.date) || normalizeToDateKey(p.savedAt) || getTodayDateString();
+            entries.push({
+                id: entryId,
+                originalId: p.id,
+                type: 'Expense',
+                category: 'Cosmetics Purchase',
+                desc: `Cosmetics Purchase: ${p.item || 'Item'} (${p.supplier || 'Supplier'})${p.returnedQty > 0 ? ` [↩️ Ret: ${p.returnedQty} ${p.unit || ''}]` : ''}`,
+                amount,
+                paidAmount: Number(p.paid || 0),
+                pendingAmount: Math.max(0, Number(p.netBalance ?? p.balance ?? 0)),
                 date: cleanDate,
                 timestamp: Number(p.savedAt || dateSortValue(cleanDate) || 0)
             });
