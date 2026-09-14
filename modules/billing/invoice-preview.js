@@ -291,17 +291,107 @@ export function previewCosSaleBill(saleOrIdentifier) {
     }
 }
 
-export function generateA4PrintHTML(c) {
-    if (!c) return '';
+function getA4HeaderHtml(c, brandTitle, themeColor, isWholesale, brandBadge) {
+    return `
+        <div style="border-bottom: 2px solid ${themeColor}; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="./icon-192.png" alt="FIA" style="width: 44px; height: 44px; border-radius: 50%; object-fit: contain; border: 2px solid ${themeColor}; background: #000000; display: inline-block;">
+                <div>
+                    <h2 style="margin: 0; color: ${themeColor}; font-size: 19px; font-weight: 900; letter-spacing: 0.5px; line-height: 1.2;">${brandTitle}</h2>
+                    <div style="margin: 2px 0 0 0; font-size: 10.5px; font-weight: 700; color: #374151;">EDATHANATTUKARA • MOB: 8086452106</div>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-weight: 800; font-size: 10.5px; ${isWholesale ? 'background: #fef3c7; color: #92400e; border: 1.5px solid #f59e0b;' : 'background: #ecfdf5; color: #065f46; border: 1.5px solid #10b981;'}">
+                    ${brandBadge}
+                </span>
+            </div>
+        </div>
+
+        <div style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; line-height: 1.45; color: #111827;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #d1d5db; padding-bottom: 4px; margin-bottom: 4px;">
+                <span><strong>Bill No:</strong> <span style="color: ${themeColor}; font-weight: 800; font-size: 12.5px;">${c.billNo || '—'}</span></span>
+                <span><strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="max-width: 65%; word-break: break-word;"><strong>Customer:</strong> ${c.name || 'Walk-in'}</span>
+                <span><strong>${c.phone ? 'Mob: ' + c.phone : 'Mode: ' + (c.paymentMode || 'Cash')}</strong></span>
+            </div>
+        </div>
+    `;
+}
+
+function getA4TableHeadHtml(themeColor, themeHeaderBg) {
+    return `
+        <thead>
+            <tr style="background-color: ${themeHeaderBg} !important; color: #ffffff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                <th style="width: 46%; padding: 8px 6px; text-align: left; background-color: ${themeHeaderBg} !important; color: #ffffff !important; font-size: 11px; font-weight: 800; border-top: 1px solid ${themeHeaderBg}; border-bottom: 2px solid ${themeColor};">Item Description</th>
+                <th style="width: 18%; padding: 8px 4px; text-align: center; background-color: ${themeHeaderBg} !important; color: #ffffff !important; font-size: 11px; font-weight: 800; border-top: 1px solid ${themeHeaderBg}; border-bottom: 2px solid ${themeColor};">Qty</th>
+                <th style="width: 18%; padding: 8px 4px; text-align: right; background-color: ${themeHeaderBg} !important; color: #ffffff !important; font-size: 11px; font-weight: 800; border-top: 1px solid ${themeHeaderBg}; border-bottom: 2px solid ${themeColor};">Rate</th>
+                <th style="width: 18%; padding: 8px 6px; text-align: right; background-color: ${themeHeaderBg} !important; color: #ffffff !important; font-size: 11px; font-weight: 800; border-top: 1px solid ${themeHeaderBg}; border-bottom: 2px solid ${themeColor};">Total</th>
+            </tr>
+        </thead>
+    `;
+}
+
+function getA4ItemRowHtml(item, idx) {
+    const cleanName = getCleanInvoiceProductName(item.productName);
+    const rawQty = item.qty || '';
+    const unitStr = (item.unitType && item.unitType !== 'Standard') ? item.unitType : '';
+    const units = Number(item.numberOfUnits || 1);
+    let qtyDisplay = `${rawQty} ${unitStr}`.trim();
+    if (units > 1) qtyDisplay += ` (${units})`;
+    const rate = Number(item.rate || 0).toFixed(2);
+    const total = Number(item.total || 0).toFixed(2);
+    const cosTag = item.combinedCategory === 'Cosmetics' ? ` <span style="color:#db2777; font-size:10px; font-weight:bold;">(Cos)</span>` : '';
+    const bg = idx % 2 === 1 ? 'background-color: #f9fafb;' : 'background-color: #ffffff;';
+    return `<tr style="${bg} page-break-inside: avoid !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+        <td style="padding: 6px 6px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #111827; font-size: 11px; word-break: break-word;">${cleanName}${cosTag}</td>
+        <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #374151; font-size: 11px; white-space: nowrap;">${qtyDisplay}</td>
+        <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #374151; font-size: 11px; white-space: nowrap;">₹${rate}</td>
+        <td style="padding: 6px 6px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 700; color: #111827; font-size: 11px; white-space: nowrap;">₹${total}</td>
+    </tr>`;
+}
+
+function getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal) {
+    return `
+        <div class="totals-container" style="page-break-inside: avoid !important; break-inside: avoid !important; margin-top: 14px;">
+            <div style="background: #f9fafb; border: 1.5px solid #d1d5db; border-radius: 8px; padding: 10px 14px; font-size: 11.5px; line-height: 1.5; color: #111827; width: 320px; max-width: 100%; margin-left: auto; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 5px;">
+                    <span style="font-size: 12.5px; font-weight: 800; color: #111827;">Grand Total:</span>
+                    <span style="font-size: 14.5px; font-weight: 900; color: ${themeColor};">₹${grandVal.toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; color: #047857; font-weight: 700;">
+                    <span>Paid Amount:</span>
+                    <span>₹${paidVal.toFixed(2)}</span>
+                </div>
+                ${pendingVal > 0 ? `
+                <div style="display: flex; justify-content: space-between; align-items: center; color: #b91c1c; font-weight: 800; margin-top: 4px; padding: 3px 6px; background: #fef2f2; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                    <span>⚠️ Balance Due:</span>
+                    <span>₹${pendingVal.toFixed(2)}</span>
+                </div>` : ''}
+                ${excessVal > 0 ? `
+                <div style="display: flex; justify-content: space-between; align-items: center; color: #b45309; font-weight: 800; margin-top: 4px; padding: 3px 6px; background: #fffbeb; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                    <span>🔄 Return / Change:</span>
+                    <span>₹${excessVal.toFixed(2)}</span>
+                </div>` : ''}
+            </div>
+            <div style="text-align: center; margin-top: 12px; font-size: 10px; color: #6b7280; font-style: italic;">
+                Thank you for your business! Visit again 🙏
+            </div>
+        </div>
+    `;
+}
+
+export function generateA4Pages(c) {
+    if (!c) return [];
+    const isCosmetics = String(c.billNo || '').toUpperCase().startsWith('COS') || c.category === 'Cosmetics';
     const saleTypeStr = (c.saleType || 'Retail').toUpperCase();
     const isWholesale = saleTypeStr === 'WHOLESALE';
-    const isCosmetics = String(c.billNo || '').toUpperCase().startsWith('COS') || c.category === 'Cosmetics';
     const themeColor = isCosmetics ? '#db2777' : '#065f46';
     const themeHeaderBg = isCosmetics ? '#831843' : '#064e3b';
     const brandTitle = isCosmetics ? 'FIA COSMETICS & CARE' : 'FIA CLEAN AND CARE';
-    const brandBadge = isCosmetics
-        ? (isWholesale ? '🏷️ COSMETICS WHOLESALE INVOICE' : '💄 COSMETICS RETAIL INVOICE')
-        : (isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE');
+    const brandBadge = isWholesale ? (isCosmetics ? '🏷️ COSMETICS WHOLESALE' : '🏷️ WHOLESALE INVOICE') : (isCosmetics ? '💄 COSMETICS RETAIL' : '🛍️ RETAIL INVOICE');
 
     const grandVal = Number(c.grandTotal !== undefined ? c.grandTotal : (c.netTotal || c.total || 0));
     const paidVal = Number(c.paidAmount !== undefined ? c.paidAmount : (grandVal - Number(c.pendingAmount || 0)));
@@ -311,148 +401,66 @@ export function generateA4PrintHTML(c) {
     const allItems = sortBillItemsAlphabetically(c.items || []);
     const itemsCount = allItems.length;
 
-    const renderItemRow = (item, idx) => {
-        const cleanName = getCleanInvoiceProductName(item.productName);
-        const rawQty = item.qty || '';
-        const unitStr = (item.unitType && item.unitType !== 'Standard') ? item.unitType : '';
-        const units = Number(item.numberOfUnits || 1);
-        let qtyDisplay = `${rawQty} ${unitStr}`.trim();
-        if (units > 1) qtyDisplay += ` (${units})`;
-        const rate = Number(item.rate || 0).toFixed(2);
-        const total = Number(item.total || 0).toFixed(2);
-        const cosTag = item.combinedCategory === 'Cosmetics' ? ` <span style="color:#db2777; font-size:10px; font-weight:bold;">(Cos)</span>` : '';
-        const bg = idx % 2 === 1 ? 'background:#f9fafb;' : 'background:#ffffff;';
-        return `<tr style="${bg} page-break-inside:avoid;">
-            <td style="padding:6px 6px; border-bottom:1px solid #e5e7eb; font-weight:600; color:#111827; word-break:break-word;">${cleanName}${cosTag}</td>
-            <td style="padding:6px 4px; border-bottom:1px solid #e5e7eb; text-align:center; color:#374151; white-space:nowrap;">${qtyDisplay}</td>
-            <td style="padding:6px 4px; border-bottom:1px solid #e5e7eb; text-align:right; color:#374151; white-space:nowrap;">₹${rate}</td>
-            <td style="padding:6px 6px; border-bottom:1px solid #e5e7eb; text-align:right; font-weight:700; color:#111827; white-space:nowrap;">₹${total}</td>
-        </tr>`;
-    };
-
-    const renderTableHead = () => `
-        <thead>
-            <tr style="background:${themeHeaderBg}; color:#ffffff;">
-                <th style="width:46%; padding:7px 6px; text-align:left; color:#ffffff; font-size:11px; font-weight:700;">Item Description</th>
-                <th style="width:20%; padding:7px 4px; text-align:center; color:#ffffff; font-size:11px; font-weight:700;">Qty</th>
-                <th style="width:17%; padding:7px 4px; text-align:right; color:#ffffff; font-size:11px; font-weight:700;">Rate</th>
-                <th style="width:17%; padding:7px 6px; text-align:right; color:#ffffff; font-size:11px; font-weight:700;">Total</th>
-            </tr>
-        </thead>
-    `;
-
-    const renderHeaderInfo = () => `
-        <div style="border-bottom:2px solid ${themeColor}; padding-bottom:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <img src="./icon-192.png" alt="FIA" style="width:44px; height:44px; border-radius:50%; object-fit:contain; border:1.5px solid ${themeColor}; background:#000000; display:inline-block;">
-                <div>
-                    <h2 style="margin:0; color:${themeColor}; font-size:18px; font-weight:900; letter-spacing:0.5px; line-height:1.2;">${brandTitle}</h2>
-                    <div style="margin:0; font-size:10.5px; font-weight:700; color:#374151;">EDATHANATTUKARA • MOB: 8086452106</div>
-                </div>
-            </div>
-            <div style="text-align:right;">
-                <span style="display:inline-block; padding:3px 12px; border-radius:12px; font-weight:800; font-size:10.5px; ${isWholesale ? 'background:#fef3c7; color:#92400e; border:1px solid #f59e0b;' : 'background:#ecfdf5; color:#065f46; border:1px solid #10b981;'}">
-                    ${brandBadge}
-                </span>
-            </div>
-        </div>
-
-        <div style="background:#f3f4f6; border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:11px; line-height:1.4; color:#111827;">
-            <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #d1d5db; padding-bottom:4px; margin-bottom:4px;">
-                <span><strong>Bill No:</strong> <span style="color:${themeColor}; font-weight:800; font-size:12px;">${c.billNo || '—'}</span></span>
-                <span><strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between;">
-                <span style="max-width:65%; word-break:break-word;"><strong>Customer:</strong> ${c.name || 'Walk-in'}</span>
-                <span><strong>${c.phone ? 'Mob: ' + c.phone : 'Mode: ' + (c.paymentMode || 'Cash')}</strong></span>
-            </div>
-        </div>
-    `;
-
-    const renderTotals = () => `
-        <div style="page-break-inside:avoid; margin-top:10px;">
-            <div style="background:#f9fafb; border:1.5px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:11.5px; line-height:1.5; color:#111827;">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb; padding-bottom:4px; margin-bottom:4px;">
-                    <span style="font-size:12px; font-weight:800;">Grand Total:</span>
-                    <span style="font-size:14px; font-weight:900; color:${themeColor};">₹${grandVal.toFixed(2)}</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; color:#047857; font-weight:700;">
-                    <span>Paid Amount:</span>
-                    <span>₹${paidVal.toFixed(2)}</span>
-                </div>
-                ${pendingVal > 0 ? `
-                <div style="display:flex; justify-content:space-between; align-items:center; color:#b91c1c; font-weight:800; margin-top:3px; padding:3px 6px; background:#fef2f2; border-radius:4px;">
-                    <span>⚠️ Balance Due:</span>
-                    <span>₹${pendingVal.toFixed(2)}</span>
-                </div>` : ''}
-                ${excessVal > 0 ? `
-                <div style="display:flex; justify-content:space-between; align-items:center; color:#b45309; font-weight:800; margin-top:3px; padding:3px 6px; background:#fffbeb; border-radius:4px;">
-                    <span>🔄 Return / Change:</span>
-                    <span>₹${excessVal.toFixed(2)}</span>
-                </div>` : ''}
-            </div>
-            <div style="text-align:center; margin-top:10px; font-size:10px; color:#6b7280; font-style:italic;">
-                Thank you for your business! Visit again 🙏
-            </div>
-        </div>
-    `;
-
-    let html = '';
-
     if (itemsCount <= 14) {
-        // Single page clean layout
-        const rows = allItems.map(renderItemRow).join('');
-        html = `
-            <div class="print-page">
-                ${renderHeaderInfo()}
-                <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:8px;">
-                    ${renderTableHead()}
+        // Single Page Layout
+        const rows = allItems.map(getA4ItemRowHtml).join('');
+        const page1 = `
+            <div class="print-page print-page-single" style="width: 100%; max-width: 680px; margin: 0 auto; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000;">
+                ${getA4HeaderHtml(c, brandTitle, themeColor, isWholesale, brandBadge)}
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px;">
+                    ${getA4TableHeadHtml(themeColor, themeHeaderBg)}
                     <tbody>${rows}</tbody>
                 </table>
-                ${renderTotals()}
+                ${getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal)}
             </div>
         `;
+        return [page1];
     } else {
-        // Multi-page layout: Page 1 + Page 2
+        // Multi-page Layout: Page 1 (items 0-14), Page 2 (items 14-end)
         const page1Items = allItems.slice(0, 14);
         const page2Items = allItems.slice(14);
 
-        const rows1 = page1Items.map(renderItemRow).join('');
-        const rows2 = page2Items.map((it, idx) => renderItemRow(it, idx + 14)).join('');
+        const rows1 = page1Items.map(getA4ItemRowHtml).join('');
+        const rows2 = page2Items.map((it, idx) => getA4ItemRowHtml(it, idx + 14)).join('');
 
-        html = `
-            <div class="print-page print-page-1">
-                ${renderHeaderInfo()}
-                <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:8px;">
-                    ${renderTableHead()}
+        const page1 = `
+            <div class="print-page print-page-1" style="width: 100%; max-width: 680px; margin: 0 auto; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000;">
+                ${getA4HeaderHtml(c, brandTitle, themeColor, isWholesale, brandBadge)}
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px;">
+                    ${getA4TableHeadHtml(themeColor, themeHeaderBg)}
                     <tbody>${rows1}</tbody>
                 </table>
-                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1.5px dashed #9ca3af; padding:8px 4px; margin-top:8px; font-size:11px; font-weight:bold; color:#4b5563;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px dashed #9ca3af; padding: 8px 4px; margin-top: 10px; font-size: 11px; font-weight: bold; color: #4b5563;">
                     <span>📄 Bill No: ${c.billNo || '—'} (Page 1 of 2)</span>
-                    <span style="color:${themeColor}; font-weight:800;">(തുടർച്ച അടുത്ത പേജിൽ / Continued on Page 2 ➔)</span>
+                    <span style="color: ${themeColor}; font-weight: 800;">(തുടർച്ച അടുത്ത പേജിൽ / Continued on Page 2 ➔)</span>
                 </div>
-            </div>
-
-            <div style="page-break-after:always; break-after:page; height:0; line-height:0;"></div>
-
-            <div class="print-page print-page-2" style="padding-top:10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; background:#f3f4f6; border-bottom:2px solid ${themeColor}; padding:8px 12px; margin-bottom:12px; border-radius:6px;">
-                    <div>
-                        <strong style="color:${themeColor}; font-size:13px;">${brandTitle} — BILL NO: ${c.billNo || '—'}</strong>
-                        <span style="font-size:11px; color:#4b5563; margin-left:12px;">Customer: ${c.name || 'Walk-in'} • Date: ${formatDateDDMMYYYY(c.date)}</span>
-                    </div>
-                    <span style="background:${themeColor}; color:#ffffff; padding:3px 10px; border-radius:12px; font-size:10px; font-weight:800;">പേജ് 2 / PAGE 2 (CONTINUED)</span>
-                </div>
-                <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:8px;">
-                    ${renderTableHead()}
-                    <tbody>${rows2}</tbody>
-                </table>
-                ${renderTotals()}
             </div>
         `;
-    }
 
-    return html;
+        const page2 = `
+            <div class="print-page print-page-2" style="width: 100%; max-width: 680px; margin: 0 auto; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000; padding-top: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #f3f4f6; border: 1px solid #d1d5db; border-bottom: 2px solid ${themeColor}; padding: 8px 12px; margin-bottom: 12px; border-radius: 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                    <div>
+                        <strong style="color: ${themeColor}; font-size: 13px; font-weight: 900;">${brandTitle} — BILL NO: ${c.billNo || '—'}</strong>
+                        <span style="font-size: 11px; color: #4b5563; margin-left: 12px;">Customer: ${c.name || 'Walk-in'} • Date: ${formatDateDDMMYYYY(c.date)}</span>
+                    </div>
+                    <span style="background: ${themeColor}; color: #ffffff; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 800; -webkit-print-color-adjust: exact; print-color-adjust: exact;">പേജ് 2 / PAGE 2 (CONTINUED)</span>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px;">
+                    ${getA4TableHeadHtml(themeColor, themeHeaderBg)}
+                    <tbody>${rows2}</tbody>
+                </table>
+                ${getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal)}
+            </div>
+        `;
+
+        return [page1, page2];
+    }
+}
+
+export function generateA4PrintHTML(c) {
+    const pages = generateA4Pages(c);
+    return pages.join('<div style="page-break-after: always; break-after: page; height: 0; line-height: 0; margin: 0; padding: 0;"></div>');
 }
 
 export function printBill() {
@@ -466,8 +474,6 @@ export function printBill() {
         alert('Please allow pop-ups to print the bill.');
         return;
     }
-    const isCosmetics = String(c.billNo || '').toUpperCase().startsWith('COS') || c.category === 'Cosmetics';
-    const themeColor = isCosmetics ? '#db2777' : '#065f46';
     const contentHtml = generateA4PrintHTML(c);
 
     printWindow.document.open();
@@ -479,10 +485,12 @@ export function printBill() {
     <style>
         @page {
             size: A4 portrait;
-            margin: 12mm 12mm 12mm 12mm;
+            margin: 10mm 15mm 10mm 15mm;
         }
         *, *:before, *:after {
             box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         html, body {
             margin: 0 !important;
@@ -491,21 +499,10 @@ export function printBill() {
             color: #000000 !important;
             font-family: Arial, Helvetica, sans-serif !important;
         }
-        /* Crisp Page Frame Printed on Every Single Page */
-        .print-page-frame {
-            position: fixed;
-            top: 5mm;
-            left: 5mm;
-            right: 5mm;
-            bottom: 5mm;
-            border: 2px solid ${themeColor};
-            border-radius: 8px;
-            pointer-events: none;
-            z-index: 99999;
-        }
         .print-body-content {
             width: 100%;
-            padding: 2mm;
+            padding: 0;
+            margin: 0;
         }
         table {
             width: 100% !important;
@@ -514,13 +511,16 @@ export function printBill() {
         tr {
             page-break-inside: avoid !important;
         }
+        .totals-container {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
         button, .no-print {
             display: none !important;
         }
     </style>
 </head>
 <body>
-    <div class="print-page-frame"></div>
     <div class="print-body-content">
         ${contentHtml}
     </div>
@@ -530,135 +530,95 @@ export function printBill() {
     setTimeout(() => { printWindow.focus(); printWindow.print(); }, 700);
 }
 
-export function generateBillPdfBlob() {
-    return new Promise((resolve, reject) => {
-        const c = state.activePreviewCustomer;
-        if (!c) {
-            reject(new Error('Bill preview data not found.'));
-            return;
-        }
-        const billNo = c?.billNo || 'BILL';
-        const isCosmetics = String(c.billNo || '').toUpperCase().startsWith('COS') || c.category === 'Cosmetics';
-        const themeColor = isCosmetics ? '#db2777' : '#065f46';
+export async function generateBillPdfBlob() {
+    const c = state.activePreviewCustomer;
+    if (!c) throw new Error('Bill preview data not found.');
 
-        // Method 1: Use html2pdf with visible non-negative coordinates
-        if (typeof window.html2pdf !== 'undefined') {
-            const container = document.createElement('div');
-            container.id = 'fiaPdfRenderContainer';
-            container.style.position = 'absolute';
-            container.style.left = '0px';
-            container.style.top = '0px';
-            container.style.width = '794px'; // 210mm at 96 DPI
-            container.style.background = '#ffffff';
-            container.style.color = '#000000';
-            container.style.padding = '18px';
-            container.style.boxSizing = 'border-box';
-            container.style.fontFamily = 'Arial, Helvetica, sans-serif';
-            container.style.zIndex = '-99999';
-            container.style.opacity = '1';
-            container.style.pointerEvents = 'none';
+    const pages = generateA4Pages(c);
+    if (!pages || pages.length === 0) throw new Error('Could not generate bill pages.');
 
-            const a4Html = generateA4PrintHTML(c);
-            container.innerHTML = `
-                <div style="border: 2px solid ${themeColor}; border-radius: 8px; padding: 14px; box-sizing: border-box; background: #ffffff;">
-                    ${a4Html}
-                </div>
-            `;
-            document.body.appendChild(container);
+    // Create temporary offscreen rendering container with positive high z-index and white background
+    const container = document.createElement('div');
+    container.id = 'fiaPdfRenderContainer';
+    container.style.position = 'fixed';
+    container.style.left = '0px';
+    container.style.top = '0px';
+    container.style.width = '794px'; // 210mm at 96 DPI
+    container.style.background = '#ffffff';
+    container.style.color = '#000000';
+    container.style.zIndex = '999999';
+    container.style.pointerEvents = 'none';
+    container.style.opacity = '1';
+    container.style.visibility = 'visible';
 
-            const opt = {
-                margin: [6, 6, 6, 6],
-                filename: `FIA_Bill_${billNo}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    scrollX: 0,
-                    scrollY: 0,
-                    windowWidth: 794
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            };
+    // Insert each page wrapped with 794px width and white background
+    container.innerHTML = pages.map((pageHtml, idx) => `
+        <div id="fiaPdfPage_${idx}" style="width: 794px; min-height: 1080px; background: #ffffff; padding: 24px 32px; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; color: #000000;">
+            ${pageHtml}
+        </div>
+    `).join('');
 
-            window.html2pdf().set(opt).from(container).outputPdf('blob').then(blob => {
-                if (document.body.contains(container)) document.body.removeChild(container);
-                if (blob && blob.size > 200) {
-                    resolve(blob);
-                } else {
-                    fallbackCanvasToPdf().then(resolve).catch(reject);
-                }
-            }).catch(err => {
-                if (document.body.contains(container)) document.body.removeChild(container);
-                console.warn('html2pdf error, trying canvas fallback:', err);
-                fallbackCanvasToPdf().then(resolve).catch(reject);
+    document.body.appendChild(container);
+
+    try {
+        const { jsPDF } = window.jspdf || (typeof window.jsPDF === 'function' ? window : { jsPDF: window.jsPDF });
+        if (!jsPDF) throw new Error('jsPDF library not available');
+
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+        const pdfW = pdf.internal.pageSize.getWidth(); // 210mm
+        const pdfH = pdf.internal.pageSize.getHeight(); // 297mm
+        const marginX = 8;
+        const marginY = 8;
+        const printableW = pdfW - (marginX * 2); // 194mm
+
+        for (let i = 0; i < pages.length; i++) {
+            const pageEl = document.getElementById(`fiaPdfPage_${i}`);
+            if (!pageEl) continue;
+
+            const canvas = await window.html2canvas(pageEl, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                width: 794,
+                scrollX: 0,
+                scrollY: 0
             });
-            return;
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const imgH = (canvas.height * printableW) / canvas.width;
+
+            if (i > 0) pdf.addPage();
+            pdf.addImage(imgData, 'JPEG', marginX, marginY, printableW, Math.min(imgH, pdfH - marginY * 2));
         }
 
-        // Method 2: Direct html2canvas + jsPDF fallback
-        fallbackCanvasToPdf().then(resolve).catch(reject);
-
-        function fallbackCanvasToPdf() {
-            return new Promise((res, rej) => {
-                const target = document.getElementById('fiaInvoiceCaptureCard') || document.getElementById('billPreviewContent');
-                if (!target || typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
-                    rej(new Error('Canvas or jsPDF library not available'));
-                    return;
-                }
-                const targetWidth = Math.ceil(target.offsetWidth || 380);
-                const targetHeight = Math.ceil(target.offsetHeight || 520);
-                window.html2canvas(target, {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    width: targetWidth,
-                    height: targetHeight,
-                    scrollX: 0,
-                    scrollY: 0
-                }).then(canvas => {
-                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    const pdfW = pdf.internal.pageSize.getWidth();
-                    const pdfH = pdf.internal.pageSize.getHeight();
-                    const margin = 10;
-                    const printableW = pdfW - (margin * 2);
-                    const imgH = (canvas.height * printableW) / canvas.width;
-                    
-                    if (imgH <= (pdfH - margin * 2)) {
-                        pdf.addImage(imgData, 'JPEG', margin, margin, printableW, imgH);
-                    } else {
-                        let heightLeft = imgH;
-                        let position = margin;
-                        pdf.addImage(imgData, 'JPEG', margin, position, printableW, imgH);
-                        heightLeft -= (pdfH - margin * 2);
-                        while (heightLeft > 0) {
-                            position = heightLeft - imgH + margin;
-                            pdf.addPage();
-                            pdf.addImage(imgData, 'JPEG', margin, position, printableW, imgH);
-                            heightLeft -= (pdfH - margin * 2);
-                        }
-                    }
-                    const outBlob = pdf.output('blob');
-                    res(outBlob);
-                }).catch(rej);
-            });
+        const outBlob = pdf.output('blob');
+        if (!outBlob || outBlob.size < 500) {
+            throw new Error('Generated PDF blob is empty');
         }
-    });
+        return outBlob;
+    } finally {
+        if (document.body.contains(container)) {
+            document.body.removeChild(container);
+        }
+    }
 }
 
-export function downloadBillPDF() {
+export async function downloadBillPDF() {
     const c = state.activePreviewCustomer;
+    if (!c) {
+        alert('Bill data is not available.');
+        return;
+    }
     const billNo = c?.billNo || 'BILL';
     const fileName = `FIA_Bill_${billNo}.pdf`;
 
-    generateBillPdfBlob().then(blob => {
-        if (!blob || blob.size < 200) {
-            throw new Error('Downloaded PDF blob is empty');
-        }
+    try {
+        const blob = await generateBillPdfBlob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -667,10 +627,11 @@ export function downloadBillPDF() {
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 2000);
-    }).catch(err => {
-        console.warn('PDF blob generation error, falling back to print:', err);
+    } catch (err) {
+        console.warn('PDF blob generation error, opening print dialog:', err);
+        alert('PDF ഡൗൺലോഡ് ചെയ്യുന്നതിൽ തടസ്സം നേരിട്ടു. പ്രിന്റ് വിൻഡോ തുറക്കുന്നു (അവിടെ നിന്നും Save as PDF നൽകാം).');
         printBill();
-    });
+    }
 }
 
 export async function shareBillPdfWhatsApp() {
@@ -897,5 +858,7 @@ if (typeof window !== 'undefined') {
     window.sendBillViaWhatsApp = sendBillViaWhatsApp;
     window.sortBillItemsAlphabetically = sortBillItemsAlphabetically;
     window.getCleanInvoiceProductName = getCleanInvoiceProductName;
+    window.generateA4Pages = generateA4Pages;
+    window.generateA4PrintHTML = generateA4PrintHTML;
 }
 

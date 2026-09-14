@@ -11,7 +11,7 @@ Write-Host "Adding modified files..." -ForegroundColor Yellow
 git add index.html dev.html sw.js manifest.json icon-192.png icon-512.png icon.svg apple-touch-icon.png favicon.png lib/ modules/ public/ src/ deploy_to_github.bat deploy_to_github.ps1
 
 Write-Host "Committing changes..." -ForegroundColor Yellow
-git commit -m "fix(billing): strict insufficient stock validation, fix 1000x stock bug, non-blank PDF download, and multi-page print layout (v41)"
+git commit -m "fix(pdf): crisp multi-page canvas-to-PDF export, remove print border overlap, and clean invoice end totals (v42)"
 
 Write-Host "Pushing to GitHub origin main..." -ForegroundColor Yellow
 git push origin main
