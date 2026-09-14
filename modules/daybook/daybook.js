@@ -15,7 +15,7 @@ import {
     saveLocalStateSafely,
     isItemDeleted
 } from '../core/state.js';
-import { syncToFirebase } from '../core/db.js';
+import { syncToFirebase, pullFromFirebase } from '../core/db.js';
 import { normalizeCosSale } from '../billing/billing-history.js';
 
 export function dashboardDateKey(v) {
@@ -34,7 +34,7 @@ export function setupDateFields() {
 }
 
 export function updateDayBookPresetButtons(preset) {
-    state.currentDayBookPreset = preset || 'today';
+    state.currentDayBookPreset = preset || 'all';
     const btnToday = document.getElementById('dayBookTabToday');
     const btnMonth = document.getElementById('dayBookTabMonth');
     const btnAll = document.getElementById('dayBookTabAll');
@@ -50,10 +50,19 @@ export function updateDayBookPresetButtons(preset) {
     if (btnAll) btnAll.className = (preset === 'all') ? activeClassAll : inactiveClass;
 
     if (periodBadge) {
-        if (preset === 'today') periodBadge.textContent = '📅 Today';
-        else if (preset === 'month') periodBadge.textContent = '🗓️ This Month';
-        else if (preset === 'all') periodBadge.textContent = '🌐 All Time';
-        else periodBadge.textContent = '🔍 Custom Range';
+        if (preset === 'today') {
+            periodBadge.textContent = '📅 Today';
+            periodBadge.className = 'text-[10px] text-purple-300 font-bold bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-800/40';
+        } else if (preset === 'month') {
+            periodBadge.textContent = '🗓️ This Month';
+            periodBadge.className = 'text-[10px] text-emerald-300 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-800/40';
+        } else if (preset === 'all') {
+            periodBadge.textContent = '🌐 All Time';
+            periodBadge.className = 'text-[10px] text-sky-300 font-bold bg-sky-950/60 px-2 py-0.5 rounded-md border border-sky-800/40';
+        } else {
+            periodBadge.textContent = '🔍 Custom Range';
+            periodBadge.className = 'text-[10px] text-amber-300 font-bold bg-amber-950/60 px-2 py-0.5 rounded-md border border-amber-800/40';
+        }
     }
 }
 
@@ -118,6 +127,29 @@ export function restoreClearedDayBook() {
     alert(`✅ Restored ${count} transaction(s) back to Day Book view.`);
 }
 
+export async function refreshDayBookRealtime() {
+    const refreshBtn = document.getElementById('dayBookRefreshBtn');
+    if (refreshBtn) {
+        refreshBtn.classList.add('animate-spin');
+        refreshBtn.disabled = true;
+    }
+    try {
+        ensureStableTransactionIds();
+        if (typeof pullFromFirebase === 'function') {
+            await pullFromFirebase();
+        }
+        renderAccounts();
+    } catch (e) {
+        console.error('Day Book refresh error:', e);
+        renderAccounts();
+    } finally {
+        if (refreshBtn) {
+            refreshBtn.classList.remove('animate-spin');
+            refreshBtn.disabled = false;
+        }
+    }
+}
+
 export function ensureStableTransactionIds() {
     let changed = false;
     const ensure = (arr, prefix) => {
@@ -128,7 +160,7 @@ export function ensureStableTransactionIds() {
                 changed = true;
             }
             if (!item.id) {
-                item.id = (item.billNo ? String(item.billNo) : (prefix + '_' + (item.savedAt || Date.now()) + '_' + i));
+                item.id = prefix + '_' + (item.billNo ? item.billNo + '_' : '') + (item.savedAt || Date.now()) + '_' + i;
                 changed = true;
             }
         });
@@ -146,15 +178,21 @@ export function ensureStableTransactionIds() {
 export function getAllMasterEntries() {
     ensureStableTransactionIds();
     let entries = [];
+
+    // 1. Cleaning & Combined Customer Bills
     (state.customers || []).forEach((c, i) => {
-        if (!c || c._deleted || isItemDeleted(c)) return;
-        let incomeVal = Number(c.grandTotal || c.paidAmount || 0);
-        const entryId = c.id ? ('bill_' + c.id) : (c.billNo ? ('bill_' + c.billNo + '_' + (c.savedAt || i)) : ('c_' + (c.savedAt || i)));
-        if (incomeVal > 0) {
-            const cleanDate = normalizeToDateKey(c.date) || normalizeToDateKey(c.savedAt) || getTodayDateString();
+        if (!c || c._deleted) return;
+        const safeItems = Array.isArray(c.items) ? c.items : (c.items && typeof c.items === 'object' ? Object.values(c.items) : []);
+        const itemsSum = safeItems.reduce((s, it) => s + (Number(it?.total || (Number(it?.price || it?.rate || 0) * Number(it?.qty || 1))) || 0), 0);
+        let incomeVal = Number(c.grandTotal !== undefined ? c.grandTotal : (c.netTotal !== undefined ? c.netTotal : (c.total !== undefined ? c.total : (c.paidAmount !== undefined ? c.paidAmount : itemsSum))));
+        if ((!incomeVal || incomeVal <= 0) && itemsSum > 0) incomeVal = itemsSum;
+
+        const entryId = 'bill_' + (c.id || (c.billNo ? String(c.billNo) : (c.savedAt || i)));
+        if (incomeVal > 0 || Number(c.paidAmount || 0) > 0) {
+            const cleanDate = normalizeToDateKey(c.date) || normalizeToDateKey(c.savedAt) || normalizeToDateKey(c.createdAt) || getTodayDateString();
             entries.push({
                 id: entryId,
-                originalId: c.id || c.billNo,
+                originalId: c.id || (c.billNo ? String(c.billNo) : entryId),
                 type: 'Income',
                 category: c.billType === 'Combined' ? 'Combined Sale' : 'Cleaning Sale',
                 desc: `${c.billType === 'Combined' ? 'Bill' : 'Cleaning Bill'} #${c.billNo || (i + 1)} (${c.name || 'Customer'})`,
@@ -167,88 +205,102 @@ export function getAllMasterEntries() {
             });
         }
     });
+
+    // 2. Cosmetics Sales Bills
     (state.cosSales || []).forEach((s, i) => {
-        if (!s || s._deleted || isItemDeleted(s)) return;
+        if (!s || s._deleted) return;
         const norm = normalizeCosSale(s) || {};
-        let incomeVal = Number(norm.grandTotal || norm.paidAmount || 0);
-        const entryId = s.id ? ('cossale_' + s.id) : (s.billNo ? ('cossale_' + s.billNo + '_' + (s.savedAt || i)) : ('cs_' + (s.savedAt || i)));
-        if (incomeVal > 0) {
-            const cleanDate = normalizeToDateKey(s.date) || normalizeToDateKey(s.savedAt) || getTodayDateString();
+        let incomeVal = Number(norm.grandTotal !== undefined ? norm.grandTotal : (norm.paidAmount || 0));
+        if ((!incomeVal || incomeVal <= 0) && Array.isArray(norm.items) && norm.items.length > 0) {
+            incomeVal = norm.items.reduce((sum, it) => sum + (Number(it?.total || (Number(it?.price || it?.rate || 0) * Number(it?.qty || 1))) || 0), 0);
+        }
+        const entryId = 'cossale_' + (s.id || (s.billNo ? String(s.billNo) : (s.savedAt || i)));
+        if (incomeVal > 0 || Number(norm.paidAmount || 0) > 0) {
+            const cleanDate = normalizeToDateKey(s.date) || normalizeToDateKey(s.savedAt) || normalizeToDateKey(s.createdAt) || getTodayDateString();
             entries.push({
                 id: entryId,
-                originalId: s.id || s.billNo,
+                originalId: s.id || (s.billNo ? String(s.billNo) : entryId),
                 type: 'Income',
                 category: 'Cosmetics Sale',
-                desc: `Cosmetics Bill #${s.billNo || (i + 1)} (${s.customer || s.name || 'Customer'})`,
+                desc: `Cosmetics Bill #${s.billNo || (i + 1)} (${norm.customer || s.customer || s.name || 'Customer'})`,
                 amount: incomeVal,
                 paidAmount: Number(norm.paidAmount !== undefined ? norm.paidAmount : (incomeVal - Number(norm.pendingAmount || 0))),
                 pendingAmount: Math.max(0, Number(norm.pendingAmount || 0)),
-                paymentMode: s.paymentMode || 'Cash',
+                paymentMode: norm.paymentMode || s.paymentMode || 'Cash',
                 date: cleanDate,
                 timestamp: Number(s.savedAt || s.createdAt || dateSortValue(cleanDate) || 0)
             });
         }
     });
+
+    // 3. Cleaning Purchases
     (state.purchases || []).forEach((p, i) => {
-        if (!p || p._deleted || isItemDeleted(p)) return;
-        const gross = Number(p.rawCost || p.paid || 0);
-        const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : gross;
-        const entryId = p.id ? ('purch_' + p.id) : ('p_' + (p.savedAt || i));
-        if (amount > 0 || gross > 0) {
-            const cleanDate = normalizeToDateKey(p.date) || normalizeToDateKey(p.savedAt) || getTodayDateString();
+        if (!p || p._deleted) return;
+        const gross = Number(p.rawCost !== undefined ? p.rawCost : (p.cost !== undefined ? p.cost : (p.amount !== undefined ? p.amount : (p.paid || 0))));
+        const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : (gross || Number(p.paid || 0));
+        const entryId = 'purch_' + (p.id || (p.savedAt || i));
+        if (amount > 0 || gross > 0 || Number(p.paid || 0) > 0) {
+            const cleanDate = normalizeToDateKey(p.date) || normalizeToDateKey(p.savedAt) || normalizeToDateKey(p.createdAt) || getTodayDateString();
             entries.push({
                 id: entryId,
-                originalId: p.id,
+                originalId: p.id || entryId,
                 type: 'Expense',
                 category: 'Purchase',
-                desc: `Purchase: ${p.rawMaterial || 'Item'} (${p.supplierName || 'Supplier'})${p.returnedQty > 0 ? ` [↩️ Ret: ${p.returnedQty} ${p.rawUnit || ''}]` : ''}`,
+                desc: `Purchase: ${p.rawMaterial || p.item || 'Raw Material'} (${p.supplierName || p.supplier || 'Supplier'})${p.returnedQty > 0 ? ` [↩️ Ret: ${p.returnedQty} ${p.rawUnit || ''}]` : ''}`,
                 amount,
                 paidAmount: Number(p.paid || 0),
-                pendingAmount: Math.max(0, Number(p.netBalance ?? p.balance ?? 0)),
+                pendingAmount: Math.max(0, Number(p.netBalance !== undefined ? p.netBalance : (p.balance !== undefined ? p.balance : (amount - Number(p.paid || 0))))),
                 date: cleanDate,
-                timestamp: Number(p.savedAt || dateSortValue(cleanDate) || 0)
+                timestamp: Number(p.savedAt || p.createdAt || dateSortValue(cleanDate) || 0)
             });
         }
     });
+
+    // 4. Cosmetics Purchases
     (state.cosPurchases || []).forEach((p, i) => {
-        if (!p || p._deleted || isItemDeleted(p)) return;
-        const gross = Number(p.amount || p.paid || 0);
-        const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : gross;
-        const entryId = p.id ? ('cospurch_' + p.id) : ('cp_' + (p.savedAt || i));
-        if (amount > 0 || gross > 0) {
-            const cleanDate = normalizeToDateKey(p.date) || normalizeToDateKey(p.savedAt) || getTodayDateString();
+        if (!p || p._deleted) return;
+        const gross = Number(p.amount !== undefined ? p.amount : (p.cost !== undefined ? p.cost : (p.total !== undefined ? p.total : (p.paid || 0))));
+        const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : (gross || Number(p.paid || 0));
+        const entryId = 'cospurch_' + (p.id || (p.savedAt || i));
+        if (amount > 0 || gross > 0 || Number(p.paid || 0) > 0) {
+            const cleanDate = normalizeToDateKey(p.date) || normalizeToDateKey(p.savedAt) || normalizeToDateKey(p.createdAt) || getTodayDateString();
             entries.push({
                 id: entryId,
-                originalId: p.id,
+                originalId: p.id || entryId,
                 type: 'Expense',
                 category: 'Cosmetics Purchase',
                 desc: `Cosmetics Purchase: ${p.item || 'Item'} (${p.supplier || 'Supplier'})${p.returnedQty > 0 ? ` [↩️ Ret: ${p.returnedQty} ${p.unit || ''}]` : ''}`,
                 amount,
                 paidAmount: Number(p.paid || 0),
-                pendingAmount: Math.max(0, Number(p.netBalance ?? p.balance ?? 0)),
+                pendingAmount: Math.max(0, Number(p.netBalance !== undefined ? p.netBalance : (p.balance !== undefined ? p.balance : (amount - Number(p.paid || 0))))),
                 date: cleanDate,
-                timestamp: Number(p.savedAt || dateSortValue(cleanDate) || 0)
+                timestamp: Number(p.savedAt || p.createdAt || dateSortValue(cleanDate) || 0)
             });
         }
     });
+
+    // 5. Operating Expenses
     (state.expenses || []).forEach((ex, i) => {
-        if (!ex || ex._deleted || isItemDeleted(ex)) return;
-        const amount = Number(ex.amount || 0);
-        const entryId = ex.id ? ('exp_' + ex.id) : ('e_' + (ex.savedAt || i));
+        if (!ex || ex._deleted) return;
+        const amount = Number(ex.amount !== undefined ? ex.amount : (ex.cost !== undefined ? ex.cost : 0));
+        const entryId = 'exp_' + (ex.id || (ex.savedAt || i));
         if (amount > 0) {
-            const cleanDate = normalizeToDateKey(ex.date) || normalizeToDateKey(ex.savedAt) || getTodayDateString();
+            const cleanDate = normalizeToDateKey(ex.date) || normalizeToDateKey(ex.savedAt) || normalizeToDateKey(ex.createdAt) || getTodayDateString();
             entries.push({
                 id: entryId,
-                originalId: ex.id,
+                originalId: ex.id || entryId,
                 type: 'Expense',
                 category: 'Expense',
-                desc: `Expense: ${ex.title || 'General Expense'}`,
+                desc: `Expense: ${ex.title || ex.category || 'General Expense'}`,
                 amount,
+                paidAmount: amount,
+                pendingAmount: 0,
                 date: cleanDate,
-                timestamp: Number(ex.savedAt || dateSortValue(cleanDate) || 0)
+                timestamp: Number(ex.savedAt || ex.createdAt || dateSortValue(cleanDate) || 0)
             });
         }
     });
+
     return entries;
 }
 
@@ -262,6 +314,7 @@ export function clearDayBook() {
             if (!state.clearedDayBookEntries.includes(e.id)) state.clearedDayBookEntries.push(e.id);
         }
     });
+    saveLocalStateSafely();
     syncToFirebase();
     renderAccounts();
 }
@@ -272,6 +325,7 @@ export function deleteDayBookEntry(id) {
     if (!state.clearedDayBookEntries.includes(id)) {
         state.clearedDayBookEntries.push(id);
     }
+    saveLocalStateSafely();
     syncToFirebase();
     renderAccounts();
 }
@@ -303,10 +357,11 @@ export function renderAccounts() {
 
     const fromDate = normalizeToDateKey(fromEl?.value);
     const toDate = normalizeToDateKey(toEl?.value);
+    const allEntries = getAllMasterEntries();
 
     // Filter by date range and exclude cleared entries
-    let filtered = getAllMasterEntries().filter(e => {
-        if (state.clearedDayBookEntries.includes(e.id) || (e.originalId && state.clearedDayBookEntries.includes(e.originalId))) return false;
+    let filtered = allEntries.filter(e => {
+        if (state.clearedDayBookEntries && state.clearedDayBookEntries.includes(e.id)) return false;
         const ed = normalizeToDateKey(e.date);
         if (fromDate && ed && ed < fromDate) return false;
         if (toDate && ed && ed > toDate) return false;
@@ -351,6 +406,7 @@ export function renderAccounts() {
     const incomeRatioText = document.getElementById('dbIncomeRatioText');
     const expenseRatioText = document.getElementById('dbExpenseRatioText');
     const restoreBtn = document.getElementById('restoreDayBookBtn');
+    const clearedBanner = document.getElementById('dayBookClearedBanner');
     const headingEl = document.getElementById('dayBookEntriesHeading');
 
     if (headingEl) headingEl.textContent = `Filtered Day Book Entries (${filtered.length})`;
@@ -361,6 +417,20 @@ export function renderAccounts() {
             restoreBtn.textContent = `🔄 Restore (${state.clearedDayBookEntries.length})`;
         } else {
             restoreBtn.classList.add('hidden');
+        }
+    }
+
+    if (clearedBanner) {
+        if (state.clearedDayBookEntries && state.clearedDayBookEntries.length > 0) {
+            clearedBanner.classList.remove('hidden');
+            clearedBanner.innerHTML = `
+                <div class="bg-amber-950/60 border border-amber-800/70 p-2.5 rounded-xl flex items-center justify-between text-xs text-amber-200">
+                    <span>⚠️ <b>${state.clearedDayBookEntries.length}</b> transaction(s) are hidden from Day Book view.</span>
+                    <button type="button" onclick="restoreClearedDayBook()" class="bg-amber-700 hover:bg-amber-600 text-white px-3 py-1 rounded-lg text-[11px] font-bold shadow transition cursor-pointer">Restore All</button>
+                </div>`;
+        } else {
+            clearedBanner.classList.add('hidden');
+            clearedBanner.innerHTML = '';
         }
     }
 
@@ -402,7 +472,7 @@ export function renderAccounts() {
     if (expProgressBar) expProgressBar.style.width = expPct + '%';
 
     // Financial Cards: Sales, Collection, Due & Expense
-    const periodLabel = (state.currentDayBookPreset === 'today') ? "Today's" : (state.currentDayBookPreset === 'month' ? "This Month" : "Period");
+    const periodLabel = (state.currentDayBookPreset === 'today') ? "Today's" : (state.currentDayBookPreset === 'month' ? "This Month" : "Total");
     const summaryEl = document.getElementById('accountsSummaryContainer');
     if (summaryEl) {
         summaryEl.innerHTML = `
@@ -438,15 +508,17 @@ export function renderAccounts() {
     const listContainer = document.getElementById('dayBookListContainer');
     if (!listContainer) return;
     if (filtered.length === 0) {
+        const totalMasterCount = allEntries.length;
         const clearedNote = (state.clearedDayBookEntries && state.clearedDayBookEntries.length > 0)
             ? `<div class="mt-2 text-amber-300 text-[11px] bg-amber-950/40 p-2 rounded-lg border border-amber-800/40">⚠️ ${state.clearedDayBookEntries.length} transaction(s) are currently marked as cleared. <button type="button" onclick="restoreClearedDayBook()" class="underline font-bold text-amber-200 ml-1 hover:text-white">Click here to restore</button></div>`
             : '';
         listContainer.innerHTML = `
             <div class="bg-slate-950/40 border border-slate-800/70 p-6 rounded-2xl text-center space-y-2">
                 <div class="text-2xl">📋</div>
-                <p class="text-xs text-slate-400 font-medium">No transactions found for the selected period.</p>
-                <div class="flex justify-center gap-2 pt-1">
-                    <button type="button" onclick="setFilterPreset('all')" class="text-[11px] bg-sky-900/60 text-sky-300 border border-sky-700/60 px-3 py-1.5 rounded-lg hover:bg-sky-800 transition font-bold">🌐 Show All Time</button>
+                <p class="text-xs text-slate-300 font-bold">No transactions found for the selected filter period.</p>
+                ${totalMasterCount > 0 ? `<p class="text-[11px] text-slate-400">You have <span class="text-white font-bold">${totalMasterCount}</span> total transaction(s) in your system.</p>` : `<p class="text-[11px] text-slate-400">No transactions have been recorded yet.</p>`}
+                <div class="flex justify-center gap-2 pt-2">
+                    ${totalMasterCount > 0 ? `<button type="button" onclick="setFilterPreset('all')" class="text-xs bg-sky-600 hover:bg-sky-500 text-white font-extrabold px-4 py-2 rounded-xl shadow-md transition cursor-pointer">🌐 Show All Transactions (${totalMasterCount})</button>` : ''}
                 </div>
                 ${clearedNote}
             </div>`;
@@ -548,6 +620,7 @@ if (typeof window !== 'undefined') {
     window.deleteDayBookEntry = deleteDayBookEntry;
     window.saveDayBookOpeningValues = saveDayBookOpeningValues;
     window.renderAccounts = renderAccounts;
+    window.refreshDayBookRealtime = refreshDayBookRealtime;
     window.exportDayBookToCSV = exportDayBookToCSV;
     window.exportDayBookToExcel = exportDayBookToCSV;
 }

@@ -24,7 +24,7 @@ export const state = {
     appPin: "1234",
     isLoggedIn: false,
     isFirebaseConnected: false,
-    currentDayBookPreset: 'today',
+    currentDayBookPreset: 'all',
     currentBillItems: [],
     currentCosBillItems: [],
     activePreviewCustomer: null,
@@ -136,26 +136,22 @@ export function isRecordDeleted(type, item) {
 // -------------------------------------------------------------
 export function formatDateDDMMYYYY(dateValue) {
     if (!dateValue) return '';
-    if (typeof dateValue === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(dateValue.trim())) {
-        return dateValue.trim();
+    const dateKey = normalizeToDateKey(dateValue);
+    if (dateKey && /^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+        const [y, m, d] = dateKey.split('-');
+        return `${d}/${m}/${y}`;
     }
-    const date = new Date(dateValue);
-    if (isNaN(date.getTime())) return String(dateValue);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    return String(dateValue);
 }
 
 export function parseDateDDMMYYYY(value) {
-    if (!value || typeof value !== 'string') return null;
-    const parts = value.trim().split('/');
-    if (parts.length !== 3) return null;
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    const date = new Date(year, month, day);
-    return isNaN(date.getTime()) ? null : date;
+    if (!value) return null;
+    const dateKey = normalizeToDateKey(value);
+    if (dateKey && /^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+        const [y, m, d] = dateKey.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+    return null;
 }
 
 export function getTodayDateString() {
@@ -175,20 +171,55 @@ export function todayDDMMYYYY() {
 }
 
 export function normalizeToDateKey(v) {
-    if (!v) return '';
-    v = String(v).trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
-        const parts = v.split('/');
-        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    if (v === null || v === undefined || v === '') return '';
+    if (v instanceof Date) {
+        if (isNaN(v.getTime())) return '';
+        const y = v.getFullYear();
+        const m = String(v.getMonth() + 1).padStart(2, '0');
+        const day = String(v.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
     }
-    const d = new Date(v);
+    if (typeof v === 'number' || (/^\d{9,15}$/.test(String(v).trim()))) {
+        const num = Number(v);
+        const ms = num < 1e11 ? num * 1000 : num;
+        const d = new Date(ms);
+        if (!isNaN(d.getTime())) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+    }
+    const str = String(v).trim();
+    if (!str) return '';
+
+    // If starts with YYYY-MM-DD or YYYY/MM/DD
+    const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (isoMatch) {
+        const y = isoMatch[1];
+        const m = isoMatch[2].padStart(2, '0');
+        const d = isoMatch[3].padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    // If DD/MM/YYYY or DD-MM-YYYY or D/M/YYYY or D-M-YYYY
+    const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (dmyMatch) {
+        const d = dmyMatch[1].padStart(2, '0');
+        const m = dmyMatch[2].padStart(2, '0');
+        const y = dmyMatch[3];
+        return `${y}-${m}-${d}`;
+    }
+
+    // Fallback standard Date parsing
+    const d = new Date(str);
     if (!isNaN(d.getTime())) {
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         return `${y}-${m}-${day}`;
     }
+
     return '';
 }
 
