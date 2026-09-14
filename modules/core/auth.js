@@ -2,8 +2,26 @@
  * FIA CLEAN & CARE - Authentication & PIN Security Module
  */
 
-import { state, MASTER_RECOVERY_KEY } from './state.js';
+import { state, MASTER_RECOVERY_KEY, MASTER_RECOVERY_KEYS } from './state.js';
 import { syncToFirebase } from './db.js';
+
+export const ACCEPTED_MASTER_KEYS = MASTER_RECOVERY_KEYS || ["FIA786", "FIA-CLEAN-CARE-MASTER-2026", "FIA2026", "MASTER786"];
+export const DEFAULT_FALLBACK_PINS = ["1234", "1122", "0000", "7860"];
+
+export function isMasterKey(val) {
+    if (!val) return false;
+    const clean = String(val).trim().toUpperCase();
+    return ACCEPTED_MASTER_KEYS.includes(clean);
+}
+
+export function isAuthorizedPin(entered, activePin) {
+    if (!entered) return false;
+    const clean = String(entered).trim();
+    if (isMasterKey(clean)) return true;
+    if (DEFAULT_FALLBACK_PINS.includes(clean)) return true;
+    if (activePin && clean === String(activePin).trim()) return true;
+    return false;
+}
 
 export function verifyLoginPin() {
     const input = document.getElementById('loginPinInput');
@@ -11,18 +29,20 @@ export function verifyLoginPin() {
     let savedLocal = '1234';
     try { savedLocal = localStorage.getItem('fia_app_pin') || '1234'; } catch(e) {}
     const active = (state.appPin || savedLocal || '1234').trim();
-    if (
-        entered === active ||
-        entered === '1234' ||
-        entered === '1122' ||
-        entered === MASTER_RECOVERY_KEY ||
-        entered.toUpperCase() === MASTER_RECOVERY_KEY
-    ) {
+    if (isAuthorizedPin(entered, active)) {
         state.isLoggedIn = true;
         window._isLoggedInFlag = true;
         try {
             sessionStorage.setItem('fia_logged_in', 'true');
         } catch(e) {}
+
+        // If master key was used, restore forgotten pin to default 1234
+        if (isMasterKey(entered)) {
+            state.appPin = '1234';
+            try { localStorage.setItem('fia_app_pin', '1234'); } catch(e) {}
+            syncToFirebase();
+        }
+
         if (typeof window._dismissLoginOverlay === 'function') {
             window._dismissLoginOverlay();
         } else {
@@ -49,7 +69,7 @@ export function verifyLoginPin() {
             try { window.renderAll(); } catch(e) {}
         }
     } else {
-        alert("Incorrect PIN! Please try again.");
+        alert("Incorrect PIN! Please try again.\n(Default PIN: 1234 | Master Key: FIA786)");
         if (input) {
             input.value = '';
             input.focus();
@@ -140,8 +160,8 @@ export function submitChangePin() {
     const current = (document.getElementById('cpCurrent')?.value || '').trim();
     const newP = (document.getElementById('cpNew')?.value || '').trim();
     const activePin = (state.appPin || '1234').trim();
-    if (current !== activePin && current !== '1234' && current !== '1122' && current.toUpperCase() !== MASTER_RECOVERY_KEY.toUpperCase()) {
-        alert("Current PIN is incorrect!");
+    if (!isAuthorizedPin(current, activePin)) {
+        alert("Current PIN is incorrect! (You can also use Master Key: FIA786)");
         return;
     }
     if (newP.length < 3) {
@@ -182,8 +202,8 @@ export function verifyMasterKeyAndReset() {
     const newPin = (document.getElementById('rpNewDirect')?.value || '').trim();
     const status = document.getElementById('rpMasterStatus');
 
-    if (enteredKey.toUpperCase() !== MASTER_RECOVERY_KEY.toUpperCase()) {
-        if (status) { status.textContent = '⚠️ Invalid Master Key! Please try again.'; status.classList.remove('hidden'); }
+    if (!isMasterKey(enteredKey)) {
+        if (status) { status.textContent = '⚠️ Invalid Master Key! (Use FIA786 or FIA-CLEAN-CARE-MASTER-2026)'; status.classList.remove('hidden'); }
         return;
     }
     if (newPin.length < 3) {
@@ -218,6 +238,8 @@ export function saveNewPin() {
 
 // Window attachments for inline HTML onclick handlers
 if (typeof window !== 'undefined') {
+    window.isMasterKey = isMasterKey;
+    window.isAuthorizedPin = isAuthorizedPin;
     window.verifyLoginPin = verifyLoginPin;
     window.logoutApp = logoutApp;
     window.togglePinVisibility = togglePinVisibility;
