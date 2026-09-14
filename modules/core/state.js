@@ -215,6 +215,7 @@ export function sortByNameAsc(list, field = 'name') {
 // Product Normalization
 // -------------------------------------------------------------
 export function normalizeLoadedProducts() {
+    let sanitizedNegativeStock = false;
     (state.products || []).forEach(p => {
         if (!p) return;
         const r = parseFloat(p.retailPrice);
@@ -224,6 +225,15 @@ export function normalizeLoadedProducts() {
         const w = parseFloat(p.wholesalePrice);
         const c = parseFloat(p.costPrice || p.price1);
         if (!Number.isFinite(w) && Number.isFinite(c)) p.wholesalePrice = c;
+
+        // Stock hygiene: fix negative stock caused by unit factor bug
+        const st = parseFloat(p.stock);
+        if (Number.isFinite(st) && st < 0) {
+            console.warn(`Sanitizing negative stock for "${p.name}": was ${st}, reset to 0`);
+            p.stock = 0;
+            p.savedAt = Date.now();
+            sanitizedNegativeStock = true;
+        }
     });
     (state.cosProducts || []).forEach(p => {
         if (!p) return;
@@ -236,7 +246,28 @@ export function normalizeLoadedProducts() {
         const r = parseFloat(p.retailPrice);
         if (!Number.isFinite(r) && Number.isFinite(s)) p.retailPrice = s;
         if (!Number.isFinite(s) && Number.isFinite(r)) p.salePrice = r;
+
+        // Stock hygiene: fix negative stock
+        const st = parseFloat(p.stock);
+        if (Number.isFinite(st) && st < 0) {
+            console.warn(`Sanitizing negative stock for cosmetics "${p.name}": was ${st}, reset to 0`);
+            p.stock = 0;
+            p.savedAt = Date.now();
+            sanitizedNegativeStock = true;
+        }
     });
+    (state.packages || []).forEach(pkg => {
+        if (!pkg) return;
+        const st = parseFloat(pkg.stock);
+        if (Number.isFinite(st) && st < 0) {
+            pkg.stock = 0;
+            pkg.savedAt = Date.now();
+            sanitizedNegativeStock = true;
+        }
+    });
+    if (sanitizedNegativeStock) {
+        saveLocalStateSafely();
+    }
 }
 
 // -------------------------------------------------------------

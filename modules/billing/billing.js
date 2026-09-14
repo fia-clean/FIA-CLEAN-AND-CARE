@@ -451,10 +451,20 @@ export function onBillQtyOrUnitChange() {
     calculateItemTotal();
 }
 
+export function normalizeUnitCategory(unit) {
+    let u = String(unit || '').toLowerCase().trim();
+    u = u.replace(/^[\d.,\s]+/, '').trim();
+    if (['l', 'ltr', 'litre', 'liter', 'litres', 'liters'].includes(u)) return 'l';
+    if (['ml', 'millilitre', 'milliliter', 'millilitres', 'milliliters'].includes(u)) return 'ml';
+    if (['kg', 'kilogram', 'kilograms'].includes(u)) return 'kg';
+    if (['g', 'gm', 'gram', 'grams'].includes(u)) return 'g';
+    if (['pcs', 'pc', 'piece', 'pieces', 'bottle', 'bottles', 'box', 'boxes', 'pack', 'packs', 'standard', 'unit', 'units'].includes(u)) return 'pcs';
+    return u;
+}
+
 export function getBillingUnitFactor(selectedUnit, baseUnit) {
-    const norm = u => String(u || '').toLowerCase().trim();
-    const s = norm(selectedUnit);
-    const b = norm(baseUnit);
+    const s = normalizeUnitCategory(selectedUnit);
+    const b = normalizeUnitCategory(baseUnit);
     if (s === b) return 1;
     if (s === 'ml' && b === 'l') return 0.001;
     if (s === 'l' && b === 'ml') return 1000;
@@ -564,6 +574,34 @@ export function addToBillItems() {
         packageInfo = getProductPackageInfo(product);
     }
 
+    // Strict Bulk Stock Check
+    if (product) {
+        const currentStock = Number(product.stock || 0);
+        const alreadyAdded = state.currentBillItems
+            .filter(i => (i.stockId && product.id && String(i.stockId) === String(product.id)) || i.productName === product.name)
+            .reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
+        const totalNeeded = Number((alreadyAdded + stockDeductionQty).toFixed(3));
+        if (totalNeeded > currentStock) {
+            const avail = Math.max(0, currentStock - alreadyAdded);
+            alert(`⚠️ ഇൻസഫിഷ്യന്റ് സ്റ്റോക്ക് (Insufficient Stock)!\n\nഉൽപ്പന്നം: ${product.name}\nലഭ്യമായ സ്റ്റോക്ക്: ${currentStock.toFixed(2)} ${product.unit || ''}\nഇതിനകം ചേർത്തത്: ${alreadyAdded.toFixed(2)} ${product.unit || ''}\nഇപ്പോൾ ആവശ്യമായത്: ${stockDeductionQty.toFixed(2)} ${product.unit || ''}\nബാക്കി നൽകാവുന്നത്: ${avail.toFixed(2)} ${product.unit || ''}`);
+            return;
+        }
+    }
+
+    // Strict Packaging Stock Check
+    if (packageInfo && packageInfo.pkg) {
+        const pkg = packageInfo.pkg;
+        const currentPkgStock = Number(pkg.stock || 0);
+        const alreadyAddedPkg = state.currentBillItems
+            .filter(i => String(i.packageId) === String(pkg.id))
+            .reduce((sum, i) => sum + Number(i.numberOfUnits || 1), 0);
+        const totalNeededPkg = alreadyAddedPkg + numberOfUnits;
+        if (totalNeededPkg > currentPkgStock) {
+            alert(`⚠️ കണ്ടെയ്‌നർ പാക്കേജിംഗ് സ്റ്റോക്ക് ലഭ്യമല്ല!\n\nകണ്ടെയ്‌നർ: ${pkg.name}\nലഭ്യമായ സ്റ്റോക്ക്: ${currentPkgStock} ${pkg.unit || 'Pcs'}\nആവശ്യമായത്: ${totalNeededPkg} ${pkg.unit || 'Pcs'}`);
+            return;
+        }
+    }
+
     const total = numberOfUnits * rate;
 
     state.currentBillItems.push({
@@ -606,12 +644,43 @@ export function editBillItem(index) {
     if (!Number.isFinite(newRate) || newRate < 0) { alert('Please enter a valid rate.'); return; }
     
     const perUnitBulk = (Number(item.stockDeductionQty) || 0) / (Number(item.numberOfUnits) || 1);
+    const newStockDeduction = perUnitBulk * newUnits;
+
+    // Check product stock limit
+    const product = findUnifiedProduct(item.productName);
+    if (product) {
+        const currentStock = Number(product.stock || 0);
+        const otherItemsStock = state.currentBillItems
+            .filter((_, idx) => idx !== index)
+            .filter(i => (i.stockId && product.id && String(i.stockId) === String(product.id)) || i.productName === product.name)
+            .reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
+        if (otherItemsStock + newStockDeduction > currentStock) {
+            alert(`⚠️ ഇൻസഫിഷ്യന്റ് സ്റ്റോക്ക്!\n\nലഭ്യമായ സ്റ്റോക്ക്: ${currentStock} ${product.unit || ''}\nആവശ്യമായത്: ${(otherItemsStock + newStockDeduction).toFixed(2)} ${product.unit || ''}`);
+            return;
+        }
+    }
+
+    if (item.packageId) {
+        const pkg = (state.packages || []).find(p => String(p.id) === String(item.packageId));
+        if (pkg) {
+            const currentPkgStock = Number(pkg.stock || 0);
+            const otherPkgUnits = state.currentBillItems
+                .filter((_, idx) => idx !== index)
+                .filter(i => String(i.packageId) === String(pkg.id))
+                .reduce((sum, i) => sum + Number(i.numberOfUnits || 1), 0);
+            if (otherPkgUnits + newUnits > currentPkgStock) {
+                alert(`⚠️ കണ്ടെയ്‌നർ പാക്കേജിംഗ് സ്റ്റോക്ക് ലഭ്യമല്ല!\n\nകണ്ടെയ്‌നർ: ${pkg.name}\nലഭ്യമായ സ്റ്റോക്ക്: ${currentPkgStock} ${pkg.unit || 'Pcs'}\nആവശ്യമായത്: ${otherPkgUnits + newUnits} ${pkg.unit || 'Pcs'}`);
+                return;
+            }
+        }
+    }
+
     state.currentBillItems[index] = {
         ...item,
         numberOfUnits: newUnits,
         rate: newRate,
         total: newUnits * newRate,
-        stockDeductionQty: perUnitBulk * newUnits
+        stockDeductionQty: newStockDeduction
     };
     state.currentBillItems = sortBillItemsAlphabetically(state.currentBillItems);
     renderBillPreviewInput();
@@ -724,10 +793,65 @@ export function saveCustomer(e) {
         });
     }
 
+    // Comprehensive Pre-Check: Validate bulk stock sufficiency for all bill items
+    const stockDeficits = [];
+    const bulkNeededByProd = new Map();
     state.currentBillItems.forEach(item => {
         const rec = getStockProductRecord(item);
         if (rec && rec.product) {
-            rec.product.stock = (parseFloat(rec.product.stock) || 0) - (parseFloat(item.stockDeductionQty) || 0);
+            const key = String(rec.product.id || rec.product.name);
+            const cur = bulkNeededByProd.get(key) || { product: rec.product, needed: 0 };
+            cur.needed += Number(item.stockDeductionQty || 0);
+            bulkNeededByProd.set(key, cur);
+        }
+    });
+
+    for (const [_, info] of bulkNeededByProd) {
+        const avail = Number(info.product.stock || 0);
+        if (info.needed > avail) {
+            stockDeficits.push(`• ${info.product.name}: ആവശ്യമായത് ${info.needed.toFixed(2)} ${info.product.unit || ''}, ലഭ്യമായത് ${avail.toFixed(2)} ${info.product.unit || ''}`);
+        }
+    }
+
+    // Comprehensive Pre-Check: Validate container packaging stock
+    const pkgNeededById = new Map();
+    state.currentBillItems.forEach(item => {
+        if (!item.packageId) return;
+        const pkg = (state.packages || []).find(p => String(p.id) === String(item.packageId));
+        if (pkg) {
+            const key = String(pkg.id);
+            const cur = pkgNeededById.get(key) || { pkg, needed: 0 };
+            cur.needed += Number(item.numberOfUnits || 1);
+            pkgNeededById.set(key, cur);
+        }
+    });
+
+    for (const [_, info] of pkgNeededById) {
+        const avail = Number(info.pkg.stock || 0);
+        if (info.needed > avail) {
+            stockDeficits.push(`• കണ്ടെയ്‌നർ (${info.pkg.name}): ആവശ്യമായത് ${info.needed} ${info.pkg.unit || 'Pcs'}, ലഭ്യമായത് ${avail} ${info.pkg.unit || 'Pcs'}`);
+        }
+    }
+
+    if (stockDeficits.length > 0) {
+        if (oldBill) {
+            checkAndDeductPackageStock(oldBill.items || []);
+            (oldBill.items || []).forEach(oldItem => {
+                const rec = getStockProductRecord(oldItem);
+                if (rec && rec.product) {
+                    rec.product.stock = Math.max(0, (parseFloat(rec.product.stock) || 0) - (parseFloat(oldItem.stockDeductionQty || oldItem.qty) || 0));
+                    rec.product.savedAt = Date.now();
+                }
+            });
+        }
+        alert(`⚠️ ബില്ലിംഗ് പൂർത്തിയാക്കാൻ സാധ്യമല്ല!\nചില ഉൽപ്പന്നങ്ങൾക്ക് ആവശ്യമായ സ്റ്റോക്ക് ലഭ്യമല്ല (Insufficient Stock):\n\n${stockDeficits.join('\n')}\n\nദയവായി അളവ് ക്രമീകരിക്കുകയോ സ്റ്റോക്ക് ചേർക്കുകയോ ചെയ്യുക.`);
+        return;
+    }
+
+    state.currentBillItems.forEach(item => {
+        const rec = getStockProductRecord(item);
+        if (rec && rec.product) {
+            rec.product.stock = Math.max(0, (parseFloat(rec.product.stock) || 0) - (parseFloat(item.stockDeductionQty) || 0));
             rec.product.savedAt = Date.now();
         }
     });
@@ -1067,19 +1191,27 @@ export function restoreCosSaleStock(s) {
 }
 
 export function deductCosSaleStock(items) {
+    const totalDeductionByProduct = new Map();
     for (const item of items) {
         if (!item.stockId) continue;
         const p = (state.cosProducts || []).find(x => x.id === item.stockId);
         if (!p) continue;
         const deduction = parseFloat(item.stockDeductionQty ?? item.qty) || 0;
-        const current = parseFloat(p.stock) || 0;
-        if (deduction > current) return { ok: false, product: p, available: current, requested: deduction };
+        const currentTotal = totalDeductionByProduct.get(p.id) || { product: p, totalNeeded: 0 };
+        currentTotal.totalNeeded += deduction;
+        totalDeductionByProduct.set(p.id, currentTotal);
+    }
+    for (const [_, info] of totalDeductionByProduct) {
+        const current = parseFloat(info.product.stock) || 0;
+        if (info.totalNeeded > current) {
+            return { ok: false, product: info.product, available: current, requested: info.totalNeeded };
+        }
     }
     items.forEach(item => {
         if (!item.stockId) return;
         const p = (state.cosProducts || []).find(x => x.id === item.stockId);
         if (p) {
-            p.stock = (parseFloat(p.stock) || 0) - (parseFloat(item.stockDeductionQty ?? item.qty) || 0);
+            p.stock = Math.max(0, (parseFloat(p.stock) || 0) - (parseFloat(item.stockDeductionQty ?? item.qty) || 0));
             p.savedAt = Date.now();
         }
     });
@@ -1752,20 +1884,63 @@ export function saveCombinedBill(e) {
             if (p) p.stock += Number(old.stockDeductionQty || old.qty || 0);
         });
     }
-    const packageDeduction = checkAndDeductPackageStock(state.currentBillItems);
-    if (!packageDeduction.ok) {
-        if (idx >= 0 && state.customers[idx]?.items) {
-            (state.customers[idx].items || []).forEach(old => {
-                const p = combinedStockRecord(old);
-                if (p) p.stock -= Number(old.stockDeductionQty || old.qty || 0);
-            });
-        }
-        alert(`Insufficient package stock for ${packageDeduction.pkg?.name || 'packaging item'}. Available: ${packageDeduction.pkg?.stock || 0}`);
-        return;
-    }
+
+    // Comprehensive Pre-Check: Validate bulk stock & package stock
+    const combinedDeficits = [];
+    const bulkNeeded = new Map();
     state.currentBillItems.forEach(item => {
         const p = combinedStockRecord(item);
-        if (p) p.stock -= Number(item.stockDeductionQty || 0);
+        if (p) {
+            const key = String(p.id || p.name);
+            const cur = bulkNeeded.get(key) || { product: p, needed: 0 };
+            cur.needed += Number(item.stockDeductionQty || 0);
+            bulkNeeded.set(key, cur);
+        }
+    });
+    for (const [_, info] of bulkNeeded) {
+        const avail = Number(info.product.stock || 0);
+        if (info.needed > avail) {
+            combinedDeficits.push(`• ${info.product.name}: ആവശ്യമായത് ${info.needed.toFixed(2)} ${info.product.unit || ''}, ലഭ്യമായത് ${avail.toFixed(2)} ${info.product.unit || ''}`);
+        }
+    }
+
+    const pkgNeeded = new Map();
+    state.currentBillItems.forEach(item => {
+        if (!item.packageId) return;
+        const pkg = (state.packages || []).find(p => String(p.id) === String(item.packageId));
+        if (pkg) {
+            const key = String(pkg.id);
+            const cur = pkgNeeded.get(key) || { pkg, needed: 0 };
+            cur.needed += Number(item.numberOfUnits || 1);
+            pkgNeeded.set(key, cur);
+        }
+    });
+    for (const [_, info] of pkgNeeded) {
+        const avail = Number(info.pkg.stock || 0);
+        if (info.needed > avail) {
+            combinedDeficits.push(`• കണ്ടെയ്‌നർ (${info.pkg.name}): ആവശ്യമായത് ${info.needed} ${info.pkg.unit || 'Pcs'}, ലഭ്യമായത് ${avail} ${info.pkg.unit || 'Pcs'}`);
+        }
+    }
+
+    if (combinedDeficits.length > 0) {
+        if (idx >= 0 && state.customers[idx]?.items) {
+            checkAndDeductPackageStock(state.customers[idx].items);
+            state.customers[idx].items.forEach(old => {
+                const p = combinedStockRecord(old);
+                if (p) p.stock = Math.max(0, (Number(p.stock) || 0) - Number(old.stockDeductionQty || old.qty || 0));
+            });
+        }
+        alert(`⚠️ ബില്ലിംഗ് പൂർത്തിയാക്കാൻ സാധ്യമല്ല!\nചില ഉൽപ്പന്നങ്ങൾക്ക് ആവശ്യമായ സ്റ്റോക്ക് ലഭ്യമല്ല (Insufficient Stock):\n\n${combinedDeficits.join('\n')}\n\nദയവായി അളവ് ക്രമീകരിക്കുകയോ സ്റ്റോക്ക് ചേർക്കുകയോ ചെയ്യുക.`);
+        return;
+    }
+
+    checkAndDeductPackageStock(state.currentBillItems);
+    state.currentBillItems.forEach(item => {
+        const p = combinedStockRecord(item);
+        if (p) {
+            p.stock = Math.max(0, Number(p.stock || 0) - Number(item.stockDeductionQty || 0));
+            p.savedAt = Date.now();
+        }
     });
 
     const total = state.currentBillItems.reduce((s, i) => s + Number(i.total || 0), 0);

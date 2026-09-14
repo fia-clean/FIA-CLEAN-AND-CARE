@@ -291,9 +291,173 @@ export function previewCosSaleBill(saleOrIdentifier) {
     }
 }
 
+export function generateA4PrintHTML(c) {
+    if (!c) return '';
+    const saleTypeStr = (c.saleType || 'Retail').toUpperCase();
+    const isWholesale = saleTypeStr === 'WHOLESALE';
+    const isCosmetics = String(c.billNo || '').toUpperCase().startsWith('COS') || c.category === 'Cosmetics';
+    const themeColor = isCosmetics ? '#db2777' : '#065f46';
+    const themeHeaderBg = isCosmetics ? '#831843' : '#064e3b';
+    const brandTitle = isCosmetics ? 'FIA COSMETICS & CARE' : 'FIA CLEAN AND CARE';
+    const brandBadge = isCosmetics
+        ? (isWholesale ? '🏷️ COSMETICS WHOLESALE INVOICE' : '💄 COSMETICS RETAIL INVOICE')
+        : (isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE');
+
+    const grandVal = Number(c.grandTotal !== undefined ? c.grandTotal : (c.netTotal || c.total || 0));
+    const paidVal = Number(c.paidAmount !== undefined ? c.paidAmount : (grandVal - Number(c.pendingAmount || 0)));
+    const pendingVal = Math.max(0, Number(c.pendingAmount !== undefined ? c.pendingAmount : (grandVal - paidVal)));
+    const excessVal = Math.max(0, Number(c.excessAmount !== undefined ? c.excessAmount : (paidVal - grandVal)));
+
+    const allItems = sortBillItemsAlphabetically(c.items || []);
+    const itemsCount = allItems.length;
+
+    const renderItemRow = (item, idx) => {
+        const cleanName = getCleanInvoiceProductName(item.productName);
+        const rawQty = item.qty || '';
+        const unitStr = (item.unitType && item.unitType !== 'Standard') ? item.unitType : '';
+        const units = Number(item.numberOfUnits || 1);
+        let qtyDisplay = `${rawQty} ${unitStr}`.trim();
+        if (units > 1) qtyDisplay += ` (${units})`;
+        const rate = Number(item.rate || 0).toFixed(2);
+        const total = Number(item.total || 0).toFixed(2);
+        const cosTag = item.combinedCategory === 'Cosmetics' ? ` <span style="color:#db2777; font-size:10px; font-weight:bold;">(Cos)</span>` : '';
+        const bg = idx % 2 === 1 ? 'background:#f9fafb;' : 'background:#ffffff;';
+        return `<tr style="${bg} page-break-inside:avoid;">
+            <td style="padding:6px 6px; border-bottom:1px solid #e5e7eb; font-weight:600; color:#111827; word-break:break-word;">${cleanName}${cosTag}</td>
+            <td style="padding:6px 4px; border-bottom:1px solid #e5e7eb; text-align:center; color:#374151; white-space:nowrap;">${qtyDisplay}</td>
+            <td style="padding:6px 4px; border-bottom:1px solid #e5e7eb; text-align:right; color:#374151; white-space:nowrap;">₹${rate}</td>
+            <td style="padding:6px 6px; border-bottom:1px solid #e5e7eb; text-align:right; font-weight:700; color:#111827; white-space:nowrap;">₹${total}</td>
+        </tr>`;
+    };
+
+    const renderTableHead = () => `
+        <thead>
+            <tr style="background:${themeHeaderBg}; color:#ffffff;">
+                <th style="width:46%; padding:7px 6px; text-align:left; color:#ffffff; font-size:11px; font-weight:700;">Item Description</th>
+                <th style="width:20%; padding:7px 4px; text-align:center; color:#ffffff; font-size:11px; font-weight:700;">Qty</th>
+                <th style="width:17%; padding:7px 4px; text-align:right; color:#ffffff; font-size:11px; font-weight:700;">Rate</th>
+                <th style="width:17%; padding:7px 6px; text-align:right; color:#ffffff; font-size:11px; font-weight:700;">Total</th>
+            </tr>
+        </thead>
+    `;
+
+    const renderHeaderInfo = () => `
+        <div style="border-bottom:2px solid ${themeColor}; padding-bottom:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <img src="./icon-192.png" alt="FIA" style="width:44px; height:44px; border-radius:50%; object-fit:contain; border:1.5px solid ${themeColor}; background:#000000; display:inline-block;">
+                <div>
+                    <h2 style="margin:0; color:${themeColor}; font-size:18px; font-weight:900; letter-spacing:0.5px; line-height:1.2;">${brandTitle}</h2>
+                    <div style="margin:0; font-size:10.5px; font-weight:700; color:#374151;">EDATHANATTUKARA • MOB: 8086452106</div>
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <span style="display:inline-block; padding:3px 12px; border-radius:12px; font-weight:800; font-size:10.5px; ${isWholesale ? 'background:#fef3c7; color:#92400e; border:1px solid #f59e0b;' : 'background:#ecfdf5; color:#065f46; border:1px solid #10b981;'}">
+                    ${brandBadge}
+                </span>
+            </div>
+        </div>
+
+        <div style="background:#f3f4f6; border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:11px; line-height:1.4; color:#111827;">
+            <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #d1d5db; padding-bottom:4px; margin-bottom:4px;">
+                <span><strong>Bill No:</strong> <span style="color:${themeColor}; font-weight:800; font-size:12px;">${c.billNo || '—'}</span></span>
+                <span><strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+                <span style="max-width:65%; word-break:break-word;"><strong>Customer:</strong> ${c.name || 'Walk-in'}</span>
+                <span><strong>${c.phone ? 'Mob: ' + c.phone : 'Mode: ' + (c.paymentMode || 'Cash')}</strong></span>
+            </div>
+        </div>
+    `;
+
+    const renderTotals = () => `
+        <div style="page-break-inside:avoid; margin-top:10px;">
+            <div style="background:#f9fafb; border:1.5px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:11.5px; line-height:1.5; color:#111827;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb; padding-bottom:4px; margin-bottom:4px;">
+                    <span style="font-size:12px; font-weight:800;">Grand Total:</span>
+                    <span style="font-size:14px; font-weight:900; color:${themeColor};">₹${grandVal.toFixed(2)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; color:#047857; font-weight:700;">
+                    <span>Paid Amount:</span>
+                    <span>₹${paidVal.toFixed(2)}</span>
+                </div>
+                ${pendingVal > 0 ? `
+                <div style="display:flex; justify-content:space-between; align-items:center; color:#b91c1c; font-weight:800; margin-top:3px; padding:3px 6px; background:#fef2f2; border-radius:4px;">
+                    <span>⚠️ Balance Due:</span>
+                    <span>₹${pendingVal.toFixed(2)}</span>
+                </div>` : ''}
+                ${excessVal > 0 ? `
+                <div style="display:flex; justify-content:space-between; align-items:center; color:#b45309; font-weight:800; margin-top:3px; padding:3px 6px; background:#fffbeb; border-radius:4px;">
+                    <span>🔄 Return / Change:</span>
+                    <span>₹${excessVal.toFixed(2)}</span>
+                </div>` : ''}
+            </div>
+            <div style="text-align:center; margin-top:10px; font-size:10px; color:#6b7280; font-style:italic;">
+                Thank you for your business! Visit again 🙏
+            </div>
+        </div>
+    `;
+
+    let html = '';
+
+    if (itemsCount <= 14) {
+        // Single page clean layout
+        const rows = allItems.map(renderItemRow).join('');
+        html = `
+            <div class="print-page">
+                ${renderHeaderInfo()}
+                <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:8px;">
+                    ${renderTableHead()}
+                    <tbody>${rows}</tbody>
+                </table>
+                ${renderTotals()}
+            </div>
+        `;
+    } else {
+        // Multi-page layout: Page 1 + Page 2
+        const page1Items = allItems.slice(0, 14);
+        const page2Items = allItems.slice(14);
+
+        const rows1 = page1Items.map(renderItemRow).join('');
+        const rows2 = page2Items.map((it, idx) => renderItemRow(it, idx + 14)).join('');
+
+        html = `
+            <div class="print-page print-page-1">
+                ${renderHeaderInfo()}
+                <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:8px;">
+                    ${renderTableHead()}
+                    <tbody>${rows1}</tbody>
+                </table>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1.5px dashed #9ca3af; padding:8px 4px; margin-top:8px; font-size:11px; font-weight:bold; color:#4b5563;">
+                    <span>📄 Bill No: ${c.billNo || '—'} (Page 1 of 2)</span>
+                    <span style="color:${themeColor}; font-weight:800;">(തുടർച്ച അടുത്ത പേജിൽ / Continued on Page 2 ➔)</span>
+                </div>
+            </div>
+
+            <div style="page-break-after:always; break-after:page; height:0; line-height:0;"></div>
+
+            <div class="print-page print-page-2" style="padding-top:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#f3f4f6; border-bottom:2px solid ${themeColor}; padding:8px 12px; margin-bottom:12px; border-radius:6px;">
+                    <div>
+                        <strong style="color:${themeColor}; font-size:13px;">${brandTitle} — BILL NO: ${c.billNo || '—'}</strong>
+                        <span style="font-size:11px; color:#4b5563; margin-left:12px;">Customer: ${c.name || 'Walk-in'} • Date: ${formatDateDDMMYYYY(c.date)}</span>
+                    </div>
+                    <span style="background:${themeColor}; color:#ffffff; padding:3px 10px; border-radius:12px; font-size:10px; font-weight:800;">പേജ് 2 / PAGE 2 (CONTINUED)</span>
+                </div>
+                <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:8px;">
+                    ${renderTableHead()}
+                    <tbody>${rows2}</tbody>
+                </table>
+                ${renderTotals()}
+            </div>
+        `;
+    }
+
+    return html;
+}
+
 export function printBill() {
-    const printSection = document.getElementById('printSection');
-    if (!printSection || !printSection.innerHTML.trim()) {
+    const c = state.activePreviewCustomer;
+    if (!c) {
         alert('Bill data is not available for printing.');
         return;
     }
@@ -302,66 +466,187 @@ export function printBill() {
         alert('Please allow pop-ups to print the bill.');
         return;
     }
+    const isCosmetics = String(c.billNo || '').toUpperCase().startsWith('COS') || c.category === 'Cosmetics';
+    const themeColor = isCosmetics ? '#db2777' : '#065f46';
+    const contentHtml = generateA4PrintHTML(c);
+
     printWindow.document.open();
-    printWindow.document.write(`<!doctype html><html><head><meta charset="UTF-8"><title>FIA CLEAN & CARE Bill</title><style>@page{size:A4;margin:25.4mm 25.4mm 20mm 25.4mm}html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;font-family:Arial,sans-serif}body{display:flex!important;justify-content:center!important;align-items:flex-start!important}.fia-print-box{width:100%!important;max-width:none!important;margin:0!important;padding:6mm!important;border:3px solid #000!important;border-radius:4px!important;box-sizing:border-box!important;background:#fff!important;color:#000!important;font-size:11px!important;line-height:1.35!important}.fia-print-box *{color:#000!important}.fia-print-box table{width:100%!important;border-collapse:collapse!important}.fia-print-box th,.fia-print-box td{padding:4px!important}.fia-print-box tr{page-break-inside:avoid!important}.fia-print-box button,.no-print{display:none!important}</style></head><body><div class="fia-print-box">${printSection.innerHTML}</div></body></html>`);
+    printWindow.document.write(`<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>FIA Bill ${c.billNo || ''}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 12mm 12mm 12mm 12mm;
+        }
+        *, *:before, *:after {
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+        /* Crisp Page Frame Printed on Every Single Page */
+        .print-page-frame {
+            position: fixed;
+            top: 5mm;
+            left: 5mm;
+            right: 5mm;
+            bottom: 5mm;
+            border: 2px solid ${themeColor};
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 99999;
+        }
+        .print-body-content {
+            width: 100%;
+            padding: 2mm;
+        }
+        table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        tr {
+            page-break-inside: avoid !important;
+        }
+        button, .no-print {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="print-page-frame"></div>
+    <div class="print-body-content">
+        ${contentHtml}
+    </div>
+</body>
+</html>`);
     printWindow.document.close();
     setTimeout(() => { printWindow.focus(); printWindow.print(); }, 700);
 }
 
 export function generateBillPdfBlob() {
     return new Promise((resolve, reject) => {
-        if (typeof window.html2pdf === 'undefined') {
-            reject(new Error('html2pdf library not loaded'));
+        const c = state.activePreviewCustomer;
+        if (!c) {
+            reject(new Error('Bill preview data not found.'));
+            return;
+        }
+        const billNo = c?.billNo || 'BILL';
+        const isCosmetics = String(c.billNo || '').toUpperCase().startsWith('COS') || c.category === 'Cosmetics';
+        const themeColor = isCosmetics ? '#db2777' : '#065f46';
+
+        // Method 1: Use html2pdf with visible non-negative coordinates
+        if (typeof window.html2pdf !== 'undefined') {
+            const container = document.createElement('div');
+            container.id = 'fiaPdfRenderContainer';
+            container.style.position = 'absolute';
+            container.style.left = '0px';
+            container.style.top = '0px';
+            container.style.width = '794px'; // 210mm at 96 DPI
+            container.style.background = '#ffffff';
+            container.style.color = '#000000';
+            container.style.padding = '18px';
+            container.style.boxSizing = 'border-box';
+            container.style.fontFamily = 'Arial, Helvetica, sans-serif';
+            container.style.zIndex = '-99999';
+            container.style.opacity = '1';
+            container.style.pointerEvents = 'none';
+
+            const a4Html = generateA4PrintHTML(c);
+            container.innerHTML = `
+                <div style="border: 2px solid ${themeColor}; border-radius: 8px; padding: 14px; box-sizing: border-box; background: #ffffff;">
+                    ${a4Html}
+                </div>
+            `;
+            document.body.appendChild(container);
+
+            const opt = {
+                margin: [6, 6, 6, 6],
+                filename: `FIA_Bill_${billNo}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: 794
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            window.html2pdf().set(opt).from(container).outputPdf('blob').then(blob => {
+                if (document.body.contains(container)) document.body.removeChild(container);
+                if (blob && blob.size > 200) {
+                    resolve(blob);
+                } else {
+                    fallbackCanvasToPdf().then(resolve).catch(reject);
+                }
+            }).catch(err => {
+                if (document.body.contains(container)) document.body.removeChild(container);
+                console.warn('html2pdf error, trying canvas fallback:', err);
+                fallbackCanvasToPdf().then(resolve).catch(reject);
+            });
             return;
         }
 
-        const c = state.activePreviewCustomer;
-        const billNo = c?.billNo || 'BILL';
+        // Method 2: Direct html2canvas + jsPDF fallback
+        fallbackCanvasToPdf().then(resolve).catch(reject);
 
-        // Create temporary print container with A4 proportional width (750px)
-        const container = document.createElement('div');
-        container.style.position = 'fixed';
-        container.style.left = '-9999px';
-        container.style.top = '0';
-        container.style.width = '750px';
-        container.style.background = '#ffffff';
-        container.style.color = '#000000';
-        container.style.padding = '16px';
-        container.style.boxSizing = 'border-box';
-        container.style.fontFamily = 'Arial, Helvetica, sans-serif';
-
-        const printContent = document.getElementById('printSection')?.innerHTML || document.getElementById('billPreviewContent')?.innerHTML || '';
-        const formattedHTML = printContent
-            .replace(/width:\s*380px/gi, 'width: 100%')
-            .replace(/max-width:\s*100%/gi, 'max-width: 100%')
-            .replace(/min-height:\s*520px/gi, 'min-height: auto');
-
-        container.innerHTML = `
-            <style>
-                table { width: 100% !important; border-collapse: collapse !important; }
-                tr { page-break-inside: avoid !important; }
-                thead { display: table-header-group !important; }
-                tfoot { display: table-footer-group !important; }
-            </style>
-            ${formattedHTML}
-        `;
-        document.body.appendChild(container);
-
-        const opt = {
-            margin: [8, 8, 8, 8],
-            filename: `FIA_Bill_${billNo}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        window.html2pdf().set(opt).from(container).outputPdf('blob').then(blob => {
-            if (document.body.contains(container)) document.body.removeChild(container);
-            resolve(blob);
-        }).catch(err => {
-            if (document.body.contains(container)) document.body.removeChild(container);
-            reject(err);
-        });
+        function fallbackCanvasToPdf() {
+            return new Promise((res, rej) => {
+                const target = document.getElementById('fiaInvoiceCaptureCard') || document.getElementById('billPreviewContent');
+                if (!target || typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+                    rej(new Error('Canvas or jsPDF library not available'));
+                    return;
+                }
+                const targetWidth = Math.ceil(target.offsetWidth || 380);
+                const targetHeight = Math.ceil(target.offsetHeight || 520);
+                window.html2canvas(target, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    width: targetWidth,
+                    height: targetHeight,
+                    scrollX: 0,
+                    scrollY: 0
+                }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const pdfW = pdf.internal.pageSize.getWidth();
+                    const pdfH = pdf.internal.pageSize.getHeight();
+                    const margin = 10;
+                    const printableW = pdfW - (margin * 2);
+                    const imgH = (canvas.height * printableW) / canvas.width;
+                    
+                    if (imgH <= (pdfH - margin * 2)) {
+                        pdf.addImage(imgData, 'JPEG', margin, margin, printableW, imgH);
+                    } else {
+                        let heightLeft = imgH;
+                        let position = margin;
+                        pdf.addImage(imgData, 'JPEG', margin, position, printableW, imgH);
+                        heightLeft -= (pdfH - margin * 2);
+                        while (heightLeft > 0) {
+                            position = heightLeft - imgH + margin;
+                            pdf.addPage();
+                            pdf.addImage(imgData, 'JPEG', margin, position, printableW, imgH);
+                            heightLeft -= (pdfH - margin * 2);
+                        }
+                    }
+                    const outBlob = pdf.output('blob');
+                    res(outBlob);
+                }).catch(rej);
+            });
+        }
     });
 }
 
@@ -371,6 +656,9 @@ export function downloadBillPDF() {
     const fileName = `FIA_Bill_${billNo}.pdf`;
 
     generateBillPdfBlob().then(blob => {
+        if (!blob || blob.size < 200) {
+            throw new Error('Downloaded PDF blob is empty');
+        }
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
