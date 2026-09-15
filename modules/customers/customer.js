@@ -9,7 +9,8 @@ import {
     getTodayDateString,
     formatDateDDMMYYYY,
     dateSortValue,
-    money
+    money,
+    toTitleCase
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
 import { normalizeCosSale } from '../billing/billing-history.js';
@@ -54,7 +55,7 @@ export function saveDirectCustomerProfile(e) {
     const phoneInput = document.getElementById('directCustPhone');
     const originalIndex = parseInt(document.getElementById('directCustOriginalIndex')?.value || "-1", 10);
 
-    const name = (nameInput?.value || '').trim();
+    const name = toTitleCase((nameInput?.value || '').trim());
     const phone = (phoneInput?.value || '').trim();
 
     if (!name) {
@@ -208,7 +209,7 @@ export function updateCustomerDropdown() {
         }
     });
     Object.keys(uniqueCusts).sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base', numeric: true })).forEach(name => {
-        select.innerHTML += `<option value="${name}" data-phone="${uniqueCusts[name]}">${name}</option>`;
+        select.innerHTML += `<option value="${name}" data-phone="${uniqueCusts[name]}">${toTitleCase(name)}</option>`;
     });
     if (current && uniqueCusts[current] !== undefined) select.value = current;
 }
@@ -236,7 +237,7 @@ export function updateCosCustomerDropdown() {
         if (c && c.name) uniqueCusts[c.name] = c.phone || '';
     });
     Object.keys(uniqueCusts).sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base', numeric: true })).forEach(name => {
-        select.innerHTML += `<option value="${name}">${name}</option>`;
+        select.innerHTML += `<option value="${name}">${toTitleCase(name)}</option>`;
     });
     if (current && uniqueCusts[current] !== undefined) select.value = current;
 }

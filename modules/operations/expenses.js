@@ -11,7 +11,8 @@ import {
     getTodayDateString,
     markIdDeleted,
     unmarkIdDeleted,
-    saveLocalStateSafely
+    saveLocalStateSafely,
+    toTitleCase
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
 import { ensurePurchaseTimestamps } from './purchases.js';
@@ -28,7 +29,7 @@ export function saveExpense(e) {
 
     const data = {
         id: expId,
-        title: document.getElementById('expTitle').value.trim(),
+        title: toTitleCase(document.getElementById('expTitle').value.trim()),
         amount: parseFloat(document.getElementById('expAmount').value) || 0,
         date: cleanDate,
         savedAt: now,

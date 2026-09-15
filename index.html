@@ -350,7 +350,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.0) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.1) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -632,7 +632,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v48.0</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v48.1</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
@@ -648,7 +648,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v48.0</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v48.1</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -673,8 +673,8 @@
                     </div>
                     <div class="text-right shrink-0">
                         <div id="dashboardDate" class="text-[10px] text-slate-400"></div>
-                        <div id="dashboardSyncBadge" class="mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-300 bg-amber-950/40 border border-amber-800/50 px-2.5 py-1.5 rounded-full">
-                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Connecting...
+                        <div id="dashboardSyncBadge" class="mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-sky-300 bg-sky-950/40 border border-sky-800/50 px-2.5 py-1.5 rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> Connecting...
                         </div>
                     </div>
                 </div>
@@ -687,7 +687,7 @@
                     <div id="dashProductCount" class="text-xl font-extrabold text-white mt-2">0</div>
                     <div class="text-[10px] text-slate-400">Products</div>
                 </button>
-                <button onclick="switchTab('customers')" class="text-left bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 hover:border-amber-700/70 transition">
+                <button onclick="switchTab('customers')" class="text-left bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 hover:border-indigo-700/70 transition">
                     <div class="flex items-center justify-between"><span class="text-xl">👥</span><span class="text-[9px] text-slate-500 uppercase">CRM</span></div>
                     <div id="dashCustomerCount" class="text-xl font-extrabold text-white mt-2">0</div>
                     <div class="text-[10px] text-slate-400">Customers</div>
@@ -725,13 +725,13 @@
                     <p class="text-[10px] text-slate-500">Quick access</p>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div class="rounded-2xl bg-amber-950/30 border border-amber-800/50 p-3">
+                    <div class="rounded-2xl bg-slate-950/60 border border-slate-800 p-3">
                         <button type="button" onclick="switchTab('billing')" class="w-full flex items-center gap-3 text-left">
                             <span class="text-2xl">🧾</span>
-                            <span><span class="block font-bold text-sm text-amber-300">Billing</span><span class="block text-[10px] text-slate-500">Unified Invoice • Cleaning & Cosmetics</span></span>
+                            <span><span class="block font-bold text-sm text-slate-100">Billing</span><span class="block text-[10px] text-slate-500">Unified Invoice • Cleaning & Cosmetics</span></span>
                         </button>
                         <div class="grid grid-cols-2 gap-2 mt-3">
-                            <button type="button" onclick="openBillingSection('new')" class="py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition flex items-center justify-center gap-1 shadow-md shadow-amber-900/30">➕ New Bill</button>
+                            <button type="button" onclick="openBillingSection('new')" class="py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center justify-center gap-1 shadow-md shadow-indigo-950/40">➕ New Bill</button>
                             <button type="button" onclick="openBillingSection('history')" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-800/50 text-xs font-bold transition flex items-center justify-center gap-1">📋 Bill History</button>
                         </div>
                     </div>
@@ -746,11 +746,11 @@
                             <button type="button" onclick="openOperationSection('expenses')" class="py-2 rounded-xl bg-rose-700 text-white text-[10px] font-bold">💸 Expenses</button>
                         </div>
                     </div>
-                    <button type="button" onclick="switchTab('customers')" class="rounded-2xl bg-amber-950/20 border border-amber-800/40 p-4 text-left hover:border-amber-500 transition">
-                        <div class="text-2xl">👥</div><div class="font-bold text-sm text-amber-300 mt-2">Customers</div><div class="text-[10px] text-slate-500 mt-1">Customer directory & history</div>
+                    <button type="button" onclick="switchTab('customers')" class="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 text-left hover:border-indigo-500 transition">
+                        <div class="text-2xl">👥</div><div class="font-bold text-sm text-slate-200 mt-2">Customers</div><div class="text-[10px] text-slate-500 mt-1">Customer directory & history</div>
                     </button>
-                    <button type="button" onclick="switchTab('accounts')" class="rounded-2xl bg-purple-950/20 border border-purple-800/40 p-4 text-left hover:border-purple-500 transition">
-                        <div class="text-2xl">📖</div><div class="font-bold text-sm text-purple-300 mt-2">Day Book</div>
+                    <button type="button" onclick="switchTab('accounts')" class="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 text-left hover:border-indigo-500 transition">
+                        <div class="text-2xl">📖</div><div class="font-bold text-sm text-slate-200 mt-2">Day Book</div>
                         <div class="text-[10px] text-slate-500 mt-1">Reports & accounts</div>
                     </button>
                 </div>
@@ -788,7 +788,7 @@
                     <button onclick="switchTab('billing')" class="bg-emerald-950/30 border border-emerald-900/50 rounded-xl p-3 text-left"><div class="text-[9px] text-slate-500 uppercase">Sales</div><div id="dashTodaySales" class="text-sm font-extrabold text-emerald-300 mt-1">₹0</div></button>
                     <button onclick="switchTab('purchase')" class="bg-blue-950/30 border border-blue-900/50 rounded-xl p-3 text-left"><div class="text-[9px] text-slate-500 uppercase">Purchase</div><div id="dashTodayPurchase" class="text-sm font-extrabold text-blue-300 mt-1">₹0</div></button>
                     <button onclick="switchTab('expenses')" class="bg-rose-950/30 border border-rose-900/50 rounded-xl p-3 text-left"><div class="text-[9px] text-slate-500 uppercase">Expense</div><div id="dashTodayExpense" class="text-sm font-extrabold text-rose-300 mt-1">₹0</div></button>
-                    <button onclick="switchTab('billing')" class="bg-amber-950/30 border border-amber-900/50 rounded-xl p-3 text-left"><div class="text-[9px] text-slate-500 uppercase">Collection</div><div id="dashTodayCollection" class="text-sm font-extrabold text-amber-300 mt-1">₹0</div></button>
+                    <button onclick="switchTab('billing')" class="bg-sky-950/30 border border-sky-900/50 rounded-xl p-3 text-left"><div class="text-[9px] text-slate-500 uppercase">Collection</div><div id="dashTodayCollection" class="text-sm font-extrabold text-sky-300 mt-1">₹0</div></button>
                 </div>
             </div>
             <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4">
@@ -826,7 +826,7 @@
                         </div>
                         <form id="productForm" class="space-y-3" onsubmit="saveProduct(event)">
                             <input type="hidden" id="prodId" value="">
-                            <input type="text" id="prodName" placeholder="Product Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="prodName" placeholder="Product Name" required onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-emerald-500 capitalize">
                             <input type="text" id="prodBarcode" placeholder="Barcode / QR Number (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-emerald-500">
                             <div class="flex gap-2">
                                 <input type="number" id="prodStock" placeholder="Stock Qty" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-emerald-500" min="0" step="any">
@@ -1008,7 +1008,7 @@
                         </div>
                         <form id="packageForm" class="space-y-3" onsubmit="savePackage(event)">
                             <input type="hidden" id="packageId" value="">
-                            <input type="text" id="packageName" placeholder="Package Item Name (e.g. Dishwash Bottle)" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-cyan-500">
+                            <input type="text" id="packageName" placeholder="Package Item Name (e.g. Dishwash Bottle)" required onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-cyan-500 capitalize">
                             <div class="grid grid-cols-2 gap-2">
                                 <input type="text" id="packageSize" placeholder="Size (e.g. 300 ml)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-cyan-500">
                                 <select id="packageUnit" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-cyan-500"><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option><option value="Box">Box</option><option value="Roll">Roll</option><option value="Other">Other</option></select>
@@ -1065,7 +1065,7 @@
                     <h2 id="custMgrTitle" class="font-bold text-slate-100 mb-3 text-sm">Add Customer</h2>
                     <form id="directCustomerForm" class="space-y-3" onsubmit="saveDirectCustomer(event)">
                         <input type="hidden" id="directCustOriginalIndex" value="-1">
-                        <input type="text" id="directCustName" placeholder="Customer Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <input type="text" id="directCustName" placeholder="Customer Name" required onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500 capitalize">
                         <input type="text" id="directCustPhone" placeholder="Phone Number" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500">
                         <div class="flex gap-2 pt-1">
                             <button type="submit" id="directCustSubmitBtn" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-500 transition shadow-lg shadow-indigo-950/40">Save Customer</button>
@@ -1121,10 +1121,10 @@
 
         <!-- ================= SECTION 3: BILLING ================= -->
         <div id="sectionBilling" class="space-y-4 hidden">
-            <div class="bg-slate-950/60 p-3 rounded-2xl border border-amber-800/40 shadow-inner">
+            <div class="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 shadow-inner">
                 <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-2 font-bold">BILLING</div>
                 <div class="billing-subtabs-grid grid grid-cols-2 gap-2">
-                    <button type="button" id="btnBillingNew" onclick="openBillingSection('new')" class="py-3 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition">➕ New Bill</button>
+                    <button type="button" id="btnBillingNew" onclick="openBillingSection('new')" class="py-3 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition">➕ New Bill</button>
                     <button type="button" id="btnBillingHistory" onclick="openBillingSection('history')" class="py-3 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition">📋 Bill History</button>
                 </div>
             </div>
@@ -1136,7 +1136,7 @@
                     </div>
                     <div class="billing-history-tabs-grid grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-3">
                         <button type="button" onclick="setSalesHistoryFilter('all')" id="salesHistoryTabAll" class="py-2 rounded-lg bg-slate-700 text-white text-[10px] font-bold">All Bills</button>
-                        <button type="button" onclick="setSalesHistoryFilter('wholesale')" id="salesHistoryTabWholesale" class="py-2 rounded-lg bg-slate-900 text-amber-300 border border-slate-700 text-[10px] font-bold">🏷️ Wholesale</button>
+                        <button type="button" onclick="setSalesHistoryFilter('wholesale')" id="salesHistoryTabWholesale" class="py-2 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 text-[10px] font-bold">🏷️ Wholesale</button>
                         <button type="button" onclick="setSalesHistoryFilter('retail')" id="salesHistoryTabRetail" class="py-2 rounded-lg bg-slate-900 text-emerald-300 border border-slate-700 text-[10px] font-bold">🛍️ Retail</button>
                         <button type="button" onclick="setSalesHistoryFilter('customer')" id="salesHistoryTabCustomer" class="py-2 rounded-lg bg-slate-900 text-cyan-300 border border-slate-700 text-[10px] font-bold">👤 Customer</button>
                     </div>
@@ -1149,27 +1149,27 @@
 
             <div id="billingStandardContent" class="space-y-4">
                 <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner">
-                <h2 id="custFormTitle" class="font-bold text-amber-400 mb-3 text-sm">Unified Billing (Cleaning & Cosmetics)</h2>
+                <h2 id="custFormTitle" class="font-bold text-slate-100 mb-3 text-sm">Unified Billing (Cleaning & Cosmetics)</h2>
                 <form id="customerForm" class="space-y-3" onsubmit="saveCustomer(event)">
                     <input type="hidden" id="custIndex" value="-1">
-                    <div class="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800"><div class="flex justify-between items-center"><span class="text-[10px] text-slate-400">AUTOMATIC BILL NUMBER</span><span id="billNumberDisplay" class="text-sm font-extrabold text-amber-300">NEW</span></div></div>
+                    <div class="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800"><div class="flex justify-between items-center"><span class="text-[10px] text-slate-400">AUTOMATIC BILL NUMBER</span><span id="billNumberDisplay" class="text-sm font-extrabold text-sky-300">NEW</span></div></div>
                     
                     <div class="space-y-1">
                         <label class="text-[11px] text-slate-400">Select Customer from Directory (A-Z):</label>
-                        <select id="existingCustomerSelect" onchange="fillExistingCustomer()" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-amber-500">
+                        <select id="existingCustomerSelect" onchange="fillExistingCustomer()" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500">
                             <option value="">-- Select Customer / Enter Manually Below --</option>
                         </select>
                     </div>
 
                     <div class="grid grid-cols-1 gap-2 bg-slate-900/70 p-3 rounded-xl border border-slate-800">
-                        <label class="text-[11px] text-amber-300 font-bold">Customer Details (Manual Entry)</label>
-                        <input type="text" id="custName" placeholder="Customer Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-amber-500">
-                        <input type="text" id="custPhone" placeholder="Mobile Number" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-amber-500">
+                        <label class="text-[11px] text-slate-200 font-bold">Customer Details (Manual Entry)</label>
+                        <input type="text" id="custName" placeholder="Customer Name" required onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-indigo-500 capitalize">
+                        <input type="text" id="custPhone" placeholder="Mobile Number" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     
                     <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <label class="text-[11px] text-amber-300 font-bold block">Select Bill Type:</label>
+                            <label class="text-[11px] text-slate-200 font-bold block">Select Bill Type:</label>
                             <span id="billTypeBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1">🛍️ Retail Mode Active</span>
                         </div>
                         <div class="flex gap-4 pt-0.5">
@@ -1177,34 +1177,34 @@
                                 <input type="radio" id="billSaleTypeRetail" name="saleType" value="Retail" checked onchange="onSaleTypeChange()" onclick="onSaleTypeChange()" class="accent-emerald-500 scale-110"> 🛍️ Retail Price
                             </label>
                             <label class="flex items-center gap-2 text-xs cursor-pointer font-bold text-slate-200">
-                                <input type="radio" id="billSaleTypeWholesale" name="saleType" value="Wholesale" onchange="onSaleTypeChange()" onclick="onSaleTypeChange()" class="accent-amber-500 scale-110"> 🏷️ Wholesale Price
+                                <input type="radio" id="billSaleTypeWholesale" name="saleType" value="Wholesale" onchange="onSaleTypeChange()" onclick="onSaleTypeChange()" class="accent-indigo-500 scale-110"> 🏷️ Wholesale Price
                             </label>
                         </div>
                     </div>
 
                     <div class="p-3.5 bg-slate-900 rounded-xl border border-slate-800 space-y-2.5">
                         <div class="flex items-center justify-between gap-2">
-                            <label class="font-bold text-xs text-amber-300">Select Product:</label>
+                            <label class="font-bold text-xs text-slate-200">Select Product:</label>
                             <div class="flex gap-1">
-                                <button type="button" onclick="openBarcodeScannerForBilling()" class="text-[10px] bg-slate-800 text-amber-300 border border-slate-700 px-2 py-0.5 rounded font-bold">📷 Scan</button>
+                                <button type="button" onclick="openBarcodeScannerForBilling()" class="text-[10px] bg-slate-800 text-sky-300 border border-slate-700 px-2 py-0.5 rounded font-bold">📷 Scan</button>
                             </div>
                         </div>
-                        <select id="billProductSelect" onchange="fillProductPrice()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500">
+                        <select id="billProductSelect" onchange="fillProductPrice()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500">
                             <option value="">-- Select Product --</option>
                         </select>
                         <!-- Dynamic Pack Size / Variant Selector -->
-                        <div id="billPackVariantWrapper" class="hidden space-y-1 bg-slate-950/90 p-2.5 rounded-xl border border-amber-500/60 shadow-inner">
+                        <div id="billPackVariantWrapper" class="hidden space-y-1 bg-slate-950/90 p-2.5 rounded-xl border border-indigo-800/60 shadow-inner">
                             <div class="flex justify-between items-center">
-                                <label class="font-bold text-[11px] text-amber-300">📦 Select Pack Size / Packaging:</label>
+                                <label class="font-bold text-[11px] text-slate-200">📦 Select Pack Size / Packaging:</label>
                                 <span class="text-[10px] text-emerald-400 font-semibold" id="billPackVariantBadge"></span>
                             </div>
-                            <select id="billPackVariantSelect" onchange="onPackVariantSelected()" class="w-full p-2.5 border border-amber-600/70 rounded-xl text-xs bg-slate-900 text-amber-200 font-bold focus:outline-none focus:border-amber-400">
+                            <select id="billPackVariantSelect" onchange="onPackVariantSelected()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 font-bold focus:outline-none focus:border-indigo-500">
                                 <option value="">-- Select Pack Size --</option>
                             </select>
                         </div>
                         <div class="flex gap-2">
-                            <input type="number" id="billQty" placeholder="Enter Quantity" oninput="onBillQtyOrUnitChange()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500" min="0" step="any">
-                            <select id="billUnitType" onchange="onBillQtyOrUnitChange()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500">
+                            <input type="number" id="billQty" placeholder="Enter Quantity" oninput="onBillQtyOrUnitChange()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500" min="0" step="any">
+                            <select id="billUnitType" onchange="onBillQtyOrUnitChange()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500">
                                 <option value="Litre">Litre (L)</option>
                                 <option value="ml">Millilitre (ml)</option>
                                 <option value="Kg">Kilogram (Kg)</option>
@@ -1215,21 +1215,21 @@
                             </select>
                         </div>
                         <div class="flex gap-2">
-                            <div class="w-1/2 flex items-center border border-slate-700 rounded-xl bg-slate-950 overflow-hidden focus-within:border-amber-500">
-                                <button type="button" onclick="stepStdBillUnits(-1)" class="w-10 h-full py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-amber-600 text-slate-200 font-bold text-base flex items-center justify-center transition select-none" title="Decrease units">−</button>
+                            <div class="w-1/2 flex items-center border border-slate-700 rounded-xl bg-slate-950 overflow-hidden focus-within:border-indigo-500">
+                                <button type="button" onclick="stepStdBillUnits(-1)" class="w-10 h-full py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-200 font-bold text-base flex items-center justify-center transition select-none" title="Decrease units">−</button>
                                 <input type="number" id="billNumberOfUnits" placeholder="Units" value="1" oninput="calculateItemTotal()" class="w-full text-center p-2 text-xs bg-transparent text-slate-100 font-bold focus:outline-none" min="1" step="any">
-                                <button type="button" onclick="stepStdBillUnits(1)" class="w-10 h-full py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-amber-600 text-slate-200 font-bold text-base flex items-center justify-center transition select-none" title="Increase units">+</button>
+                                <button type="button" onclick="stepStdBillUnits(1)" class="w-10 h-full py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-indigo-600 text-slate-200 font-bold text-base flex items-center justify-center transition select-none" title="Increase units">+</button>
                             </div>
-                            <select id="billQuantityType" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500"><optgroup label="Standard Packaging"><option value="Bottle">Bottle</option><option value="Pack">Pack</option><option value="Can">Can</option><option value="Pouch">Pouch</option><option value="Box">Box</option><option value="Piece">Piece</option><option value="Sticker">Sticker</option><option value="Roll">Roll</option><option value="Other">Other</option></optgroup></select>
+                            <select id="billQuantityType" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500"><optgroup label="Standard Packaging"><option value="Bottle">Bottle</option><option value="Pack">Pack</option><option value="Can">Can</option><option value="Pouch">Pouch</option><option value="Box">Box</option><option value="Piece">Piece</option><option value="Sticker">Sticker</option><option value="Roll">Roll</option><option value="Other">Other</option></optgroup></select>
                         </div>
                         <div class="space-y-1">
                             <div class="flex gap-2">
-                                <input type="number" id="billRate" placeholder="Price per Unit (₹)" oninput="calculateItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500 font-bold" min="0" step="any">
+                                <input type="number" id="billRate" placeholder="Price per Unit (₹)" oninput="calculateItemTotal()" class="w-1/2 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500 font-bold" min="0" step="any">
                                 <input type="number" id="billCalculatedTotal" placeholder="Total (₹)" readonly class="w-1/2 p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-emerald-400 font-bold cursor-not-allowed">
                             </div>
                             <div id="billRateNotice" class="text-[10px] min-h-[16px] px-1"></div>
                         </div>
-                        <button type="button" onclick="addToBillItems()" class="w-full bg-amber-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-amber-500 transition shadow-md shadow-amber-900/30">Add to Bill</button>
+                        <button type="button" onclick="addToBillItems()" class="w-full bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-indigo-500 transition shadow-md shadow-indigo-950/40">Add to Bill</button>
                     </div>
 
                     <div class="hidden sm:grid grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_0.9fr_auto] gap-1 px-2 text-[10px] text-slate-400 font-bold uppercase"><span>Product</span><span>Quantity</span><span>Unit</span><span>Price</span><span>Total</span><span></span></div>
@@ -1238,8 +1238,8 @@
                     <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
                         <div>
                             <label class="text-[10px] text-slate-400 block mb-1">Paid Amount (₹):</label>
-                            <input type="number" id="billPaidAmt" placeholder="Paid Amount" oninput="calculateBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500 min-w-0" min="0" step="any">
-                            <select id="billPaymentMode" class="w-full mt-1.5 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-amber-500"><option value="Cash">💵 Cash</option><option value="Online">🌐 Online</option></select>
+                            <input type="number" id="billPaidAmt" placeholder="Paid Amount" oninput="calculateBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500 min-w-0" min="0" step="any">
+                            <select id="billPaymentMode" class="w-full mt-1.5 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500"><option value="Cash">💵 Cash</option><option value="Online">🌐 Online</option></select>
                         </div>
                         <div>
                             <label id="billBalanceLabel" class="text-[10px] text-slate-400 block mb-1">Balance / Due (₹):</label>
@@ -1248,9 +1248,9 @@
                         </div>
                     </div>
 
-                    <div id="billingEditMode" class="hidden bg-amber-950/30 border border-amber-800/60 rounded-xl p-3 space-y-2">
+                    <div id="billingEditMode" class="hidden bg-slate-900/90 border border-slate-700 rounded-xl p-3 space-y-2">
                         <div class="flex justify-between items-center">
-                            <span class="text-[10px] font-bold text-amber-300">✏️ EDIT / PAYMENT ADJUSTMENT</span>
+                            <span class="text-[10px] font-bold text-sky-300">✏️ EDIT / PAYMENT ADJUSTMENT</span>
                             <span class="text-[9px] text-slate-400">Changes sync with Accounts</span>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
@@ -1261,7 +1261,7 @@
                     </div>
 
                     <div class="flex gap-2 pt-1">
-                        <button type="submit" id="custSubmitBtn" class="flex-1 bg-amber-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-amber-500 transition shadow-lg shadow-amber-900/30">Save Bill & Folder</button>
+                        <button type="submit" id="custSubmitBtn" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-emerald-500 transition shadow-lg shadow-emerald-950/40">Save Bill & Folder</button>
                         <button type="button" onclick="resetCustomerForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm hover:bg-slate-700 transition border border-slate-700">Clear</button>
                     </div>
                 </form>
@@ -1279,7 +1279,7 @@
             <div id="purchaseAddSupplierCard" class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner space-y-3">
                 <div class="flex justify-between items-center"><h3 class="font-bold text-blue-300 text-sm">👤 Add Supplier</h3><span class="text-[10px] text-slate-500">Purchase suppliers</span></div>
                 <div class="flex gap-2 purchase-mobile-stack">
-                    <input id="newPurchaseSupplierName" type="text" placeholder="Supplier Name" class="flex-1 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100">
+                    <input id="newPurchaseSupplierName" type="text" placeholder="Supplier Name" class="flex-1 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 capitalize" onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value">
                     <input id="newPurchaseSupplierMobile" type="tel" placeholder="Mobile Number" class="flex-1 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100">
                     <button type="button" onclick="addPurchaseSupplier()" class="bg-blue-700 text-white px-4 py-3 rounded-xl font-bold text-xs">+ Add Supplier</button>
                 </div>
@@ -1306,7 +1306,7 @@
                         <input type="hidden" id="purchIndex" value="-1">
                         <div class="space-y-2">
                             <div class="flex gap-2 purchase-mobile-stack">
-                                <input type="text" id="supplierName" list="purchaseSupplierList" placeholder="Supplier / Wholesaler Name" required oninput="fillPurchaseSupplierMobile()" class="flex-1 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-blue-500">
+                                <input type="text" id="supplierName" list="purchaseSupplierList" placeholder="Supplier / Wholesaler Name" required oninput="fillPurchaseSupplierMobile()" class="flex-1 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-blue-500 capitalize" onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value">
                                 <input type="tel" id="supplierMobile" placeholder="Mobile Number" class="w-2/5 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-blue-500">
                                 <select id="purchaseSupplierSelect" onchange="selectPurchaseSupplier(this,'cleaning')" class="w-full sm:w-2/5 p-3 border border-emerald-800 rounded-xl text-xs bg-slate-900 text-emerald-200 focus:outline-none focus:border-emerald-500"><option value="">-- Select Supplier from List --</option></select>
                             </div>
@@ -1328,7 +1328,7 @@
                         </div>
                         <div id="purchaseManualGroup" class="space-y-1 hidden">
                             <label class="text-[11px] text-slate-400">Product Name:</label>
-                            <input type="text" id="rawMaterial" placeholder="Cleaning Product / Item Name" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-blue-500">
+                            <input type="text" id="rawMaterial" placeholder="Cleaning Product / Item Name" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-blue-500 capitalize" onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value">
                         </div>
                         <div class="flex gap-2">
                             <input type="text" id="rawBarcode" placeholder="Barcode / QR Number (Optional)" class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-blue-500">
@@ -1400,7 +1400,7 @@
                         <input type="hidden" id="cosPIndex" value="-1">
                         <div class="space-y-2">
                             <div class="flex gap-2 purchase-mobile-stack">
-                                <input type="text" id="cosPSupplier" list="purchaseSupplierList" placeholder="Supplier / Wholesaler Name" required oninput="fillCosPurchaseSupplierMobile()" class="flex-1 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-pink-500">
+                                <input type="text" id="cosPSupplier" list="purchaseSupplierList" placeholder="Supplier / Wholesaler Name" required oninput="fillCosPurchaseSupplierMobile()" class="flex-1 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-pink-500 capitalize" onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value">
                                 <input type="tel" id="cosPSupplierMobile" placeholder="Mobile Number" class="w-2/5 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-pink-500">
                                 <select id="cosPurchaseSupplierSelect" onchange="selectPurchaseSupplier(this,'cosmetics')" class="w-full sm:w-2/5 p-3 border border-emerald-800 rounded-xl text-xs bg-slate-900 text-emerald-200 focus:outline-none focus:border-emerald-500"><option value="">-- Select Supplier from List --</option></select>
                             </div>
@@ -1424,7 +1424,7 @@
 
                         <div id="cosPurchaseManualGroup" class="space-y-1" style="display: none;">
                             <label class="text-[11px] text-slate-400">Product Name:</label>
-                            <input type="text" id="cosPItem" placeholder="Cosmetics Product / Item Name" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-pink-500">
+                            <input type="text" id="cosPItem" placeholder="Cosmetics Product / Item Name" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-pink-500 capitalize" onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value">
                         </div>
 
                         <div class="flex gap-2">
@@ -1504,7 +1504,7 @@
             <!-- Sub-tab 3: Consolidated Purchase Content -->
             <div id="purchaseConsolidatedContent" class="space-y-4 hidden">
                 <div class="flex justify-between items-center bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1">
-                    <button type="button" onclick="switchPurchaseConsolidationView('view')" id="purchaseConsolidationViewTab" class="flex-1 py-2 text-center text-xs font-bold bg-amber-600 text-white rounded-xl shadow-md transition">👁️ Dealer Ledger</button>
+                    <button type="button" onclick="switchPurchaseConsolidationView('view')" id="purchaseConsolidationViewTab" class="flex-1 py-2 text-center text-xs font-bold bg-indigo-600 text-white rounded-xl shadow-md transition">👁️ Dealer Ledger</button>
                     <button type="button" onclick="switchPurchaseConsolidationView('report')" id="purchaseConsolidationReportTab" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">📊 Summary Report</button>
                 </div>
 
@@ -1512,10 +1512,10 @@
                 <div id="purchaseConsolidationViewContent" class="space-y-4">
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800">
                         <div>
-                            <h3 class="font-bold text-amber-300 text-sm">🏢 Dealer Purchase Ledger</h3>
+                            <h3 class="font-bold text-slate-100 text-sm">🏢 Dealer Purchase Ledger</h3>
                             <p class="text-[10px] text-slate-400">All purchases grouped by dealer • Cleaning + Cosmetics</p>
                         </div>
-                        <input id="purchaseConsolidationViewSearchInput" type="search" oninput="renderPurchaseConsolidationView()" placeholder="Search dealer, phone, or item..." class="p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-amber-500 w-full sm:w-60">
+                        <input id="purchaseConsolidationViewSearchInput" type="search" oninput="renderPurchaseConsolidationView()" placeholder="Search dealer, phone, or item..." class="p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-indigo-500 w-full sm:w-60">
                     </div>
                     <div id="purchaseConsolidationViewContainer" class="space-y-3"></div>
                 </div>
@@ -1525,7 +1525,7 @@
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner space-y-3">
                         <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                             <div>
-                                <h3 class="font-bold text-amber-400 text-sm">📊 Purchase Consolidation Report</h3>
+                                <h3 class="font-bold text-slate-100 text-sm">📊 Purchase Consolidation Report</h3>
                                 <p class="text-[10px] text-slate-500">Summary across all Cleaning & Cosmetics suppliers</p>
                             </div>
                             <div class="flex gap-2">
@@ -1537,7 +1537,7 @@
                         <!-- Top summary metric boxes -->
                         <div id="purchaseConsolidationSummaryCards" class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1"></div>
 
-                        <input id="purchaseConsolidationSearchInput" type="search" oninput="renderPurchaseConsolidationReport()" placeholder="Search dealer name or phone..." class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-amber-500">
+                        <input id="purchaseConsolidationSearchInput" type="search" oninput="renderPurchaseConsolidationReport()" placeholder="Search dealer name or phone..." class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-indigo-500">
                     </div>
 
                     <div id="purchaseConsolidationContainer" class="space-y-2.5"></div>
@@ -1548,16 +1548,16 @@
         <!-- ================= SECTION 5: EXPENSES ================= -->
         <div id="sectionExpenses" class="space-y-4 hidden">
             <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner">
-                <h2 id="expFormTitle" class="font-bold text-rose-400 mb-3 text-sm">General Shop Expenses (Rent, Current, Wages)</h2>
+                <h2 id="expFormTitle" class="font-bold text-slate-100 mb-3 text-sm">General Shop Expenses (Rent, Current, Wages)</h2>
                 <form id="expenseForm" class="space-y-3" onsubmit="saveExpense(event)">
                     <input type="hidden" id="expIndex" value="-1">
-                    <input type="text" id="expTitle" placeholder="Expense Title (e.g., Electricity Bill, Rent)" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
+                    <input type="text" id="expTitle" placeholder="Expense Title (e.g., Electricity Bill, Rent)" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500 capitalize" onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value">
                     <div class="flex gap-2">
-                        <input type="number" id="expAmount" placeholder="Amount (₹)" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500" min="0" step="any">
-                        <input type="date" id="expDate" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
+                        <input type="number" id="expAmount" placeholder="Amount (₹)" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500" min="0" step="any">
+                        <input type="date" id="expDate" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div class="flex gap-2 pt-1">
-                        <button type="submit" id="expSubmitBtn" class="flex-1 bg-rose-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-rose-500 transition shadow-lg shadow-rose-900/30">Save Expense</button>
+                        <button type="submit" id="expSubmitBtn" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-500 transition shadow-lg shadow-indigo-950/40">Save Expense</button>
                         <button type="button" onclick="resetExpenseForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm hover:bg-slate-700 transition border border-slate-700">Clear</button>
                     </div>
                 </form>
@@ -1573,7 +1573,7 @@
                 <h3 class="font-bold text-pink-300 text-base">Cosmetics Billing is now Unified!</h3>
                 <p class="text-xs text-slate-300 max-w-sm mx-auto">You can now bill both Cosmetics and Cleaning products together or separately in the main <b>Billing</b> section with full Wholesale & Retail pricing.</p>
                 <div class="pt-2">
-                    <button type="button" onclick="switchTab('billing'); openBillingSection('new');" class="bg-gradient-to-r from-amber-600 to-pink-600 hover:from-amber-500 hover:to-pink-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-lg shadow-pink-900/40 transition cursor-pointer">
+                    <button type="button" onclick="switchTab('billing'); openBillingSection('new');" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-lg shadow-indigo-950/40 transition cursor-pointer">
                         🧾 Open Unified Billing
                     </button>
                 </div>
@@ -1584,19 +1584,19 @@
         <div id="sectionAccounts" class="space-y-4 hidden">
             <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner space-y-3">
                 <div class="flex justify-between items-center">
-                    <h2 class="font-bold text-purple-400 text-sm">Day Book & Date-wise Reports</h2>
+                    <h2 class="font-bold text-slate-100 text-sm">Day Book & Date-wise Reports</h2>
                     <div class="flex gap-1.5 flex-wrap justify-end">
-                        <button id="dayBookRefreshBtn" type="button" onclick="refreshDayBookRealtime()" class="text-[10px] bg-purple-900/60 text-purple-300 border border-purple-700/50 px-2.5 py-1 rounded-lg hover:bg-purple-800 transition font-bold flex items-center gap-1 cursor-pointer">🔄 Refresh</button>
-                        <button id="restoreDayBookBtn" type="button" onclick="restoreClearedDayBook()" class="text-[10px] bg-amber-900/60 text-amber-300 border border-amber-700/50 px-2.5 py-1 rounded-lg hover:bg-amber-800 transition font-bold hidden cursor-pointer">🔄 Restore</button>
-                        <button onclick="exportDayBookToCSV()" class="text-[10px] bg-emerald-900/60 text-emerald-300 border border-emerald-700/50 px-2.5 py-1 rounded-lg hover:bg-emerald-800 transition font-bold cursor-pointer">📥 Excel Export</button>
-                        <button onclick="clearDayBook()" class="text-[10px] bg-red-900/60 text-red-300 border border-red-700/50 px-2.5 py-1 rounded-lg hover:bg-red-800 transition font-bold cursor-pointer">🗑️ Clear</button>
-                        <button type="button" onclick="openBackupModal()" class="text-[10px] bg-blue-900/60 text-blue-300 border border-blue-700/50 px-2.5 py-1 rounded-lg hover:bg-blue-800 transition font-bold cursor-pointer">💾 Backup</button>
+                        <button id="dayBookRefreshBtn" type="button" onclick="refreshDayBookRealtime()" class="text-[10px] bg-slate-800 text-slate-200 border border-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-700 transition font-bold flex items-center gap-1 cursor-pointer">🔄 Refresh</button>
+                        <button id="restoreDayBookBtn" type="button" onclick="restoreClearedDayBook()" class="text-[10px] bg-slate-800 text-sky-300 border border-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-700 transition font-bold hidden cursor-pointer">🔄 Restore</button>
+                        <button onclick="exportDayBookToCSV()" class="text-[10px] bg-slate-800 text-emerald-300 border border-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-700 transition font-bold cursor-pointer">📥 Excel Export</button>
+                        <button onclick="clearDayBook()" class="text-[10px] bg-slate-800 text-rose-300 border border-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-700 transition font-bold cursor-pointer">🗑️ Clear</button>
+                        <button type="button" onclick="openBackupModal()" class="text-[10px] bg-slate-800 text-sky-300 border border-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-700 transition font-bold cursor-pointer">💾 Backup</button>
                     </div>
                 </div>
                 <div id="dayBookClearedBanner" class="hidden"></div>
 
                 <!-- ================= STREAMLINED COMPACT PICTORIAL ANALYSIS (NO OVERLAP) ================= -->
-                <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-purple-500/30 p-3.5 rounded-xl shadow-inner space-y-3">
+                <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800 p-3.5 rounded-xl shadow-inner space-y-3">
                     <div class="flex items-center justify-between">
                         <span class="text-[11px] uppercase tracking-wider font-extrabold text-indigo-300">📊 Net Profit & Margin Analysis</span>
                         <span id="profitStatusBadge" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/60">Healthy Margin</span>
@@ -1676,7 +1676,7 @@
                     <div class="flex gap-2">
                         <button type="button" id="dayBookTabToday" onclick="setFilterPreset('today')" class="flex-1 bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer">📅 Today</button>
                         <button type="button" id="dayBookTabMonth" onclick="setFilterPreset('month')" class="flex-1 bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer">🗓️ This Month</button>
-                        <button type="button" id="dayBookTabAll" onclick="setFilterPreset('all')" class="flex-1 bg-sky-600 text-white py-2 rounded-xl text-xs font-black shadow-md border border-sky-400 transition cursor-pointer">🌐 All Time</button>
+                        <button type="button" id="dayBookTabAll" onclick="setFilterPreset('all')" class="flex-1 bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold border border-indigo-400 shadow-md transition cursor-pointer">🌐 All Time</button>
                     </div>
                 </div>
             </div>
@@ -1722,7 +1722,7 @@
     <div id="supplierConsolidatedDetailModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg max-h-[88vh] overflow-hidden shadow-2xl flex flex-col">
             <div class="flex justify-between items-center p-3 border-b border-slate-800 shrink-0">
-                <h3 id="supplierConsolidatedDetailTitle" class="font-bold text-amber-400 text-sm">Dealer Purchase Ledger</h3>
+                <h3 id="supplierConsolidatedDetailTitle" class="font-bold text-slate-100 text-sm">Dealer Purchase Ledger</h3>
                 <button type="button" onclick="closeSupplierConsolidatedDetail()" class="text-slate-400 hover:text-white font-bold text-sm">✕ Close</button>
             </div>
             <div id="supplierConsolidatedDetailContent" class="p-4 overflow-y-auto max-h-[68vh] text-xs text-slate-200"></div>
@@ -1810,7 +1810,7 @@
                     <input type="file" id="backupFileInput" accept=".json,application/json,text/json,text/plain,*/*" class="hidden" onchange="restoreFullBackup(event)">
                 </div>
                 <div class="pt-2 border-t border-slate-800 space-y-2">
-                    <button type="button" onclick="closeSettingsModal(); forceAppUpdate();" class="w-full bg-slate-800 text-amber-300 py-2.5 rounded-xl font-bold hover:bg-slate-700 flex items-center justify-center gap-2 border border-slate-700 text-xs transition">
+                    <button type="button" onclick="closeSettingsModal(); forceAppUpdate();" class="w-full bg-slate-800 text-sky-300 py-2.5 rounded-xl font-bold hover:bg-slate-700 flex items-center justify-center gap-2 border border-slate-700 text-xs transition">
                         <span>🔄</span>
                         <span>Check for Updates / Clear Cache</span>
                     </button>
@@ -1885,11 +1885,11 @@
     <!-- Clean Master Key Reset Modal -->
     <div id="resetPinModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 space-y-4 text-center shadow-2xl">
-            <h3 class="font-bold text-amber-400 text-sm">🔑 Reset Security PIN</h3>
+            <h3 class="font-bold text-sky-400 text-sm">🔑 Reset Security PIN</h3>
             
             <div class="space-y-3 text-xs text-left">
                 <div>
-                    <input type="password" id="rpMasterKey" placeholder="Enter Master Recovery Key" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-500 text-sm" maxlength="50">
+                    <input type="password" id="rpMasterKey" placeholder="Enter Master Recovery Key" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-sky-500 text-sm" maxlength="50">
                 </div>
                 <div>
                     <input type="password" id="rpNewDirect" placeholder="Enter New PIN (min 3 digits)" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 text-sm" maxlength="10">
@@ -1923,11 +1923,11 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=48.0"></script>
+    <script type="module" src="./modules/app.js?v=48.1"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
-    <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-amber-300 border border-amber-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
-        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+    <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
+        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
         <span>Working under offline mode</span>
     </div>
 
@@ -1935,7 +1935,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.0) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.1) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -1989,7 +1989,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=48.0')
+                navigator.serviceWorker.register('./sw.js?v=48.1')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

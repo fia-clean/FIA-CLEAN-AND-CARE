@@ -485,15 +485,15 @@ export function renderAccounts() {
                     <b class="text-sky-300 font-extrabold text-sm mt-1">₹${incCollection.toFixed(2)}</b>
                     <span class="text-[9px] text-slate-400 mt-0.5">Cash / Paid In</span>
                 </div>
-                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-rose-700/50 flex flex-col justify-between shadow-sm">
-                    <span class="text-[10px] text-rose-400 font-bold uppercase tracking-wider">${periodLabel} Due</span>
+                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-between shadow-sm">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">${periodLabel} Due</span>
                     <b class="text-rose-300 font-extrabold text-sm mt-1">₹${incDue.toFixed(2)}</b>
-                    <span class="text-[9px] text-slate-400 mt-0.5">Credit Pending</span>
+                    <span class="text-[9px] text-slate-500 mt-0.5">Credit Pending</span>
                 </div>
-                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-700/80 flex flex-col justify-between shadow-sm">
-                    <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wider">${periodLabel} Expense</span>
-                    <b class="text-rose-400 font-extrabold text-sm mt-1">₹${expTotal.toFixed(2)}</b>
-                    <span class="text-[9px] text-slate-400 mt-0.5">Purchases & Costs</span>
+                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-between shadow-sm">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">${periodLabel} Expense</span>
+                    <b class="text-slate-100 font-extrabold text-sm mt-1">₹${expTotal.toFixed(2)}</b>
+                    <span class="text-[9px] text-slate-500 mt-0.5">Purchases & Costs</span>
                 </div>
             </div>
             <div class="flex justify-between items-center text-[10px] text-slate-400 px-1 pt-0.5">
@@ -516,14 +516,14 @@ export function renderAccounts() {
                 <p class="text-xs text-slate-300 font-bold">No transactions found for the selected filter period.</p>
                 ${totalMasterCount > 0 ? `<p class="text-[11px] text-slate-400">You have <span class="text-white font-bold">${totalMasterCount}</span> total transaction(s) in your system.</p>` : `<p class="text-[11px] text-slate-400">No transactions have been recorded yet.</p>`}
                 <div class="flex justify-center gap-2 pt-2">
-                    ${totalMasterCount > 0 ? `<button type="button" onclick="setFilterPreset('all')" class="text-xs bg-sky-600 hover:bg-sky-500 text-white font-extrabold px-4 py-2 rounded-xl shadow-md transition cursor-pointer">🌐 Show All Transactions (${totalMasterCount})</button>` : ''}
+                    ${totalMasterCount > 0 ? `<button type="button" onclick="setFilterPreset('all')" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold px-4 py-2 rounded-xl shadow-md transition cursor-pointer">🌐 Show All Transactions (${totalMasterCount})</button>` : ''}
                 </div>
                 ${clearedNote}
             </div>`;
     } else {
         listContainer.innerHTML = filtered.map(e => {
             const isInc = e.type === 'Income';
-            const badgeBg = isInc ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60' : 'bg-rose-950/80 text-rose-300 border-rose-700/60';
+            const badgeBg = isInc ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60' : 'bg-slate-800 text-slate-300 border-slate-700/60';
             const icon = isInc ? '💰' : '💸';
             const payBadge = e.paymentMode ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">${e.paymentMode}</span>` : '';
             return `
@@ -533,15 +533,15 @@ export function renderAccounts() {
                     <div class="min-w-0 space-y-0.5">
                         <div class="flex items-center gap-1.5 flex-wrap">
                             <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${badgeBg}">[${e.type}]</span>
-                            <span class="font-bold text-slate-200 truncate">${e.desc}</span>
+                            <span class="font-bold text-slate-100 truncate">${e.desc}</span>
                             ${payBadge}
                         </div>
                         <p class="text-[10px] text-slate-400">📅 ${formatDateDDMMYYYY(e.date)} ${e.category ? '• ' + e.category : ''}</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <span class="font-black text-xs ${isInc ? 'text-emerald-400' : 'text-rose-400'}">₹${Number(e.amount || 0).toFixed(2)}</span>
-                    <button type="button" onclick="deleteDayBookEntry('${e.id}')" title="Remove from Day Book view" class="text-slate-400 hover:text-red-300 hover:bg-red-950/60 border border-transparent hover:border-red-800/60 p-1 rounded-lg text-xs transition cursor-pointer">🗑️</button>
+                    <span class="font-black text-xs ${isInc ? 'text-emerald-400' : 'text-slate-200'}">₹${Number(e.amount || 0).toFixed(2)}</span>
+                    <button type="button" onclick="deleteDayBookEntry('${e.id}')" title="Remove from Day Book view" class="text-slate-500 hover:text-rose-300 hover:bg-slate-800 border border-transparent hover:border-rose-800/40 p-1 rounded-lg text-xs transition cursor-pointer">🗑️</button>
                 </div>
             </div>`;
         }).join('');

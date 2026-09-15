@@ -12,7 +12,8 @@ import {
     todayDDMMYYYY,
     markIdDeleted,
     unmarkIdDeleted,
-    saveLocalStateSafely
+    saveLocalStateSafely,
+    toTitleCase
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
 
@@ -130,7 +131,7 @@ export function populatePurchaseReturnProductDropdown(isCos, matchedProdId = '',
         secondaryList.forEach(prod => {
             if (!prod || !prod.name) return;
             const isSel = isDirectStock && String(prod.id) === String(matchedProdId);
-            html += `<option value="${prod.id}" ${isSel ? 'selected' : ''}>${prod.name} (Stock: ${prod.stock ?? 0} ${prod.unit || ''})</option>`;
+            html += `<option value="${prod.id}" ${isSel ? 'selected' : ''}>${toTitleCase(prod.name)} (Stock: ${prod.stock ?? 0} ${prod.unit || ''})</option>`;
         });
         html += '</optgroup>';
     }
@@ -265,7 +266,7 @@ export function selectPurchaseSupplier(el, type) {
 }
 
 export function addPurchaseSupplier() {
-    const name = document.getElementById('newPurchaseSupplierName').value.trim();
+    const name = toTitleCase(document.getElementById('newPurchaseSupplierName').value.trim());
     const mobile = document.getElementById('newPurchaseSupplierMobile').value.trim();
     if (!name) { alert('Enter supplier name.'); return; }
     const i = state.purchaseSuppliers.findIndex(x => String(x.name).toLowerCase() === name.toLowerCase());
@@ -286,7 +287,7 @@ export function updateCleaningPurchaseDropdown() {
     const sel = document.getElementById('purchaseStockSelect'); if (!sel) return;
     sel.innerHTML = '<option value="">-- Select Product --</option>';
     sortByNameAsc(state.products).forEach(p => {
-        sel.innerHTML += `<option value="${p.id}" data-price="${p.retailPrice || 0}" data-unit="${p.unit || ''}" data-barcode="${p.barcode || ''}">${p.name} (Stock: ${p.stock} ${p.unit || ''})</option>`;
+        sel.innerHTML += `<option value="${p.id}" data-price="${p.retailPrice || 0}" data-unit="${p.unit || ''}" data-barcode="${p.barcode || ''}">${toTitleCase(p.name)} (Stock: ${p.stock} ${p.unit || ''})</option>`;
     });
 }
 

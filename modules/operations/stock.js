@@ -9,7 +9,8 @@ import {
     todayDDMMYYYY,
     saveLocalStateSafely,
     markIdDeleted,
-    unmarkIdDeleted
+    unmarkIdDeleted,
+    toTitleCase
 } from '../core/state.js';
 import { syncToFirebase, pullFromFirebase } from '../core/db.js';
 import { getProductWholesalePrice, getProductRetailPrice, updateProductDropdown, updateCombinedProductSelect, updateBillQuantityTypeDropdown } from '../billing/billing.js';
@@ -305,7 +306,7 @@ export function switchStockActionTab(type, tab) {
 export function savePackage(e) {
     e.preventDefault();
     const id = document.getElementById('packageId').value;
-    const name = document.getElementById('packageName').value.trim();
+    const name = toTitleCase(document.getElementById('packageName').value.trim());
     const size = document.getElementById('packageSize').value.trim();
     const unit = document.getElementById('packageUnit').value;
     const stock = parseFloat(document.getElementById('packageStock').value) || 0;
@@ -572,7 +573,7 @@ export function checkAndDeductPackageStock(items) {
 export function saveProduct(e) {
     e.preventDefault();
     const id = document.getElementById('prodId').value;
-    const name = document.getElementById('prodName').value.trim();
+    const name = toTitleCase(document.getElementById('prodName').value.trim());
     const barcode = document.getElementById('prodBarcode').value.trim();
     const stock = parseFloat(document.getElementById('prodStock').value) || 0;
     const unit = document.getElementById('prodUnit').value;
@@ -620,7 +621,7 @@ export function updateCleaningAddStockDropdown() {
     if (!sel) return;
     sel.innerHTML = '<option value="">Product</option>';
     sortByNameAsc(state.products).forEach(p => {
-        sel.innerHTML += `<option value="${p.id}">${p.name} (Current: ${p.stock} ${p.unit})</option>`;
+        sel.innerHTML += `<option value="${p.id}">${toTitleCase(p.name)} (Current: ${p.stock} ${p.unit})</option>`;
     });
 }
 
@@ -690,14 +691,14 @@ export function updateStockReturnDropdowns() {
     if (clean) {
         clean.innerHTML = '<option value="">-- Select Cleaning Product --</option>';
         sortByNameAsc(state.products).forEach(p => {
-            clean.innerHTML += `<option value="${p.id}">${p.name} (Stock: ${p.stock} ${p.unit})</option>`;
+            clean.innerHTML += `<option value="${p.id}">${toTitleCase(p.name)} (Stock: ${p.stock} ${p.unit})</option>`;
         });
     }
 
     if (cos) {
         cos.innerHTML = '<option value="">-- Select Cosmetic Product --</option>';
         sortByNameAsc(state.cosProducts).forEach(p => {
-            cos.innerHTML += `<option value="${p.id}">${p.name} (Stock: ${p.stock} ${p.unit})</option>`;
+            cos.innerHTML += `<option value="${p.id}">${toTitleCase(p.name)} (Stock: ${p.stock} ${p.unit})</option>`;
         });
     }
 }
@@ -809,7 +810,7 @@ export function resetProductForm() {
 export function saveCosProduct(e) {
     e.preventDefault();
     const id = document.getElementById('cosProdId').value;
-    const name = document.getElementById('cosProdName').value.trim();
+    const name = toTitleCase(document.getElementById('cosProdName').value.trim());
     const barcode = document.getElementById('cosProdBarcode').value.trim();
     const stock = parseFloat(document.getElementById('cosProdStock').value) || 0;
     const unit = document.getElementById('cosProdUnit').value;

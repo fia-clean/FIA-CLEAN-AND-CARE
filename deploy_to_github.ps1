@@ -11,7 +11,7 @@ Write-Host "Adding modified files..." -ForegroundColor Yellow
 git add index.html dev.html sw.js manifest.json icon-192.png icon-512.png icon.svg apple-touch-icon.png favicon.png lib/ modules/ public/ src/ deploy_to_github.bat deploy_to_github.ps1
 
 Write-Host "Committing changes..." -ForegroundColor Yellow
-git commit -m "fix(ui): mobile responsive action buttons and universal cohesive theme (v48.0)"
+git commit -m "fix(ui): universal cohesive palette and automatic title casing (v48.1)"
 
 Write-Host "Pushing to GitHub origin main..." -ForegroundColor Yellow
 git push origin main

@@ -5,7 +5,8 @@
 import {
     state,
     unmarkIdDeleted,
-    getTodayDateString
+    getTodayDateString,
+    toTitleCase
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
 import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName, formatInvoiceItemQty } from './invoice-preview.js';
@@ -233,15 +234,15 @@ export function updateBillRateNotice(saleType, product, baseRate, variantObj = n
         if (isWholesale) {
             if (!hasCustomWholesale && wPrice === rPrice && rPrice > 0) {
                 notice.innerHTML = `
-                    <div class="flex flex-wrap items-center justify-between gap-1.5 p-1.5 rounded-lg bg-amber-950/50 border border-amber-500/50">
-                        <span class="text-amber-300 font-semibold text-[11px]">⚠️ Wholesale rate not configured (Using Retail ₹${rPrice.toFixed(2)})</span>
-                        <button type="button" onclick="window.quickSaveProductRate('${safeName}', 'Wholesale')" class="px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-md text-[10px] shadow transition">💾 Set Wholesale Rate</button>
+                    <div class="flex flex-wrap items-center justify-between gap-1.5 p-1.5 rounded-lg bg-sky-950/40 border border-sky-800/50">
+                        <span class="text-sky-300 font-semibold text-[11px]">ℹ️ Wholesale rate not configured (Using Retail ₹${rPrice.toFixed(2)})</span>
+                        <button type="button" onclick="window.quickSaveProductRate('${safeName}', 'Wholesale')" class="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-md text-[10px] shadow transition">💾 Set Wholesale Rate</button>
                     </div>`;
             } else {
                 notice.innerHTML = `
                     <div class="flex flex-wrap items-center justify-between gap-1 text-[11px]">
-                        <span class="text-amber-300 font-bold">🏷️ Wholesale Rate Applied: ₹${Number(baseRate||0).toFixed(2)} <span class="text-slate-400 text-[10px] font-normal">(Retail: ₹${rPrice.toFixed(2)})</span></span>
-                        <button type="button" onclick="window.quickSaveProductRate('${safeName}', 'Wholesale')" class="text-[10px] text-amber-400 underline hover:text-amber-300 font-bold ml-1">Change Default</button>
+                        <span class="text-sky-300 font-bold">🏷️ Wholesale Rate Applied: ₹${Number(baseRate||0).toFixed(2)} <span class="text-slate-400 text-[10px] font-normal">(Retail: ₹${rPrice.toFixed(2)})</span></span>
+                        <button type="button" onclick="window.quickSaveProductRate('${safeName}', 'Wholesale')" class="text-[10px] text-sky-400 underline hover:text-sky-300 font-bold ml-1">Change Default</button>
                     </div>`;
             }
         } else {
@@ -271,7 +272,8 @@ export function updateProductDropdown() {
             const wPrice = getProductWholesalePrice(p);
             const rPrice = getProductRetailPrice(p);
             const priceLabel = saleType === 'Wholesale' ? `W: ₹${wPrice.toFixed(2)}` : `R: ₹${rPrice.toFixed(2)}`;
-            html += `<option value="${p.name.replace(/"/g, '&quot;')}" data-category="Cleaning" data-wholesale="${wPrice}" data-retail="${rPrice}" data-stock="${p.stock}" data-unit="${p.unit}" data-pkg-id="${p.packageId || ''}" data-pkg-name="${(p.packageName || '').replace(/"/g, '&quot;')}" data-pkg-qty="${p.packageQty || 1}">🧹 ${p.name} (Stock: ${p.stock} ${p.unit}) — ${priceLabel}</option>`;
+            const displayName = toTitleCase(p.name);
+            html += `<option value="${p.name.replace(/"/g, '&quot;')}" data-category="Cleaning" data-wholesale="${wPrice}" data-retail="${rPrice}" data-stock="${p.stock}" data-unit="${p.unit}" data-pkg-id="${p.packageId || ''}" data-pkg-name="${(p.packageName || '').replace(/"/g, '&quot;')}" data-pkg-qty="${p.packageQty || 1}">🧹 ${displayName} (Stock: ${p.stock} ${p.unit}) — ${priceLabel}</option>`;
         });
         html += `</optgroup>`;
     }
@@ -282,7 +284,8 @@ export function updateProductDropdown() {
             const wPrice = getProductWholesalePrice(p);
             const rPrice = getProductRetailPrice(p);
             const priceLabel = saleType === 'Wholesale' ? `W: ₹${wPrice.toFixed(2)}` : `R: ₹${rPrice.toFixed(2)}`;
-            html += `<option value="${p.name.replace(/"/g, '&quot;')}" data-category="Cosmetics" data-wholesale="${wPrice}" data-retail="${rPrice}" data-stock="${p.stock}" data-unit="${p.unit}" data-pkg-id="${p.packageId || ''}" data-pkg-name="${(p.packageName || '').replace(/"/g, '&quot;')}" data-pkg-qty="${p.packageQty || 1}">💄 ${p.name} (Stock: ${p.stock} ${p.unit}) — ${priceLabel}</option>`;
+            const displayName = toTitleCase(p.name);
+            html += `<option value="${p.name.replace(/"/g, '&quot;')}" data-category="Cosmetics" data-wholesale="${wPrice}" data-retail="${rPrice}" data-stock="${p.stock}" data-unit="${p.unit}" data-pkg-id="${p.packageId || ''}" data-pkg-name="${(p.packageName || '').replace(/"/g, '&quot;')}" data-pkg-qty="${p.packageQty || 1}">💄 ${displayName} (Stock: ${p.stock} ${p.unit}) — ${priceLabel}</option>`;
         });
         html += `</optgroup>`;
     }
@@ -720,8 +723,8 @@ export function renderBillPreviewInput() {
                     <span>${units}</span>
                     <span>₹${Number(item.rate).toFixed(2)}</span>
                     <strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
-                    <button type="button" onclick="window.editBillItem(${index})" class="text-amber-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
-                    <button type="button" onclick="window.state.currentBillItems.splice(${index},1);window.renderBillPreviewInput();window.calculateBalance();" class="text-red-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
+                    <button type="button" onclick="window.editBillItem(${index})" class="text-sky-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
+                    <button type="button" onclick="window.state.currentBillItems.splice(${index},1);window.renderBillPreviewInput();window.calculateBalance();" class="text-rose-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
                 </div>
                 <div class="sm:hidden flex flex-col gap-1.5">
                     <div class="flex justify-between items-start gap-2">
@@ -731,14 +734,14 @@ export function renderBillPreviewInput() {
                     <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
                         <span>${qtyStr} × ${units} @ ₹${Number(item.rate).toFixed(2)}</span>
                         <div class="flex items-center gap-1.5 shrink-0">
-                            <button type="button" onclick="window.editBillItem(${index})" class="px-2.5 py-1 rounded-lg bg-amber-950/60 text-amber-300 border border-amber-800/60 font-bold text-[10px]">✎ Edit</button>
+                            <button type="button" onclick="window.editBillItem(${index})" class="px-2.5 py-1 rounded-lg bg-slate-800 text-sky-300 border border-sky-500/30 font-bold text-[10px]">✎ Edit</button>
                             <button type="button" onclick="window.state.currentBillItems.splice(${index},1);window.renderBillPreviewInput();window.calculateBalance();" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
                         </div>
                     </div>
                 </div>
             </div>`;
     });
-    if (state.currentBillItems.length > 0) container.innerHTML += `<div class="text-right font-bold text-amber-300 pt-1">Grand Total: ₹${grandTotal.toFixed(2)}</div>`;
+    if (state.currentBillItems.length > 0) container.innerHTML += `<div class="text-right font-extrabold text-sm text-emerald-400 pt-1">Grand Total: ₹${grandTotal.toFixed(2)}</div>`;
     calculateBalance();
 }
 
@@ -760,7 +763,7 @@ export function calculateBalance() {
             status.className = 'text-xs font-black mt-1 text-right text-rose-400 animate-pulse';
         } else if (balance < -0.001) {
             status.textContent = 'BALANCE RETURN / CHANGE: ₹' + excess.toFixed(2);
-            status.className = 'text-xs font-black mt-1 text-right text-amber-300';
+            status.className = 'text-xs font-black mt-1 text-right text-sky-300';
         } else {
             status.textContent = 'PAID IN FULL — BALANCE: ₹0.00';
             status.className = 'text-xs font-black mt-1 text-right text-emerald-400';
@@ -789,7 +792,7 @@ export function getNextCosBillNumber() {
 export function saveCustomer(e) {
     if (e && e.preventDefault) e.preventDefault();
     const index = parseInt(document.getElementById('custIndex').value, 10);
-    const name = (document.getElementById('custName')?.value || '').trim();
+    const name = toTitleCase((document.getElementById('custName')?.value || '').trim());
     const phone = (document.getElementById('custPhone')?.value || '').trim();
     const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
 
@@ -1384,7 +1387,7 @@ export function updateCombinedProductSelect() {
         ...(state.cosProducts || []).map(p => ({ category: 'Cosmetics', name: p.name || '', stock: Number(p.stock) || 0, unit: p.unit || '', wholesale: getProductWholesalePrice(p), retail: getProductRetailPrice(p) }))
     ].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
     const current = select.value;
-    select.innerHTML = '<option value="">-- Select Product --</option>' + rows.map(r => `<option value="${r.category}::${String(r.name).replace(/"/g, '&quot;')}" data-category="${r.category}" data-name="${String(r.name).replace(/"/g, '&quot;')}" data-stock="${r.stock}" data-unit="${r.unit}" data-wholesale="${r.wholesale}" data-retail="${r.retail}">${r.name} — ${r.category} (Stock: ${r.stock} ${r.unit})</option>`).join('');
+    select.innerHTML = '<option value="">-- Select Product --</option>' + rows.map(r => `<option value="${r.category}::${String(r.name).replace(/"/g, '&quot;')}" data-category="${r.category}" data-name="${String(r.name).replace(/"/g, '&quot;')}" data-stock="${r.stock}" data-unit="${r.unit}" data-wholesale="${r.wholesale}" data-retail="${r.retail}">${toTitleCase(r.name)} — ${r.category} (Stock: ${r.stock} ${r.unit})</option>`).join('');
     if (current) select.value = current;
 }
 
@@ -1775,8 +1778,8 @@ export function renderCombinedBillItems() {
                 <span>${units}</span>
                 <span>₹${Number(item.rate || 0).toFixed(2)}</span>
                 <strong class="text-emerald-400">₹${Number(item.total || 0).toFixed(2)}</strong>
-                <button type="button" onclick="editCombinedBillItem(${i})" class="text-amber-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
-                <button type="button" onclick="state.currentBillItems.splice(${i},1);renderCombinedBillItems();calculateCombinedBalance();" class="text-red-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
+                <button type="button" onclick="editCombinedBillItem(${i})" class="text-sky-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
+                <button type="button" onclick="state.currentBillItems.splice(${i},1);renderCombinedBillItems();calculateCombinedBalance();" class="text-rose-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
             </div>
             <div class="sm:hidden flex flex-col gap-1.5">
                 <div class="flex justify-between items-start gap-2">
@@ -1786,7 +1789,7 @@ export function renderCombinedBillItems() {
                 <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
                     <span>${qtyStr} × ${units} @ ₹${Number(item.rate || 0).toFixed(2)}</span>
                     <div class="flex items-center gap-1.5 shrink-0">
-                        <button type="button" onclick="editCombinedBillItem(${i})" class="px-2.5 py-1 rounded-lg bg-amber-950/60 text-amber-300 border border-amber-800/60 font-bold text-[10px]">✎ Edit</button>
+                        <button type="button" onclick="editCombinedBillItem(${i})" class="px-2.5 py-1 rounded-lg bg-slate-800 text-sky-300 border border-sky-500/30 font-bold text-[10px]">✎ Edit</button>
                         <button type="button" onclick="state.currentBillItems.splice(${i},1);renderCombinedBillItems();calculateCombinedBalance();" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
                     </div>
                 </div>
@@ -1890,7 +1893,7 @@ export function resetCombinedBillForm(focus = true) {
 export function saveCombinedBill(e) {
     if (e && e.preventDefault) e.preventDefault();
     const idx = parseInt(document.getElementById('combinedBillIndex')?.value, 10);
-    const name = document.getElementById('combinedCustomerName')?.value.trim() || '';
+    const name = toTitleCase(document.getElementById('combinedCustomerName')?.value.trim() || '');
     const phone = document.getElementById('combinedCustomerPhone')?.value.trim() || '';
     const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
     if (!name || !state.currentBillItems.length) {

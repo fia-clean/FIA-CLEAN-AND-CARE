@@ -533,6 +533,26 @@ export function closeBackupModal() {
     if (modal) modal.classList.add('hidden');
 }
 
+export function toTitleCase(str) {
+    if (!str || typeof str !== 'string') return '';
+    const trimmed = str.trim();
+    if (!trimmed) return '';
+    return trimmed.replace(/\S+/g, function(word) {
+        const lower = word.toLowerCase();
+        if (['ml', 'ltr', 'l', 'kg', 'g', 'gm', 'pcs'].includes(lower)) {
+            return lower === 'ml' ? 'ml' : (lower === 'kg' ? 'Kg' : (lower === 'ltr' ? 'Ltr' : (lower === 'l' ? 'L' : lower)));
+        }
+        const unitMatch = word.match(/^(\d+(?:\.\d+)?)(ml|ltr|l|kg|g|gm|pcs)$/i);
+        if (unitMatch) {
+            const num = unitMatch[1];
+            const u = unitMatch[2].toLowerCase();
+            const unitFormatted = u === 'ml' ? 'ml' : (u === 'kg' ? 'kg' : (u === 'ltr' ? 'Ltr' : (u === 'l' ? 'L' : u)));
+            return num + unitFormatted;
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    });
+}
+
 // Initial mount of state on window for backward compatibility with templates
 if (typeof window !== 'undefined') {
     window.state = state;
@@ -547,5 +567,6 @@ if (typeof window !== 'undefined') {
     window.restoreSnapshot = restoreSnapshot;
     window.downloadSnapshot = downloadSnapshot;
     window.sortByNameAsc = sortByNameAsc;
+    window.toTitleCase = toTitleCase;
 }
 
