@@ -134,7 +134,7 @@ export function previewBill(identifier) {
                         <span><strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
-                        <span style="max-width: 60%; word-break: break-word;"><strong>Customer:</strong> ${c.name || 'Walk-in'}</span>
+                        <span style="max-width: 60%; word-break: break-word;"><strong>Customer:</strong> ${String(c.name || 'Walk-in').toUpperCase()}</span>
                         <span><strong>${c.phone ? 'Mob: ' + c.phone : 'Mode: ' + (c.paymentMode || 'Cash')}</strong></span>
                     </div>
                 </div>
@@ -266,7 +266,7 @@ export function previewCosSaleBill(saleOrIdentifier) {
                         <span><strong>Date:</strong> ${formatDateDDMMYYYY(sale.date)}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
-                        <span style="max-width: 60%; word-break: break-word;"><strong>Customer:</strong> ${sale.customer || 'Walk-in'}</span>
+                        <span style="max-width: 60%; word-break: break-word;"><strong>Customer:</strong> ${String(sale.customer || 'Walk-in').toUpperCase()}</span>
                         <span><strong>${sale.phone ? 'Mob: ' + sale.phone : 'Mode: ' + (sale.paymentMode || 'Cash')}</strong></span>
                     </div>
                 </div>
@@ -354,7 +354,7 @@ function getA4HeaderHtml(c, brandTitle, themeColor, isWholesale, brandBadge) {
                 <span><strong>Date:</strong> ${formatDateDDMMYYYY(c.date)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
-                <span style="max-width: 65%; word-break: break-word;"><strong>Customer:</strong> ${c.name || 'Walk-in'}</span>
+                <span style="max-width: 65%; word-break: break-word;"><strong>Customer:</strong> ${String(c.name || 'Walk-in').toUpperCase()}</span>
                 <span><strong>${c.phone ? 'Mob: ' + c.phone : 'Mode: ' + (c.paymentMode || 'Cash')}</strong></span>
             </div>
         </div>
@@ -478,7 +478,7 @@ export function generateA4Pages(c) {
                 <div style="display: flex; justify-content: space-between; align-items: center; background: #f3f4f6; border: 1px solid #d1d5db; border-bottom: 2px solid ${themeColor}; padding: 8px 12px; margin-bottom: 12px; border-radius: 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
                     <div>
                         <strong style="color: ${themeColor}; font-size: 13px; font-weight: 900;">${brandTitle} — BILL NO: ${c.billNo || '—'}</strong>
-                        <span style="font-size: 11px; color: #4b5563; margin-left: 12px;">Customer: ${c.name || 'Walk-in'} • Date: ${formatDateDDMMYYYY(c.date)}</span>
+                        <span style="font-size: 11px; color: #4b5563; margin-left: 12px;">Customer: ${String(c.name || 'Walk-in').toUpperCase()} • Date: ${formatDateDDMMYYYY(c.date)}</span>
                     </div>
                     <span style="background: ${themeColor}; color: #ffffff; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 800; -webkit-print-color-adjust: exact; print-color-adjust: exact;">PAGE 2 (CONTINUED)</span>
                 </div>
@@ -868,7 +868,7 @@ export function sendBillViaWhatsApp() {
     const excessVal = Number(c.excessAmount || 0);
     const dueLine = Number(pendingVal) > 0 ? `*Balance Due:* ₹${Number(pendingVal).toFixed(2)}\n` : '';
     const returnLine = excessVal > 0 ? `*Balance Return:* ₹${excessVal.toFixed(2)}\n` : '';
-    let msg = `*FIA CLEAN AND CARE*\n*EDATHANATTUKARA*\n*MOB: 8086452106*\n*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${c.name}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}${returnLine}\n_Thank you for your business!_`;
+    let msg = `*FIA CLEAN AND CARE*\n*EDATHANATTUKARA*\n*MOB: 8086452106*\n*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${String(c.name || 'Walk-in').toUpperCase()}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}${returnLine}\n_Thank you for your business!_`;
     
     if (window.history && window.history.pushState) {
         window.history.pushState({ loggedIn: true, tab: 'billing' }, "", "#billing");
