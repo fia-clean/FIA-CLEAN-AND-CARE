@@ -350,7 +350,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.7) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.8) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -632,7 +632,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v48.7</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v48.8</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
@@ -648,7 +648,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v48.7</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v48.8</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -1873,6 +1873,40 @@
                     <input type="password" id="newPinInput" placeholder="Enter New PIN" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500" maxlength="6">
                 </div>
                 <button onclick="saveNewPin()" class="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-500">Save PIN</button>
+
+                <!-- ================= FIREBASE CLOUD SECURITY & DEVICE AUTHORIZATION ================= -->
+                <div class="pt-3 border-t border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+                            <span>🔐</span> Cloud Database Security
+                        </div>
+                        <span id="cloudAuthBadge" class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">Checking...</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400">Authorize this device with your Firebase Admin account for 100% locked cloud access.</p>
+                    
+                    <div id="cloudAuthInputsContainer" class="space-y-2">
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-0.5">Firebase Admin Email:</label>
+                            <input type="email" id="cloudAuthEmail" placeholder="admin@fiaclean.com" class="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-0.5">Admin Password:</label>
+                            <input type="password" id="cloudAuthPassword" placeholder="••••••••" class="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <button type="button" onclick="loginFirebaseAuth()" id="cloudAuthLoginBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-bold text-xs shadow-md transition cursor-pointer">🔑 Authorize This Device</button>
+                    </div>
+
+                    <div id="cloudAuthActiveContainer" class="hidden bg-emerald-950/40 border border-emerald-800/60 p-2.5 rounded-xl flex items-center justify-between">
+                        <div class="min-w-0 flex-1 pr-2">
+                            <div class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                                <span>🟢</span> Device Authorized
+                            </div>
+                            <div class="text-[10px] text-slate-300 font-mono truncate" id="cloudAuthUserEmail">user@example.com</div>
+                        </div>
+                        <button type="button" onclick="logoutFirebaseAuth()" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-rose-300 hover:text-rose-200 px-2.5 py-1.5 rounded-lg border border-slate-700 font-bold transition shrink-0 cursor-pointer">Disconnect</button>
+                    </div>
+                </div>
+
                 <div class="pt-3 border-t border-slate-800 space-y-2">
                     <div class="font-bold text-slate-200 text-xs">💾 Data Backup & Restore</div>
                     <p class="text-[10px] text-slate-500">Backup is downloaded as a JSON file to your device.</p>
@@ -1995,7 +2029,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=48.7"></script>
+    <script type="module" src="./modules/app.js?v=48.8"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2007,7 +2041,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.7) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.8) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2061,7 +2095,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=48.7')
+                navigator.serviceWorker.register('./sw.js?v=48.8')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

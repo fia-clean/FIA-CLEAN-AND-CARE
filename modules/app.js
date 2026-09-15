@@ -10,7 +10,7 @@ import {
     startAutomaticBackup,
     todayDDMMYYYY,
     getTodayDateString
-} from './core/state.js?v=48.7';
+} from './core/state.js?v=48.8';
 import {
     startRealtimeSync,
     pullFromFirebase,
@@ -19,7 +19,7 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup
-} from './core/db.js?v=48.7';
+} from './core/db.js?v=48.8';
 import {
     verifyLoginPin,
     logoutApp,
@@ -32,8 +32,12 @@ import {
     verifyMasterKeyAndReset,
     saveNewPin,
     openSettingsModal,
-    closeSettingsModal
-} from './core/auth.js?v=48.7';
+    closeSettingsModal,
+    loginFirebaseAuth,
+    logoutFirebaseAuth,
+    updateCloudAuthUI,
+    setupFirebaseAuthListener
+} from './core/auth.js?v=48.8';
 
 // Feature Modules
 import {
@@ -47,7 +51,7 @@ import {
     closeLowStockList,
     goToAddStockFromLowStock,
     pushDashboardModalState
-} from './dashboard/dashboard.js?v=48.7';
+} from './dashboard/dashboard.js?v=48.8';
 
 import {
     saveDirectCustomer,
@@ -67,7 +71,7 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport
-} from './customers/customer.js?v=48.7';
+} from './customers/customer.js?v=48.8';
 
 import {
     previewBill,
@@ -82,7 +86,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=48.7';
+} from './billing/invoice-preview.js?v=48.8';
 
 import {
     renderSalesHistory,
@@ -91,7 +95,7 @@ import {
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
-} from './billing/billing-history.js?v=48.7';
+} from './billing/billing-history.js?v=48.8';
 
 import {
     getProductWholesalePrice,
@@ -146,7 +150,7 @@ import {
     renderCosSales,
     resetCosSalesForm,
     renderCosmeticsSummary
-} from './billing/billing.js?v=48.7';
+} from './billing/billing.js?v=48.8';
 
 import {
     updatePackageSelectors,
@@ -196,7 +200,7 @@ import {
     viewProduct,
     viewCosProduct,
     viewPackage
-} from './operations/stock.js?v=48.7';
+} from './operations/stock.js?v=48.8';
 
 import {
     getTodayPurchaseDate,
@@ -251,7 +255,7 @@ import {
     shareSelectedSupplierConsolidatedDetail,
     sharePurchaseConsolidationReport,
     downloadPurchaseConsolidationReportPDF
-} from './operations/purchases.js?v=48.7';
+} from './operations/purchases.js?v=48.8';
 
 import {
     saveExpense,
@@ -260,7 +264,7 @@ import {
     renderExpenses,
     resetExpenseForm,
     viewExpense
-} from './operations/expenses.js?v=48.7';
+} from './operations/expenses.js?v=48.8';
 
 import {
     dashboardDateKey,
@@ -282,7 +286,7 @@ import {
     onFolderDateRangeChange,
     syncFolderDateInputs,
     getYesterdayDateString
-} from './daybook/daybook.js?v=48.7';
+} from './daybook/daybook.js?v=48.8';
 
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {
@@ -821,6 +825,7 @@ if (typeof window !== 'undefined') {
         }, 0);
 
         try { renderAll(); } catch (e) { console.error('renderAll error:', e); }
+        try { if (typeof setupFirebaseAuthListener === 'function') setupFirebaseAuthListener(); } catch(e) { console.error('setupFirebaseAuthListener error:', e); }
         try { startRealtimeSync(); } catch (e) { console.error('startRealtimeSync error:', e); }
         try { pullFromFirebase(); } catch (e) { console.error('pullFromFirebase error:', e); }
         try { startAutomaticBackup(); } catch (e) { console.error('startAutomaticBackup error:', e); }

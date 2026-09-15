@@ -485,7 +485,11 @@ export function syncToFirebase() {
         })
         .catch(function(err) {
             console.error("Firebase write error:", err);
-            updateSyncStatus(false, 'Sync Pending (Offline Mode)');
+            if (err && String(err.message || err).includes('PERMISSION_DENIED')) {
+                updateSyncStatus(false, 'Cloud Locked: Authorize in Settings');
+            } else {
+                updateSyncStatus(false, 'Sync Pending (Offline Mode)');
+            }
             return false;
         })
         .finally(function() {
@@ -516,7 +520,11 @@ export function pullFromFirebase() {
     }).catch(function(error) {
         console.error("Firebase pull error:", error);
         state.isFirebaseConnected = false;
-        updateSyncStatus(false, 'Working under offline mode');
+        if (error && String(error.message || error).includes('PERMISSION_DENIED')) {
+            updateSyncStatus(false, 'Cloud Locked: Authorize in Settings');
+        } else {
+            updateSyncStatus(false, 'Working under offline mode');
+        }
         if (window.renderAll) window.renderAll();
         return false;
     });
@@ -560,7 +568,11 @@ export function startRealtimeSync() {
     }, function(error) {
         console.error("Firebase Read Error:", error);
         state.isFirebaseConnected = false;
-        updateSyncStatus(false, 'Working under offline mode');
+        if (error && String(error.message || error).includes('PERMISSION_DENIED')) {
+            updateSyncStatus(false, 'Cloud Locked: Authorize in Settings');
+        } else {
+            updateSyncStatus(false, 'Working under offline mode');
+        }
         if (window.renderAll) window.renderAll();
     });
 }

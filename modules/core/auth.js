@@ -3,7 +3,7 @@
  */
 
 import { state, MASTER_RECOVERY_KEY, MASTER_RECOVERY_KEYS } from './state.js';
-import { syncToFirebase } from './db.js';
+import { syncToFirebase, pullFromFirebase } from './db.js';
 
 export const ACCEPTED_MASTER_KEYS = MASTER_RECOVERY_KEYS || ["FIA786", "FIA-CLEAN-CARE-MASTER-2026", "FIA2026", "MASTER786"];
 export const DEFAULT_FALLBACK_PINS = ["1234", "1122", "0000", "7860"];
@@ -227,7 +227,12 @@ export function verifyMasterKeyAndReset() {
     if (loginInput) { loginInput.value = newPin; loginInput.focus(); }
 }
 
-export function openSettingsModal() { document.getElementById('settingsModal')?.classList.remove('hidden'); }
+export function openSettingsModal() { 
+    document.getElementById('settingsModal')?.classList.remove('hidden'); 
+    if (typeof updateCloudAuthUI === 'function') {
+        updateCloudAuthUI(window.FB_AUTH ? window.FB_AUTH.currentUser : null);
+    }
+}
 export function closeSettingsModal() { document.getElementById('settingsModal')?.classList.add('hidden'); }
 
 export function saveNewPin() {
@@ -240,6 +245,108 @@ export function saveNewPin() {
         closeSettingsModal();
     } else {
         alert("PIN must be at least 3 digits.");
+    }
+}
+
+// ================= FIREBASE CLOUD SECURITY & DEVICE AUTHORIZATION =================
+export function updateCloudAuthUI(user) {
+    const badge = document.getElementById('cloudAuthBadge');
+    const inputContainer = document.getElementById('cloudAuthInputsContainer');
+    const activeContainer = document.getElementById('cloudAuthActiveContainer');
+    const userEmailEl = document.getElementById('cloudAuthUserEmail');
+
+    if (user && user.email) {
+        if (badge) {
+            badge.textContent = 'Protected (auth!=null)';
+            badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm';
+        }
+        if (inputContainer) inputContainer.classList.add('hidden');
+        if (activeContainer) activeContainer.classList.remove('hidden');
+        if (userEmailEl) userEmailEl.textContent = user.email;
+    } else {
+        if (badge) {
+            badge.textContent = 'Not Authorized';
+            badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800';
+        }
+        if (inputContainer) inputContainer.classList.remove('hidden');
+        if (activeContainer) activeContainer.classList.add('hidden');
+        if (userEmailEl) userEmailEl.textContent = '';
+    }
+}
+
+export function loginFirebaseAuth() {
+    const email = (document.getElementById('cloudAuthEmail')?.value || '').trim();
+    const pass = document.getElementById('cloudAuthPassword')?.value || '';
+    const btn = document.getElementById('cloudAuthLoginBtn');
+
+    if (!email || !pass) {
+        alert('Please enter your Firebase Admin Email and Password.');
+        return;
+    }
+    if (!window.FB_AUTH) {
+        alert('Firebase Authentication is initializing or unavailable. Please check your internet connection.');
+        return;
+    }
+
+    if (btn) {
+        btn.textContent = 'Authorizing device...';
+        btn.disabled = true;
+    }
+
+    // Set persistence to LOCAL so the login token survives browser closes, device restarts, and PWA relaunches
+    window.FB_AUTH.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .then(() => window.FB_AUTH.signInWithEmailAndPassword(email, pass))
+        .then((userCred) => {
+            alert(`✓ Device successfully authorized as:\n${userCred.user.email}\n\nYour app can now securely sync with locked cloud database.`);
+            updateCloudAuthUI(userCred.user);
+            const passInput = document.getElementById('cloudAuthPassword');
+            if (passInput) passInput.value = '';
+            if (typeof pullFromFirebase === 'function') pullFromFirebase();
+        })
+        .catch((err) => {
+            console.error('Firebase Auth Login Error:', err);
+            let msg = err.message || err.code || 'Authentication failed.';
+            if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+                msg = 'Incorrect Email or Password! Please check the credentials created in Firebase Console.';
+            } else if (err.code === 'auth/network-request-failed') {
+                msg = 'Network request failed. Please check your internet connection.';
+            }
+            alert('Authentication Error: ' + msg);
+        })
+        .finally(() => {
+            if (btn) {
+                btn.textContent = '🔑 Authorize This Device';
+                btn.disabled = false;
+            }
+        });
+}
+
+export function logoutFirebaseAuth() {
+    if (!window.FB_AUTH) return;
+    if (!confirm('Disconnect this device from Firebase Cloud Admin?\n\nThe device will lose cloud synchronization until re-authorized.')) return;
+
+    window.FB_AUTH.signOut().then(() => {
+        updateCloudAuthUI(null);
+        alert('Device disconnected from Firebase Cloud.');
+    }).catch(err => {
+        console.error('Firebase signout error:', err);
+    });
+}
+
+export function setupFirebaseAuthListener() {
+    if (!window.FB_AUTH) return;
+    try {
+        window.FB_AUTH.onAuthStateChanged(function(user) {
+            updateCloudAuthUI(user);
+            if (user) {
+                console.log('Firebase Cloud Auth Active on device:', user.email);
+                if (typeof pullFromFirebase === 'function') pullFromFirebase();
+            } else {
+                console.log('Firebase Cloud Auth: No active session on this device.');
+            }
+        });
+    } catch(e) {
+        console.warn('Firebase Auth listener error:', e);
     }
 }
 
@@ -259,4 +366,8 @@ if (typeof window !== 'undefined') {
     window.openSettingsModal = openSettingsModal;
     window.closeSettingsModal = closeSettingsModal;
     window.saveNewPin = saveNewPin;
+    window.loginFirebaseAuth = loginFirebaseAuth;
+    window.logoutFirebaseAuth = logoutFirebaseAuth;
+    window.updateCloudAuthUI = updateCloudAuthUI;
+    window.setupFirebaseAuthListener = setupFirebaseAuthListener;
 }
