@@ -406,7 +406,9 @@ export function renderAccounts() {
     const restoreBtn = document.getElementById('restoreDayBookBtn');
     const clearedBanner = document.getElementById('dayBookClearedBanner');
     const headingEl = document.getElementById('dayBookEntriesHeading');
+    const countBadge = document.getElementById('dayBookEntriesCountBadge');
 
+    if (countBadge) countBadge.textContent = `${filtered.length} Entries`;
     if (headingEl) headingEl.textContent = `Filtered Day Book Entries (${filtered.length})`;
 
     if (restoreBtn) {
@@ -505,6 +507,28 @@ export function renderAccounts() {
     // Render Day Book items
     const listContainer = document.getElementById('dayBookListContainer');
     if (!listContainer) return;
+
+    // Optional Search Filter inside the folder
+    const searchVal = (document.getElementById('dayBookSearchInput')?.value || '').trim().toLowerCase();
+    let displayList = filtered;
+    if (searchVal) {
+        displayList = filtered.filter(e => {
+            const desc = String(e.desc || '').toLowerCase();
+            const type = String(e.type || '').toLowerCase();
+            const cat = String(e.category || '').toLowerCase();
+            const mode = String(e.paymentMode || '').toLowerCase();
+            const amt = String(e.amount || '');
+            const date = formatDateDDMMYYYY(e.date).toLowerCase();
+            return desc.includes(searchVal) || type.includes(searchVal) || cat.includes(searchVal) || mode.includes(searchVal) || amt.includes(searchVal) || date.includes(searchVal);
+        });
+    }
+
+    if (headingEl) {
+        headingEl.textContent = searchVal 
+            ? `Filtered Day Book Entries (${displayList.length} of ${filtered.length})` 
+            : `Filtered Day Book Entries (${filtered.length})`;
+    }
+
     if (filtered.length === 0) {
         const totalMasterCount = allEntries.length;
         const clearedNote = (state.clearedDayBookEntries && state.clearedDayBookEntries.length > 0)
@@ -520,8 +544,14 @@ export function renderAccounts() {
                 </div>
                 ${clearedNote}
             </div>`;
+    } else if (displayList.length === 0) {
+        listContainer.innerHTML = `
+            <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-xl text-center space-y-2">
+                <p class="text-xs text-slate-300">No transactions match your search "<b>${searchVal}</b>".</p>
+                <button type="button" onclick="document.getElementById('dayBookSearchInput').value=''; renderAccounts();" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1 rounded-lg border border-slate-700 transition cursor-pointer">Clear Search</button>
+            </div>`;
     } else {
-        listContainer.innerHTML = filtered.map(e => {
+        listContainer.innerHTML = displayList.map(e => {
             const isInc = e.type === 'Income';
             const badgeBg = isInc ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60' : 'bg-slate-800 text-slate-300 border-slate-700/60';
             const icon = isInc ? '💰' : '💸';
@@ -545,6 +575,39 @@ export function renderAccounts() {
                 </div>
             </div>`;
         }).join('');
+    }
+}
+
+export function toggleDayBookEntriesFolder(forceState) {
+    const content = document.getElementById('dayBookEntriesFolderContent');
+    const toggleBtn = document.getElementById('dayBookFolderToggleBtn');
+    const btnIcon = document.getElementById('dayBookFolderBtnIcon');
+    const btnText = document.getElementById('dayBookFolderBtnText');
+    const statusText = document.getElementById('dayBookFolderStatusText');
+    if (!content) return;
+
+    const isCurrentlyHidden = content.classList.contains('hidden');
+    const willOpen = (typeof forceState === 'boolean') ? forceState : isCurrentlyHidden;
+
+    if (willOpen) {
+        content.classList.remove('hidden');
+        if (btnIcon) btnIcon.textContent = '📁';
+        if (btnText) btnText.textContent = 'Close Folder';
+        if (statusText) statusText.textContent = 'Folder is open • Showing itemized transactions';
+        if (toggleBtn) {
+            toggleBtn.className = 'bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-1.5 rounded-xl border border-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer';
+        }
+        setTimeout(() => {
+            document.getElementById('dayBookSearchInput')?.focus();
+        }, 80);
+    } else {
+        content.classList.add('hidden');
+        if (btnIcon) btnIcon.textContent = '👁️';
+        if (btnText) btnText.textContent = 'View Folder';
+        if (statusText) statusText.textContent = 'Folder is closed • Tap to view transactions';
+        if (toggleBtn) {
+            toggleBtn.className = 'bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl border border-indigo-500 text-xs font-bold shadow-md shadow-indigo-950/40 transition flex items-center gap-1.5 cursor-pointer';
+        }
     }
 }
 
@@ -621,4 +684,5 @@ if (typeof window !== 'undefined') {
     window.refreshDayBookRealtime = refreshDayBookRealtime;
     window.exportDayBookToCSV = exportDayBookToCSV;
     window.exportDayBookToExcel = exportDayBookToCSV;
+    window.toggleDayBookEntriesFolder = toggleDayBookEntriesFolder;
 }
