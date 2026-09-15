@@ -17,6 +17,29 @@ export function pushDashboardModalState(modalName) {
     }
 }
 
+export function toggleRecentTransactionsFolder(forceState) {
+    const content = document.getElementById('recentTransactionsFolderContent');
+    const btnText = document.getElementById('recentTransactionsBtnText');
+    const btnIcon = document.getElementById('recentTransactionsBtnIcon');
+    const statusText = document.getElementById('recentTransactionsFolderStatusText');
+    if (!content) return;
+
+    const isCurrentlyHidden = content.classList.contains('hidden');
+    const shouldOpen = (forceState !== undefined) ? !!forceState : isCurrentlyHidden;
+
+    if (shouldOpen) {
+        content.classList.remove('hidden');
+        if (btnText) btnText.textContent = 'Hide';
+        if (btnIcon) btnIcon.textContent = '▲';
+        if (statusText) statusText.textContent = 'Showing recent business transactions';
+    } else {
+        content.classList.add('hidden');
+        if (btnText) btnText.textContent = 'View';
+        if (btnIcon) btnIcon.textContent = '👁️';
+        if (statusText) statusText.textContent = 'Tap to view recent transactions';
+    }
+}
+
 export function updateRecentTransactions() {
     const el = document.getElementById('recentTransactionsList');
     if (!el) return;
@@ -80,8 +103,14 @@ export function updateRecentTransactions() {
     });
 
     rows.sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date));
-    el.innerHTML = rows.slice(0, 6).map(r => `
-        <div class="flex items-center justify-between gap-3 bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2">
+
+    const badge = document.getElementById('recentTransactionsCountBadge');
+    if (badge) {
+        badge.textContent = `${rows.length} ${rows.length === 1 ? 'Activity' : 'Activities'}`;
+    }
+
+    el.innerHTML = rows.slice(0, 50).map(r => `
+        <div class="flex items-center justify-between gap-3 bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 hover:bg-slate-900/60 transition">
             <div class="flex items-center gap-2 min-w-0">
                 <span class="text-base">${r.icon}</span>
                 <div class="min-w-0">
@@ -306,6 +335,7 @@ export function updateDashboard() {
 if (typeof window !== 'undefined') {
     window.updateDashboard = updateDashboard;
     window.updateRecentTransactions = updateRecentTransactions;
+    window.toggleRecentTransactionsFolder = toggleRecentTransactionsFolder;
     window.openDueAmountList = openDueAmountList;
     window.closeDueAmountList = closeDueAmountList;
     window.renderDueAmountList = renderDueAmountList;

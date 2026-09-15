@@ -10,7 +10,7 @@ import {
     startAutomaticBackup,
     todayDDMMYYYY,
     getTodayDateString
-} from './core/state.js?v=49.1';
+} from './core/state.js?v=49.2';
 import {
     startRealtimeSync,
     pullFromFirebase,
@@ -19,7 +19,7 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup
-} from './core/db.js?v=49.1';
+} from './core/db.js?v=49.2';
 import {
     verifyLoginPin,
     logoutApp,
@@ -37,11 +37,13 @@ import {
     logoutFirebaseAuth,
     updateCloudAuthUI,
     setupFirebaseAuthListener
-} from './core/auth.js?v=49.1';
+} from './core/auth.js?v=49.2';
 
 // Feature Modules
 import {
     updateDashboard,
+    updateRecentTransactions,
+    toggleRecentTransactionsFolder,
     checkLowStockAlerts,
     openDueAmountList,
     closeDueAmountList,
@@ -51,7 +53,7 @@ import {
     closeLowStockList,
     goToAddStockFromLowStock,
     pushDashboardModalState
-} from './dashboard/dashboard.js?v=49.1';
+} from './dashboard/dashboard.js?v=49.2';
 
 import {
     saveDirectCustomer,
@@ -71,7 +73,7 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport
-} from './customers/customer.js?v=49.1';
+} from './customers/customer.js?v=49.2';
 
 import {
     previewBill,
@@ -86,7 +88,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=49.1';
+} from './billing/invoice-preview.js?v=49.2';
 
 import {
     renderSalesHistory,
@@ -95,7 +97,7 @@ import {
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
-} from './billing/billing-history.js?v=49.1';
+} from './billing/billing-history.js?v=49.2';
 
 import {
     getProductWholesalePrice,
@@ -150,7 +152,7 @@ import {
     renderCosSales,
     resetCosSalesForm,
     renderCosmeticsSummary
-} from './billing/billing.js?v=49.1';
+} from './billing/billing.js?v=49.2';
 
 import {
     updatePackageSelectors,
@@ -200,7 +202,7 @@ import {
     viewProduct,
     viewCosProduct,
     viewPackage
-} from './operations/stock.js?v=49.1';
+} from './operations/stock.js?v=49.2';
 
 import {
     getTodayPurchaseDate,
@@ -256,7 +258,7 @@ import {
     shareSelectedSupplierConsolidatedDetail,
     sharePurchaseConsolidationReport,
     downloadPurchaseConsolidationReportPDF
-} from './operations/purchases.js?v=49.1';
+} from './operations/purchases.js?v=49.2';
 
 import {
     saveExpense,
@@ -267,7 +269,7 @@ import {
     viewExpense,
     switchExpenseTab,
     setExpenseListFilter
-} from './operations/expenses.js?v=49.1';
+} from './operations/expenses.js?v=49.2';
 
 import {
     dashboardDateKey,
@@ -289,7 +291,7 @@ import {
     onFolderDateRangeChange,
     syncFolderDateInputs,
     getYesterdayDateString
-} from './daybook/daybook.js?v=49.1';
+} from './daybook/daybook.js?v=49.2';
 
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {
@@ -751,6 +753,7 @@ if (typeof window !== 'undefined') {
     window.shareBillPdfWhatsApp = shareBillPdfWhatsApp;
     window.generateBillPdfBlob = generateBillPdfBlob;
     window.toggleDayBookEntriesFolder = toggleDayBookEntriesFolder;
+    window.toggleRecentTransactionsFolder = toggleRecentTransactionsFolder;
 
     // ================= INITIALIZATION & MOUNTING =================
     let isAppBootstrapped = false;

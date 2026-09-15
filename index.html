@@ -632,7 +632,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v49.1</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v49.2</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
@@ -648,7 +648,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v49.1</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v49.2</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -791,9 +791,43 @@
                     <button onclick="switchTab('billing')" class="bg-sky-950/30 border border-sky-900/50 rounded-xl p-3 text-left"><div class="text-[9px] text-slate-500 uppercase">Collection</div><div id="dashTodayCollection" class="text-sm font-extrabold text-sky-300 mt-1">₹0</div></button>
                 </div>
             </div>
-            <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4">
-                <div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-slate-200 text-sm">Recent Transactions</h3><p class="text-[10px] text-slate-500">Latest business activity</p></div><button onclick="openBillingSection('history')" class="text-[10px] text-emerald-300 underline">Billing History</button></div>
-                <div id="recentTransactionsList" class="space-y-2"></div>
+            <!-- ================= OPERATIONS RECENT TRANSACTIONS FOLDER (Collapsible) ================= -->
+            <div id="operationsRecentTransactionsFolder" class="bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-xl transition-all">
+                <!-- Folder Header / Accordion Bar (Always visible) -->
+                <div onclick="window.toggleRecentTransactionsFolder()" role="button" tabindex="0" class="p-2.5 sm:p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-800/60 transition select-none">
+                    <div class="flex items-center gap-2 min-w-0 flex-1">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-950/80 border border-emerald-700/60 flex items-center justify-center text-base shrink-0 shadow-inner">
+                            📁
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 flex-nowrap overflow-hidden">
+                                <h3 class="font-bold text-slate-100 text-xs sm:text-sm whitespace-nowrap">Recent Transactions</h3>
+                                <span id="recentTransactionsCountBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/60 shrink-0 whitespace-nowrap">0 Activities</span>
+                            </div>
+                            <p id="recentTransactionsFolderStatusText" class="text-[10px] text-slate-400 truncate mt-0.5">Tap to view recent transactions</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button type="button" id="recentTransactionsToggleBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-xl border border-emerald-500 text-xs font-bold shadow-md shadow-emerald-950/40 transition flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                            <span id="recentTransactionsBtnIcon">👁️</span>
+                            <span id="recentTransactionsBtnText">View</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Folder Content (Collapsed / Hidden by default) -->
+                <div id="recentTransactionsFolderContent" class="hidden border-t border-slate-800/80 p-2.5 sm:p-3 bg-slate-950/60 space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="text-[11px] text-slate-400">Latest business activities (Sales, Purchases, Expenses)</p>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openBillingSection('history')" class="text-[10px] text-emerald-300 underline font-semibold">Billing History</button>
+                            <button type="button" onclick="window.toggleRecentTransactionsFolder(false)" class="text-[11px] font-bold text-slate-300 hover:text-white px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition cursor-pointer shrink-0 whitespace-nowrap">✕ Fold</button>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable list with max-height to prevent endless scrolling -->
+                    <div id="recentTransactionsList" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1 overscroll-contain"></div>
+                </div>
             </div>
         </div>
 
@@ -1093,26 +1127,34 @@
 
                 <div id="customerConsolidationViewContent" class="space-y-4">
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner space-y-3">
-                        <div class="flex justify-between items-center">
-                            <h3 class="font-bold text-slate-100 text-sm">Customer Purchase History</h3>
-                            <input id="consolidationViewSearchInput" type="search" oninput="renderCustomerConsolidationView()" placeholder="Search customer..." class="p-2 border border-slate-700 rounded-lg text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-indigo-500 w-44">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                            <div>
+                                <h3 class="font-bold text-slate-100 text-sm">Customer Purchase History</h3>
+                                <p class="text-[11px] text-slate-400 mt-0.5">All bills for each customer are shown line by line.</p>
+                            </div>
+                            <input id="consolidationViewSearchInput" type="search" oninput="renderCustomerConsolidationView()" placeholder="Search customer name..." class="p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-indigo-500 w-full sm:w-52">
                         </div>
-                        <p class="text-[11px] text-slate-400">All bills for each customer are shown line by line.</p>
                     </div>
                     <div id="customerConsolidationViewContainer" class="space-y-2.5"></div>
                 </div>
 
                 <div id="customerConsolidationReportContent" class="space-y-4 hidden">
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner space-y-3">
-                        <div class="flex justify-between items-center gap-2">
-                            <h3 class="font-bold text-slate-100 text-sm">Customer Consolidation Summary</h3>
-                            <div class="flex gap-1.5 shrink-0">
-                                <button type="button" onclick="shareCustomerConsolidationReport()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-2 rounded-lg text-[10px] font-bold">💬 WhatsApp</button>
-                                <button type="button" onclick="downloadCustomerConsolidationReportPDF()" class="bg-indigo-700 hover:bg-indigo-600 text-white px-2.5 py-2 rounded-lg text-[10px] font-bold">📥 PDF</button>
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5">
+                            <div>
+                                <h3 class="font-bold text-slate-100 text-sm">Customer Consolidation Summary</h3>
+                                <p class="text-[11px] text-slate-400 mt-0.5">Total purchases, payments & pending dues across all bills.</p>
+                            </div>
+                            <div class="flex items-center gap-2 w-full sm:w-auto">
+                                <button type="button" onclick="shareCustomerConsolidationReport()" class="flex-1 sm:flex-initial bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow cursor-pointer">
+                                    <span>💬</span><span>WhatsApp</span>
+                                </button>
+                                <button type="button" onclick="downloadCustomerConsolidationReportPDF()" class="flex-1 sm:flex-initial bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow cursor-pointer">
+                                    <span>📥</span><span>PDF</span>
+                                </button>
                             </div>
                         </div>
-                        <input id="consolidationSearchInput" type="search" oninput="renderCustomerConsolidationReport()" placeholder="Search customer..." class="w-full p-2.5 border border-slate-700 rounded-lg text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-indigo-500">
-                        <p class="text-[11px] text-slate-400">Total purchases, payments, and pending dues consolidated across all bills.</p>
+                        <input id="consolidationSearchInput" type="search" oninput="renderCustomerConsolidationReport()" placeholder="Search customer name or phone..." class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div id="customerConsolidationContainer" class="space-y-2.5"></div>
                 </div>
@@ -1272,9 +1314,9 @@
         <!-- ================= SECTION 4: PURCHASE ================= -->
         <div id="sectionPurchase" class="space-y-4 hidden">
             <div class="flex justify-between items-center bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1">
-                <button type="button" onclick="switchPurchaseSubTab('cleaning')" id="subTabPurchaseCleaning" class="flex-1 py-2 text-center text-xs font-bold bg-blue-700 text-white rounded-xl shadow-md transition">🧹 Cleaning</button>
-                <button type="button" onclick="switchPurchaseSubTab('cosmetics')" id="subTabPurchaseCosmetics" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">💄 Cosmetics</button>
-                <button type="button" onclick="switchPurchaseSubTab('consolidated')" id="subTabPurchaseConsolidated" class="flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition">📊 Consolidated</button>
+                <button type="button" onclick="switchPurchaseSubTab('cleaning')" id="subTabPurchaseCleaning" class="flex-1 py-2 text-center text-[11px] sm:text-xs font-bold bg-blue-700 text-white rounded-xl shadow-md transition min-w-0 px-1 truncate">🧹 Cleaning</button>
+                <button type="button" onclick="switchPurchaseSubTab('cosmetics')" id="subTabPurchaseCosmetics" class="flex-1 py-2 text-center text-[11px] sm:text-xs font-bold text-slate-400 rounded-xl transition min-w-0 px-1 truncate">💄 Cosmetics</button>
+                <button type="button" onclick="switchPurchaseSubTab('consolidated')" id="subTabPurchaseConsolidated" class="flex-1 py-2 text-center text-[11px] sm:text-xs font-bold text-slate-400 rounded-xl transition min-w-0 px-1 truncate">📊 Consolidated</button>
             </div>
             <div id="purchaseAddSupplierCard" class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner space-y-3">
                 <div class="flex justify-between items-center"><h3 class="font-bold text-blue-300 text-sm">👤 Add Supplier</h3><span class="text-[10px] text-slate-500">Purchase suppliers</span></div>
@@ -2102,7 +2144,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=49.1"></script>
+    <script type="module" src="./modules/app.js?v=49.2"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2114,7 +2156,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v49.1) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v49.2) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2168,7 +2210,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=49.1')
+                navigator.serviceWorker.register('./sw.js?v=49.2')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

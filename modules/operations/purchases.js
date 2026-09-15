@@ -537,30 +537,42 @@ export function renderPurchases() {
             const refundDue = Number(p.refundDue || 0);
 
             return `
-            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 text-xs">
-                <div class="min-w-0 flex-1 space-y-1">
-                    <div class="flex items-center gap-2 flex-wrap">
+            <div class="bg-slate-900/80 p-3 sm:p-3.5 rounded-xl border border-slate-800 flex flex-col gap-2.5 text-xs">
+                <div class="min-w-0 flex-1 space-y-1.5">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
                         <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${p.supplierName} - ${p.rawMaterial}</span>
-                        ${retQty > 0 ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold">↩️ Returned: ${retQty} ${unit} (-₹${retAmount.toFixed(2)})</span>` : ''}
+                        ${retQty > 0 ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold shrink-0">↩️ Returned: ${retQty} ${unit} (-₹${retAmount.toFixed(2)})</span>` : ''}
                     </div>
-                    <div class="text-[11px] text-slate-300 flex flex-wrap gap-x-2.5 gap-y-1">
-                        <span class="text-slate-400">📞 ${p.supplierMobile || 'No mobile'}</span>
-                        <span class="text-slate-400">📅 ${formatDateDDMMYYYY(p.date)}</span>
-                        <span>Original: <b class="text-slate-200">${origQty} ${unit} (₹${grossCost.toFixed(2)})</b></span>
-                        <span class="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-emerald-300 font-semibold">Net Qty: ${netQty} ${unit}</span>
-                        <span class="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-white font-bold">Net Total: ₹${netCost.toFixed(2)}</span>
-                        <span>Paid: <b class="text-emerald-400">₹${paid.toFixed(2)}</b></span>
-                        ${refundDue > 0
-                            ? `<span class="text-sky-300 font-bold bg-sky-950/60 px-2 py-0.5 rounded border border-sky-800/60">💰 Refund Due: ₹${refundDue.toFixed(2)}</span>`
-                            : `<span class="${balance > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Bal: ₹${balance.toFixed(2)}</span>`
-                        }
+                    <div class="text-[11px] text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                        <span>📞 ${p.supplierMobile || 'No mobile'}</span>
+                        <span>📅 ${formatDateDDMMYYYY(p.date)}</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-1.5 pt-1 text-[11px] text-center">
+                        <div class="bg-slate-950/70 border border-slate-800 rounded-lg p-1.5 flex flex-col justify-center">
+                            <span class="text-[9.5px] text-slate-400">Qty (Net / Orig)</span>
+                            <span class="font-bold text-slate-100 text-xs">${netQty} ${unit}</span>
+                            ${retQty > 0 ? `<span class="text-[9px] text-slate-500 line-through">Orig: ${origQty}</span>` : ''}
+                        </div>
+                        <div class="bg-slate-950/70 border border-slate-800 rounded-lg p-1.5 flex flex-col justify-center">
+                            <span class="text-[9.5px] text-slate-400">Total (Net)</span>
+                            <span class="font-bold text-emerald-300 text-xs">₹${netCost.toFixed(2)}</span>
+                            ${retAmount > 0 ? `<span class="text-[9px] text-slate-500 line-through">₹${grossCost.toFixed(2)}</span>` : ''}
+                        </div>
+                        <div class="bg-slate-950/70 border border-slate-800 rounded-lg p-1.5 flex flex-col justify-center">
+                            <span class="text-[9.5px] text-slate-400">Paid / ${refundDue > 0 ? 'Refund' : 'Balance'}</span>
+                            <span class="font-bold text-sky-300 text-xs">₹${paid.toFixed(2)}</span>
+                            ${refundDue > 0
+                                ? `<span class="text-[9.5px] font-bold text-amber-300">↩ ₹${refundDue.toFixed(2)} Due</span>`
+                                : `<span class="text-[9.5px] font-bold ${balance > 0 ? 'text-rose-400' : 'text-slate-400'}">${balance > 0 ? `Bal: ₹${balance.toFixed(2)}` : 'Settled'}</span>`
+                            }
+                        </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
-                    <button type="button" onclick="viewPurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">View</button>
-                    <button type="button" onclick="editPurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">✎ Edit</button>
-                    <button type="button" onclick="openPurchaseReturn('${p.id || p._originalIndex}', 'cleaning')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-amber-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">↩️ Return</button>
-                    <button type="button" onclick="deletePurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center transition">Delete</button>
+                <div class="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-800/80 w-full">
+                    <button type="button" onclick="viewPurchase('${p.id || p._originalIndex}')" class="bg-slate-800/90 hover:bg-slate-700 text-sky-300 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 text-center text-[11px] sm:text-xs transition">👁️ View</button>
+                    <button type="button" onclick="editPurchase('${p.id || p._originalIndex}')" class="bg-slate-800/90 hover:bg-slate-700 text-slate-200 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 text-center text-[11px] sm:text-xs transition">✎ Edit</button>
+                    <button type="button" onclick="openPurchaseReturn('${p.id || p._originalIndex}', 'cleaning')" class="bg-slate-800/90 hover:bg-slate-700 text-amber-300 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 text-center text-[11px] sm:text-xs transition">↩️ Return</button>
+                    <button type="button" onclick="deletePurchase('${p.id || p._originalIndex}')" class="bg-slate-800/90 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center text-[11px] sm:text-xs transition">🗑️ Del</button>
                 </div>
             </div>`;
         }).join('') || '<p class="text-xs text-slate-500 text-center">No purchases found.</p>';
@@ -1250,25 +1262,44 @@ export function renderPurchaseHistory(type) {
       .sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date) || (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0));
     
     container.innerHTML = rows.map(p => `
-        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs flex flex-col sm:flex-row justify-between gap-2 items-start">
-            <div class="space-y-1">
-                <div class="font-bold ${isCos ? 'text-pink-300' : 'text-blue-300'} text-sm">${p._supplier} — ${p._item}</div>
-                <div class="text-slate-400 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px]">
+        <div class="bg-slate-900/80 p-3 sm:p-3.5 rounded-xl border border-slate-800 flex flex-col gap-2.5 text-xs">
+            <div class="min-w-0 flex-1 space-y-1.5">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="font-bold ${isCos ? 'text-pink-300' : 'text-blue-300'} text-sm block leading-snug break-words">${p._supplier} — ${p._item}</span>
+                        ${isCos ? `<span class="text-[10px] text-pink-300 bg-pink-950/40 border border-pink-800/40 px-1.5 py-0.5 rounded font-semibold">💄 Cosmetics</span>` : ''}
+                    </div>
+                    ${p._retQty > 0 ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold shrink-0">↩️ Ret: ${p._retQty} ${p._unit} (-₹${p._retAmount.toFixed(2)})</span>` : ''}
+                </div>
+                <div class="text-[11px] text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-0.5">
                     <span>📅 ${formatDateDDMMYYYY(p.date)}</span>
-                    <span>Qty: <b class="text-slate-200">${p._origQty} ${p._unit}</b></span>
-                    ${p._retQty > 0 ? `<span class="text-rose-400 font-bold">↩️ Ret: ${p._retQty} ${p._unit} (-₹${p._retAmount.toFixed(2)})</span>` : ''}
-                    ${p._retQty > 0 ? `<span>Net Qty: <b class="text-white font-bold">${p._netQty} ${p._unit}</b></span>` : ''}
-                    <span>Total: <b class="text-slate-200">₹${p._grossCost.toFixed(2)}</b></span>
-                    ${p._retQty > 0 ? `<span>Net Total: <b class="text-white font-bold">₹${p._netCost.toFixed(2)}</b></span>` : ''}
-                    <span>Paid: <b class="text-emerald-400">₹${p._paid.toFixed(2)}</b></span>
-                    ${p._refundDue > 0 ? `<span class="text-amber-400 font-bold">💰 Refund Due: ₹${p._refundDue.toFixed(2)}</span>` : `<span class="${p._balance > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Bal: ₹${p._balance.toFixed(2)}</span>`}
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 pt-1 text-[11px] text-center">
+                    <div class="bg-slate-950/70 border border-slate-800 rounded-lg p-1.5 flex flex-col justify-center">
+                        <span class="text-[9.5px] text-slate-400">Qty (Net / Orig)</span>
+                        <span class="font-bold text-slate-100 text-xs">${p._netQty} ${p._unit}</span>
+                        ${p._retQty > 0 ? `<span class="text-[9px] text-slate-500 line-through">Orig: ${p._origQty}</span>` : ''}
+                    </div>
+                    <div class="bg-slate-950/70 border border-slate-800 rounded-lg p-1.5 flex flex-col justify-center">
+                        <span class="text-[9.5px] text-slate-400">Total (Net)</span>
+                        <span class="font-bold text-emerald-300 text-xs">₹${p._netCost.toFixed(2)}</span>
+                        ${p._retAmount > 0 ? `<span class="text-[9px] text-slate-500 line-through">₹${p._grossCost.toFixed(2)}</span>` : ''}
+                    </div>
+                    <div class="bg-slate-950/70 border border-slate-800 rounded-lg p-1.5 flex flex-col justify-center">
+                        <span class="text-[9.5px] text-slate-400">Paid / ${p._refundDue > 0 ? 'Refund' : 'Balance'}</span>
+                        <span class="font-bold text-sky-300 text-xs">₹${p._paid.toFixed(2)}</span>
+                        ${p._refundDue > 0
+                            ? `<span class="text-[9.5px] font-bold text-amber-300">↩ ₹${p._refundDue.toFixed(2)} Due</span>`
+                            : `<span class="text-[9.5px] font-bold ${p._balance > 0 ? 'text-rose-400' : 'text-slate-400'}">${p._balance > 0 ? `Bal: ₹${p._balance.toFixed(2)}` : 'Settled'}</span>`
+                        }
+                    </div>
                 </div>
             </div>
-            <div class="flex flex-wrap gap-1 shrink-0 self-end sm:self-center">
-                <button type="button" onclick="${isCos ? 'viewCosPurchase' : 'viewPurchase'}('${p.id || p._i}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-800 transition">View</button>
-                <button type="button" onclick="${isCos ? 'editCosPurchase' : 'editPurchase'}('${p.id || p._i}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-700 transition">✎ Edit</button>
-                <button type="button" onclick="openPurchaseReturn('${p.id || p._i}', '${isCos ? 'cosmetics' : 'cleaning'}')" class="bg-rose-900/80 text-rose-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-rose-800 transition">↩️ Return</button>
-                <button type="button" onclick="${isCos ? 'deleteCosPurchase' : 'deletePurchase'}('${p.id || p._i}')" class="bg-red-900 text-red-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-800 transition">Delete</button>
+            <div class="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-800/80 w-full">
+                <button type="button" onclick="${isCos ? 'viewCosPurchase' : 'viewPurchase'}('${p.id || p._i}')" class="bg-slate-800/90 hover:bg-slate-700 text-sky-300 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 text-center text-[11px] sm:text-xs transition">👁️ View</button>
+                <button type="button" onclick="${isCos ? 'editCosPurchase' : 'editPurchase'}('${p.id || p._i}')" class="bg-slate-800/90 hover:bg-slate-700 text-slate-200 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 text-center text-[11px] sm:text-xs transition">✎ Edit</button>
+                <button type="button" onclick="openPurchaseReturn('${p.id || p._i}', '${isCos ? 'cosmetics' : 'cleaning'}')" class="bg-slate-800/90 hover:bg-slate-700 text-amber-300 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 text-center text-[11px] sm:text-xs transition">↩️ Return</button>
+                <button type="button" onclick="${isCos ? 'deleteCosPurchase' : 'deletePurchase'}('${p.id || p._i}')" class="bg-slate-800/90 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center text-[11px] sm:text-xs transition">🗑️ Del</button>
             </div>
         </div>`).join('') || '<p class="text-xs text-slate-500 text-center py-4">No purchase history found.</p>';
 }
@@ -1612,31 +1643,45 @@ export function renderCosPurchases() {
             const refundDue = Number(p.refundDue || 0);
 
             return `
-            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 text-xs">
-                <div class="min-w-0 flex-1 space-y-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${p.supplier} - ${p.item}</span>
-                        <span class="text-[10px] text-pink-300 bg-pink-950/40 border border-pink-800/40 px-1.5 py-0.5 rounded font-semibold">💄 Cosmetics</span>
-                        ${retQty > 0 ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold">↩️ Returned: ${retQty} ${unit} (-₹${retAmount.toFixed(2)})</span>` : ''}
+            <div class="bg-slate-900/80 p-3 sm:p-3.5 rounded-xl border border-slate-800 flex flex-col gap-2.5 text-xs">
+                <div class="min-w-0 flex-1 space-y-1.5">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${p.supplier} - ${p.item}</span>
+                            <span class="text-[10px] text-pink-300 bg-pink-950/40 border border-pink-800/40 px-1.5 py-0.5 rounded font-semibold">💄 Cosmetics</span>
+                        </div>
+                        ${retQty > 0 ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold shrink-0">↩️ Returned: ${retQty} ${unit} (-₹${retAmount.toFixed(2)})</span>` : ''}
                     </div>
-                    <div class="text-[11px] text-slate-300 flex flex-wrap gap-x-2.5 gap-y-1">
-                        <span class="text-slate-400">📞 ${p.supplierMobile || 'No mobile'}</span>
-                        <span class="text-slate-400">📅 ${formatDateDDMMYYYY(p.date)}</span>
-                        <span>Original: <b class="text-slate-200">${origQty} ${unit} (₹${grossCost.toFixed(2)})</b></span>
-                        <span class="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-pink-300 font-semibold">Net Qty: ${netQty} ${unit}</span>
-                        <span class="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-white font-bold">Net Total: ₹${netCost.toFixed(2)}</span>
-                        <span>Paid: <b class="text-emerald-400">₹${paid.toFixed(2)}</b></span>
-                        ${refundDue > 0
-                            ? `<span class="text-sky-300 font-bold bg-sky-950/60 px-2 py-0.5 rounded border border-sky-800/60">💰 Refund Due: ₹${refundDue.toFixed(2)}</span>`
-                            : `<span class="${balance > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Bal: ₹${balance.toFixed(2)}</span>`
-                        }
+                    <div class="text-[11px] text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                        <span>📞 ${p.supplierMobile || 'No mobile'}</span>
+                        <span>📅 ${formatDateDDMMYYYY(p.date)}</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-1.5 pt-1 text-[11px] text-center">
+                        <div class="bg-slate-950/70 border border-slate-800 rounded-lg p-1.5 flex flex-col justify-center">
+                            <span class="text-[9.5px] text-slate-400">Qty (Net / Orig)</span>
+                            <span class="font-bold text-pink-300 text-xs">${netQty} ${unit}</span>
+                            ${retQty > 0 ? `<span class="text-[9px] text-slate-500 line-through">Orig: ${origQty}</span>` : ''}
+                        </div>
+                        <div class="bg-slate-950/70 border border-slate-800 rounded-lg p-1.5 flex flex-col justify-center">
+                            <span class="text-[9.5px] text-slate-400">Total (Net)</span>
+                            <span class="font-bold text-emerald-300 text-xs">₹${netCost.toFixed(2)}</span>
+                            ${retAmount > 0 ? `<span class="text-[9px] text-slate-500 line-through">₹${grossCost.toFixed(2)}</span>` : ''}
+                        </div>
+                        <div class="bg-slate-950/70 border border-slate-800 rounded-lg p-1.5 flex flex-col justify-center">
+                            <span class="text-[9.5px] text-slate-400">Paid / ${refundDue > 0 ? 'Refund' : 'Balance'}</span>
+                            <span class="font-bold text-sky-300 text-xs">₹${paid.toFixed(2)}</span>
+                            ${refundDue > 0
+                                ? `<span class="text-[9.5px] font-bold text-amber-300">↩ ₹${refundDue.toFixed(2)} Due</span>`
+                                : `<span class="text-[9.5px] font-bold ${balance > 0 ? 'text-rose-400' : 'text-slate-400'}">${balance > 0 ? `Bal: ₹${balance.toFixed(2)}` : 'Settled'}</span>`
+                            }
+                        </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
-                    <button type="button" onclick="viewCosPurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">View</button>
-                    <button type="button" onclick="editCosPurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">✎ Edit</button>
-                    <button type="button" onclick="openPurchaseReturn('${p.id || p._originalIndex}', 'cosmetics')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-amber-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">↩️ Return</button>
-                    <button type="button" onclick="deleteCosPurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center transition">Delete</button>
+                <div class="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-800/80 w-full">
+                    <button type="button" onclick="viewCosPurchase('${p.id || p._originalIndex}')" class="bg-slate-800/90 hover:bg-slate-700 text-sky-300 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 text-center text-[11px] sm:text-xs transition">👁️ View</button>
+                    <button type="button" onclick="editCosPurchase('${p.id || p._originalIndex}')" class="bg-slate-800/90 hover:bg-slate-700 text-slate-200 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 text-center text-[11px] sm:text-xs transition">✎ Edit</button>
+                    <button type="button" onclick="openPurchaseReturn('${p.id || p._originalIndex}', 'cosmetics')" class="bg-slate-800/90 hover:bg-slate-700 text-amber-300 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 text-center text-[11px] sm:text-xs transition">↩️ Return</button>
+                    <button type="button" onclick="deleteCosPurchase('${p.id || p._originalIndex}')" class="bg-slate-800/90 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-1 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center text-[11px] sm:text-xs transition">🗑️ Del</button>
                 </div>
             </div>`;
         }).join('') || '<p class="text-xs text-slate-500 text-center">No cosmetics purchases found.</p>';
