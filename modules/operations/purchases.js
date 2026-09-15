@@ -530,10 +530,10 @@ export function renderPurchases() {
             const refundDue = Number(p.refundDue || 0);
 
             return `
-            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between gap-2 text-xs">
-                <div class="space-y-1">
+            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 text-xs">
+                <div class="min-w-0 flex-1 space-y-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-blue-300 text-sm">${p.supplierName} - ${p.rawMaterial}</span>
+                        <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${p.supplierName} - ${p.rawMaterial}</span>
                         ${retQty > 0 ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold">↩️ Returned: ${retQty} ${unit} (-₹${retAmount.toFixed(2)})</span>` : ''}
                     </div>
                     <div class="text-[11px] text-slate-300 flex flex-wrap gap-x-2.5 gap-y-1">
@@ -544,16 +544,16 @@ export function renderPurchases() {
                         <span class="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-white font-bold">Net Total: ₹${netCost.toFixed(2)}</span>
                         <span>Paid: <b class="text-emerald-400">₹${paid.toFixed(2)}</b></span>
                         ${refundDue > 0
-                            ? `<span class="text-amber-300 font-extrabold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">💰 Refund Due: ₹${refundDue.toFixed(2)}</span>`
+                            ? `<span class="text-sky-300 font-bold bg-sky-950/60 px-2 py-0.5 rounded border border-sky-800/60">💰 Refund Due: ₹${refundDue.toFixed(2)}</span>`
                             : `<span class="${balance > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Bal: ₹${balance.toFixed(2)}</span>`
                         }
                     </div>
                 </div>
-                <div class="flex flex-wrap gap-1 shrink-0 self-end sm:self-center">
-                    <button type="button" onclick="viewPurchase('${p.id || p._originalIndex}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-blue-800 transition">View</button>
-                    <button type="button" onclick="editPurchase('${p.id || p._originalIndex}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-slate-700 transition">✎ Edit</button>
-                    <button type="button" onclick="openPurchaseReturn('${p.id || p._originalIndex}', 'cleaning')" class="bg-rose-900/80 text-rose-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-rose-800 transition">↩️ Return</button>
-                    <button type="button" onclick="deletePurchase('${p.id || p._originalIndex}')" class="bg-red-900 text-red-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-red-800 transition">Delete</button>
+                <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
+                    <button type="button" onclick="viewPurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">View</button>
+                    <button type="button" onclick="editPurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">✎ Edit</button>
+                    <button type="button" onclick="openPurchaseReturn('${p.id || p._originalIndex}', 'cleaning')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-amber-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">↩️ Return</button>
+                    <button type="button" onclick="deletePurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center transition">Delete</button>
                 </div>
             </div>`;
         }).join('') || '<p class="text-xs text-slate-500 text-center">No purchases found.</p>';
@@ -1489,10 +1489,11 @@ export function renderCosPurchases() {
             const refundDue = Number(p.refundDue || 0);
 
             return `
-            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between gap-2 items-start text-xs">
-                <div class="space-y-1">
+            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 text-xs">
+                <div class="min-w-0 flex-1 space-y-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-pink-300 text-sm">${p.supplier} - ${p.item}</span>
+                        <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${p.supplier} - ${p.item}</span>
+                        <span class="text-[10px] text-pink-300 bg-pink-950/40 border border-pink-800/40 px-1.5 py-0.5 rounded font-semibold">💄 Cosmetics</span>
                         ${retQty > 0 ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold">↩️ Returned: ${retQty} ${unit} (-₹${retAmount.toFixed(2)})</span>` : ''}
                     </div>
                     <div class="text-[11px] text-slate-300 flex flex-wrap gap-x-2.5 gap-y-1">
@@ -1503,16 +1504,16 @@ export function renderCosPurchases() {
                         <span class="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-white font-bold">Net Total: ₹${netCost.toFixed(2)}</span>
                         <span>Paid: <b class="text-emerald-400">₹${paid.toFixed(2)}</b></span>
                         ${refundDue > 0
-                            ? `<span class="text-amber-300 font-extrabold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">💰 Refund Due: ₹${refundDue.toFixed(2)}</span>`
+                            ? `<span class="text-sky-300 font-bold bg-sky-950/60 px-2 py-0.5 rounded border border-sky-800/60">💰 Refund Due: ₹${refundDue.toFixed(2)}</span>`
                             : `<span class="${balance > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Bal: ₹${balance.toFixed(2)}</span>`
                         }
                     </div>
                 </div>
-                <div class="flex flex-wrap gap-1 shrink-0 self-end sm:self-center">
-                    <button type="button" onclick="viewCosPurchase('${p.id || p._originalIndex}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-blue-800 transition">View</button>
-                    <button type="button" onclick="editCosPurchase('${p.id || p._originalIndex}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-slate-700 transition">✎ Edit</button>
-                    <button type="button" onclick="openPurchaseReturn('${p.id || p._originalIndex}', 'cosmetics')" class="bg-rose-900/80 text-rose-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-rose-800 transition">↩️ Return</button>
-                    <button type="button" onclick="deleteCosPurchase('${p.id || p._originalIndex}')" class="bg-red-900 text-red-200 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-red-800 transition">Delete</button>
+                <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
+                    <button type="button" onclick="viewCosPurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">View</button>
+                    <button type="button" onclick="editCosPurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">✎ Edit</button>
+                    <button type="button" onclick="openPurchaseReturn('${p.id || p._originalIndex}', 'cosmetics')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-amber-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">↩️ Return</button>
+                    <button type="button" onclick="deleteCosPurchase('${p.id || p._originalIndex}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center transition">Delete</button>
                 </div>
             </div>`;
         }).join('') || '<p class="text-xs text-slate-500 text-center">No cosmetics purchases found.</p>';
@@ -1725,14 +1726,14 @@ export function renderPurchaseConsolidationView() {
                 <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-800/80 pb-3">
                     <div>
                         <div class="flex items-center gap-2">
-                            <span class="font-extrabold text-amber-300 text-base">🏢 ${d.name}</span>
+                            <span class="font-extrabold text-slate-100 text-base">🏢 ${d.name}</span>
                             <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-bold">${d.purchaseCount} Bills</span>
                         </div>
-                        <p class="text-slate-400 text-xs mt-0.5">📞 ${d.phone ? `<a href="tel:${d.phone}" class="hover:text-amber-400 underline">${d.phone}</a>` : 'No phone recorded'}</p>
+                        <p class="text-slate-400 text-xs mt-0.5">📞 ${d.phone ? `<a href="tel:${d.phone}" class="hover:text-sky-300 underline">${d.phone}</a>` : 'No phone recorded'}</p>
                     </div>
                     <div class="flex flex-wrap gap-1.5 items-center">
-                        <button type="button" onclick="shareSelectedSupplierConsolidatedDetail('${encName}')" class="bg-green-700 hover:bg-green-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-md">💬 WhatsApp</button>
-                        <button type="button" onclick="openSupplierConsolidatedDetail('${encName}')" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-bold transition">📊 Statement</button>
+                        <button type="button" onclick="shareSelectedSupplierConsolidatedDetail('${encName}')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-md">💬 WhatsApp</button>
+                        <button type="button" onclick="openSupplierConsolidatedDetail('${encName}')" class="bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-bold transition">📊 Statement</button>
                     </div>
                 </div>
 
@@ -1894,14 +1895,14 @@ export function openSupplierConsolidatedDetail(encodedName) {
         <div class="space-y-3">
             <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800 flex justify-between items-center">
                 <div>
-                    <div class="font-extrabold text-amber-300 text-sm">🏢 ${d.name}</div>
+                    <div class="font-extrabold text-slate-100 text-sm">🏢 ${d.name}</div>
                     <div class="text-slate-400 text-xs mt-0.5">📞 ${d.phone || 'No phone recorded'}</div>
                 </div>
-                <span class="bg-amber-950/80 text-amber-300 border border-amber-800/60 font-bold px-2 py-1 rounded-lg text-xs">${d.purchaseCount} Purchases</span>
+                <span class="bg-slate-800 text-slate-300 border border-slate-700 font-bold px-2 py-1 rounded-lg text-xs">${d.purchaseCount} Purchases</span>
             </div>
 
             <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800 space-y-2">
-                <div class="text-center text-amber-300 text-xs font-bold uppercase tracking-wider">Dealer Financial Summary</div>
+                <div class="text-center text-slate-200 text-xs font-bold uppercase tracking-wider">Dealer Financial Summary</div>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                     <div class="bg-slate-900 rounded-lg p-2.5">
                         <div class="text-slate-400 text-[10px]">Gross Total</div>

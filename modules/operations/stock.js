@@ -403,9 +403,9 @@ export function renderPackages() {
                     <input id="pkgAdd_${x.id}" type="number" min="0" step="any" placeholder="+Qty" class="w-14 px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-500">
                     <button type="button" onclick="addPackageStock('${x.id}',parseFloat(document.getElementById('pkgAdd_${x.id}').value)||0);document.getElementById('pkgAdd_${x.id}').value=''" class="bg-cyan-900/80 hover:bg-cyan-800 text-cyan-200 px-2 py-1.5 rounded-lg border border-cyan-700 text-xs font-semibold">+Stock</button>
                 </div>
-                <button type="button" onclick="viewPackage('${x.id}')" class="bg-blue-900 hover:bg-blue-800 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 font-bold text-xs">👁️ View</button>
-                <button type="button" onclick="editPackage('${x.id}')" class="bg-slate-800 hover:bg-slate-700 text-amber-300 px-2.5 py-1.5 rounded-lg border border-slate-700 font-bold text-xs">✏️ Edit</button>
-                <button type="button" onclick="deletePackage('${x.id}')" class="bg-slate-800 hover:bg-slate-700 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 font-bold text-xs">🗑️ Delete</button>
+                <button type="button" onclick="viewPackage('${x.id}')" class="bg-slate-800 hover:bg-slate-700 text-sky-300 px-2.5 py-1.5 rounded-lg border border-slate-700 font-semibold text-xs transition">👁️ View</button>
+                <button type="button" onclick="editPackage('${x.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-lg border border-slate-700 font-semibold text-xs transition">✏️ Edit</button>
+                <button type="button" onclick="deletePackage('${x.id}')" class="bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-rose-800/60 font-semibold text-xs transition">🗑️ Delete</button>
             </div>
         </div>`).join('') || '<p class="text-xs text-slate-500 text-center py-6">No package items added yet.</p>';
     renderPackageConsolidationReport();
@@ -739,20 +739,20 @@ export function renderProducts() {
         const rPrice = getProductRetailPrice(p);
         const hasCustomWholesale = (p.wholesalePrice !== undefined && p.wholesalePrice !== null && p.wholesalePrice !== '' && !isNaN(Number(p.wholesalePrice)));
         const wBadge = hasCustomWholesale
-            ? `<span class="text-amber-300 font-semibold">W: ₹${Number(p.wholesalePrice).toFixed(2)}</span>`
-            : `<span class="text-amber-400/80 italic text-[10px]" title="Wholesale rate not explicitly set, defaulting to Retail rate">W: Not set (₹${wPrice.toFixed(2)})</span>`;
+            ? `<span class="text-sky-300 font-semibold">W: ₹${Number(p.wholesalePrice).toFixed(2)}</span>`
+            : `<span class="text-slate-400 italic text-[10px]" title="Wholesale rate not explicitly set, defaulting to Retail rate">W: ₹${wPrice.toFixed(2)}</span>`;
         const rBadge = `<span class="text-emerald-400 font-semibold">R: ₹${rPrice.toFixed(2)}</span>`;
         container.innerHTML += `
-            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                <div class="min-w-0 flex-1 pr-2 break-words">
-                    <p class="font-bold text-emerald-300">${p.name} ${p.barcode ? '<span class="text-[10px] text-slate-400">[' + p.barcode + ']</span>' : ''}</p>
-                    <p class="text-slate-400">Stock: <span class="${p.stock <= 5 ? 'text-rose-400 font-bold' : ''}">${p.stock} ${p.unit}</span> | ${wBadge} | ${rBadge}</p>
+            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 text-xs">
+                <div class="min-w-0 flex-1">
+                    <p class="font-bold text-slate-100 text-sm block leading-snug break-words">${p.name} ${p.barcode ? '<span class="text-[10px] text-slate-400 font-normal">[' + p.barcode + ']</span>' : ''}</p>
+                    <p class="text-slate-400 mt-1">Stock: <span class="${p.stock <= 5 ? 'text-rose-400 font-bold' : 'text-slate-200 font-semibold'}">${p.stock} ${p.unit}</span> | ${wBadge} | ${rBadge}</p>
                     ${variantsBadgeHtml}
                 </div>
-                <div class="flex flex-wrap gap-1 justify-end shrink-0">
-                    <button type="button" onclick="viewProduct('${p.id}')" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg border border-blue-800">View</button>
-                    <button type="button" onclick="editProduct('${p.id}')" class="bg-slate-800 text-emerald-400 px-2 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700">Edit</button>
-                    <button type="button" onclick="deleteProduct('${p.id}')" class="bg-slate-800 text-red-400 px-2 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700">Delete</button>
+                <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
+                    <button type="button" onclick="viewProduct('${p.id}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg border border-slate-700 font-semibold text-center transition">View</button>
+                    <button type="button" onclick="editProduct('${p.id}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 font-semibold text-center transition">Edit</button>
+                    <button type="button" onclick="deleteProduct('${p.id}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-rose-800/60 font-semibold text-center transition">Delete</button>
                 </div>
             </div>`;
     });
@@ -917,20 +917,24 @@ export function renderCosProductStock() {
             ? `<div class="flex flex-wrap gap-1 mt-1.5">${p.variants.map(v => `<span class="bg-slate-900 border border-slate-700 text-[10px] px-2 py-0.5 rounded-md text-pink-300 font-semibold">📦 ${v.name}: ₹${v.retailPrice}</span>`).join('')}</div>`
             : '';
         return `
-        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-            <div class="min-w-0 flex-1 pr-2 break-words">
-                <strong class="text-pink-400 font-bold">${p.name} ${p.barcode ? '<span class="text-[10px] text-slate-400">[' + p.barcode + ']</span>' : ''}</strong>
-                <p class="text-slate-400">Stock:
-                    <span class="${(parseFloat(p.stock) || 0) <= 5 ? 'text-rose-400 font-bold' : 'text-emerald-300 font-bold'}">${p.stock} ${p.unit}</span>
-                    | <span class="text-amber-300 font-semibold">W: ₹${getProductWholesalePrice(p).toFixed(2)}</span>
-                    | <span class="text-pink-300 font-semibold">R: ₹${getProductRetailPrice(p).toFixed(2)}</span>
+        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 text-xs">
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <strong class="text-slate-100 font-bold text-sm block leading-snug break-words">${p.name}</strong>
+                    <span class="text-[10px] text-pink-300 bg-pink-950/40 border border-pink-800/40 px-1.5 py-0.5 rounded font-semibold">💄 Cosmetics</span>
+                    ${p.barcode ? '<span class="text-[10px] text-slate-400 font-normal">[' + p.barcode + ']</span>' : ''}
+                </div>
+                <p class="text-slate-400 mt-1">Stock:
+                    <span class="${(parseFloat(p.stock) || 0) <= 5 ? 'text-rose-400 font-bold' : 'text-slate-200 font-semibold'}">${p.stock} ${p.unit}</span>
+                    | <span class="text-sky-300 font-semibold">W: ₹${getProductWholesalePrice(p).toFixed(2)}</span>
+                    | <span class="text-emerald-400 font-semibold">R: ₹${getProductRetailPrice(p).toFixed(2)}</span>
                 </p>
                 ${variantsBadgeHtml}
             </div>
-            <div class="flex flex-wrap gap-1 justify-end shrink-0">
-                <button type="button" onclick="viewCosProduct('${p.id}')" class="bg-blue-900 text-blue-200 px-2 py-1.5 rounded-lg border border-blue-800">View</button>
-                <button type="button" onclick="editCosProduct('${p.id}')" class="bg-slate-800 text-pink-300 px-2 py-1.5 rounded-lg border border-slate-700">Edit</button>
-                <button type="button" onclick="deleteCosProduct('${p.id}')" class="bg-slate-800 text-red-400 px-2 py-1.5 rounded-lg border border-slate-700">Delete</button>
+            <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
+                <button type="button" onclick="viewCosProduct('${p.id}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg border border-slate-700 font-semibold text-center transition">View</button>
+                <button type="button" onclick="editCosProduct('${p.id}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 font-semibold text-center transition">Edit</button>
+                <button type="button" onclick="deleteCosProduct('${p.id}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-rose-800/60 font-semibold text-center transition">Delete</button>
             </div>
         </div>`;
     }).join('');
@@ -1005,12 +1009,12 @@ export function viewProduct(id) {
     const p = state.products.find(x => x.id === id);
     if (!p) return;
     const variantsHtml = (p.variants && p.variants.length > 0)
-        ? `<div class="mt-3 pt-2 border-t border-slate-800"><p class="font-bold text-amber-300 text-xs mb-1.5">📦 Configured Pack Sizes & Rates:</p><div class="space-y-1.5">` +
-        p.variants.map(v => `<div class="bg-slate-900/80 p-2 rounded-lg text-xs flex justify-between items-center border border-slate-800"><div><span class="font-bold text-white">${v.name}</span> <span class="text-slate-400">(${v.size} ${v.unit}${v.packageName ? ' • ' + v.packageName : ''})</span></div><div class="text-right">W: <span class="text-amber-300 font-bold">₹${v.wholesalePrice}</span> | R: <span class="text-emerald-400 font-bold">₹${v.retailPrice}</span></div></div>`).join('') +
+        ? `<div class="mt-3 pt-2 border-t border-slate-800"><p class="font-bold text-slate-100 text-xs mb-1.5">📦 Configured Pack Sizes & Rates:</p><div class="space-y-1.5">` +
+        p.variants.map(v => `<div class="bg-slate-900/80 p-2 rounded-lg text-xs flex justify-between items-center border border-slate-800"><div><span class="font-bold text-white">${v.name}</span> <span class="text-slate-400">(${v.size} ${v.unit}${v.packageName ? ' • ' + v.packageName : ''})</span></div><div class="text-right">W: <span class="text-sky-300 font-bold">₹${v.wholesalePrice}</span> | R: <span class="text-emerald-400 font-bold">₹${v.retailPrice}</span></div></div>`).join('') +
         `</div></div>`
         : '';
     if (typeof window.showRecordView === 'function') {
-        window.showRecordView('Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Base Wholesale:</b> ₹${p.wholesalePrice}</p><p><b>Base Retail:</b> ₹${p.retailPrice}</p>${p.packageName ? `<p><b>Default Package:</b> ${p.packageName}</p>` : ''}${variantsHtml}</div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editProduct('${p.id}');" class="bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteProduct('${p.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+        window.showRecordView('Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Base Wholesale:</b> ₹${p.wholesalePrice}</p><p><b>Base Retail:</b> ₹${p.retailPrice}</p>${p.packageName ? `<p><b>Default Package:</b> ${p.packageName}</p>` : ''}${variantsHtml}</div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editProduct('${p.id}');" class="bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-semibold text-xs">Edit</button><button type="button" onclick="closeRecordView(); deleteProduct('${p.id}');" class="bg-slate-800 text-rose-300 hover:bg-rose-950/60 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-rose-800/60 font-semibold text-xs">Delete</button></div>`);
     }
 }
 
@@ -1018,12 +1022,12 @@ export function viewCosProduct(id) {
     const p = state.cosProducts.find(x => x.id === id);
     if (!p) return;
     const variantsHtml = (p.variants && p.variants.length > 0)
-        ? `<div class="mt-3 pt-2 border-t border-slate-800"><p class="font-bold text-pink-300 text-xs mb-1.5">📦 Configured Pack Sizes & Rates:</p><div class="space-y-1.5">` +
-        p.variants.map(v => `<div class="bg-slate-900/80 p-2 rounded-lg text-xs flex justify-between items-center border border-slate-800"><div><span class="font-bold text-white">${v.name}</span> <span class="text-slate-400">(${v.size} ${v.unit}${v.packageName ? ' • ' + v.packageName : ''})</span></div><div class="text-right">W: <span class="text-pink-300 font-bold">₹${v.wholesalePrice !== undefined ? v.wholesalePrice : v.costPrice}</span> | R: <span class="text-emerald-400 font-bold">₹${v.retailPrice !== undefined ? v.retailPrice : v.salePrice}</span></div></div>`).join('') +
+        ? `<div class="mt-3 pt-2 border-t border-slate-800"><p class="font-bold text-slate-100 text-xs mb-1.5">📦 Configured Pack Sizes & Rates:</p><div class="space-y-1.5">` +
+        p.variants.map(v => `<div class="bg-slate-900/80 p-2 rounded-lg text-xs flex justify-between items-center border border-slate-800"><div><span class="font-bold text-white">${v.name}</span> <span class="text-slate-400">(${v.size} ${v.unit}${v.packageName ? ' • ' + v.packageName : ''})</span></div><div class="text-right">W: <span class="text-sky-300 font-bold">₹${v.wholesalePrice !== undefined ? v.wholesalePrice : v.costPrice}</span> | R: <span class="text-emerald-400 font-bold">₹${v.retailPrice !== undefined ? v.retailPrice : v.salePrice}</span></div></div>`).join('') +
         `</div></div>`
         : '';
     if (typeof window.showRecordView === 'function') {
-        window.showRecordView('Cosmetic Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Base Wholesale:</b> ₹${p.costPrice}</p><p><b>Base Retail:</b> ₹${p.salePrice}</p>${p.packageName ? `<p><b>Default Package:</b> ${p.packageName}</p>` : ''}${variantsHtml}</div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editCosProduct('${p.id}');" class="bg-slate-800 text-pink-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deleteCosProduct('${p.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+        window.showRecordView('Cosmetic Product Details', `<div class="space-y-2"><p><b>Product:</b> ${p.name}</p><p><b>Barcode:</b> ${p.barcode || '—'}</p><p><b>Stock:</b> ${p.stock} ${p.unit}</p><p><b>Base Wholesale:</b> ₹${p.costPrice}</p><p><b>Base Retail:</b> ₹${p.salePrice}</p>${p.packageName ? `<p><b>Default Package:</b> ${p.packageName}</p>` : ''}${variantsHtml}</div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editCosProduct('${p.id}');" class="bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-semibold text-xs">Edit</button><button type="button" onclick="closeRecordView(); deleteCosProduct('${p.id}');" class="bg-slate-800 text-rose-300 hover:bg-rose-950/60 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-rose-800/60 font-semibold text-xs">Delete</button></div>`);
     }
 }
 
@@ -1031,7 +1035,7 @@ export function viewPackage(id) {
     const x = state.packages.find(p => String(p.id) === String(id));
     if (!x) return;
     if (typeof window.showRecordView === 'function') {
-        window.showRecordView('Package Item Details', `<div class="space-y-2"><p><b>Package Name:</b> ${x.name}</p><p><b>Size / Volume:</b> ${x.size || '—'}</p><p><b>Unit:</b> ${x.unit || 'Pcs'}</p><p><b>Available Stock:</b> <span class="${(Number(x.stock) || 0) <= 5 ? 'text-rose-400 font-bold' : 'text-emerald-300 font-bold'}">${x.stock ?? 0}</span></p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editPackage('${x.id}');" class="bg-slate-800 text-amber-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold">Edit</button><button type="button" onclick="closeRecordView(); deletePackage('${x.id}');" class="bg-red-900 text-red-200 px-3 py-1.5 rounded-lg font-bold">Delete</button></div>`);
+        window.showRecordView('Package Item Details', `<div class="space-y-2"><p><b>Package Name:</b> ${x.name}</p><p><b>Size / Volume:</b> ${x.size || '—'}</p><p><b>Unit:</b> ${x.unit || 'Pcs'}</p><p><b>Available Stock:</b> <span class="${(Number(x.stock) || 0) <= 5 ? 'text-rose-400 font-bold' : 'text-emerald-300 font-bold'}">${x.stock ?? 0}</span></p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editPackage('${x.id}');" class="bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-semibold text-xs">Edit</button><button type="button" onclick="closeRecordView(); deletePackage('${x.id}');" class="bg-slate-800 text-rose-300 hover:bg-rose-950/60 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-rose-800/60 font-semibold text-xs">Delete</button></div>`);
     }
 }
 

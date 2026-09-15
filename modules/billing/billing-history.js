@@ -129,24 +129,24 @@ export function renderSalesHistory() {
         const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.deleteCustomerBill('${r.billNo || r.id || r.index}')` : `window.deleteCosSale('${r.billNo || r.id || r.index}')`;
         const isWholesale = String(r.saleType || '').toLowerCase() === 'wholesale';
         const badgeHtml = isWholesale
-            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-950/80 text-amber-300 border border-amber-700/60">🏷️ Wholesale</span>`
+            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-950/80 text-sky-300 border border-sky-700/60">🏷️ Wholesale</span>`
             : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">🛍️ Retail</span>`;
-        return `<div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs">
-            <div class="flex justify-between items-start gap-2">
+        return `<div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — #${r.billNo} ${r.name}</span>
+                        <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${label(r)} — #${r.billNo} ${r.name}</span>
                         ${badgeHtml}
                     </div>
-                    <div class="text-slate-400 mt-0.5">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>
-                    ${r.phone ? `<div class="text-slate-500 mt-0.5">📞 ${r.phone}</div>` : ''}
+                    <div class="text-slate-400 mt-1">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>
+                    ${r.phone ? `<div class="text-slate-400 text-[11px] mt-0.5">📞 ${r.phone}</div>` : ''}
                     <div class="text-slate-300 mt-1">${itemText || 'No item details'}</div>
-                    <div class="mt-1"><span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-300">Paid: ₹${r.paid.toFixed(2)}</span> · <span class="text-rose-300">Due: ₹${r.due.toFixed(2)}</span></div>
+                    <div class="mt-1 font-medium"><span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-400 font-semibold">Paid: ₹${r.paid.toFixed(2)}</span> · <span class="${r.due > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Due: ₹${r.due.toFixed(2)}</span></div>
                 </div>
-                <div class="flex flex-wrap gap-1 justify-end shrink-0">
-                    <button type="button" onclick="${viewFn}" class="bg-blue-900 hover:bg-blue-800 text-blue-200 px-2.5 py-1.5 rounded-lg font-bold transition">View</button>
-                    <button type="button" onclick="${editFn}" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-2.5 py-1.5 rounded-lg font-bold border border-slate-700 transition">Edit</button>
-                    <button type="button" onclick="${deleteFn}" class="bg-red-900 hover:bg-red-800 text-red-200 px-2.5 py-1.5 rounded-lg font-bold transition">Delete</button>
+                <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
+                    <button type="button" onclick="${viewFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">View</button>
+                    <button type="button" onclick="${editFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">Edit</button>
+                    <button type="button" onclick="${deleteFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center transition">Delete</button>
                 </div>
             </div>
         </div>`;
@@ -172,9 +172,27 @@ export function renderCustomerSalesHistory() {
         const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.deleteCustomerBill('${r.billNo || r.id || r.index}')` : `window.deleteCosSale('${r.billNo || r.id || r.index}')`;
         const isWholesale = String(r.saleType || '').toLowerCase() === 'wholesale';
         const badgeHtml = isWholesale
-            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-950/80 text-amber-300 border border-amber-700/60">🏷️ Wholesale</span>`
+            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-950/80 text-sky-300 border border-sky-700/60">🏷️ Wholesale</span>`
             : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">🛍️ Retail</span>`;
-        return `<div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs"><div class="flex justify-between items-start gap-2"><div class="min-w-0 flex-1"><div class="flex items-center gap-2 flex-wrap"><div class="font-bold ${r.type==='cleaning'?'text-amber-300':r.type==='combined'?'text-cyan-300':'text-pink-300'}">${label(r)} — #${r.billNo} ${r.name}</div>${badgeHtml}</div><div class="text-slate-400">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>${r.phone?`<div class="text-slate-500">📞 ${r.phone}</div>`:''}<div class="text-slate-300 mt-1">${itemText}</div><div class="mt-1">Total ₹${r.total.toFixed(2)} · <span class="text-emerald-300">Paid ₹${r.paid.toFixed(2)}</span> · <span class="text-rose-300">Due ₹${r.due.toFixed(2)}</span></div></div><div class="flex flex-wrap gap-1 justify-end shrink-0"><button type="button" onclick="${viewFn}" class="bg-blue-900 hover:bg-blue-800 text-blue-200 px-2.5 py-1.5 rounded-lg font-bold transition">View</button><button type="button" onclick="${editFn}" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-2.5 py-1.5 rounded-lg font-bold border border-slate-700 transition">Edit</button><button type="button" onclick="${deleteFn}" class="bg-red-900 hover:bg-red-800 text-red-200 px-2.5 py-1.5 rounded-lg font-bold transition">Delete</button></div></div></div>`;
+        return `<div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${label(r)} — #${r.billNo} ${r.name}</span>
+                        ${badgeHtml}
+                    </div>
+                    <div class="text-slate-400 mt-1">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>
+                    ${r.phone ? `<div class="text-slate-400 text-[11px] mt-0.5">📞 ${r.phone}</div>` : ''}
+                    <div class="text-slate-300 mt-1">${itemText}</div>
+                    <div class="mt-1 font-medium">Total ₹${r.total.toFixed(2)} · <span class="text-emerald-400 font-semibold">Paid ₹${r.paid.toFixed(2)}</span> · <span class="${r.due > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Due ₹${r.due.toFixed(2)}</span></div>
+                </div>
+                <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
+                    <button type="button" onclick="${viewFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">View</button>
+                    <button type="button" onclick="${editFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">Edit</button>
+                    <button type="button" onclick="${deleteFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center transition">Delete</button>
+                </div>
+            </div>
+        </div>`;
     }).join('') : '<div class="text-center py-8 text-slate-500 text-xs">No sales found for this customer.</div>';
 }
 

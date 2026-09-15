@@ -562,7 +562,7 @@ export function openBillingSection(type) {
         if (std) std.classList.add('hidden');
         if (hist) hist.classList.remove('hidden');
         if (btnNew) {
-            btnNew.className = 'py-3 rounded-xl bg-slate-800 text-amber-300 border border-amber-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+            btnNew.className = 'py-3 rounded-xl bg-slate-800 text-indigo-300 border border-indigo-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
         }
         if (btnHist) {
             btnHist.className = 'py-3 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
@@ -588,7 +588,7 @@ export function openBillingSection(type) {
     if (hist) hist.classList.add('hidden');
     if (std) std.classList.remove('hidden');
     if (btnNew) {
-        btnNew.className = 'py-3 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
+        btnNew.className = 'py-3 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
     }
     if (btnHist) {
         btnHist.className = 'py-3 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';

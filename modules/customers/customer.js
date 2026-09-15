@@ -28,14 +28,14 @@ export function switchCustomerSubTab(tab) {
 
     if (btnList) {
         if (!isReport) {
-            btnList.className = "flex-1 py-2 text-center text-xs font-bold bg-amber-600 text-white rounded-xl shadow-md transition";
+            btnList.className = "flex-1 py-2 text-center text-xs font-bold bg-indigo-600 text-white rounded-xl shadow-md transition";
         } else {
             btnList.className = "flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition hover:text-slate-200";
         }
     }
     if (btnReport) {
         if (isReport) {
-            btnReport.className = "flex-1 py-2 text-center text-xs font-bold bg-amber-600 text-white rounded-xl shadow-md transition";
+            btnReport.className = "flex-1 py-2 text-center text-xs font-bold bg-indigo-600 text-white rounded-xl shadow-md transition";
         } else {
             btnReport.className = "flex-1 py-2 text-center text-xs font-bold text-slate-400 rounded-xl transition hover:text-slate-200";
         }
@@ -171,15 +171,15 @@ export function renderDirectCustomerList() {
         const safeName = String(name).replace(/'/g, "\\'");
         const safePhone = String(phone || '').replace(/'/g, "\\'");
         container.innerHTML += `
-            <div class="flex justify-between items-center bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs">
-                <div class="min-w-0 flex-1 pr-2 break-words">
-                    <strong class="text-amber-300 text-sm">${name}</strong>
-                    <p class="text-slate-400 text-[11px] mt-0.5">Phone: ${phone || 'No Phone'}</p>
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs gap-2.5">
+                <div class="min-w-0 flex-1">
+                    <strong class="text-slate-100 font-bold text-sm block leading-snug break-words">${name}</strong>
+                    <p class="text-slate-400 text-[11px] mt-1">📞 Phone: ${phone || 'No Phone'}</p>
                 </div>
-                <div class="flex gap-1 shrink-0">
-                    <button type="button" onclick="window.viewCustomerProfile('${safeName}')" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 hover:bg-blue-800 font-bold">View</button>
-                    <button type="button" onclick="window.editCustomerProfile('${safeName}', '${safePhone}')" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Edit</button>
-                    <button type="button" onclick="window.deleteDirectCustomer('${safeName}')" class="bg-slate-800 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-bold">Delete</button>
+                <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
+                    <button type="button" onclick="window.viewCustomerProfile('${safeName}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg border border-slate-700 font-semibold text-center transition">View</button>
+                    <button type="button" onclick="window.editCustomerProfile('${safeName}', '${safePhone}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 font-semibold text-center transition">Edit</button>
+                    <button type="button" onclick="window.deleteDirectCustomer('${safeName}')" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-rose-800/60 font-semibold text-center transition">Delete</button>
                 </div>
             </div>`;
     });
@@ -320,7 +320,7 @@ export function renderCustomerConsolidationReport() {
         <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 text-xs space-y-2 cursor-pointer active:scale-[0.99] transition" role="button" tabindex="0" title="Tap to view customer history" onclick="window.openCustomerConsolidationCustomer('${encodeURIComponent(e.name)}')" onkeydown="if(event.key==='Enter' || event.key===' ') { event.preventDefault(); window.openCustomerConsolidationCustomer('${encodeURIComponent(e.name)}'); }">
             <div class="flex justify-between items-start">
                 <div>
-                    <span class="font-bold text-amber-300 text-sm">${e.name}</span>
+                    <span class="font-bold text-slate-100 text-sm">${e.name}</span>
                     <p class="text-slate-400 text-[11px]">Phone: ${e.phone || 'No Phone'} • Bills: ${e.billCount}</p>
                 </div>
                 <div class="text-right">
@@ -353,19 +353,19 @@ export function switchCustomerConsolidationView(view) {
     [viewContent, reportContent].forEach(el => el && el.classList.add('hidden'));
     [viewTab, reportTab].forEach(btn => {
         if (btn) {
-            btn.classList.remove('bg-amber-600', 'text-white', 'shadow-md');
+            btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-md');
             btn.classList.add('text-slate-400');
         }
     });
 
     if (view === 'report') {
         reportContent?.classList.remove('hidden');
-        reportTab?.classList.add('bg-amber-600', 'text-white', 'shadow-md');
+        reportTab?.classList.add('bg-indigo-600', 'text-white', 'shadow-md');
         reportTab?.classList.remove('text-slate-400');
         renderCustomerConsolidationReport();
     } else {
         viewContent?.classList.remove('hidden');
-        viewTab?.classList.add('bg-amber-600', 'text-white', 'shadow-md');
+        viewTab?.classList.add('bg-indigo-600', 'text-white', 'shadow-md');
         viewTab?.classList.remove('text-slate-400');
         renderCustomerConsolidationView();
     }
@@ -434,11 +434,11 @@ export function renderCustomerConsolidationView() {
         return `<div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 text-xs space-y-2">
             <div class="flex justify-between items-start gap-2">
                 <div>
-                    <span class="font-bold text-amber-300 text-sm">${e.name}</span>
+                    <span class="font-bold text-slate-100 text-sm">${e.name}</span>
                     <p class="text-slate-400 text-[11px]">Phone: ${e.phone || 'No Phone'} • ${e.rows.length} Bills</p>
                 </div>
             </div>
-            <div class="space-y-1.5 pt-1">
+            <div class="space-y-2 pt-1">
                 ${e.rows.map((r, ri) => {
                     const itemText = r.items.map(i => i && (i.productName || i.item || 'Item')).join(', ');
                     const billTarget = (r.billNo && r.billNo !== '—') ? r.billNo : (r.id || r.index);
@@ -454,16 +454,16 @@ export function renderCustomerConsolidationView() {
                     ];
                     if (r.due > 0) detailParts.push(`Due ₹${r.due.toFixed(2)}`);
                     if (r.ret > 0) detailParts.push(`Return ₹${r.ret.toFixed(2)}`);
-                    return `<div class="bg-slate-900/70 border border-slate-800 rounded-lg p-2.5 flex justify-between gap-2 items-start">
-                        <div class="min-w-0">
-                            <div class="font-bold ${r.cosmetics ? 'text-pink-300' : 'text-amber-300'}">#${ri + 1} • ${detailParts[0]}</div>
-                            <div class="text-[10px] text-slate-400 mt-0.5">${detailParts.slice(1).join(' | ')}</div>
+                    return `<div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:justify-between gap-2.5 sm:items-center">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-bold text-slate-100">#${ri + 1} • ${detailParts[0]} ${r.cosmetics ? '<span class="text-[10px] text-pink-300 font-semibold ml-1">💄 Cosmetics</span>' : ''}</div>
+                            <div class="text-[10px] text-slate-400 mt-1">${detailParts.slice(1).join(' | ')}</div>
                             <div class="text-[10px] text-slate-500 mt-0.5">${r.saleType} • ${r.paymentMode}</div>
                         </div>
-                        <div class="flex flex-wrap gap-1 shrink-0">
-                            <button type="button" onclick="${viewFn}" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg text-[11px] font-bold hover:bg-blue-800 transition">View</button>
-                            <button type="button" onclick="${editFn}" class="bg-slate-800 text-amber-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[11px] font-bold hover:bg-slate-700 transition">Edit</button>
-                            <button type="button" onclick="${deleteFn}" class="bg-red-900 text-red-200 px-2.5 py-1.5 rounded-lg text-[11px] font-bold hover:bg-red-800 transition">Delete</button>
+                        <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
+                            <button type="button" onclick="${viewFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition border border-slate-700">View</button>
+                            <button type="button" onclick="${editFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs font-semibold transition">Edit</button>
+                            <button type="button" onclick="${deleteFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-rose-800/60 text-xs font-semibold transition">Delete</button>
                         </div>
                     </div>`;
                 }).join('')}
@@ -504,11 +504,11 @@ export function openCustomerConsolidationCustomer(encodedName) {
     content.innerHTML = `
         <div class="space-y-3">
             <div class="bg-slate-950/70 rounded-xl p-3 border border-slate-800">
-                <div class="font-bold text-amber-300 text-sm">${name}</div>
+                <div class="font-bold text-slate-100 text-sm">${name}</div>
                 <div class="text-slate-400 mt-1">Phone: ${phone || 'No Phone'}</div>
             </div>
             <div class="bg-slate-950/70 rounded-xl p-3 border border-slate-800">
-                <div class="text-center text-amber-300 text-xs font-bold mb-3">CUSTOMER CONSOLIDATED SUMMARY</div>
+                <div class="text-center text-slate-200 text-xs font-bold mb-3 tracking-wider">CUSTOMER CONSOLIDATED SUMMARY</div>
                 <div class="grid grid-cols-2 gap-2 text-center">
                     <div class="bg-slate-900 rounded-lg p-3"><div class="text-slate-400 text-[10px]">Total Purchases</div><b class="text-white text-base">${purchaseCount}</b></div>
                     <div class="bg-slate-900 rounded-lg p-3"><div class="text-slate-400 text-[10px]">Total Purchase Amount</div><b class="text-white text-sm">₹${total.toFixed(2)}</b></div>
@@ -558,7 +558,7 @@ export function viewCustomerProfile(name) {
     const html = `
         <div class="space-y-3 text-xs">
             <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-                <h4 class="font-bold text-amber-300 text-sm">${name}</h4>
+                <h4 class="font-bold text-slate-100 text-sm">${name}</h4>
                 <p class="text-slate-400 mt-0.5">📞 ${phone}</p>
                 <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-800 text-[10px]">
                     <div><span>Purchased:</span> <b class="text-white">₹${totalPurchase.toFixed(2)}</b></div>

@@ -40,28 +40,26 @@ export function updateDayBookPresetButtons(preset) {
     const btnAll = document.getElementById('dayBookTabAll');
     const periodBadge = document.getElementById('dayBookActivePeriodBadge');
 
-    const activeClassToday = 'flex-1 bg-purple-600 text-white py-2 rounded-xl text-xs font-black shadow-md border border-purple-400 transition cursor-pointer';
-    const activeClassMonth = 'flex-1 bg-emerald-600 text-white py-2 rounded-xl text-xs font-black shadow-md border border-emerald-400 transition cursor-pointer';
-    const activeClassAll = 'flex-1 bg-sky-600 text-white py-2 rounded-xl text-xs font-black shadow-md border border-sky-400 transition cursor-pointer';
-    const inactiveClass = 'flex-1 bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer';
+    const activeClass = 'flex-1 bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold shadow-md border border-indigo-500 transition cursor-pointer';
+    const inactiveClass = 'flex-1 bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-semibold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer';
 
-    if (btnToday) btnToday.className = (preset === 'today') ? activeClassToday : inactiveClass;
-    if (btnMonth) btnMonth.className = (preset === 'month') ? activeClassMonth : inactiveClass;
-    if (btnAll) btnAll.className = (preset === 'all') ? activeClassAll : inactiveClass;
+    if (btnToday) btnToday.className = (preset === 'today') ? activeClass : inactiveClass;
+    if (btnMonth) btnMonth.className = (preset === 'month') ? activeClass : inactiveClass;
+    if (btnAll) btnAll.className = (preset === 'all') ? activeClass : inactiveClass;
 
     if (periodBadge) {
         if (preset === 'today') {
             periodBadge.textContent = '📅 Today';
-            periodBadge.className = 'text-[10px] text-purple-300 font-bold bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-800/40';
+            periodBadge.className = 'text-[10px] text-indigo-300 font-bold bg-indigo-950/60 px-2.5 py-0.5 rounded-md border border-indigo-800/50';
         } else if (preset === 'month') {
             periodBadge.textContent = '🗓️ This Month';
-            periodBadge.className = 'text-[10px] text-emerald-300 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-800/40';
+            periodBadge.className = 'text-[10px] text-indigo-300 font-bold bg-indigo-950/60 px-2.5 py-0.5 rounded-md border border-indigo-800/50';
         } else if (preset === 'all') {
             periodBadge.textContent = '🌐 All Time';
-            periodBadge.className = 'text-[10px] text-sky-300 font-bold bg-sky-950/60 px-2 py-0.5 rounded-md border border-sky-800/40';
+            periodBadge.className = 'text-[10px] text-indigo-300 font-bold bg-indigo-950/60 px-2.5 py-0.5 rounded-md border border-indigo-800/50';
         } else {
             periodBadge.textContent = '🔍 Custom Range';
-            periodBadge.className = 'text-[10px] text-amber-300 font-bold bg-amber-950/60 px-2 py-0.5 rounded-md border border-amber-800/40';
+            periodBadge.className = 'text-[10px] text-sky-300 font-bold bg-sky-950/60 px-2.5 py-0.5 rounded-md border border-sky-800/50';
         }
     }
 }
@@ -424,9 +422,9 @@ export function renderAccounts() {
         if (state.clearedDayBookEntries && state.clearedDayBookEntries.length > 0) {
             clearedBanner.classList.remove('hidden');
             clearedBanner.innerHTML = `
-                <div class="bg-amber-950/60 border border-amber-800/70 p-2.5 rounded-xl flex items-center justify-between text-xs text-amber-200">
+                <div class="bg-slate-900/90 border border-slate-700 p-2.5 rounded-xl flex items-center justify-between text-xs text-slate-200">
                     <span>⚠️ <b>${state.clearedDayBookEntries.length}</b> transaction(s) are hidden from Day Book view.</span>
-                    <button type="button" onclick="restoreClearedDayBook()" class="bg-amber-700 hover:bg-amber-600 text-white px-3 py-1 rounded-lg text-[11px] font-bold shadow transition cursor-pointer">Restore All</button>
+                    <button type="button" onclick="restoreClearedDayBook()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded-lg text-[11px] font-bold shadow transition cursor-pointer">Restore All</button>
                 </div>`;
         } else {
             clearedBanner.classList.add('hidden');
@@ -482,9 +480,9 @@ export function renderAccounts() {
                     <b class="text-emerald-300 font-extrabold text-sm mt-1">₹${incSales.toFixed(2)}</b>
                     <span class="text-[9px] text-slate-400 mt-0.5">Total Billed</span>
                 </div>
-                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-amber-700/50 flex flex-col justify-between shadow-sm">
-                    <span class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">${periodLabel} Collection</span>
-                    <b class="text-amber-300 font-extrabold text-sm mt-1">₹${incCollection.toFixed(2)}</b>
+                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-sky-800/50 flex flex-col justify-between shadow-sm">
+                    <span class="text-[10px] text-sky-400 font-bold uppercase tracking-wider">${periodLabel} Collection</span>
+                    <b class="text-sky-300 font-extrabold text-sm mt-1">₹${incCollection.toFixed(2)}</b>
                     <span class="text-[9px] text-slate-400 mt-0.5">Cash / Paid In</span>
                 </div>
                 <div class="bg-slate-900/90 p-2.5 rounded-xl border border-rose-700/50 flex flex-col justify-between shadow-sm">
@@ -492,7 +490,7 @@ export function renderAccounts() {
                     <b class="text-rose-300 font-extrabold text-sm mt-1">₹${incDue.toFixed(2)}</b>
                     <span class="text-[9px] text-slate-400 mt-0.5">Credit Pending</span>
                 </div>
-                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-700 flex flex-col justify-between shadow-sm">
+                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-700/80 flex flex-col justify-between shadow-sm">
                     <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wider">${periodLabel} Expense</span>
                     <b class="text-rose-400 font-extrabold text-sm mt-1">₹${expTotal.toFixed(2)}</b>
                     <span class="text-[9px] text-slate-400 mt-0.5">Purchases & Costs</span>
@@ -510,7 +508,7 @@ export function renderAccounts() {
     if (filtered.length === 0) {
         const totalMasterCount = allEntries.length;
         const clearedNote = (state.clearedDayBookEntries && state.clearedDayBookEntries.length > 0)
-            ? `<div class="mt-2 text-amber-300 text-[11px] bg-amber-950/40 p-2 rounded-lg border border-amber-800/40">⚠️ ${state.clearedDayBookEntries.length} transaction(s) are currently marked as cleared. <button type="button" onclick="restoreClearedDayBook()" class="underline font-bold text-amber-200 ml-1 hover:text-white">Click here to restore</button></div>`
+            ? `<div class="mt-2 text-sky-300 text-[11px] bg-slate-900/80 p-2 rounded-lg border border-slate-800">⚠️ ${state.clearedDayBookEntries.length} transaction(s) are currently marked as cleared. <button type="button" onclick="restoreClearedDayBook()" class="underline font-bold text-sky-200 ml-1 hover:text-white">Click here to restore</button></div>`
             : '';
         listContainer.innerHTML = `
             <div class="bg-slate-950/40 border border-slate-800/70 p-6 rounded-2xl text-center space-y-2">
