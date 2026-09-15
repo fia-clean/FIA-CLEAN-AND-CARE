@@ -632,7 +632,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v49.0</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v49.1</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
@@ -648,7 +648,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v49.0</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v49.1</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -1933,17 +1933,20 @@
     </div>
 
     <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 space-y-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
             <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                <h3 class="font-bold text-emerald-400 text-sm">App Settings</h3>
-                <button onclick="closeSettingsModal()" class="text-slate-400 font-bold">✕</button>
-            </div>
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="text-slate-400 block mb-1">Change Security PIN:</label>
-                    <input type="password" id="newPinInput" placeholder="Enter New PIN" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500" maxlength="6">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">⚙️</span>
+                    <h3 class="font-bold text-emerald-400 text-sm">App Settings</h3>
                 </div>
-                <button onclick="saveNewPin()" class="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-500">Save PIN</button>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white font-bold px-2 py-1 cursor-pointer">✕</button>
+            </div>
+            <div class="space-y-3.5 text-xs">
+                <div>
+                    <label class="text-slate-400 block mb-1 font-semibold">Change Security PIN:</label>
+                    <input type="password" id="newPinInput" placeholder="Enter New PIN (min 3 digits)" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500" maxlength="6">
+                </div>
+                <button onclick="saveNewPin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold transition shadow-md shadow-emerald-950/40 cursor-pointer">Save PIN</button>
 
                 <!-- ================= FIREBASE CLOUD SECURITY & DEVICE AUTHORIZATION ================= -->
                 <div class="pt-3 border-t border-slate-800 space-y-2">
@@ -1978,20 +1981,19 @@
                     </div>
                 </div>
 
-                <div class="pt-3 border-t border-slate-800 space-y-2">
-                    <div class="font-bold text-slate-200 text-xs">💾 Data Backup & Restore</div>
-                    <p class="text-[10px] text-slate-500">Backup is downloaded as a JSON file to your device.</p>
-                    <button type="button" onclick="downloadFullBackup()" class="w-full bg-blue-700 text-white py-2.5 rounded-xl font-bold hover:bg-blue-600">📥 Download Full Backup (.json)</button>
-                    <button type="button" onclick="closeSettingsModal(); openBackupModal();" class="w-full bg-emerald-700 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-600">🕒 Auto-Snapshots & Restore</button>
-                    <button type="button" onclick="openBackupFilePicker('backupFileInput')" class="block w-full bg-slate-800 text-slate-200 py-2.5 rounded-xl font-bold text-center cursor-pointer border border-slate-700 hover:bg-slate-700">📤 Restore from File</button>
-                    <input type="file" id="backupFileInput" accept=".json,application/json,text/json,text/plain,*/*" class="hidden" onchange="restoreFullBackup(event)">
+                <!-- Quick Backup Tip / Direct Shortcut -->
+                <div class="pt-2.5 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400 bg-slate-950/50 p-2 rounded-xl border border-slate-800/80">
+                    <span class="flex items-center gap-1.5">💾 <span>Data Backup & Restore</span></span>
+                    <button type="button" onclick="closeSettingsModal(); openBackupModal();" class="text-blue-400 hover:text-blue-300 font-bold underline cursor-pointer">Open Backup</button>
                 </div>
+
+                <!-- App Update & Home Screen Buttons -->
                 <div class="pt-2 border-t border-slate-800 space-y-2">
-                    <button type="button" onclick="closeSettingsModal(); forceAppUpdate();" class="w-full bg-slate-800 text-sky-300 py-2.5 rounded-xl font-bold hover:bg-slate-700 flex items-center justify-center gap-2 border border-slate-700 text-xs transition">
+                    <button type="button" onclick="closeSettingsModal(); forceAppUpdate();" class="w-full bg-slate-800 text-sky-300 py-2.5 rounded-xl font-bold hover:bg-slate-700 flex items-center justify-center gap-2 border border-slate-700 text-xs transition cursor-pointer">
                         <span>🔄</span>
                         <span>Check for Updates / Clear Cache</span>
                     </button>
-                    <button type="button" onclick="closeSettingsModal(); triggerPwaInstall();" class="w-full bg-slate-800 text-emerald-300 py-2.5 rounded-xl font-bold hover:bg-slate-700 flex items-center justify-center gap-2 border border-slate-700 text-xs">
+                    <button type="button" onclick="closeSettingsModal(); triggerPwaInstall();" class="w-full bg-slate-800 text-emerald-300 py-2.5 rounded-xl font-bold hover:bg-slate-700 flex items-center justify-center gap-2 border border-slate-700 text-xs transition cursor-pointer">
                         <img src="./icon-192.png" alt="FIA" class="w-4 h-4 rounded-full">
                         <span>Install App / Add to Home Screen</span>
                     </button>
@@ -2100,7 +2102,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=49.0"></script>
+    <script type="module" src="./modules/app.js?v=49.1"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2112,7 +2114,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v49.0) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v49.1) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2166,7 +2168,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=49.0')
+                navigator.serviceWorker.register('./sw.js?v=49.1')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
