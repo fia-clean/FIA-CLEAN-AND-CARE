@@ -5,6 +5,7 @@
 import {
     state,
     unmarkIdDeleted,
+    isCustItemDeleted,
     getTodayDateString,
     toTitleCase
 } from '../core/state.js';
@@ -954,7 +955,7 @@ export function editCustomerBill(identifier) {
     document.getElementById('custIndex').value = index;
     const billNoEl = document.getElementById('billNumberDisplay');
     if (billNoEl) billNoEl.textContent = c.billNo || 'OLD BILL';
-    document.getElementById('custName').value = c.name ? toTitleCase(c.name) : '';
+    document.getElementById('custName').value = c.name ? String(c.name).toUpperCase() : '';
     document.getElementById('custPhone').value = c.phone || '';
     const saleRadio = document.querySelector(`input[name="saleType"][value="${c.saleType || 'Retail'}"]`);
     if (saleRadio) saleRadio.checked = true;
@@ -1352,31 +1353,33 @@ export function renderCosmeticsSummary() {
 export function updateCombinedCustomerSelect() {
     const select = document.getElementById('combinedCustomerSelect');
     if (!select) return;
-    const names = [];
-    [...(state.customers || []), ...(state.cosSales || [])].forEach(c => {
-        const n = String(c?.name || c?.customer || '').trim();
-        if (n && !names.some(x => x.toLowerCase() === n.toLowerCase())) names.push(n);
+    const custMap = new Map();
+    (state.customers || []).forEach(c => {
+        if (!c || isCustItemDeleted(c)) return;
+        const n = String(c.name || '').trim().toUpperCase();
+        if (n && !custMap.has(n)) custMap.set(n, c.phone || '');
     });
-    names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-    const current = select.value;
-    select.innerHTML = '<option value="">-- Select Customer / Enter Manually Below --</option>' + names.map(n => `<option value="${n.replace(/"/g, '&quot;')}">${toTitleCase(n)}</option>`).join('');
-    if (current) select.value = current;
+    (state.cosSales || []).forEach(s => {
+        if (!s || isCustItemDeleted(s)) return;
+        const n = String(s.customer || '').trim().toUpperCase();
+        if (n && !custMap.has(n)) custMap.set(n, s.phone || '');
+    });
+    const names = Array.from(custMap.keys()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    const current = (select.value || '').trim().toUpperCase();
+    select.innerHTML = '<option value="">-- Select Customer / Enter Manually Below --</option>' + names.map(n => `<option value="${n.replace(/"/g, '&quot;')}" data-phone="${custMap.get(n)}">${n}</option>`).join('');
+    if (current && custMap.has(current)) select.value = current;
 }
 
 export function fillCombinedCustomer() {
-    const name = document.getElementById('combinedCustomerSelect')?.value || '';
+    const select = document.getElementById('combinedCustomerSelect');
+    const name = (select?.value || '').trim().toUpperCase();
     if (!name) return;
-    const all = [
-        ...(state.customers || []).map(c => ({ name: c.name, phone: c.phone })),
-        ...(state.cosSales || []).map(c => ({ name: c.customer, phone: c.phone }))
-    ];
-    const found = all.find(c => String(c.name || '').toLowerCase() === name.toLowerCase());
-    if (found) {
-        const nameEl = document.getElementById('combinedCustomerName');
-        if (nameEl) nameEl.value = toTitleCase(found.name || '');
-        const phoneEl = document.getElementById('combinedCustomerPhone');
-        if (phoneEl) phoneEl.value = found.phone || '';
-    }
+    const selectedOpt = select.options[select.selectedIndex];
+    const phone = selectedOpt?.getAttribute('data-phone') || '';
+    const nameEl = document.getElementById('combinedCustomerName');
+    if (nameEl) nameEl.value = name;
+    const phoneEl = document.getElementById('combinedCustomerPhone');
+    if (phoneEl) phoneEl.value = phone;
 }
 
 export function updateCombinedProductSelect() {

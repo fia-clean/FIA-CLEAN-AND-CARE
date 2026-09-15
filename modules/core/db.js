@@ -6,12 +6,14 @@ import {
     state,
     myFiaClientId,
     sanitizeTombstoneKey,
+    markIdDeleted,
     isItemDeleted,
     isCustItemDeleted,
     isRecordDeleted,
     saveLocalStateSafely,
     createAutomaticLocalBackup,
-    normalizeLoadedProducts
+    normalizeLoadedProducts,
+    normalizeCustomerRecords
 } from './state.js';
 
 export function updateSyncStatus(connected, customText) {
@@ -178,34 +180,46 @@ export function mergeCustomerBills(localList, cloudList) {
     const map = new Map();
     const getKey = c => {
         if (!c) return '';
-        if (c.id) return 'id_' + String(c.id).trim().toLowerCase();
         if (c.billNo) return 'bill_' + String(c.billNo).trim().toUpperCase();
-        return 'named_' + String(c.name || '').trim().toLowerCase();
+        const upperName = String(c.name || '').trim().toUpperCase();
+        if (upperName) return 'profile_' + upperName;
+        if (c.id) return 'id_' + String(c.id).trim().toLowerCase();
+        return '';
     };
 
-    const rawCloud = Array.isArray(cloudList) ? cloudList : Object.values(cloudList || {});
-    rawCloud.forEach(c => {
+    const processItem = (c) => {
         if (!c || isCustItemDeleted(c)) return;
-        const k = getKey(c);
-        if (k) map.set(k, c);
-    });
-
-    const rawLocal = Array.isArray(localList) ? localList : Object.values(localList || {});
-    rawLocal.forEach(c => {
-        if (!c || isCustItemDeleted(c)) return;
+        if (c.name) c.name = String(c.name).trim().toUpperCase();
         const k = getKey(c);
         if (!k) return;
         if (!map.has(k)) {
             map.set(k, c);
         } else {
             const existing = map.get(k);
-            const localTime = Number(c.savedAt || c.createdAt || 0);
-            const cloudTime = Number(existing.savedAt || existing.createdAt || 0);
-            if (localTime >= cloudTime) {
-                map.set(k, { ...existing, ...c });
+            const incomingTime = Number(c.savedAt || c.createdAt || 0);
+            const existingTime = Number(existing.savedAt || existing.createdAt || 0);
+            if (incomingTime >= existingTime) {
+                if (!c.billNo && !existing.billNo && c.id && existing.id && c.id !== existing.id) {
+                    markIdDeleted(existing.id);
+                }
+                map.set(k, { ...existing, ...c, phone: c.phone || existing.phone || '' });
+            } else {
+                if (!c.billNo && !existing.billNo && c.id && existing.id && c.id !== existing.id) {
+                    markIdDeleted(c.id);
+                }
+                if (!existing.phone && c.phone) {
+                    existing.phone = c.phone;
+                }
             }
         }
-    });
+    };
+
+    const rawCloud = Array.isArray(cloudList) ? cloudList : Object.values(cloudList || {});
+    rawCloud.forEach(c => processItem(c));
+
+    const rawLocal = Array.isArray(localList) ? localList : Object.values(localList || {});
+    rawLocal.forEach(c => processItem(c));
+
     return Array.from(map.values());
 }
 
@@ -388,6 +402,7 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     state.packages = mergeInventoryProducts(state.packages, data.packages);
     state.stockReturns = mergeCollection(state.stockReturns, data.stockReturns, 'id');
     normalizeLoadedProducts();
+    normalizeCustomerRecords();
 
     if (data.clearedDayBookEntries) {
         const cloudCleared = Array.isArray(data.clearedDayBookEntries) ? data.clearedDayBookEntries : Object.values(data.clearedDayBookEntries);

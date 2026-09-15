@@ -314,6 +314,69 @@ export function normalizeLoadedProducts() {
     }
 }
 
+export function normalizeCustomerRecords() {
+    if (!Array.isArray(state.customers)) return;
+    let modified = false;
+
+    // 1. Normalize all customer names to uppercase
+    state.customers.forEach(c => {
+        if (!c) return;
+        if (c.name) {
+            const up = String(c.name).trim().toUpperCase();
+            if (c.name !== up) {
+                c.name = up;
+                modified = true;
+            }
+        }
+    });
+
+    if (Array.isArray(state.cosSales)) {
+        state.cosSales.forEach(s => {
+            if (!s) return;
+            if (s.customer) {
+                const up = String(s.customer).trim().toUpperCase();
+                if (s.customer !== up) {
+                    s.customer = up;
+                    modified = true;
+                }
+            }
+        });
+    }
+
+    // 2. Deduplicate pure profile entries (entries with no billNo)
+    const profilesByName = new Map();
+    const billsList = [];
+
+    state.customers.forEach(c => {
+        if (!c || isCustItemDeleted(c)) return;
+        if (c.billNo) {
+            billsList.push(c);
+        } else {
+            const key = String(c.name || '').trim().toUpperCase();
+            if (!key) return;
+            if (!profilesByName.has(key)) {
+                profilesByName.set(key, c);
+            } else {
+                modified = true;
+                const existing = profilesByName.get(key);
+                if (!existing.phone && c.phone) {
+                    existing.phone = c.phone;
+                }
+                existing.savedAt = Math.max(Number(existing.savedAt || 0), Number(c.savedAt || 0));
+                if (c.id && c.id !== existing.id) {
+                    markIdDeleted(c.id);
+                }
+            }
+        }
+    });
+
+    const dedupedProfiles = Array.from(profilesByName.values());
+    if (dedupedProfiles.length + billsList.length !== state.customers.length || modified) {
+        state.customers = [...dedupedProfiles, ...billsList];
+        saveLocalStateSafely();
+    }
+}
+
 // -------------------------------------------------------------
 // Local Storage Persistence
 // -------------------------------------------------------------
@@ -334,6 +397,7 @@ export function loadFromLocalStorage() {
         state.dayBookOpeningExpense = Number(localStorage.getItem('fia_daybook_opening_expense') || 0);
         state.appPin = localStorage.getItem('fia_app_pin') || "1234";
         normalizeLoadedProducts();
+        normalizeCustomerRecords();
     } catch (e) {
         console.warn('Failed to load from localStorage:', e);
     }

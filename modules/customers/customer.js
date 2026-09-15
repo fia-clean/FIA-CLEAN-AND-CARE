@@ -6,6 +6,7 @@ import {
     state,
     markIdDeleted,
     unmarkIdDeleted,
+    isCustItemDeleted,
     getTodayDateString,
     formatDateDDMMYYYY,
     dateSortValue,
@@ -150,31 +151,39 @@ export function deleteDirectCustomer(name) {
 export function renderDirectCustomerList() {
     const container = document.getElementById('directCustomerListContainer');
     if (!container) return;
-    let uniqueNames = [];
+    const custMap = new Map();
     (state.customers || []).forEach(c => {
-        if (c && c.name && !uniqueNames.includes(c.name)) uniqueNames.push(c.name);
+        if (!c || isCustItemDeleted(c)) return;
+        const name = String(c.name || '').trim().toUpperCase();
+        if (!name) return;
+        if (!custMap.has(name)) {
+            custMap.set(name, { name, phone: c.phone || '' });
+        } else if (c.phone && !custMap.get(name).phone) {
+            custMap.get(name).phone = c.phone;
+        }
     });
+
+    const uniqueCustomers = Array.from(custMap.values());
     const badge = document.getElementById('customerCountBadge');
-    if (badge) badge.innerText = `${uniqueNames.length} Customers`;
+    if (badge) badge.innerText = `${uniqueCustomers.length} Customers`;
     
     const q = (document.getElementById('customerDirectorySearch')?.value || '').trim().toLowerCase();
-    const filteredNames = uniqueNames.filter(name => {
-        const cObj = state.customers.find(c => c && c.name === name && c.phone) || state.customers.find(c => c && c.name === name);
-        const phone = cObj ? String(cObj.phone || '') : '';
-        return !q || String(name).toLowerCase().includes(q) || phone.toLowerCase().includes(q);
+    const filteredCustomers = uniqueCustomers.filter(item => {
+        const phone = String(item.phone || '');
+        return !q || item.name.toLowerCase().includes(q) || phone.toLowerCase().includes(q);
     });
-    if (badge) badge.innerText = `${filteredNames.length} Customers`;
-    container.innerHTML = filteredNames.length === 0 ? '<p class="text-xs text-slate-500 text-center py-2">No customers found.</p>' : '';
+    if (badge) badge.innerText = `${filteredCustomers.length} Customers`;
+    container.innerHTML = filteredCustomers.length === 0 ? '<p class="text-xs text-slate-500 text-center py-2">No customers found.</p>' : '';
 
-    filteredNames.sort().forEach(name => {
-        let cObj = state.customers.find(c => c && c.name === name && c.phone) || state.customers.find(c => c && c.name === name);
-        let phone = cObj ? cObj.phone : '';
+    filteredCustomers.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true })).forEach(item => {
+        const name = item.name;
+        const phone = item.phone;
         const safeName = String(name).replace(/'/g, "\\'");
         const safePhone = String(phone || '').replace(/'/g, "\\'");
         container.innerHTML += `
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs gap-2.5">
                 <div class="min-w-0 flex-1">
-                    <strong class="text-slate-100 font-bold text-sm block leading-snug break-words">${name.toUpperCase()}</strong>
+                    <strong class="text-slate-100 font-bold text-sm block leading-snug break-words">${name}</strong>
                     <p class="text-slate-400 text-[11px] mt-1">📞 Phone: ${phone || 'No Phone'}</p>
                 </div>
                 <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
@@ -200,25 +209,30 @@ export function resetDirectCustomerForm() {
 export function updateCustomerDropdown() {
     const select = document.getElementById('existingCustomerSelect');
     if (!select) return;
-    const current = document.getElementById('custName')?.value || '';
+    const current = (document.getElementById('custName')?.value || '').trim().toUpperCase();
     select.innerHTML = '<option value="">-- Select Customer / Enter Manually Below --</option>';
-    let uniqueCusts = {};
+    const uniqueCusts = new Map();
     (state.customers || []).forEach(c => {
-        if (c && c.name) {
-            uniqueCusts[c.name] = c.phone || '';
+        if (!c || isCustItemDeleted(c)) return;
+        const name = String(c.name || '').trim().toUpperCase();
+        if (!name) return;
+        if (!uniqueCusts.has(name)) {
+            uniqueCusts.set(name, c.phone || '');
+        } else if (c.phone && !uniqueCusts.get(name)) {
+            uniqueCusts.set(name, c.phone);
         }
     });
-    Object.keys(uniqueCusts).sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base', numeric: true })).forEach(name => {
-        select.innerHTML += `<option value="${name}" data-phone="${uniqueCusts[name]}">${toTitleCase(name)}</option>`;
+    Array.from(uniqueCusts.keys()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })).forEach(name => {
+        select.innerHTML += `<option value="${name}" data-phone="${uniqueCusts.get(name)}">${name}</option>`;
     });
-    if (current && uniqueCusts[current] !== undefined) select.value = current;
+    if (current && uniqueCusts.has(current)) select.value = current;
 }
 
 export function fillExistingCustomer() {
     const select = document.getElementById('existingCustomerSelect');
     const name = select ? select.value : '';
     if (name) {
-        document.getElementById('custName').value = toTitleCase(name);
+        document.getElementById('custName').value = name.toUpperCase();
         const selectedOpt = select.options[select.selectedIndex];
         document.getElementById('custPhone').value = selectedOpt?.getAttribute('data-phone') || '';
     } else {
@@ -230,24 +244,43 @@ export function fillExistingCustomer() {
 export function updateCosCustomerDropdown() {
     const select = document.getElementById('cosExistingCustomerSelect');
     if (!select) return;
-    const current = document.getElementById('cosSCustomer')?.value || '';
+    const current = (document.getElementById('cosSCustomer')?.value || '').trim().toUpperCase();
     select.innerHTML = '<option value="">-- Select Customer / Enter Manually Below --</option>';
-    let uniqueCusts = {};
+    const uniqueCusts = new Map();
     (state.customers || []).forEach(c => {
-        if (c && c.name) uniqueCusts[c.name] = c.phone || '';
+        if (!c || isCustItemDeleted(c)) return;
+        const name = String(c.name || '').trim().toUpperCase();
+        if (!name) return;
+        if (!uniqueCusts.has(name)) {
+            uniqueCusts.set(name, c.phone || '');
+        } else if (c.phone && !uniqueCusts.get(name)) {
+            uniqueCusts.set(name, c.phone);
+        }
     });
-    Object.keys(uniqueCusts).sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base', numeric: true })).forEach(name => {
-        select.innerHTML += `<option value="${name}">${toTitleCase(name)}</option>`;
+    (state.cosSales || []).forEach(s => {
+        if (!s || isCustItemDeleted(s)) return;
+        const name = String(s.customer || '').trim().toUpperCase();
+        if (!name) return;
+        if (!uniqueCusts.has(name)) {
+            uniqueCusts.set(name, s.phone || '');
+        } else if (s.phone && !uniqueCusts.get(name)) {
+            uniqueCusts.set(name, s.phone);
+        }
     });
-    if (current && uniqueCusts[current] !== undefined) select.value = current;
+    Array.from(uniqueCusts.keys()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })).forEach(name => {
+        select.innerHTML += `<option value="${name}">${name}</option>`;
+    });
+    if (current && uniqueCusts.has(current)) select.value = current;
 }
 
 export function fillCosExistingCustomer() {
     const select = document.getElementById('cosExistingCustomerSelect');
     const name = select ? select.value : '';
-    const found = (state.customers || []).find(c => c && c.name === name);
+    const upperName = String(name || '').trim().toUpperCase();
+    const found = (state.customers || []).find(c => c && String(c.name || '').trim().toUpperCase() === upperName) ||
+                  (state.cosSales || []).find(s => s && String(s.customer || '').trim().toUpperCase() === upperName);
     if (name) {
-        document.getElementById('cosSCustomer').value = toTitleCase(name);
+        document.getElementById('cosSCustomer').value = upperName;
         const phoneEl = document.getElementById('cosSPhone');
         if (phoneEl) phoneEl.value = found?.phone || '';
     } else {
@@ -263,45 +296,42 @@ export function renderCustomerConsolidationReport() {
 
     let customerMap = {};
     (state.customers || []).forEach(c => {
-        if (c && c.name) {
-            let key = c.name.trim();
-            if (!customerMap[key]) {
-                customerMap[key] = { name: key, phone: c.phone || '', totalPurchase: 0, totalPaid: 0, totalPending: 0, billCount: 0 };
-            } else if (c.phone && !customerMap[key].phone) {
-                customerMap[key].phone = c.phone;
-            }
+        if (!c || isCustItemDeleted(c) || !c.name) return;
+        let key = String(c.name).trim().toUpperCase();
+        if (!customerMap[key]) {
+            customerMap[key] = { name: key, phone: c.phone || '', totalPurchase: 0, totalPaid: 0, totalPending: 0, billCount: 0 };
+        } else if (c.phone && !customerMap[key].phone) {
+            customerMap[key].phone = c.phone;
         }
     });
 
     (state.customers || []).forEach(c => {
-        if (c && c.name && (c.items || c.grandTotal !== undefined)) {
-            let key = c.name.trim();
-            if (!customerMap[key]) {
-                customerMap[key] = { name: key, phone: c.phone || '', totalPurchase: 0, totalPaid: 0, totalPending: 0, billCount: 0 };
-            }
-            let gTotal = Number(c.grandTotal || 0);
-            let paid = c.paidAmount !== undefined ? Number(c.paidAmount) : gTotal;
-            let pending = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, gTotal - paid);
-
-            customerMap[key].totalPurchase += gTotal;
-            customerMap[key].totalPaid += paid;
-            customerMap[key].totalPending += pending;
-            if (c.billNo || (c.items && c.items.length > 0)) customerMap[key].billCount += 1;
+        if (!c || isCustItemDeleted(c) || !c.name || (!c.items && c.grandTotal === undefined)) return;
+        let key = String(c.name).trim().toUpperCase();
+        if (!customerMap[key]) {
+            customerMap[key] = { name: key, phone: c.phone || '', totalPurchase: 0, totalPaid: 0, totalPending: 0, billCount: 0 };
         }
+        let gTotal = Number(c.grandTotal || 0);
+        let paid = c.paidAmount !== undefined ? Number(c.paidAmount) : gTotal;
+        let pending = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, gTotal - paid);
+
+        customerMap[key].totalPurchase += gTotal;
+        customerMap[key].totalPaid += paid;
+        customerMap[key].totalPending += pending;
+        if (c.billNo || (c.items && c.items.length > 0)) customerMap[key].billCount += 1;
     });
 
     (state.cosSales || []).forEach(s => {
-        if (s && s.customer) {
-            let key = s.customer.trim();
-            if (!customerMap[key]) {
-                customerMap[key] = { name: key, phone: s.phone || '', totalPurchase: 0, totalPaid: 0, totalPending: 0, billCount: 0 };
-            }
-            const norm = normalizeCosSale(s);
-            customerMap[key].totalPurchase += Number(norm.grandTotal || 0);
-            customerMap[key].totalPaid += Number(norm.paidAmount || 0);
-            customerMap[key].totalPending += Number(norm.pendingAmount || 0);
-            customerMap[key].billCount += 1;
+        if (!s || isCustItemDeleted(s) || !s.customer) return;
+        let key = String(s.customer).trim().toUpperCase();
+        if (!customerMap[key]) {
+            customerMap[key] = { name: key, phone: s.phone || '', totalPurchase: 0, totalPaid: 0, totalPending: 0, billCount: 0 };
         }
+        const norm = normalizeCosSale(s);
+        customerMap[key].totalPurchase += Number(norm.grandTotal || 0);
+        customerMap[key].totalPaid += Number(norm.paidAmount || 0);
+        customerMap[key].totalPending += Number(norm.pendingAmount || 0);
+        customerMap[key].billCount += 1;
     });
 
     let entries = Object.values(customerMap);
@@ -380,10 +410,10 @@ export function renderCustomerConsolidationView() {
     const grouped = {};
 
     (state.customers || []).forEach((c, index) => {
-        if (!c || !c.name) return;
+        if (!c || isCustItemDeleted(c) || !c.name) return;
         const hasBill = Boolean(c.billNo || (Array.isArray(c.items) && c.items.length > 0) || Number(c.grandTotal || 0) > 0);
         if (!hasBill) return;
-        const name = c.name.trim();
+        const name = String(c.name).trim().toUpperCase();
         if (!name) return;
         if (query && !name.toLowerCase().includes(query) && !String(c.phone || '').toLowerCase().includes(query)) return;
 
@@ -402,8 +432,8 @@ export function renderCustomerConsolidationView() {
     });
 
     (state.cosSales || []).forEach((s, index) => {
-        if (!s || !s.customer) return;
-        const name = String(s.customer).trim();
+        if (!s || isCustItemDeleted(s) || !s.customer) return;
+        const name = String(s.customer).trim().toUpperCase();
         if (!name) return;
         if (query && !name.toLowerCase().includes(query) && !String(s.phone || '').toLowerCase().includes(query)) return;
 
@@ -476,7 +506,7 @@ export function renderCustomerConsolidationView() {
 let selectedCustomerConsolidatedName = '';
 
 export function openCustomerConsolidationCustomer(encodedName) {
-    const name = decodeURIComponent(encodedName || '');
+    const name = decodeURIComponent(encodedName || '').trim().toUpperCase();
     selectedCustomerConsolidatedName = name;
     const title = document.getElementById('customerConsolidatedDetailTitle');
     const content = document.getElementById('customerConsolidatedDetailContent');
@@ -485,7 +515,7 @@ export function openCustomerConsolidationCustomer(encodedName) {
 
     let purchaseCount = 0, total = 0, paid = 0, due = 0;
     (state.customers || []).forEach(c => {
-        if (!c || String(c.name || '').trim() !== name) return;
+        if (!c || isCustItemDeleted(c) || String(c.name || '').trim().toUpperCase() !== name) return;
         const hasBill = Boolean(c.billNo || (Array.isArray(c.items) && c.items.length > 0) || Number(c.grandTotal || 0) > 0);
         if (!hasBill) return;
         const g = Number(c.grandTotal || 0);
@@ -494,13 +524,13 @@ export function openCustomerConsolidationCustomer(encodedName) {
         purchaseCount += 1; total += g; paid += p; due += d;
     });
     (state.cosSales || []).forEach(s => {
-        if (!s || String(s.customer || '').trim() !== name) return;
+        if (!s || isCustItemDeleted(s) || String(s.customer || '').trim().toUpperCase() !== name) return;
         const n = normalizeCosSale(s);
         purchaseCount += 1; total += Number(n.grandTotal || 0); paid += Number(n.paidAmount || 0); due += Number(n.pendingAmount || 0);
     });
 
-    const phone = ((state.customers || []).find(c => c && String(c.name || '').trim() === name && c.phone)?.phone) ||
-        ((state.cosSales || []).find(s => s && String(s.customer || '').trim() === name && s.phone)?.phone || '');
+    const phone = ((state.customers || []).find(c => c && !isCustItemDeleted(c) && String(c.name || '').trim().toUpperCase() === name && c.phone)?.phone) ||
+        ((state.cosSales || []).find(s => s && !isCustItemDeleted(s) && String(s.customer || '').trim().toUpperCase() === name && s.phone)?.phone || '');
 
     content.innerHTML = `
         <div class="space-y-3">
@@ -527,11 +557,11 @@ export function closeCustomerConsolidatedDetail() {
 }
 
 export function shareSelectedCustomerConsolidatedDetail() {
-    const name = selectedCustomerConsolidatedName;
+    const name = String(selectedCustomerConsolidatedName || '').trim().toUpperCase();
     if (!name) return;
     let purchaseCount = 0, total = 0, paid = 0, due = 0;
     (state.customers || []).forEach(c => {
-        if (!c || String(c.name || '').trim() !== name) return;
+        if (!c || isCustItemDeleted(c) || String(c.name || '').trim().toUpperCase() !== name) return;
         const hasBill = Boolean(c.billNo || (Array.isArray(c.items) && c.items.length > 0) || Number(c.grandTotal || 0) > 0);
         if (!hasBill) return;
         const g = Number(c.grandTotal || 0);
@@ -540,7 +570,7 @@ export function shareSelectedCustomerConsolidatedDetail() {
         purchaseCount += 1; total += g; paid += p; due += d;
     });
     (state.cosSales || []).forEach(s => {
-        if (!s || String(s.customer || '').trim() !== name) return;
+        if (!s || isCustItemDeleted(s) || String(s.customer || '').trim().toUpperCase() !== name) return;
         const n = normalizeCosSale(s);
         purchaseCount += 1; total += Number(n.grandTotal || 0); paid += Number(n.paidAmount || 0); due += Number(n.pendingAmount || 0);
     });
@@ -550,7 +580,8 @@ export function shareSelectedCustomerConsolidatedDetail() {
 
 
 export function viewCustomerProfile(name) {
-    const custBills = (state.customers || []).filter(c => c && c.name === name);
+    const upperTarget = String(name || '').trim().toUpperCase();
+    const custBills = (state.customers || []).filter(c => c && !isCustItemDeleted(c) && String(c.name || '').trim().toUpperCase() === upperTarget);
     const phone = custBills.find(c => c.phone)?.phone || 'No mobile';
     const totalPurchase = custBills.reduce((sum, c) => sum + Number(c.grandTotal || 0), 0);
     const totalPaid = custBills.reduce((sum, c) => sum + Number(c.paidAmount || (c.grandTotal || 0)), 0);
