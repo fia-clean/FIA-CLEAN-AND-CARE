@@ -792,7 +792,7 @@ export function getNextCosBillNumber() {
 export function saveCustomer(e) {
     if (e && e.preventDefault) e.preventDefault();
     const index = parseInt(document.getElementById('custIndex').value, 10);
-    const name = toTitleCase((document.getElementById('custName')?.value || '').trim());
+    const name = (document.getElementById('custName')?.value || '').trim().toUpperCase();
     const phone = (document.getElementById('custPhone')?.value || '').trim();
     const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
 
@@ -954,7 +954,7 @@ export function editCustomerBill(identifier) {
     document.getElementById('custIndex').value = index;
     const billNoEl = document.getElementById('billNumberDisplay');
     if (billNoEl) billNoEl.textContent = c.billNo || 'OLD BILL';
-    document.getElementById('custName').value = c.name || '';
+    document.getElementById('custName').value = c.name ? toTitleCase(c.name) : '';
     document.getElementById('custPhone').value = c.phone || '';
     const saleRadio = document.querySelector(`input[name="saleType"][value="${c.saleType || 'Retail'}"]`);
     if (saleRadio) saleRadio.checked = true;
@@ -1239,7 +1239,7 @@ export function deductCosSaleStock(items) {
 
 export function saveCosSales(e) {
     if (e && e.preventDefault) e.preventDefault();
-    const customer = document.getElementById('cosSCustomer')?.value.trim();
+    const customer = (document.getElementById('cosSCustomer')?.value.trim() || '').toUpperCase();
     const phone = document.getElementById('cosSPhone')?.value.trim() || '';
     const saleType = document.querySelector('input[name="cosSaleType"]:checked')?.value || 'Retail';
     const paymentMode = document.getElementById('cosSPaymentMode')?.value || 'Cash';
@@ -1359,7 +1359,7 @@ export function updateCombinedCustomerSelect() {
     });
     names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     const current = select.value;
-    select.innerHTML = '<option value="">-- Select Customer / Enter Manually Below --</option>' + names.map(n => `<option value="${n.replace(/"/g, '&quot;')}">${n}</option>`).join('');
+    select.innerHTML = '<option value="">-- Select Customer / Enter Manually Below --</option>' + names.map(n => `<option value="${n.replace(/"/g, '&quot;')}">${toTitleCase(n)}</option>`).join('');
     if (current) select.value = current;
 }
 
@@ -1373,7 +1373,7 @@ export function fillCombinedCustomer() {
     const found = all.find(c => String(c.name || '').toLowerCase() === name.toLowerCase());
     if (found) {
         const nameEl = document.getElementById('combinedCustomerName');
-        if (nameEl) nameEl.value = found.name || '';
+        if (nameEl) nameEl.value = toTitleCase(found.name || '');
         const phoneEl = document.getElementById('combinedCustomerPhone');
         if (phoneEl) phoneEl.value = found.phone || '';
     }
@@ -1893,7 +1893,7 @@ export function resetCombinedBillForm(focus = true) {
 export function saveCombinedBill(e) {
     if (e && e.preventDefault) e.preventDefault();
     const idx = parseInt(document.getElementById('combinedBillIndex')?.value, 10);
-    const name = toTitleCase(document.getElementById('combinedCustomerName')?.value.trim() || '');
+    const name = (document.getElementById('combinedCustomerName')?.value.trim() || '').toUpperCase();
     const phone = document.getElementById('combinedCustomerPhone')?.value.trim() || '';
     const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
     if (!name || !state.currentBillItems.length) {

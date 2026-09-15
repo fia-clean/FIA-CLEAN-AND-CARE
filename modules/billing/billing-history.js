@@ -6,7 +6,8 @@ import {
     state,
     markIdDeleted,
     formatDateDDMMYYYY,
-    dateSortValue
+    dateSortValue,
+    toTitleCase
 } from '../core/state.js';
 import { syncToFirebase, pullFromFirebase } from '../core/db.js';
 
@@ -135,7 +136,7 @@ export function renderSalesHistory() {
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${label(r)} — #${r.billNo} ${r.name}</span>
+                        <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${label(r)} — #${r.billNo} ${toTitleCase(r.name)}</span>
                         ${badgeHtml}
                     </div>
                     <div class="text-slate-400 mt-1">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>
@@ -178,7 +179,7 @@ export function renderCustomerSalesHistory() {
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${label(r)} — #${r.billNo} ${r.name}</span>
+                        <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${label(r)} — #${r.billNo} ${toTitleCase(r.name)}</span>
                         ${badgeHtml}
                     </div>
                     <div class="text-slate-400 mt-1">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>

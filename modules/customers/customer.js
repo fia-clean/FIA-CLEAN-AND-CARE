@@ -55,7 +55,7 @@ export function saveDirectCustomerProfile(e) {
     const phoneInput = document.getElementById('directCustPhone');
     const originalIndex = parseInt(document.getElementById('directCustOriginalIndex')?.value || "-1", 10);
 
-    const name = toTitleCase((nameInput?.value || '').trim());
+    const name = (nameInput?.value || '').trim().toUpperCase();
     const phone = (phoneInput?.value || '').trim();
 
     if (!name) {
@@ -114,7 +114,7 @@ export function saveDirectCustomerProfile(e) {
 export function editCustomerProfile(name, phone) {
     const nEl = document.getElementById('directCustName');
     const pEl = document.getElementById('directCustPhone');
-    if (nEl) nEl.value = name;
+    if (nEl) nEl.value = (name || '').toUpperCase();
     if (pEl) pEl.value = (phone !== 'undefined' && phone !== 'No Phone') ? phone : '';
     const idx = (state.customers || []).findIndex(c => c && c.name === name);
     const origEl = document.getElementById('directCustOriginalIndex');
@@ -174,7 +174,7 @@ export function renderDirectCustomerList() {
         container.innerHTML += `
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs gap-2.5">
                 <div class="min-w-0 flex-1">
-                    <strong class="text-slate-100 font-bold text-sm block leading-snug break-words">${name}</strong>
+                    <strong class="text-slate-100 font-bold text-sm block leading-snug break-words">${name.toUpperCase()}</strong>
                     <p class="text-slate-400 text-[11px] mt-1">📞 Phone: ${phone || 'No Phone'}</p>
                 </div>
                 <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
@@ -218,7 +218,7 @@ export function fillExistingCustomer() {
     const select = document.getElementById('existingCustomerSelect');
     const name = select ? select.value : '';
     if (name) {
-        document.getElementById('custName').value = name;
+        document.getElementById('custName').value = toTitleCase(name);
         const selectedOpt = select.options[select.selectedIndex];
         document.getElementById('custPhone').value = selectedOpt?.getAttribute('data-phone') || '';
     } else {
@@ -247,7 +247,7 @@ export function fillCosExistingCustomer() {
     const name = select ? select.value : '';
     const found = (state.customers || []).find(c => c && c.name === name);
     if (name) {
-        document.getElementById('cosSCustomer').value = name;
+        document.getElementById('cosSCustomer').value = toTitleCase(name);
         const phoneEl = document.getElementById('cosSPhone');
         if (phoneEl) phoneEl.value = found?.phone || '';
     } else {
@@ -321,7 +321,7 @@ export function renderCustomerConsolidationReport() {
         <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 text-xs space-y-2 cursor-pointer active:scale-[0.99] transition" role="button" tabindex="0" title="Tap to view customer history" onclick="window.openCustomerConsolidationCustomer('${encodeURIComponent(e.name)}')" onkeydown="if(event.key==='Enter' || event.key===' ') { event.preventDefault(); window.openCustomerConsolidationCustomer('${encodeURIComponent(e.name)}'); }">
             <div class="flex justify-between items-start">
                 <div>
-                    <span class="font-bold text-slate-100 text-sm">${e.name}</span>
+                    <span class="font-bold text-slate-100 text-sm">${e.name.toUpperCase()}</span>
                     <p class="text-slate-400 text-[11px]">Phone: ${e.phone || 'No Phone'} • Bills: ${e.billCount}</p>
                 </div>
                 <div class="text-right">
@@ -435,7 +435,7 @@ export function renderCustomerConsolidationView() {
         return `<div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 text-xs space-y-2">
             <div class="flex justify-between items-start gap-2">
                 <div>
-                    <span class="font-bold text-slate-100 text-sm">${e.name}</span>
+                    <span class="font-bold text-slate-100 text-sm">${e.name.toUpperCase()}</span>
                     <p class="text-slate-400 text-[11px]">Phone: ${e.phone || 'No Phone'} • ${e.rows.length} Bills</p>
                 </div>
             </div>
