@@ -410,22 +410,24 @@ export function getAllMasterEntries() {
         }
     });
 
-    // 5. Operating Expenses
+    // 5. Operating Expenses & Additional Incomes
     (state.expenses || []).forEach((ex, i) => {
         if (!ex || ex._deleted) return;
         const amount = Number(ex.amount !== undefined ? ex.amount : (ex.cost !== undefined ? ex.cost : 0));
         const entryId = 'exp_' + (ex.id || (ex.savedAt || i));
         if (amount > 0) {
             const cleanDate = normalizeToDateKey(ex.date) || normalizeToDateKey(ex.savedAt) || normalizeToDateKey(ex.createdAt) || getTodayDateString();
+            const isIncome = ex.type === 'Income';
             entries.push({
                 id: entryId,
                 originalId: ex.id || entryId,
-                type: 'Expense',
-                category: 'Expense',
-                desc: `Expense: ${ex.title || ex.category || 'General Expense'}`,
+                type: isIncome ? 'Income' : 'Expense',
+                category: isIncome ? 'Additional Income' : 'Expense',
+                desc: isIncome ? `🟢 Other Income: ${ex.title || 'Additional Income'}` : `Expense: ${ex.title || ex.category || 'General Expense'}`,
                 amount,
                 paidAmount: amount,
                 pendingAmount: 0,
+                paymentMode: 'Cash',
                 date: cleanDate,
                 timestamp: Number(ex.savedAt || ex.createdAt || dateSortValue(cleanDate) || 0)
             });

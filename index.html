@@ -350,7 +350,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.9) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v49.0) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -632,7 +632,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v48.9</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v49.0</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
@@ -648,7 +648,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v48.9</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v49.0</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -738,12 +738,12 @@
                     <div class="rounded-2xl bg-slate-950/50 border border-slate-700/70 p-3">
                         <button type="button" onclick="switchTab('operations')" class="w-full flex items-center gap-3 text-left">
                             <span class="text-2xl">⚙️</span>
-                            <span><span class="block font-bold text-sm text-slate-200">Operations</span><span class="block text-[10px] text-slate-500">Stock • Purchase • Expenses</span></span>
+                            <span><span class="block font-bold text-sm text-slate-200">Operations</span><span class="block text-[10px] text-slate-500">Stock • Purchase • Expenses & Income</span></span>
                         </button>
                         <div class="grid grid-cols-3 gap-2 mt-3">
                             <button type="button" onclick="openOperationSection('stock')" class="py-2 rounded-xl bg-emerald-700 text-white text-[10px] font-bold">📦 Stock</button>
                             <button type="button" onclick="openOperationSection('purchase')" class="py-2 rounded-xl bg-blue-700 text-white text-[10px] font-bold">🛒 Purchase</button>
-                            <button type="button" onclick="openOperationSection('expenses')" class="py-2 rounded-xl bg-rose-700 text-white text-[10px] font-bold">💸 Expenses</button>
+                            <button type="button" onclick="openOperationSection('expenses')" class="py-2 rounded-xl bg-rose-700 text-white text-[10px] font-bold">💸 Expenses & Income</button>
                         </div>
                     </div>
                     <button type="button" onclick="switchTab('customers')" class="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 text-left hover:border-indigo-500 transition">
@@ -766,7 +766,7 @@
             <div class="bg-gradient-to-br from-slate-950/80 to-slate-900/80 p-5 rounded-3xl border border-slate-800 shadow-xl">
                 <div class="text-[10px] uppercase tracking-[0.18em] text-emerald-400 font-bold">OPERATIONS</div>
                 <h2 class="text-xl font-extrabold text-white mt-1">Business Operations</h2>
-                <p class="text-[11px] text-slate-400 mt-1">Stock • Purchase • Expenses</p>
+                <p class="text-[11px] text-slate-400 mt-1">Stock • Purchase • Expenses & Other Income</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button type="button" onclick="openOperationSection('stock')" class="text-left bg-emerald-950/30 border border-emerald-800/50 rounded-2xl p-4 hover:border-emerald-500 transition">
@@ -776,7 +776,7 @@
                     <div class="text-2xl">🛒</div><div class="font-bold text-sm text-blue-300 mt-2">Purchase</div><div class="text-[10px] text-slate-500 mt-1">Cleaning & Cosmetics</div>
                 </button>
                 <button type="button" onclick="openOperationSection('expenses')" class="text-left bg-rose-950/30 border border-rose-800/50 rounded-2xl p-4 hover:border-rose-500 transition">
-                    <div class="text-2xl">💸</div><div class="font-bold text-sm text-rose-300 mt-2">Expenses</div><div class="text-[10px] text-slate-500 mt-1">Business expenses</div>
+                    <div class="text-2xl">💸</div><div class="font-bold text-sm text-rose-300 mt-2">Expenses & Other Income</div><div class="text-[10px] text-slate-500 mt-1">Shop expenses, scrap & surplus cash</div>
                 </button>
             </div>
             <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3">
@@ -1571,24 +1571,69 @@
             </div>
         </div>
 
-        <!-- ================= SECTION 5: EXPENSES ================= -->
+        <!-- ================= SECTION 5: EXPENSES & OTHER INCOME ================= -->
         <div id="sectionExpenses" class="space-y-4 hidden">
-            <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner">
-                <h2 id="expFormTitle" class="font-bold text-slate-100 mb-3 text-sm">General Shop Expenses (Rent, Current, Wages)</h2>
+            <!-- Mode Switcher Tabs -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-900/90 rounded-2xl border border-slate-800">
+                <button type="button" id="tabBtnExpense" onclick="switchExpenseTab('Expense')" class="py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-rose-600 text-white shadow-md cursor-pointer">
+                    <span>🔻</span>
+                    <span>Shop Expenses</span>
+                </button>
+                <button type="button" id="tabBtnIncome" onclick="switchExpenseTab('Income')" class="py-2.5 px-3 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200 cursor-pointer">
+                    <span>🟢</span>
+                    <span>Additional Income</span>
+                </button>
+            </div>
+
+            <!-- Operational Summary Cards -->
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                    <span class="text-[10px] text-rose-400 font-semibold block">Total Expenses</span>
+                    <span id="expTotalExpensesBadge" class="text-xs sm:text-sm font-extrabold text-rose-300">₹0.00</span>
+                </div>
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                    <span class="text-[10px] text-emerald-400 font-semibold block">Other Income</span>
+                    <span id="expTotalIncomeBadge" class="text-xs sm:text-sm font-extrabold text-emerald-300">₹0.00</span>
+                </div>
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                    <span class="text-[10px] text-sky-400 font-semibold block">Net Total</span>
+                    <span id="expNetTotalBadge" class="text-xs sm:text-sm font-extrabold text-sky-300">₹0.00</span>
+                </div>
+            </div>
+
+            <!-- Dynamic Form Card -->
+            <div id="expenseFormCard" class="bg-slate-950/60 p-4 rounded-2xl border border-rose-900/40 shadow-inner">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span id="expFormIcon" class="text-base">💸</span>
+                        <h2 id="expFormTitle" class="font-bold text-slate-100 text-sm">General Shop Expenses (Rent, Current, Wages)</h2>
+                    </div>
+                    <span id="expFormTypePill" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800">🔻 Expense</span>
+                </div>
                 <form id="expenseForm" class="space-y-3" onsubmit="saveExpense(event)">
                     <input type="hidden" id="expIndex" value="-1">
-                    <input type="text" id="expTitle" placeholder="Expense Title (e.g., Electricity Bill, Rent)" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500 capitalize" onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value">
+                    <input type="hidden" id="expType" value="Expense">
+                    <input type="text" id="expTitle" placeholder="Expense Title (e.g., Electricity Bill, Shop Rent, Staff Wage)" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500 capitalize" onblur="this.value = window.toTitleCase ? window.toTitleCase(this.value) : this.value">
                     <div class="flex gap-2">
                         <input type="number" id="expAmount" placeholder="Amount (₹)" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500" min="0" step="any">
                         <input type="date" id="expDate" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div class="flex gap-2 pt-1">
-                        <button type="submit" id="expSubmitBtn" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-500 transition shadow-lg shadow-indigo-950/40">Save Expense</button>
-                        <button type="button" onclick="resetExpenseForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm hover:bg-slate-700 transition border border-slate-700">Clear</button>
+                        <button type="submit" id="expSubmitBtn" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-xl font-bold text-sm transition shadow-lg shadow-rose-950/40 cursor-pointer">Save Expense</button>
+                        <button type="button" onclick="resetExpenseForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm hover:bg-slate-700 transition border border-slate-700 cursor-pointer">Clear</button>
                     </div>
                 </form>
             </div>
-            <h3 class="font-bold text-slate-300 text-xs px-1">Expense History</h3>
+
+            <!-- Transaction History Header & Filter Pills -->
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 px-1 pt-1">
+                <h3 class="font-bold text-slate-300 text-xs">Transaction History (Expenses & Incomes)</h3>
+                <div class="flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
+                    <button type="button" id="expFilterBtnAll" onclick="setExpenseListFilter('all')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition bg-indigo-600 text-white cursor-pointer">All</button>
+                    <button type="button" id="expFilterBtnExpenses" onclick="setExpenseListFilter('Expense')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition text-slate-400 hover:text-slate-200 cursor-pointer">🔻 Expenses</button>
+                    <button type="button" id="expFilterBtnIncomes" onclick="setExpenseListFilter('Income')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition text-slate-400 hover:text-slate-200 cursor-pointer">🟢 Incomes</button>
+                </div>
+            </div>
             <div id="expenseListContainer" class="space-y-2.5"></div>
         </div>
 
@@ -2055,7 +2100,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=48.9"></script>
+    <script type="module" src="./modules/app.js?v=49.0"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2067,7 +2112,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.9) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v49.0) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2121,7 +2166,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=48.9')
+                navigator.serviceWorker.register('./sw.js?v=49.0')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

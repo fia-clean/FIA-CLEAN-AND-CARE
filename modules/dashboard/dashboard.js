@@ -67,14 +67,15 @@ export function updateRecentTransactions() {
         });
     });
     (state.expenses || []).forEach(c => {
-        if (!c) return;
+        if (!c || c._deleted) return;
+        const isInc = c.type === 'Income';
         rows.push({
             date: c.date,
-            type: 'Expense',
-            title: c.title || 'Expense',
+            type: isInc ? 'Other Income' : 'Expense',
+            title: c.title || (isInc ? 'Other Income' : 'Expense'),
             amount: Number(c.amount || 0),
-            icon: '💸',
-            color: 'text-rose-300'
+            icon: isInc ? '🟢' : '💸',
+            color: isInc ? 'text-emerald-300' : 'text-rose-300'
         });
     });
 
@@ -267,7 +268,10 @@ export function updateDashboard() {
             }
         });
         (state.expenses || []).forEach(ex => {
-            if (normalizeToDateKey(ex.date) === today) expenseToday += Number(ex.amount || 0);
+            if (!ex || ex._deleted) return;
+            if (normalizeToDateKey(ex.date) === today && ex.type !== 'Income') {
+                expenseToday += Number(ex.amount || 0);
+            }
         });
     }
 
