@@ -350,7 +350,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.5) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.6) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -632,7 +632,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v48.5</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v48.6</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
@@ -648,7 +648,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v48.5</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v48.6</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -1673,10 +1673,11 @@
                             <input type="date" id="filterToDate" onchange="onDayBookDateInputChange()" aria-label="To Date" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500">
                         </div>
                     </div>
-                    <div class="flex gap-2">
-                        <button type="button" id="dayBookTabToday" onclick="setFilterPreset('today')" class="flex-1 bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer">📅 Today</button>
-                        <button type="button" id="dayBookTabMonth" onclick="setFilterPreset('month')" class="flex-1 bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer">🗓️ This Month</button>
-                        <button type="button" id="dayBookTabAll" onclick="setFilterPreset('all')" class="flex-1 bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold border border-indigo-400 shadow-md transition cursor-pointer">🌐 All Time</button>
+                    <div class="grid grid-cols-4 gap-1.5">
+                        <button type="button" id="dayBookTabToday" onclick="setFilterPreset('today')" class="bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer text-center">📅 Today</button>
+                        <button type="button" id="dayBookTabYesterday" onclick="setFilterPreset('yesterday')" class="bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer text-center">⏮️ Yesterday</button>
+                        <button type="button" id="dayBookTabMonth" onclick="setFilterPreset('month')" class="bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer text-center">🗓️ Month</button>
+                        <button type="button" id="dayBookTabAll" onclick="setFilterPreset('all')" class="bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold border border-indigo-400 shadow-md transition cursor-pointer text-center">🌐 All Time</button>
                     </div>
                 </div>
             </div>
@@ -1708,6 +1709,40 @@
 
                 <!-- Folder Content (Collapsed / Hidden by default) -->
                 <div id="dayBookEntriesFolderContent" class="hidden border-t border-slate-800/80 p-3 bg-slate-950/60 space-y-2.5">
+                    <!-- Folder Duration & Date-Wise Filter Section -->
+                    <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800/80 space-y-2.5">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                                <span>📅</span> Date & Duration Filter:
+                            </span>
+                            <span id="folderCurrentFilterBadge" class="text-[10px] font-bold text-indigo-300 bg-indigo-950/80 px-2.5 py-0.5 rounded-md border border-indigo-700/60">🌐 All Time</span>
+                        </div>
+                        <!-- Quick Duration Presets -->
+                        <div class="grid grid-cols-4 gap-1.5 text-xs">
+                            <button type="button" onclick="setFilterPreset('today')" id="folderTabToday" class="py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer">📅 Today</button>
+                            <button type="button" onclick="setFilterPreset('yesterday')" id="folderTabYesterday" class="py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer">⏮️ Yesterday</button>
+                            <button type="button" onclick="setFilterPreset('month')" id="folderTabMonth" class="py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer">🗓️ Month</button>
+                            <button type="button" onclick="setFilterPreset('all')" id="folderTabAll" class="py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-indigo-600 text-white border border-indigo-500 shadow-sm cursor-pointer">🌐 All Time</button>
+                        </div>
+                        <!-- Specific Date & Date Range Pickers -->
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1 border-t border-slate-800/60">
+                            <div class="flex-1 flex items-center gap-2 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800">
+                                <label for="folderSpecificDate" class="text-[10px] text-slate-400 font-bold whitespace-nowrap">📅 Specific Date:</label>
+                                <input type="date" id="folderSpecificDate" onchange="onFolderSpecificDateChange(this.value)" class="flex-1 bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer">
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <div class="flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-xl border border-slate-800 flex-1 sm:flex-initial">
+                                    <span class="text-[10px] text-slate-400 font-semibold">From:</span>
+                                    <input type="date" id="folderFilterFromDate" onchange="onFolderDateRangeChange()" class="bg-transparent text-slate-200 text-xs focus:outline-none w-28 cursor-pointer">
+                                </div>
+                                <div class="flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-xl border border-slate-800 flex-1 sm:flex-initial">
+                                    <span class="text-[10px] text-slate-400 font-semibold">To:</span>
+                                    <input type="date" id="folderFilterToDate" onchange="onFolderDateRangeChange()" class="bg-transparent text-slate-200 text-xs focus:outline-none w-28 cursor-pointer">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Search within entries + entries count/period in mobile -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div class="relative flex-1">
@@ -1960,7 +1995,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=48.5"></script>
+    <script type="module" src="./modules/app.js?v=48.6"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -1972,7 +2007,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.5) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.6) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2026,7 +2061,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=48.5')
+                navigator.serviceWorker.register('./sw.js?v=48.6')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

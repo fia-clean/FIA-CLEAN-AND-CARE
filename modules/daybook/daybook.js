@@ -33,34 +33,159 @@ export function setupDateFields() {
     }
 }
 
+export function getYesterdayDateString() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+export function syncFolderDateInputs() {
+    const fromVal = document.getElementById('filterFromDate')?.value || '';
+    const toVal = document.getElementById('filterToDate')?.value || '';
+
+    const folderFrom = document.getElementById('folderFilterFromDate');
+    const folderTo = document.getElementById('folderFilterToDate');
+    const folderDate = document.getElementById('folderSpecificDate');
+
+    if (folderFrom && folderFrom.value !== fromVal) folderFrom.value = fromVal;
+    if (folderTo && folderTo.value !== toVal) folderTo.value = toVal;
+
+    if (folderDate) {
+        if (fromVal && fromVal === toVal) {
+            folderDate.value = fromVal;
+        } else {
+            folderDate.value = '';
+        }
+    }
+}
+
+export function onFolderSpecificDateChange(val) {
+    const fromEl = document.getElementById('filterFromDate');
+    const toEl = document.getElementById('filterToDate');
+    const folderFrom = document.getElementById('folderFilterFromDate');
+    const folderTo = document.getElementById('folderFilterToDate');
+
+    if (!val) {
+        setFilterPreset('all');
+        return;
+    }
+
+    if (fromEl) fromEl.value = val;
+    if (toEl) toEl.value = val;
+    if (folderFrom) folderFrom.value = val;
+    if (folderTo) folderTo.value = val;
+
+    const todayStr = getTodayDateString();
+    const yestStr = getYesterdayDateString();
+
+    let matched = 'custom';
+    if (val === todayStr) matched = 'today';
+    else if (val === yestStr) matched = 'yesterday';
+
+    updateDayBookPresetButtons(matched);
+    renderAccounts();
+}
+
+export function onFolderDateRangeChange() {
+    const folderFrom = document.getElementById('folderFilterFromDate');
+    const folderTo = document.getElementById('folderFilterToDate');
+    const fromEl = document.getElementById('filterFromDate');
+    const toEl = document.getElementById('filterToDate');
+    const folderDate = document.getElementById('folderSpecificDate');
+
+    const fromVal = folderFrom?.value || '';
+    const toVal = folderTo?.value || '';
+
+    if (fromEl) fromEl.value = fromVal;
+    if (toEl) toEl.value = toVal;
+
+    if (folderDate) {
+        if (fromVal && fromVal === toVal) {
+            folderDate.value = fromVal;
+        } else {
+            folderDate.value = '';
+        }
+    }
+
+    onDayBookDateInputChange();
+}
+
 export function updateDayBookPresetButtons(preset) {
     state.currentDayBookPreset = preset || 'all';
+
+    // Top filter buttons
     const btnToday = document.getElementById('dayBookTabToday');
+    const btnYesterday = document.getElementById('dayBookTabYesterday');
     const btnMonth = document.getElementById('dayBookTabMonth');
     const btnAll = document.getElementById('dayBookTabAll');
+
+    // Folder filter buttons
+    const folderToday = document.getElementById('folderTabToday');
+    const folderYesterday = document.getElementById('folderTabYesterday');
+    const folderMonth = document.getElementById('folderTabMonth');
+    const folderAll = document.getElementById('folderTabAll');
+
+    // Badges
     const periodBadge = document.getElementById('dayBookActivePeriodBadge');
+    const folderBadge = document.getElementById('folderCurrentFilterBadge');
 
-    const activeClass = 'flex-1 bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold shadow-md border border-indigo-500 transition cursor-pointer';
-    const inactiveClass = 'flex-1 bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-semibold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer';
+    const topActiveClass = 'bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold shadow-md border border-indigo-400 transition cursor-pointer text-center';
+    const topInactiveClass = 'bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-semibold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer text-center';
 
-    if (btnToday) btnToday.className = (preset === 'today') ? activeClass : inactiveClass;
-    if (btnMonth) btnMonth.className = (preset === 'month') ? activeClass : inactiveClass;
-    if (btnAll) btnAll.className = (preset === 'all') ? activeClass : inactiveClass;
+    const folderActiveClass = 'py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-indigo-600 text-white border border-indigo-500 shadow-sm cursor-pointer';
+    const folderInactiveClass = 'py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer';
+
+    if (btnToday) btnToday.className = (preset === 'today') ? topActiveClass : topInactiveClass;
+    if (btnYesterday) btnYesterday.className = (preset === 'yesterday') ? topActiveClass : topInactiveClass;
+    if (btnMonth) btnMonth.className = (preset === 'month') ? topActiveClass : topInactiveClass;
+    if (btnAll) btnAll.className = (preset === 'all') ? topActiveClass : topInactiveClass;
+
+    if (folderToday) folderToday.className = (preset === 'today') ? folderActiveClass : folderInactiveClass;
+    if (folderYesterday) folderYesterday.className = (preset === 'yesterday') ? folderActiveClass : folderInactiveClass;
+    if (folderMonth) folderMonth.className = (preset === 'month') ? folderActiveClass : folderInactiveClass;
+    if (folderAll) folderAll.className = (preset === 'all') ? folderActiveClass : folderInactiveClass;
+
+    // Determine badge text and styles based on dates and preset
+    const fromVal = document.getElementById('filterFromDate')?.value || '';
+    const toVal = document.getElementById('filterToDate')?.value || '';
+    const todayStr = getTodayDateString();
+    const yestStr = getYesterdayDateString();
+
+    let badgeText = '🌐 All Time';
+    let badgeClass = 'text-[10px] text-sky-300 font-bold bg-sky-950/70 px-2.5 py-0.5 rounded-md border border-sky-800/60';
+
+    if (preset === 'today' || (fromVal && fromVal === toVal && fromVal === todayStr)) {
+        badgeText = '📅 Today';
+        badgeClass = 'text-[10px] text-emerald-300 font-bold bg-emerald-950/70 px-2.5 py-0.5 rounded-md border border-emerald-800/60';
+    } else if (preset === 'yesterday' || (fromVal && fromVal === toVal && fromVal === yestStr)) {
+        badgeText = '⏮️ Yesterday';
+        badgeClass = 'text-[10px] text-amber-300 font-bold bg-amber-950/70 px-2.5 py-0.5 rounded-md border border-amber-800/60';
+    } else if (preset === 'month') {
+        badgeText = '🗓️ This Month';
+        badgeClass = 'text-[10px] text-indigo-300 font-bold bg-indigo-950/70 px-2.5 py-0.5 rounded-md border border-indigo-800/60';
+    } else if (preset === 'all' || (!fromVal && !toVal)) {
+        badgeText = '🌐 All Time';
+        badgeClass = 'text-[10px] text-sky-300 font-bold bg-sky-950/70 px-2.5 py-0.5 rounded-md border border-sky-800/60';
+    } else if (fromVal && toVal && fromVal === toVal) {
+        badgeText = `📅 ${formatDateDDMMYYYY(fromVal)}`;
+        badgeClass = 'text-[10px] text-teal-300 font-bold bg-teal-950/70 px-2.5 py-0.5 rounded-md border border-teal-800/60';
+    } else {
+        const fromDisp = fromVal ? formatDateDDMMYYYY(fromVal) : 'Start';
+        const toDisp = toVal ? formatDateDDMMYYYY(toVal) : 'Now';
+        badgeText = `🔍 ${fromDisp} → ${toDisp}`;
+        badgeClass = 'text-[10px] text-purple-300 font-bold bg-purple-950/70 px-2.5 py-0.5 rounded-md border border-purple-800/60';
+    }
 
     if (periodBadge) {
-        if (preset === 'today') {
-            periodBadge.textContent = '📅 Today';
-            periodBadge.className = 'text-[10px] text-indigo-300 font-bold bg-indigo-950/60 px-2.5 py-0.5 rounded-md border border-indigo-800/50';
-        } else if (preset === 'month') {
-            periodBadge.textContent = '🗓️ This Month';
-            periodBadge.className = 'text-[10px] text-indigo-300 font-bold bg-indigo-950/60 px-2.5 py-0.5 rounded-md border border-indigo-800/50';
-        } else if (preset === 'all') {
-            periodBadge.textContent = '🌐 All Time';
-            periodBadge.className = 'text-[10px] text-indigo-300 font-bold bg-indigo-950/60 px-2.5 py-0.5 rounded-md border border-indigo-800/50';
-        } else {
-            periodBadge.textContent = '🔍 Custom Range';
-            periodBadge.className = 'text-[10px] text-sky-300 font-bold bg-sky-950/60 px-2.5 py-0.5 rounded-md border border-sky-800/50';
-        }
+        periodBadge.textContent = badgeText;
+        periodBadge.className = `hidden sm:inline-block ${badgeClass}`;
+    }
+    if (folderBadge) {
+        folderBadge.textContent = badgeText;
+        folderBadge.className = badgeClass;
     }
 }
 
@@ -75,6 +200,10 @@ export function setFilterPreset(preset) {
     if (preset === 'today') {
         if (fromEl) fromEl.value = todayStr;
         if (toEl) toEl.value = todayStr;
+    } else if (preset === 'yesterday') {
+        const yestStr = getYesterdayDateString();
+        if (fromEl) fromEl.value = yestStr;
+        if (toEl) toEl.value = yestStr;
     } else if (preset === 'month') {
         const firstDayStr = y + '-' + m + '-01';
         const lastDayNum = new Date(y, d.getMonth() + 1, 0).getDate();
@@ -87,14 +216,16 @@ export function setFilterPreset(preset) {
         if (toEl) toEl.value = '';
     }
 
+    syncFolderDateInputs();
     updateDayBookPresetButtons(preset);
     renderAccounts();
 }
 
 export function onDayBookDateInputChange() {
-    const fromVal = document.getElementById('filterFromDate')?.value;
-    const toVal = document.getElementById('filterToDate')?.value;
+    const fromVal = document.getElementById('filterFromDate')?.value || '';
+    const toVal = document.getElementById('filterToDate')?.value || '';
     const todayStr = getTodayDateString();
+    const yestStr = getYesterdayDateString();
     const d = new Date();
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -105,8 +236,10 @@ export function onDayBookDateInputChange() {
     let matched = 'custom';
     if (!fromVal && !toVal) matched = 'all';
     else if (fromVal === todayStr && toVal === todayStr) matched = 'today';
+    else if (fromVal === yestStr && toVal === yestStr) matched = 'yesterday';
     else if (fromVal === firstDayStr && (toVal === lastDayStr || toVal === todayStr)) matched = 'month';
 
+    syncFolderDateInputs();
     updateDayBookPresetButtons(matched);
     renderAccounts();
 }
@@ -590,6 +723,7 @@ export function toggleDayBookEntriesFolder(forceState) {
     const willOpen = (typeof forceState === 'boolean') ? forceState : isCurrentlyHidden;
 
     if (willOpen) {
+        syncFolderDateInputs();
         content.classList.remove('hidden');
         if (btnIcon) btnIcon.textContent = '📁';
         if (btnText) btnText.textContent = 'Close Folder';
@@ -685,4 +819,8 @@ if (typeof window !== 'undefined') {
     window.exportDayBookToCSV = exportDayBookToCSV;
     window.exportDayBookToExcel = exportDayBookToCSV;
     window.toggleDayBookEntriesFolder = toggleDayBookEntriesFolder;
+    window.onFolderSpecificDateChange = onFolderSpecificDateChange;
+    window.onFolderDateRangeChange = onFolderDateRangeChange;
+    window.syncFolderDateInputs = syncFolderDateInputs;
+    window.getYesterdayDateString = getYesterdayDateString;
 }
