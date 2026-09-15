@@ -159,9 +159,11 @@ export function reconcilePurchase(p, isCos) {
     
     let retQty = 0;
     let retAmount = 0;
+    let cashRefundTotal = 0;
     if (Array.isArray(p.returns) && p.returns.length > 0) {
         retQty = p.returns.reduce((sum, r) => sum + (parseFloat(r.qty) || 0), 0);
         retAmount = p.returns.reduce((sum, r) => sum + (parseFloat(r.amount) || ((parseFloat(r.qty) || 0) * unitPrice)), 0);
+        cashRefundTotal = p.returns.reduce((sum, r) => sum + (r.isCashRefund ? (parseFloat(r.amount) || 0) : 0), 0);
     } else {
         retQty = parseFloat(p.returnedQty) || 0;
         retAmount = parseFloat(p.returnedAmount) || (retQty * unitPrice);
@@ -169,16 +171,20 @@ export function reconcilePurchase(p, isCos) {
     
     p.returnedQty = Number(retQty.toFixed(2));
     p.returnedAmount = Number(retAmount.toFixed(2));
+    p.cashRefundTotal = Number(cashRefundTotal.toFixed(2));
     p.netQty = Math.max(0, Number((origQty - p.returnedQty).toFixed(2)));
     p.netPurchaseAmount = Math.max(0, Number((grossCost - p.returnedAmount).toFixed(2)));
     
     const paid = parseFloat(p.paid) || 0;
-    if (paid > p.netPurchaseAmount) {
+    // When cash is refunded into hand, effective money remaining paid to supplier is reduced:
+    const effectivePaid = Math.max(0, paid - cashRefundTotal);
+    
+    if (effectivePaid > p.netPurchaseAmount) {
         p.balance = 0;
         p.netBalance = 0;
-        p.refundDue = Number((paid - p.netPurchaseAmount).toFixed(2));
+        p.refundDue = Number((effectivePaid - p.netPurchaseAmount).toFixed(2));
     } else {
-        p.balance = Math.max(0, Number((p.netPurchaseAmount - paid).toFixed(2)));
+        p.balance = Math.max(0, Number((p.netPurchaseAmount - effectivePaid).toFixed(2)));
         p.netBalance = p.balance;
         p.refundDue = 0;
     }
@@ -620,14 +626,18 @@ export function fillPurchaseReturnDetails() {
     const p = (state.purchases || []).find(x => x && (String(x.id) === val || String(state.purchases.indexOf(x)) === val));
     const info = document.getElementById('purchaseReturnInfo');
     const qtyInput = document.getElementById('purchaseReturnQty');
+    const amtInput = document.getElementById('purchaseReturnAmount');
+    const cashCb = document.getElementById('purchaseReturnCashRefund');
     const badge = document.getElementById('purchaseReturnMatchBadge');
     
     if (!p || !val) {
         if (info) info.innerHTML = '<span class="text-slate-400">Select a purchase to return.</span>';
         if (qtyInput) { qtyInput.value = ''; qtyInput.removeAttribute('max'); qtyInput.disabled = false; }
+        if (amtInput) amtInput.value = '';
+        if (cashCb) cashCb.checked = false;
         if (badge) badge.innerHTML = '';
         populatePurchaseReturnProductDropdown(false, 'none', false);
-        updatePurchaseReturnLiveCalc('cleaning');
+        updatePurchaseReturnLiveCalc('cleaning', false);
         return;
     }
     
@@ -670,6 +680,9 @@ export function fillPurchaseReturnDetails() {
             qtyInput.value = availQty > 0 ? Math.min(parseFloat(qtyInput.value) || 0, availQty) : '';
         }
     }
+    if (amtInput && (!qtyInput || !qtyInput.value)) {
+        amtInput.value = '';
+    }
     const d = document.getElementById('purchaseReturnDate');
     if (d && !d.value) d.value = getTodayPurchaseDate();
     
@@ -698,16 +711,18 @@ export function fillPurchaseReturnDetails() {
                 <div id="purchaseReturnLiveCalc" class="text-[11px] font-bold text-amber-300 pt-1 border-t border-slate-800/80"></div>
             </div>`;
     }
-    updatePurchaseReturnLiveCalc('cleaning');
+    updatePurchaseReturnLiveCalc('cleaning', false);
 }
 
-export function updatePurchaseReturnLiveCalc(type) {
+export function updatePurchaseReturnLiveCalc(type, isAmountManual = false) {
     const isCos = type === 'cosmetics';
     const sel = document.getElementById(isCos ? 'cosPurchaseReturnSelect' : 'purchaseReturnSelect');
     const val = sel?.value;
     const arr = isCos ? state.cosPurchases : state.purchases;
     const p = arr.find(x => x && (String(x.id) === val || String(arr.indexOf(x)) === val));
     const qtyInput = document.getElementById(isCos ? 'cosPurchaseReturnQty' : 'purchaseReturnQty');
+    const amtInput = document.getElementById(isCos ? 'cosPurchaseReturnAmount' : 'purchaseReturnAmount');
+    const cashCheckbox = document.getElementById(isCos ? 'cosPurchaseReturnCashRefund' : 'purchaseReturnCashRefund');
     const calcEl = document.getElementById(isCos ? 'cosPurchaseReturnLiveCalc' : 'purchaseReturnLiveCalc');
     if (!calcEl) return;
     if (!p) {
@@ -719,12 +734,25 @@ export function updatePurchaseReturnLiveCalc(type) {
     const grossCost = parseFloat(isCos ? (p.amount ?? p.rawCost) : (p.rawCost ?? p.amount)) || 0;
     const explicitUnitPrice = parseFloat(isCos ? p.unitPrice : p.rawUnitPrice) || 0;
     const unitPrice = explicitUnitPrice > 0 ? explicitUnitPrice : (origQty > 0 ? (grossCost / origQty) : 0);
-    const refundAmount = Number((q * unitPrice).toFixed(2));
+    
+    let refundAmount = 0;
+    if (isAmountManual && amtInput && amtInput.value !== '') {
+        refundAmount = Math.max(0, parseFloat(amtInput.value) || 0);
+    } else {
+        refundAmount = Number((q * unitPrice).toFixed(2));
+        if (amtInput && (q > 0 || !amtInput.value)) {
+            amtInput.value = q > 0 ? refundAmount : '';
+        }
+    }
+    
+    const isCashRefund = cashCheckbox?.checked === true;
     
     // Existing returns total
     let priorRetAmt = 0;
+    let priorCashRefund = 0;
     if (Array.isArray(p.returns)) {
         priorRetAmt = p.returns.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+        priorCashRefund = p.returns.reduce((sum, r) => sum + (r.isCashRefund ? (parseFloat(r.amount) || 0) : 0), 0);
     } else {
         priorRetAmt = parseFloat(p.returnedAmount) || 0;
     }
@@ -732,16 +760,30 @@ export function updatePurchaseReturnLiveCalc(type) {
     const newTotalRet = priorRetAmt + refundAmount;
     const newNet = Math.max(0, Number((grossCost - newTotalRet).toFixed(2)));
     const currentPaid = parseFloat(p.paid) || 0;
-    const newBalance = Math.max(0, Number((newNet - currentPaid).toFixed(2)));
-    const newRefundDue = currentPaid > newNet ? Number((currentPaid - newNet).toFixed(2)) : 0;
+    const effectivePaid = Math.max(0, currentPaid - (priorCashRefund + (isCashRefund ? refundAmount : 0)));
     
-    if (q > 0) {
+    let newBalance = 0;
+    let newRefundDue = 0;
+    if (effectivePaid > newNet) {
+        newBalance = 0;
+        newRefundDue = Number((effectivePaid - newNet).toFixed(2));
+    } else {
+        newBalance = Math.max(0, Number((newNet - effectivePaid).toFixed(2)));
+        newRefundDue = 0;
+    }
+    
+    if (q > 0 || refundAmount > 0) {
+        const cashBadge = isCashRefund 
+            ? `<span class="bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded font-bold">💵 Cash In Hand ➔ Added to Day Book</span>` 
+            : `<span class="bg-slate-800 text-slate-300 border border-slate-700 px-1.5 py-0.5 rounded">📒 Deducted from Supplier Ledger</span>`;
+            
         const refundTag = newRefundDue > 0 
             ? ` | New Refund Due: <span class="text-amber-300 font-extrabold">₹${newRefundDue.toFixed(2)}</span>`
             : ` | New Bal Due: <span class="text-emerald-300 font-bold">₹${newBalance.toFixed(2)}</span>`;
-        calcEl.innerHTML = `↩️ Return Value: <span class="text-rose-300 font-bold">₹${refundAmount.toFixed(2)}</span> | New Net Purchase: <span class="text-white font-bold">₹${newNet.toFixed(2)}</span>${refundTag}`;
+            
+        calcEl.innerHTML = `↩️ Return Value: <span class="text-rose-300 font-bold">₹${refundAmount.toFixed(2)}</span> (${cashBadge}) | New Net Purchase: <span class="text-white font-bold">₹${newNet.toFixed(2)}</span>${refundTag}`;
     } else {
-        calcEl.innerHTML = `<span class="text-slate-400 font-normal">Enter return quantity to preview live refund and balance.</span>`;
+        calcEl.innerHTML = `<span class="text-slate-400 font-normal">Enter return quantity & agreed value to preview live refund and balance.</span>`;
     }
 }
 
@@ -796,7 +838,15 @@ export function savePurchaseReturn(type) {
     const grossCost = parseFloat(isCos ? (p.amount ?? p.rawCost) : (p.rawCost ?? p.amount)) || 0;
     const explicitUnitPrice = parseFloat(isCos ? p.unitPrice : p.rawUnitPrice) || 0;
     const unitPrice = explicitUnitPrice > 0 ? explicitUnitPrice : (originalQty > 0 ? (grossCost / originalQty) : 0);
-    const retAmount = Number((qty * unitPrice).toFixed(2));
+    
+    const amtEl = document.getElementById(isCos ? 'cosPurchaseReturnAmount' : 'purchaseReturnAmount');
+    const cashCheckbox = document.getElementById(isCos ? 'cosPurchaseReturnCashRefund' : 'purchaseReturnCashRefund');
+    const userEnteredAmt = parseFloat(amtEl?.value);
+    const retAmount = (userEnteredAmt !== undefined && !isNaN(userEnteredAmt) && userEnteredAmt >= 0)
+        ? Number(userEnteredAmt.toFixed(2))
+        : Number((qty * unitPrice).toFixed(2));
+    const isCashRefund = cashCheckbox?.checked === true;
+    
     const retDate = document.getElementById(isCos ? 'cosPurchaseReturnDate' : 'purchaseReturnDate')?.value || getTodayPurchaseDate();
     const retReason = document.getElementById(isCos ? 'cosPurchaseReturnReason' : 'purchaseReturnReason')?.value.trim() || 'Purchased Stock Return';
     
@@ -834,6 +884,7 @@ export function savePurchaseReturn(type) {
         date: retDate,
         reason: retReason,
         amount: retAmount,
+        isCashRefund,
         stockDeducted,
         deductedProdId: prod ? prod.id : null,
         savedAt: now
@@ -866,11 +917,14 @@ export function savePurchaseReturn(type) {
     if (typeof renderPurchaseConsolidationReport === 'function') renderPurchaseConsolidationReport();
     
     if (qtyEl) qtyEl.value = '';
+    if (amtEl) amtEl.value = '';
+    if (cashCheckbox) cashCheckbox.checked = false;
     const reasonEl = document.getElementById(isCos ? 'cosPurchaseReturnReason' : 'purchaseReturnReason');
     if (reasonEl) reasonEl.value = '';
     
-    const balMsg = p.refundDue > 0 ? `Refund due to you: ₹${p.refundDue}` : `Balance payable: ₹${p.balance}`;
-    alert(`✓ Purchase return saved successfully!\n• Returned Qty: ${qty} ${unit || ''} (Amount: ₹${retAmount})\n• Net Purchase: ₹${p.netPurchaseAmount} (Net Stock: ${p.netQty} ${unit || ''})\n• ${balMsg}${stockNotice}`);
+    const balMsg = p.refundDue > 0 ? `Refund due from supplier: ₹${p.refundDue}` : `Balance payable: ₹${p.balance}`;
+    const cashMsg = isCashRefund ? `\n💵 Cash Refund: ₹${retAmount} received (Recorded in Day Book!)` : `\n📒 Ledger: ₹${retAmount} deducted from supplier balance.`;
+    alert(`✓ Purchase return saved successfully!\n• Returned Qty: ${qty} ${unit || ''} (Agreed Value: ₹${retAmount})\n• Net Purchase: ₹${p.netPurchaseAmount} (Net Stock: ${p.netQty} ${unit || ''})\n• ${balMsg}${cashMsg}${stockNotice}`);
 }
 
 export function deletePurchaseReturn(type, purchaseId, returnIndex) {
@@ -927,21 +981,72 @@ export function deletePurchaseReturn(type, purchaseId, returnIndex) {
     alert('✓ Purchase return removed and stock restored!');
 }
 
+export function sharePurchaseReturnWhatsApp(type, purchaseId, returnIndex) {
+    const isCos = type === 'cosmetics';
+    const arr = isCos ? state.cosPurchases : state.purchases;
+    const p = arr.find(x => x && (String(x.id) === String(purchaseId) || String(arr.indexOf(x)) === String(purchaseId)));
+    if (!p || !Array.isArray(p.returns) || !p.returns[returnIndex]) {
+        alert('Return record not found.');
+        return;
+    }
+    const r = p.returns[returnIndex];
+    const suppName = String(isCos ? p.supplier : (p.supplierName || p.supplier || 'Supplier'));
+    const mobile = String(p.supplierMobile || '').replace(/[^0-9]/g, '');
+    const itemName = String(isCos ? (p.item || p.name) : (p.rawMaterial || p.item || 'Item'));
+    const unit = String(isCos ? (p.unit || p.rawUnit) : (p.rawUnit || p.unit) || '');
+    const retQty = Number(r.qty || 0);
+    const retAmt = Number(r.amount || 0).toFixed(2);
+    const retDate = formatDateDDMMYYYY(r.date);
+    const reason = r.reason || 'Purchased Stock Return';
+    const settlementText = r.isCashRefund ? '💵 Cash Refund Received' : '📒 Deduct from Account Balance / Credit';
+
+    let msg = `*FIA CLEAN & CARE — PURCHASE RETURN (DEBIT NOTE)*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `*Supplier:* ${suppName}\n`;
+    msg += `*Return Date:* ${retDate}\n`;
+    msg += `*Returned Item:* ${itemName}\n`;
+    msg += `*Returned Qty:* ${retQty} ${unit}\n`;
+    msg += `*Agreed Debit Value:* ₹${retAmt}\n`;
+    msg += `*Settlement:* ${settlementText}\n`;
+    msg += `*Reason:* ${reason}\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `*Net Purchase Total:* ₹${Number(p.netPurchaseAmount || 0).toFixed(2)}\n`;
+    if (p.balance > 0) msg += `*Balance Payable to Supplier:* ₹${Number(p.balance).toFixed(2)}\n`;
+    if (p.refundDue > 0) msg += `*Refund Due from Supplier:* ₹${Number(p.refundDue).toFixed(2)}\n`;
+    msg += `_Thank you. Please update our ledger._`;
+
+    const encoded = encodeURIComponent(msg);
+    const url = mobile.length >= 10 
+        ? `https://wa.me/91${mobile.slice(-10)}?text=${encoded}`
+        : `https://wa.me/?text=${encoded}`;
+    window.open(url, '_blank');
+}
+
 export function renderPurchaseReturnHistory() {
     const el = document.getElementById('purchaseReturnHistoryContainer');
     if (!el) return;
     const rows = [];
     state.purchases.forEach((p, i) => (p.returns || []).forEach((r, j) => rows.push({ p, i, r, j })));
     rows.sort((a, b) => (Number(b.r.savedAt) || 0) - (Number(a.r.savedAt) || 0));
-    el.innerHTML = rows.map(x => `
+    el.innerHTML = rows.map(x => {
+        const cashTag = x.r.isCashRefund 
+            ? `<span class="bg-emerald-950 text-emerald-300 border border-emerald-800/80 px-1.5 py-0.5 rounded text-[9px] font-bold">💵 Cash In Hand (Day Book)</span>` 
+            : `<span class="bg-slate-900 text-slate-400 border border-slate-700 px-1.5 py-0.5 rounded text-[9px]">📒 Ledger Deducted</span>`;
+        return `
         <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-xs flex justify-between items-center gap-2">
             <div>
-                <b class="text-rose-300 font-bold">${x.p.supplierName} - ${x.p.rawMaterial}</b>
-                <div class="text-[11px] text-slate-400 mt-0.5">${formatDateDDMMYYYY(x.r.date)} | Return: <b class="text-rose-400">${x.r.qty} ${x.p.rawUnit || ''}</b> | Value: <b class="text-emerald-400">₹${Number(x.r.amount || 0).toFixed(2)}</b> | ${x.r.reason || 'No reason'}</div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <b class="text-rose-300 font-bold">${x.p.supplierName} - ${x.p.rawMaterial}</b>
+                    ${cashTag}
+                </div>
+                <div class="text-[11px] text-slate-400 mt-0.5">${formatDateDDMMYYYY(x.r.date)} | Return: <b class="text-rose-400">${x.r.qty} ${x.p.rawUnit || ''}</b> | Value: <b class="text-amber-300 font-bold">₹${Number(x.r.amount || 0).toFixed(2)}</b> | ${x.r.reason || 'No reason'}</div>
             </div>
-            <button type="button" onclick="deletePurchaseReturn('cleaning', '${x.p.id || x.i}', ${x.j})" class="bg-red-950 text-rose-300 border border-red-800/60 px-2 py-1.5 rounded-lg text-[10px] font-bold hover:bg-red-900 transition shrink-0">🗑️ Delete</button>
-        </div>
-    `).join('') || '<p class="text-xs text-slate-500 text-center py-3">No purchase returns recorded.</p>';
+            <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="sharePurchaseReturnWhatsApp('cleaning', '${x.p.id || x.i}', ${x.j})" class="bg-emerald-950 text-emerald-300 border border-emerald-800/60 px-2 py-1.5 rounded-lg text-[10px] font-bold hover:bg-emerald-900 transition flex items-center gap-1">📲 WhatsApp</button>
+                <button type="button" onclick="deletePurchaseReturn('cleaning', '${x.p.id || x.i}', ${x.j})" class="bg-red-950 text-rose-300 border border-red-800/60 px-2 py-1.5 rounded-lg text-[10px] font-bold hover:bg-red-900 transition">🗑️ Delete</button>
+            </div>
+        </div>`;
+    }).join('') || '<p class="text-xs text-slate-500 text-center py-3">No purchase returns recorded.</p>';
 }
 
 export function renderCosPurchaseReturnSelectors() {
@@ -985,14 +1090,18 @@ export function fillCosPurchaseReturnDetails() {
     const p = (state.cosPurchases || []).find(x => x && (String(x.id) === val || String(state.cosPurchases.indexOf(x)) === val));
     const info = document.getElementById('cosPurchaseReturnInfo');
     const qtyInput = document.getElementById('cosPurchaseReturnQty');
+    const amtInput = document.getElementById('cosPurchaseReturnAmount');
+    const cashCb = document.getElementById('cosPurchaseReturnCashRefund');
     const badge = document.getElementById('cosPurchaseReturnMatchBadge');
     
     if (!p || !val) {
         if (info) info.innerHTML = '<span class="text-slate-400">Select a purchase to return.</span>';
         if (qtyInput) { qtyInput.value = ''; qtyInput.removeAttribute('max'); qtyInput.disabled = false; }
+        if (amtInput) amtInput.value = '';
+        if (cashCb) cashCb.checked = false;
         if (badge) badge.innerHTML = '';
         populatePurchaseReturnProductDropdown(true, 'none', false);
-        updatePurchaseReturnLiveCalc('cosmetics');
+        updatePurchaseReturnLiveCalc('cosmetics', false);
         return;
     }
     
@@ -1035,6 +1144,9 @@ export function fillCosPurchaseReturnDetails() {
             qtyInput.value = availQty > 0 ? Math.min(parseFloat(qtyInput.value) || 0, availQty) : '';
         }
     }
+    if (amtInput && (!qtyInput || !qtyInput.value)) {
+        amtInput.value = '';
+    }
     const d = document.getElementById('cosPurchaseReturnDate');
     if (d && !d.value) d.value = getTodayPurchaseDate();
     
@@ -1063,7 +1175,7 @@ export function fillCosPurchaseReturnDetails() {
                 <div id="cosPurchaseReturnLiveCalc" class="text-[11px] font-bold text-amber-300 pt-1 border-t border-slate-800/80"></div>
             </div>`;
     }
-    updatePurchaseReturnLiveCalc('cosmetics');
+    updatePurchaseReturnLiveCalc('cosmetics', false);
 }
 
 export function renderCosPurchaseReturnHistory() {
@@ -1072,15 +1184,25 @@ export function renderCosPurchaseReturnHistory() {
     const rows = [];
     state.cosPurchases.forEach((p, i) => (p.returns || []).forEach((r, j) => rows.push({ p, i, r, j })));
     rows.sort((a, b) => (Number(b.r.savedAt) || 0) - (Number(a.r.savedAt) || 0));
-    el.innerHTML = rows.map(x => `
+    el.innerHTML = rows.map(x => {
+        const cashTag = x.r.isCashRefund 
+            ? `<span class="bg-emerald-950 text-emerald-300 border border-emerald-800/80 px-1.5 py-0.5 rounded text-[9px] font-bold">💵 Cash In Hand (Day Book)</span>` 
+            : `<span class="bg-slate-900 text-slate-400 border border-slate-700 px-1.5 py-0.5 rounded text-[9px]">📒 Ledger Deducted</span>`;
+        return `
         <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-xs flex justify-between items-center gap-2">
             <div>
-                <b class="text-rose-300 font-bold">${x.p.supplier} - ${x.p.item}</b>
-                <div class="text-[11px] text-slate-400 mt-0.5">${formatDateDDMMYYYY(x.r.date)} | Return: <b class="text-rose-400">${x.r.qty} ${x.p.unit || ''}</b> | Value: <b class="text-emerald-400">₹${Number(x.r.amount || 0).toFixed(2)}</b> | ${x.r.reason || 'No reason'}</div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <b class="text-rose-300 font-bold">${x.p.supplier} - ${x.p.item}</b>
+                    ${cashTag}
+                </div>
+                <div class="text-[11px] text-slate-400 mt-0.5">${formatDateDDMMYYYY(x.r.date)} | Return: <b class="text-rose-400">${x.r.qty} ${x.p.unit || ''}</b> | Value: <b class="text-amber-300 font-bold">₹${Number(x.r.amount || 0).toFixed(2)}</b> | ${x.r.reason || 'No reason'}</div>
             </div>
-            <button type="button" onclick="deletePurchaseReturn('cosmetics', '${x.p.id || x.i}', ${x.j})" class="bg-red-950 text-rose-300 border border-red-800/60 px-2 py-1.5 rounded-lg text-[10px] font-bold hover:bg-red-900 transition shrink-0">🗑️ Delete</button>
-        </div>
-    `).join('') || '<p class="text-xs text-slate-500 text-center py-3">No purchase returns recorded.</p>';
+            <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="sharePurchaseReturnWhatsApp('cosmetics', '${x.p.id || x.i}', ${x.j})" class="bg-emerald-950 text-emerald-300 border border-emerald-800/60 px-2 py-1.5 rounded-lg text-[10px] font-bold hover:bg-emerald-900 transition flex items-center gap-1">📲 WhatsApp</button>
+                <button type="button" onclick="deletePurchaseReturn('cosmetics', '${x.p.id || x.i}', ${x.j})" class="bg-red-950 text-rose-300 border border-red-800/60 px-2 py-1.5 rounded-lg text-[10px] font-bold hover:bg-red-900 transition">🗑️ Delete</button>
+            </div>
+        </div>`;
+    }).join('') || '<p class="text-xs text-slate-500 text-center py-3">No purchase returns recorded.</p>';
 }
 
 export function renderPurchaseHistory(type) {
@@ -2179,6 +2301,7 @@ if (typeof window !== 'undefined') {
     window.savePurchaseReturn = savePurchaseReturn;
     window.deletePurchaseReturn = deletePurchaseReturn;
     window.renderPurchaseReturnHistory = renderPurchaseReturnHistory;
+    window.sharePurchaseReturnWhatsApp = sharePurchaseReturnWhatsApp;
     window.renderCosPurchaseReturnSelectors = renderCosPurchaseReturnSelectors;
     window.fillCosPurchaseReturnDetails = fillCosPurchaseReturnDetails;
     window.renderCosPurchaseReturnHistory = renderCosPurchaseReturnHistory;

@@ -432,6 +432,36 @@ export function getAllMasterEntries() {
         }
     });
 
+    // 6. Purchase Return Cash Refunds (Incoming Cash Refund into Cash Counter)
+    const scanPurchaseReturns = (arr, isCos) => {
+        (arr || []).forEach((p, i) => {
+            if (!p || p._deleted || !Array.isArray(p.returns)) return;
+            p.returns.forEach((r, j) => {
+                if (!r || !r.isCashRefund || Number(r.amount || 0) <= 0) return;
+                const supplierName = String(isCos ? p.supplier : (p.supplierName || p.supplier || 'Supplier'));
+                const itemName = String(isCos ? (p.item || p.name) : (p.rawMaterial || p.item || 'Item'));
+                const returnDate = normalizeToDateKey(r.date) || normalizeToDateKey(r.savedAt) || getTodayDateString();
+                const returnAmt = Number(r.amount || 0);
+                
+                entries.push({
+                    id: `retcash_${isCos ? 'cos_' : ''}${p.id || i}_${r.savedAt || j}`,
+                    originalId: p.id || String(i),
+                    type: 'Income',
+                    category: isCos ? 'Cosmetics Return Cash' : 'Purchase Return Cash',
+                    desc: `↩️ Cash Refund: ${itemName} (${supplierName})${r.reason ? ' - ' + r.reason : ''}`,
+                    amount: returnAmt,
+                    paidAmount: returnAmt,
+                    pendingAmount: 0,
+                    paymentMode: 'Cash',
+                    date: returnDate,
+                    timestamp: Number(r.savedAt || dateSortValue(returnDate) || 0)
+                });
+            });
+        });
+    };
+    scanPurchaseReturns(state.purchases, false);
+    scanPurchaseReturns(state.cosPurchases, true);
+
     return entries;
 }
 

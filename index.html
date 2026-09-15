@@ -350,7 +350,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.8) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.9) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -632,7 +632,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v48.8</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v48.9</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
@@ -648,7 +648,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v48.8</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v48.9</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -1373,11 +1373,24 @@
                             <option value="">-- Automatic or Select from List --</option>
                         </select>
                     </div>
-                    <div class="flex gap-2">
-                        <input id="purchaseReturnQty" type="number" min="0" step="any" oninput="updatePurchaseReturnLiveCalc('cleaning')" placeholder="Return Quantity" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
-                        <input id="purchaseReturnReason" type="text" placeholder="Return Reason" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
-                        <button type="button" onclick="savePurchaseReturn('cleaning')" class="bg-rose-700 hover:bg-rose-600 text-white px-4 py-3 rounded-xl font-bold text-xs transition shadow-lg shadow-rose-950/40">Return Purchase</button>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-0.5">Return Quantity:</label>
+                            <input id="purchaseReturnQty" type="number" min="0" step="any" oninput="updatePurchaseReturnLiveCalc('cleaning', false)" placeholder="Return Quantity" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-0.5">Return Value (₹): <span class="text-rose-400 font-semibold">(Editable agreed amount)</span></label>
+                            <input id="purchaseReturnAmount" type="number" min="0" step="any" oninput="updatePurchaseReturnLiveCalc('cleaning', true)" placeholder="Agreed Value (₹)" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-amber-300 font-bold focus:outline-none focus:border-rose-500">
+                        </div>
                     </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
+                        <input id="purchaseReturnReason" type="text" placeholder="Return Reason (e.g. Damaged, Excess)" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
+                        <label class="flex items-center gap-2 p-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-emerald-300 cursor-pointer select-none">
+                            <input type="checkbox" id="purchaseReturnCashRefund" onchange="updatePurchaseReturnLiveCalc('cleaning', false)" class="w-4 h-4 rounded border-slate-700 text-emerald-600 focus:ring-emerald-500">
+                            <span class="text-[11px] font-bold">💵 Cash Refund (Add to Day Book)</span>
+                        </label>
+                    </div>
+                    <button type="button" onclick="savePurchaseReturn('cleaning')" class="w-full bg-rose-700 hover:bg-rose-600 text-white py-3 rounded-xl font-bold text-xs transition shadow-lg shadow-rose-950/40">↩️ Save Purchase Return</button>
                     <h3 class="font-bold text-slate-300 text-xs pt-1 border-t border-slate-800/80">Purchase Return History</h3>
                     <div id="purchaseReturnHistoryContainer" class="space-y-2"></div>
                 </div>
@@ -1491,11 +1504,24 @@
                             <option value="">-- Automatic or Select from List --</option>
                         </select>
                     </div>
-                    <div class="flex gap-2">
-                        <input id="cosPurchaseReturnQty" type="number" min="0" step="any" oninput="updatePurchaseReturnLiveCalc('cosmetics')" placeholder="Return Quantity" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
-                        <input id="cosPurchaseReturnReason" type="text" placeholder="Return Reason" class="flex-1 p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
-                        <button type="button" onclick="savePurchaseReturn('cosmetics')" class="bg-rose-700 hover:bg-rose-600 text-white px-4 py-3 rounded-xl font-bold text-xs transition shadow-lg shadow-rose-950/40">Return Purchase</button>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-0.5">Return Quantity:</label>
+                            <input id="cosPurchaseReturnQty" type="number" min="0" step="any" oninput="updatePurchaseReturnLiveCalc('cosmetics', false)" placeholder="Return Quantity" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-0.5">Return Value (₹): <span class="text-rose-400 font-semibold">(Editable agreed amount)</span></label>
+                            <input id="cosPurchaseReturnAmount" type="number" min="0" step="any" oninput="updatePurchaseReturnLiveCalc('cosmetics', true)" placeholder="Agreed Value (₹)" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-amber-300 font-bold focus:outline-none focus:border-rose-500">
+                        </div>
                     </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
+                        <input id="cosPurchaseReturnReason" type="text" placeholder="Return Reason (e.g. Damaged, Expired)" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-rose-500">
+                        <label class="flex items-center gap-2 p-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-emerald-300 cursor-pointer select-none">
+                            <input type="checkbox" id="cosPurchaseReturnCashRefund" onchange="updatePurchaseReturnLiveCalc('cosmetics', false)" class="w-4 h-4 rounded border-slate-700 text-emerald-600 focus:ring-emerald-500">
+                            <span class="text-[11px] font-bold">💵 Cash Refund (Add to Day Book)</span>
+                        </label>
+                    </div>
+                    <button type="button" onclick="savePurchaseReturn('cosmetics')" class="w-full bg-rose-700 hover:bg-rose-600 text-white py-3 rounded-xl font-bold text-xs transition shadow-lg shadow-rose-950/40">↩️ Save Purchase Return</button>
                     <h3 class="font-bold text-slate-300 text-xs pt-1 border-t border-slate-800/80">Purchase Return History</h3>
                     <div id="cosPurchaseReturnHistoryContainer" class="space-y-2"></div>
                 </div>
@@ -2029,7 +2055,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=48.8"></script>
+    <script type="module" src="./modules/app.js?v=48.9"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2041,7 +2067,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.8) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.9) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2095,7 +2121,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=48.8')
+                navigator.serviceWorker.register('./sw.js?v=48.9')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
