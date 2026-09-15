@@ -350,7 +350,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.6) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.7) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -632,7 +632,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v48.6</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v48.7</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
@@ -648,7 +648,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v48.6</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v48.7</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -1684,74 +1684,74 @@
 
             <!-- ================= FILTERED DAY BOOK ENTRIES FOLDER (Collapsible) ================= -->
             <div id="dayBookFolderCard" class="bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-xl transition-all">
-                <!-- Folder Header / Accordion Bar (Always visible, compact) -->
-                <div onclick="window.toggleDayBookEntriesFolder()" role="button" tabindex="0" class="p-3 sm:p-4 flex items-center justify-between cursor-pointer hover:bg-slate-800/60 transition select-none">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-950/80 border border-indigo-700/60 flex items-center justify-center text-xl shrink-0 shadow-inner">
+                <!-- Folder Header / Accordion Bar (Always visible, sleek single-line header on mobile) -->
+                <div onclick="window.toggleDayBookEntriesFolder()" role="button" tabindex="0" class="p-2.5 sm:p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-800/60 transition select-none">
+                    <div class="flex items-center gap-2 min-w-0 flex-1">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-950/80 border border-indigo-700/60 flex items-center justify-center text-base shrink-0 shadow-inner">
                             📁
                         </div>
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h3 class="font-bold text-slate-100 text-xs sm:text-sm">Filtered Day Book Entries</h3>
-                                <span id="dayBookEntriesCountBadge" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-700/60">0 Entries</span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 flex-nowrap overflow-hidden">
+                                <h3 class="font-bold text-slate-100 text-xs sm:text-sm whitespace-nowrap">Day Book Entries</h3>
+                                <span id="dayBookEntriesCountBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-700/60 shrink-0 whitespace-nowrap">0 Entries</span>
                             </div>
-                            <p id="dayBookFolderStatusText" class="text-[10px] text-slate-400 mt-0.5">Folder is closed • Tap to view transactions</p>
+                            <p id="dayBookFolderStatusText" class="text-[10px] text-slate-400 truncate mt-0.5">Tap to view transactions</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <span id="dayBookActivePeriodBadge" class="hidden sm:inline-block text-[10px] text-sky-300 font-bold bg-sky-950/60 px-2.5 py-0.5 rounded-md border border-sky-800/40">🌐 All Time</span>
-                        <button type="button" id="dayBookFolderToggleBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl border border-indigo-500 text-xs font-bold shadow-md shadow-indigo-950/40 transition flex items-center gap-1.5 cursor-pointer">
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <span id="dayBookActivePeriodBadge" class="hidden sm:inline-block text-[10px] text-sky-300 font-bold bg-sky-950/60 px-2 py-0.5 rounded-md border border-sky-800/40 whitespace-nowrap">🌐 All Time</span>
+                        <button type="button" id="dayBookFolderToggleBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded-xl border border-indigo-500 text-xs font-bold shadow-md shadow-indigo-950/40 transition flex items-center gap-1 cursor-pointer whitespace-nowrap">
                             <span id="dayBookFolderBtnIcon">👁️</span>
-                            <span id="dayBookFolderBtnText">View Folder</span>
+                            <span id="dayBookFolderBtnText">View</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Folder Content (Collapsed / Hidden by default) -->
-                <div id="dayBookEntriesFolderContent" class="hidden border-t border-slate-800/80 p-3 bg-slate-950/60 space-y-2.5">
-                    <!-- Folder Duration & Date-Wise Filter Section -->
-                    <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800/80 space-y-2.5">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <span class="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                                <span>📅</span> Date & Duration Filter:
-                            </span>
-                            <span id="folderCurrentFilterBadge" class="text-[10px] font-bold text-indigo-300 bg-indigo-950/80 px-2.5 py-0.5 rounded-md border border-indigo-700/60">🌐 All Time</span>
-                        </div>
+                <div id="dayBookEntriesFolderContent" class="hidden border-t border-slate-800/80 p-2.5 sm:p-3 bg-slate-950/60 space-y-2">
+                    <!-- Compact Date & Duration Filter Card -->
+                    <div class="bg-slate-900/95 p-2 rounded-xl border border-slate-800/90 space-y-1.5">
                         <!-- Quick Duration Presets -->
-                        <div class="grid grid-cols-4 gap-1.5 text-xs">
-                            <button type="button" onclick="setFilterPreset('today')" id="folderTabToday" class="py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer">📅 Today</button>
-                            <button type="button" onclick="setFilterPreset('yesterday')" id="folderTabYesterday" class="py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer">⏮️ Yesterday</button>
-                            <button type="button" onclick="setFilterPreset('month')" id="folderTabMonth" class="py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer">🗓️ Month</button>
-                            <button type="button" onclick="setFilterPreset('all')" id="folderTabAll" class="py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-indigo-600 text-white border border-indigo-500 shadow-sm cursor-pointer">🌐 All Time</button>
+                        <div class="grid grid-cols-4 gap-1 text-[11px]">
+                            <button type="button" onclick="setFilterPreset('today')" id="folderTabToday" class="py-1 px-1 text-center rounded-lg font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer whitespace-nowrap">📅 Today</button>
+                            <button type="button" onclick="setFilterPreset('yesterday')" id="folderTabYesterday" class="py-1 px-1 text-center rounded-lg font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer whitespace-nowrap">⏮️ Y'day</button>
+                            <button type="button" onclick="setFilterPreset('month')" id="folderTabMonth" class="py-1 px-1 text-center rounded-lg font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer whitespace-nowrap">🗓️ Month</button>
+                            <button type="button" onclick="setFilterPreset('all')" id="folderTabAll" class="py-1 px-1 text-center rounded-lg font-bold transition bg-indigo-600 text-white border border-indigo-500 shadow-sm cursor-pointer whitespace-nowrap">🌐 All</button>
                         </div>
-                        <!-- Specific Date & Date Range Pickers -->
-                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1 border-t border-slate-800/60">
-                            <div class="flex-1 flex items-center gap-2 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800">
-                                <label for="folderSpecificDate" class="text-[10px] text-slate-400 font-bold whitespace-nowrap">📅 Specific Date:</label>
-                                <input type="date" id="folderSpecificDate" onchange="onFolderSpecificDateChange(this.value)" class="flex-1 bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer">
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-xl border border-slate-800 flex-1 sm:flex-initial">
-                                    <span class="text-[10px] text-slate-400 font-semibold">From:</span>
-                                    <input type="date" id="folderFilterFromDate" onchange="onFolderDateRangeChange()" class="bg-transparent text-slate-200 text-xs focus:outline-none w-28 cursor-pointer">
-                                </div>
-                                <div class="flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-xl border border-slate-800 flex-1 sm:flex-initial">
-                                    <span class="text-[10px] text-slate-400 font-semibold">To:</span>
-                                    <input type="date" id="folderFilterToDate" onchange="onFolderDateRangeChange()" class="bg-transparent text-slate-200 text-xs focus:outline-none w-28 cursor-pointer">
-                                </div>
-                            </div>
+
+                        <!-- Specific Date-wise Picker + Current Filter Badge (In 1 single line!) -->
+                        <div class="flex items-center gap-1.5 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
+                            <label for="folderSpecificDate" class="text-[10px] text-slate-400 font-bold whitespace-nowrap">📅 Date-wise:</label>
+                            <input type="date" id="folderSpecificDate" onchange="onFolderSpecificDateChange(this.value)" class="flex-1 min-w-0 bg-transparent text-slate-200 text-xs font-semibold focus:outline-none cursor-pointer">
+                            <span id="folderCurrentFilterBadge" class="text-[10px] font-bold text-indigo-300 bg-indigo-950/80 px-2 py-0.5 rounded-md border border-indigo-700/60 shrink-0 whitespace-nowrap">🌐 All Time</span>
                         </div>
+
+                        <!-- Optional Collapsible Custom Range (From / To) -->
+                        <details class="group text-[10px] text-slate-400 pt-0.5">
+                            <summary class="cursor-pointer hover:text-slate-200 select-none flex items-center justify-between text-[10px] font-semibold text-slate-400 py-0.5">
+                                <span>🔍 Custom Date Range (From - To)</span>
+                                <span class="text-[9px] text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+                            </summary>
+                            <div class="grid grid-cols-2 gap-1.5 pt-1.5">
+                                <div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
+                                    <span class="text-[10px] text-slate-400 shrink-0">From:</span>
+                                    <input type="date" id="folderFilterFromDate" onchange="onFolderDateRangeChange()" class="w-full bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer">
+                                </div>
+                                <div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
+                                    <span class="text-[10px] text-slate-400 shrink-0">To:</span>
+                                    <input type="date" id="folderFilterToDate" onchange="onFolderDateRangeChange()" class="w-full bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer">
+                                </div>
+                            </div>
+                        </details>
                     </div>
 
-                    <!-- Search within entries + entries count/period in mobile -->
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div class="relative flex-1">
-                            <input type="search" id="dayBookSearchInput" oninput="renderAccounts()" placeholder="🔍 Search transactions by name, item, mode, amount..." class="w-full px-3 py-2 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500 placeholder-slate-500">
+                    <!-- Search within entries + Quick Fold Button (Merged in 1 compact line) -->
+                    <div class="flex items-center gap-1.5">
+                        <div class="relative flex-1 min-w-0">
+                            <input type="search" id="dayBookSearchInput" oninput="renderAccounts()" placeholder="🔍 Search transactions by name, item, mode, amount..." class="w-full px-2.5 py-1.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500 placeholder-slate-500">
                         </div>
-                        <div class="flex items-center gap-2 justify-between sm:justify-end">
-                            <span id="dayBookEntriesHeading" class="text-[11px] font-semibold text-slate-400">Filtered Day Book Entries (0)</span>
-                            <button type="button" onclick="window.toggleDayBookEntriesFolder(false)" class="text-[11px] font-bold text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 transition cursor-pointer">✕ Fold / Close</button>
-                        </div>
+                        <span id="dayBookEntriesHeading" class="hidden sm:inline-block text-[11px] font-semibold text-slate-400 whitespace-nowrap">Filtered (0)</span>
+                        <button type="button" onclick="window.toggleDayBookEntriesFolder(false)" class="text-[11px] font-bold text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition cursor-pointer shrink-0 whitespace-nowrap">✕ Fold</button>
                     </div>
 
                     <!-- Scrollable List Container (max-h-[60vh]) prevents endless scrolling -->
@@ -1995,7 +1995,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=48.6"></script>
+    <script type="module" src="./modules/app.js?v=48.7"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2007,7 +2007,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.6) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v48.7) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2061,7 +2061,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=48.6')
+                navigator.serviceWorker.register('./sw.js?v=48.7')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

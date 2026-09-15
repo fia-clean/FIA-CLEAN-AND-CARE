@@ -542,7 +542,7 @@ export function renderAccounts() {
     const countBadge = document.getElementById('dayBookEntriesCountBadge');
 
     if (countBadge) countBadge.textContent = `${filtered.length} Entries`;
-    if (headingEl) headingEl.textContent = `Filtered Day Book Entries (${filtered.length})`;
+    if (headingEl) headingEl.textContent = `Filtered (${filtered.length})`;
 
     if (restoreBtn) {
         if (state.clearedDayBookEntries && state.clearedDayBookEntries.length > 0) {
@@ -658,8 +658,8 @@ export function renderAccounts() {
 
     if (headingEl) {
         headingEl.textContent = searchVal 
-            ? `Filtered Day Book Entries (${displayList.length} of ${filtered.length})` 
-            : `Filtered Day Book Entries (${filtered.length})`;
+            ? `Filtered (${displayList.length}/${filtered.length})` 
+            : `Filtered (${filtered.length})`;
     }
 
     if (filtered.length === 0) {
@@ -726,10 +726,10 @@ export function toggleDayBookEntriesFolder(forceState) {
         syncFolderDateInputs();
         content.classList.remove('hidden');
         if (btnIcon) btnIcon.textContent = '📁';
-        if (btnText) btnText.textContent = 'Close Folder';
-        if (statusText) statusText.textContent = 'Folder is open • Showing itemized transactions';
+        if (btnText) btnText.textContent = 'Close';
+        if (statusText) statusText.textContent = 'Showing transactions • Tap to fold';
         if (toggleBtn) {
-            toggleBtn.className = 'bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-1.5 rounded-xl border border-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer';
+            toggleBtn.className = 'bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-xl border border-slate-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer whitespace-nowrap';
         }
         setTimeout(() => {
             document.getElementById('dayBookSearchInput')?.focus();
@@ -737,10 +737,10 @@ export function toggleDayBookEntriesFolder(forceState) {
     } else {
         content.classList.add('hidden');
         if (btnIcon) btnIcon.textContent = '👁️';
-        if (btnText) btnText.textContent = 'View Folder';
-        if (statusText) statusText.textContent = 'Folder is closed • Tap to view transactions';
+        if (btnText) btnText.textContent = 'View';
+        if (statusText) statusText.textContent = 'Tap to view transactions';
         if (toggleBtn) {
-            toggleBtn.className = 'bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl border border-indigo-500 text-xs font-bold shadow-md shadow-indigo-950/40 transition flex items-center gap-1.5 cursor-pointer';
+            toggleBtn.className = 'bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded-xl border border-indigo-500 text-xs font-bold shadow-md shadow-indigo-950/40 transition flex items-center gap-1 cursor-pointer whitespace-nowrap';
         }
     }
 }
