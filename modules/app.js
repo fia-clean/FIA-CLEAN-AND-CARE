@@ -10,7 +10,7 @@ import {
     startAutomaticBackup,
     todayDDMMYYYY,
     getTodayDateString
-} from './core/state.js?v=49.2';
+} from './core/state.js';
 import {
     startRealtimeSync,
     pullFromFirebase,
@@ -19,7 +19,7 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup
-} from './core/db.js?v=49.2';
+} from './core/db.js';
 import {
     verifyLoginPin,
     logoutApp,
@@ -37,7 +37,7 @@ import {
     logoutFirebaseAuth,
     updateCloudAuthUI,
     setupFirebaseAuthListener
-} from './core/auth.js?v=49.2';
+} from './core/auth.js';
 
 // Feature Modules
 import {
@@ -53,7 +53,7 @@ import {
     closeLowStockList,
     goToAddStockFromLowStock,
     pushDashboardModalState
-} from './dashboard/dashboard.js?v=49.2';
+} from './dashboard/dashboard.js';
 
 import {
     saveDirectCustomer,
@@ -73,7 +73,7 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport
-} from './customers/customer.js?v=49.2';
+} from './customers/customer.js';
 
 import {
     previewBill,
@@ -88,7 +88,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=49.2';
+} from './billing/invoice-preview.js';
 
 import {
     renderSalesHistory,
@@ -97,7 +97,7 @@ import {
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
-} from './billing/billing-history.js?v=49.2';
+} from './billing/billing-history.js';
 
 import {
     getProductWholesalePrice,
@@ -152,7 +152,7 @@ import {
     renderCosSales,
     resetCosSalesForm,
     renderCosmeticsSummary
-} from './billing/billing.js?v=49.2';
+} from './billing/billing.js';
 
 import {
     updatePackageSelectors,
@@ -202,7 +202,7 @@ import {
     viewProduct,
     viewCosProduct,
     viewPackage
-} from './operations/stock.js?v=49.2';
+} from './operations/stock.js';
 
 import {
     getTodayPurchaseDate,
@@ -258,7 +258,7 @@ import {
     shareSelectedSupplierConsolidatedDetail,
     sharePurchaseConsolidationReport,
     downloadPurchaseConsolidationReportPDF
-} from './operations/purchases.js?v=49.2';
+} from './operations/purchases.js';
 
 import {
     saveExpense,
@@ -269,7 +269,7 @@ import {
     viewExpense,
     switchExpenseTab,
     setExpenseListFilter
-} from './operations/expenses.js?v=49.2';
+} from './operations/expenses.js';
 
 import {
     dashboardDateKey,
@@ -291,7 +291,7 @@ import {
     onFolderDateRangeChange,
     syncFolderDateInputs,
     getYesterdayDateString
-} from './daybook/daybook.js?v=49.2';
+} from './daybook/daybook.js';
 
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {

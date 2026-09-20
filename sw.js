@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-v49.2';
+const CACHE_NAME = 'fia-clean-care-v49.3';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [
@@ -127,7 +127,13 @@ self.addEventListener('fetch', (event) => {
             }
             return networkResponse;
           })
-          .catch(() => caches.match(request, { ignoreSearch: true }))
+          .catch(() => {
+            return caches.match(request, { ignoreSearch: true }).then((cached) => {
+              if (cached) return cached;
+              const cleanUrl = request.url.split('?')[0];
+              return caches.match(cleanUrl, { ignoreSearch: true });
+            });
+          })
       );
       return;
     }

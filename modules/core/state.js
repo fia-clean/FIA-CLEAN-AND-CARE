@@ -396,6 +396,54 @@ export function loadFromLocalStorage() {
         state.dayBookOpeningBalance = Number(localStorage.getItem('fia_daybook_opening_balance') || 0);
         state.dayBookOpeningExpense = Number(localStorage.getItem('fia_daybook_opening_expense') || 0);
         state.appPin = localStorage.getItem('fia_app_pin') || "1234";
+
+        // Auto-recovery: If products AND customers are both empty in standard keys,
+        // inspect latest auto-backup or snapshot keys to seamlessly restore user data
+        if ((!state.products || state.products.length === 0) && (!state.customers || state.customers.length === 0)) {
+            try {
+                let backupToRestore = null;
+                const latestBackupStr = localStorage.getItem('fia_auto_backup_latest');
+                if (latestBackupStr) {
+                    const parsed = JSON.parse(latestBackupStr);
+                    if (parsed?.data && ((parsed.data.products && parsed.data.products.length > 0) || (parsed.data.customers && parsed.data.customers.length > 0))) {
+                        backupToRestore = parsed.data;
+                    }
+                }
+                if (!backupToRestore) {
+                    const snapKeys = getSnapshotKeys();
+                    for (const sk of snapKeys) {
+                        const snapStr = localStorage.getItem(sk);
+                        if (snapStr) {
+                            const parsed = JSON.parse(snapStr);
+                            if (parsed?.data && ((parsed.data.products && parsed.data.products.length > 0) || (parsed.data.customers && parsed.data.customers.length > 0))) {
+                                backupToRestore = parsed.data;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (backupToRestore) {
+                    console.warn('[Offline Engine] Auto-recovered offline business data from local snapshot backup');
+                    if (Array.isArray(backupToRestore.products)) state.products = backupToRestore.products.filter(p => !isItemDeleted(p));
+                    if (Array.isArray(backupToRestore.cosProducts)) state.cosProducts = backupToRestore.cosProducts.filter(p => !isItemDeleted(p));
+                    if (Array.isArray(backupToRestore.customers)) state.customers = backupToRestore.customers.filter(c => !isCustItemDeleted(c));
+                    if (Array.isArray(backupToRestore.purchases)) state.purchases = backupToRestore.purchases.filter(p => !isItemDeleted(p));
+                    if (Array.isArray(backupToRestore.expenses)) state.expenses = backupToRestore.expenses.filter(e => !isItemDeleted(e));
+                    if (Array.isArray(backupToRestore.cosPurchases)) state.cosPurchases = backupToRestore.cosPurchases.filter(p => !isItemDeleted(p));
+                    if (Array.isArray(backupToRestore.cosSales)) state.cosSales = backupToRestore.cosSales.filter(s => !isItemDeleted(s));
+                    if (Array.isArray(backupToRestore.packages)) state.packages = backupToRestore.packages.filter(p => !isItemDeleted(p));
+                    if (Array.isArray(backupToRestore.stockReturns)) state.stockReturns = backupToRestore.stockReturns;
+                    if (Array.isArray(backupToRestore.clearedDayBookEntries)) state.clearedDayBookEntries = backupToRestore.clearedDayBookEntries;
+                    if (backupToRestore.dayBookOpeningBalance !== undefined) state.dayBookOpeningBalance = Number(backupToRestore.dayBookOpeningBalance || 0);
+                    if (backupToRestore.dayBookOpeningExpense !== undefined) state.dayBookOpeningExpense = Number(backupToRestore.dayBookOpeningExpense || 0);
+                    if (backupToRestore.appPin) state.appPin = backupToRestore.appPin;
+                    saveLocalStateSafely();
+                }
+            } catch (recoveryErr) {
+                console.warn('Auto-recovery check failed:', recoveryErr);
+            }
+        }
+
         normalizeLoadedProducts();
         normalizeCustomerRecords();
     } catch (e) {
@@ -405,6 +453,17 @@ export function loadFromLocalStorage() {
 
 export function saveLocalStateSafely() {
     try {
+        // Safety guard: Never overwrite existing populated localStorage if in-memory state is empty
+        if ((!state.products || state.products.length === 0) && (!state.customers || state.customers.length === 0)) {
+            const existingProds = localStorage.getItem('fia_products');
+            const existingCusts = localStorage.getItem('fia_customers');
+            if ((existingProds && existingProds.length > 10 && existingProds !== '[]') ||
+                (existingCusts && existingCusts.length > 10 && existingCusts !== '[]')) {
+                console.warn('[Safety Guard] Blocked overwrite of populated localStorage with empty in-memory state.');
+                return;
+            }
+        }
+
         localStorage.setItem('fia_products', JSON.stringify((state.products || []).filter(p => !isItemDeleted(p))));
         localStorage.setItem('fia_cosproducts', JSON.stringify((state.cosProducts || []).filter(p => !isItemDeleted(p))));
         localStorage.setItem('fia_customers', JSON.stringify((state.customers || []).filter(c => !isCustItemDeleted(c))));

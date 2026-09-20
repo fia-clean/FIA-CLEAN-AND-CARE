@@ -441,9 +441,11 @@ export function syncToFirebase() {
     createAutomaticLocalBackup();
     localStorage.setItem('fia_has_pending_sync', 'true');
 
-    if (!window.FB_DB) {
+    if (!navigator.onLine || !window.FB_DB) {
+        state.isFirebaseConnected = false;
         updateSyncStatus(false, 'Working under offline mode');
-        return Promise.resolve(false);
+        isSyncing = false;
+        return Promise.resolve(true);
     }
 
     if (isSyncing) {
@@ -453,11 +455,11 @@ export function syncToFirebase() {
 
     isSyncing = true;
 
-    // Fast-bounded cloud merge: attempt to read latest cloud state within 1200ms
+    // Fast-bounded cloud merge: attempt to read latest cloud state within 1500ms
     const cloudFetchPromise = window.FB_DB.ref('fia_data').once('value')
         .then(snap => snap.val())
         .catch(() => null);
-    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 1200));
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 1500));
 
     return Promise.race([cloudFetchPromise, timeoutPromise])
         .then(function(cloud) {
@@ -476,7 +478,12 @@ export function syncToFirebase() {
 
             const payload = buildSyncPayload();
 
-            return window.FB_DB.ref('fia_data').set(payload).then(function() {
+            // Guard Firebase RTDB write with explicit 2500ms timeout
+            // In Firebase Web SDK, .set() promise hangs indefinitely if connection drops
+            const writePromise = window.FB_DB.ref('fia_data').set(payload);
+            const writeTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase write timeout (offline)')), 2500));
+
+            return Promise.race([writePromise, writeTimeout]).then(function() {
                 localStorage.removeItem('fia_has_pending_sync');
                 state.isFirebaseConnected = true;
                 updateSyncStatus(true, 'Cloud Database Synced');
@@ -484,7 +491,8 @@ export function syncToFirebase() {
             });
         })
         .catch(function(err) {
-            console.error("Firebase write error:", err);
+            console.warn("Firebase write error or offline timeout:", err);
+            state.isFirebaseConnected = false;
             if (err && String(err.message || err).includes('PERMISSION_DENIED')) {
                 updateSyncStatus(false, 'Cloud Locked: Authorize in Settings');
             } else {
@@ -502,12 +510,16 @@ export function syncToFirebase() {
 }
 
 export function pullFromFirebase() {
-    if (!window.FB_DB) {
+    if (!navigator.onLine || !window.FB_DB) {
+        state.isFirebaseConnected = false;
         updateSyncStatus(false, 'Working under offline mode');
         return Promise.resolve(false);
     }
-    return window.FB_DB.ref('fia_data').once('value').then(function(snapshot) {
-        const data = snapshot.val();
+    const pullPromise = window.FB_DB.ref('fia_data').once('value');
+    const pullTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase pull timeout (offline)')), 2500));
+
+    return Promise.race([pullPromise, pullTimeout]).then(function(snapshot) {
+        const data = snapshot ? snapshot.val() : null;
         if (data) {
             applyCloudData(data, false);
             return true;
@@ -518,7 +530,7 @@ export function pullFromFirebase() {
             return false;
         }
     }).catch(function(error) {
-        console.error("Firebase pull error:", error);
+        console.warn("Firebase pull error or offline timeout:", error);
         state.isFirebaseConnected = false;
         if (error && String(error.message || error).includes('PERMISSION_DENIED')) {
             updateSyncStatus(false, 'Cloud Locked: Authorize in Settings');
@@ -542,7 +554,11 @@ export function startRealtimeSync() {
         if (isOnline) {
             state.isFirebaseConnected = true;
             updateSyncStatus(true, 'Cloud Database Connected');
-            pullFromFirebase();
+            if (localStorage.getItem('fia_has_pending_sync') === 'true') {
+                syncToFirebase();
+            } else {
+                pullFromFirebase();
+            }
         } else {
             state.isFirebaseConnected = false;
             updateSyncStatus(false, 'Working under offline mode');
@@ -553,7 +569,11 @@ export function startRealtimeSync() {
         if (window.FB_DB) {
             try { window.FB_DB.goOnline(); } catch(e) {}
         }
-        pullFromFirebase();
+        if (localStorage.getItem('fia_has_pending_sync') === 'true') {
+            syncToFirebase();
+        } else {
+            pullFromFirebase();
+        }
     });
     window.addEventListener('offline', function() {
         state.isFirebaseConnected = false;

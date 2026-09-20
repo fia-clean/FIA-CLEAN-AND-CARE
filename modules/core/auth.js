@@ -340,7 +340,9 @@ export function setupFirebaseAuthListener() {
             updateCloudAuthUI(user);
             if (user) {
                 console.log('Firebase Cloud Auth Active on device:', user.email);
-                if (typeof pullFromFirebase === 'function') pullFromFirebase();
+                if (navigator.onLine && typeof pullFromFirebase === 'function') {
+                    pullFromFirebase();
+                }
             } else {
                 console.log('Firebase Cloud Auth: No active session on this device.');
             }
