@@ -742,17 +742,26 @@ export function renderBillPreviewInput() {
                 </div>
             </div>`;
     });
-    if (state.currentBillItems.length > 0) container.innerHTML += `<div class="text-right font-extrabold text-sm text-emerald-400 pt-1">Grand Total: ₹${grandTotal.toFixed(2)}</div>`;
+    if (state.currentBillItems.length > 0) container.innerHTML += `<div class="text-right font-extrabold text-xs text-slate-300 pt-1">Items Subtotal: ₹${grandTotal.toFixed(2)}</div>`;
     calculateBalance();
 }
 
 export function calculateBalance() {
-    const grandTotal = (state.currentBillItems || []).reduce((sum, i) => sum + Number(i.total || 0), 0);
+    const subTotal = (state.currentBillItems || []).reduce((sum, i) => sum + Number(i.total || 0), 0);
+    const discountRaw = parseFloat(document.getElementById('billDiscountAmt')?.value);
+    const discount = Number.isFinite(discountRaw) && discountRaw > 0 ? Math.min(subTotal, discountRaw) : 0;
+    const netPayable = Math.max(0, subTotal - discount);
+
+    const netPayableEl = document.getElementById('billNetPayable');
+    if (netPayableEl) {
+        netPayableEl.value = netPayable.toFixed(2);
+    }
+
     const paidInputRaw = document.getElementById('billPaidAmt')?.value;
     const paidInput = parseFloat(paidInputRaw);
     const isPaidEmpty = paidInputRaw === '' || paidInputRaw === undefined;
-    const effectivePaid = isPaidEmpty ? grandTotal : (Number.isFinite(paidInput) ? paidInput : 0);
-    const balance = grandTotal - effectivePaid;
+    const effectivePaid = isPaidEmpty ? netPayable : (Number.isFinite(paidInput) ? paidInput : 0);
+    const balance = netPayable - effectivePaid;
     const due = Math.max(0, balance);
     const excess = Math.max(0, -balance);
     const field = document.getElementById('billPendingAmt');
@@ -875,7 +884,11 @@ export function saveCustomer(e) {
     });
     checkAndDeductPackageStock(state.currentBillItems);
 
-    const grandTotal = state.currentBillItems.reduce((sum, i) => sum + Number(i.total || 0), 0);
+    const subTotal = state.currentBillItems.reduce((sum, i) => sum + Number(i.total || 0), 0);
+    const discountRaw = parseFloat(document.getElementById('billDiscountAmt')?.value);
+    const discount = Number.isFinite(discountRaw) && discountRaw > 0 ? Math.min(subTotal, discountRaw) : 0;
+    const grandTotal = Math.max(0, subTotal - discount);
+
     const paidAmount = parseFloat(document.getElementById('billPaidAmt')?.value);
     const safePaidAmount = Number.isFinite(paidAmount) ? Math.max(0, paidAmount) : grandTotal;
     const pendingAmount = Math.max(0, grandTotal - safePaidAmount);
@@ -904,6 +917,8 @@ export function saveCustomer(e) {
         customerType,
         paymentMode,
         items: sortBillItemsAlphabetically(state.currentBillItems).map(i => ({...i})),
+        subTotal,
+        discount,
         grandTotal,
         paidAmount: safePaidAmount,
         pendingAmount,
@@ -925,6 +940,10 @@ export function resetCustomerForm() {
     if (form) form.reset();
     document.getElementById('custIndex').value = "-1";
     document.getElementById('billNumberDisplay').textContent = getNextBillNumber();
+    const discountEl = document.getElementById('billDiscountAmt');
+    if (discountEl) discountEl.value = '';
+    const netPayableEl = document.getElementById('billNetPayable');
+    if (netPayableEl) netPayableEl.value = '';
     state.currentBillItems = [];
     renderBillPreviewInput();
     const rRadio = document.getElementById('billSaleTypeRetail');
@@ -962,6 +981,8 @@ export function editCustomerBill(identifier) {
     updateBillTypeBadge(c.saleType || 'Retail');
     state.currentBillItems = sortBillItemsAlphabetically((c.items || []).map(item => ({...item})));
     renderBillPreviewInput();
+    const discountEl = document.getElementById('billDiscountAmt');
+    if (discountEl) discountEl.value = (c.discount !== undefined && Number(c.discount) > 0) ? Number(c.discount) : '';
     document.getElementById('billPaidAmt').value = c.paidAmount !== undefined ? Number(c.paidAmount) : Number(c.grandTotal || 0);
     const paymentModeEl = document.getElementById('billPaymentMode');
     if (paymentModeEl) paymentModeEl.value = c.paymentMode || 'Cash';

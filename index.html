@@ -350,7 +350,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v49.4) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v49.5) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -632,7 +632,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v49.4</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v49.5</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
@@ -648,7 +648,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v49.4</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v49.5</span>
             </div>
             <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -1277,16 +1277,31 @@
                     <div class="hidden sm:grid grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_0.9fr_auto] gap-1 px-2 text-[10px] text-slate-400 font-bold uppercase"><span>Product</span><span>Quantity</span><span>Unit</span><span>Price</span><span>Total</span><span></span></div>
                     <div id="currentBillItemsPreview" class="space-y-1.5 text-xs w-full min-w-0"></div>
 
-                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                        <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">Paid Amount (₹):</label>
-                            <input type="number" id="billPaidAmt" placeholder="Paid Amount" oninput="calculateBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500 min-w-0" min="0" step="any">
-                            <select id="billPaymentMode" class="w-full mt-1.5 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500"><option value="Cash">💵 Cash</option><option value="Online">🌐 Online</option></select>
+                    <div class="space-y-2 pt-2 border-t border-slate-800">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] text-amber-400 font-bold flex items-center gap-1 mb-1">
+                                    <span>🏷️</span> Discount (₹) (Optional):
+                                </label>
+                                <input type="number" id="billDiscountAmt" placeholder="0.00" oninput="calculateBalance()" class="w-full p-2.5 border border-amber-600/50 rounded-xl text-xs bg-slate-950 text-amber-300 font-bold focus:outline-none focus:border-amber-400 min-w-0" min="0" step="any">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400 block mb-1">Net Payable / Bill Total (₹):</label>
+                                <input type="number" id="billNetPayable" placeholder="0.00" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-emerald-400 font-extrabold cursor-not-allowed min-w-0">
+                            </div>
                         </div>
-                        <div>
-                            <label id="billBalanceLabel" class="text-[10px] text-slate-400 block mb-1">Balance / Due (₹):</label>
-                            <input type="number" id="billPendingAmt" placeholder="Balance" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-slate-400 cursor-not-allowed min-w-0">
-                            <div id="billBalanceStatus" class="text-[10px] font-bold mt-1 text-right"></div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] text-slate-400 block mb-1">Paid Amount (₹):</label>
+                                <input type="number" id="billPaidAmt" placeholder="Paid Amount" oninput="calculateBalance()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500 min-w-0" min="0" step="any">
+                                <select id="billPaymentMode" class="w-full mt-1.5 p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500"><option value="Cash">💵 Cash</option><option value="Online">🌐 Online</option></select>
+                            </div>
+                            <div>
+                                <label id="billBalanceLabel" class="text-[10px] text-slate-400 block mb-1">Balance / Due (₹):</label>
+                                <input type="number" id="billPendingAmt" placeholder="Balance" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-slate-400 cursor-not-allowed min-w-0">
+                                <div id="billBalanceStatus" class="text-[10px] font-bold mt-1 text-right"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -2144,7 +2159,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=49.4"></script>
+    <script type="module" src="./modules/app.js?v=49.5"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2156,7 +2171,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v49.4) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v49.5) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2210,7 +2225,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=49.4')
+                navigator.serviceWorker.register('./sw.js?v=49.5')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

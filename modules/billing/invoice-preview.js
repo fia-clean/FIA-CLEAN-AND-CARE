@@ -104,6 +104,8 @@ export function previewBill(identifier) {
     }).join('');
 
     const grandVal = Number(c.grandTotal || 0);
+    const discountVal = Number(c.discount || 0);
+    const subTotalVal = Number(c.subTotal || (grandVal + discountVal));
     const paidVal = c.paidAmount !== undefined ? Number(c.paidAmount) : grandVal;
     const pendingVal = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, grandVal - paidVal);
     const excessVal = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paidVal - grandVal);
@@ -158,7 +160,16 @@ export function previewBill(identifier) {
             <div>
                 <!-- Totals & Payment Summary -->
                 <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 8px; margin-top: 6px; font-size: 11px; line-height: 1.45; color: #111827 !important;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; margin-bottom: 3px;">
+                    ${discountVal > 0 ? `
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #4b5563 !important; font-weight: 600;">
+                        <span>Subtotal:</span>
+                        <span>₹${subTotalVal.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #d97706 !important; font-weight: 700; margin-bottom: 3px;">
+                        <span>Discount:</span>
+                        <span>-₹${discountVal.toFixed(2)}</span>
+                    </div>` : ''}
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; margin-bottom: 3px; ${discountVal > 0 ? 'border-top: 1px dashed #e5e7eb; padding-top: 3px;' : ''}">
                         <span style="font-size: 11.5px; font-weight: 800; color: #111827 !important;">Grand Total:</span>
                         <span style="font-size: 13px; font-weight: 900; color: ${themeColor} !important;">₹${grandVal.toFixed(2)}</span>
                     </div>
@@ -390,10 +401,21 @@ function getA4ItemRowHtml(item, idx) {
 }
 
 function getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal) {
+    const discountVal = Number(c.discount || 0);
+    const subTotalVal = Number(c.subTotal || (grandVal + discountVal));
     return `
         <div class="totals-container" style="page-break-inside: avoid !important; break-inside: avoid !important; margin-top: 14px;">
             <div style="background: #f9fafb; border: 1.5px solid #d1d5db; border-radius: 8px; padding: 10px 14px; font-size: 11.5px; line-height: 1.5; color: #111827; width: 320px; max-width: 100%; margin-left: auto; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 5px;">
+                ${discountVal > 0 ? `
+                <div style="display: flex; justify-content: space-between; align-items: center; color: #4b5563; font-weight: 600;">
+                    <span>Subtotal:</span>
+                    <span>₹${subTotalVal.toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; color: #d97706; font-weight: 700; margin-bottom: 4px;">
+                    <span>Discount:</span>
+                    <span>-₹${discountVal.toFixed(2)}</span>
+                </div>` : ''}
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 5px; ${discountVal > 0 ? 'border-top: 1px dashed #e5e7eb; padding-top: 4px;' : ''}">
                     <span style="font-size: 12.5px; font-weight: 800; color: #111827;">Grand Total:</span>
                     <span style="font-size: 14.5px; font-weight: 900; color: ${themeColor};">₹${grandVal.toFixed(2)}</span>
                 </div>
@@ -868,7 +890,10 @@ export function sendBillViaWhatsApp() {
     const excessVal = Number(c.excessAmount || 0);
     const dueLine = Number(pendingVal) > 0 ? `*Balance Due:* ₹${Number(pendingVal).toFixed(2)}\n` : '';
     const returnLine = excessVal > 0 ? `*Balance Return:* ₹${excessVal.toFixed(2)}\n` : '';
-    let msg = `*FIA CLEAN AND CARE*\n*EDATHANATTUKARA*\n*MOB: 8086452106*\n*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${String(c.name || 'Walk-in').toUpperCase()}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}${returnLine}\n_Thank you for your business!_`;
+    const discountVal = Number(c.discount || 0);
+    const subTotalVal = Number(c.subTotal || (Number(c.grandTotal || 0) + discountVal));
+    const discountLine = discountVal > 0 ? `*Subtotal:* ₹${subTotalVal.toFixed(2)}\n*Discount:* -₹${discountVal.toFixed(2)}\n` : '';
+    let msg = `*FIA CLEAN AND CARE*\n*EDATHANATTUKARA*\n*MOB: 8086452106*\n*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${String(c.name || 'Walk-in').toUpperCase()}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n${discountLine}*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}${returnLine}\n_Thank you for your business!_`;
     
     if (window.history && window.history.pushState) {
         window.history.pushState({ loggedIn: true, tab: 'billing' }, "", "#billing");
