@@ -2041,6 +2041,8 @@ export function editCombinedSavedBill(index) {
     if (phoneEl) phoneEl.value = c.phone || '';
     const radio = document.querySelector(`input[name="saleType"][value="${c.saleType || 'Retail'}"]`);
     if (radio) radio.checked = true;
+    const discountEl = document.getElementById('billDiscountAmt');
+    if (discountEl) discountEl.value = (c.discount !== undefined && Number(c.discount) > 0) ? Number(c.discount) : '';
     const paidEl = document.getElementById('billPaidAmt');
     if (paidEl) paidEl.value = Number(c.paidAmount || 0);
     const paymentModeEl = document.getElementById('billPaymentMode');
