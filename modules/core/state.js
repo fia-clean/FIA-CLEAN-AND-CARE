@@ -397,50 +397,69 @@ export function loadFromLocalStorage() {
         state.dayBookOpeningExpense = Number(localStorage.getItem('fia_daybook_opening_expense') || 0);
         state.appPin = localStorage.getItem('fia_app_pin') || "1234";
 
-        // Auto-recovery: If products AND customers are both empty in standard keys,
+        // Granular Auto-Recovery: If ANY core collection is empty in memory,
         // inspect latest auto-backup or snapshot keys to seamlessly restore user data
-        if ((!state.products || state.products.length === 0) && (!state.customers || state.customers.length === 0)) {
+        const needsGranularRecovery = (!state.products || state.products.length === 0) ||
+                                      (!state.cosProducts || state.cosProducts.length === 0) ||
+                                      (!state.customers || state.customers.length === 0) ||
+                                      (!state.purchases || state.purchases.length === 0) ||
+                                      (!state.expenses || state.expenses.length === 0) ||
+                                      (!state.packages || state.packages.length === 0);
+
+        if (needsGranularRecovery) {
             try {
-                let backupToRestore = null;
+                const candidateBackups = [];
                 const latestBackupStr = localStorage.getItem('fia_auto_backup_latest');
                 if (latestBackupStr) {
-                    const parsed = JSON.parse(latestBackupStr);
-                    if (parsed?.data && ((parsed.data.products && parsed.data.products.length > 0) || (parsed.data.customers && parsed.data.customers.length > 0))) {
-                        backupToRestore = parsed.data;
+                    try {
+                        const parsed = JSON.parse(latestBackupStr);
+                        if (parsed && parsed.data) candidateBackups.push(parsed.data);
+                    } catch (e) {}
+                }
+                const snapKeys = getSnapshotKeys();
+                for (const sk of snapKeys) {
+                    const snapStr = localStorage.getItem(sk);
+                    if (snapStr) {
+                        try {
+                            const parsed = JSON.parse(snapStr);
+                            if (parsed && parsed.data) candidateBackups.push(parsed.data);
+                        } catch (e) {}
                     }
                 }
-                if (!backupToRestore) {
-                    const snapKeys = getSnapshotKeys();
-                    for (const sk of snapKeys) {
-                        const snapStr = localStorage.getItem(sk);
-                        if (snapStr) {
-                            const parsed = JSON.parse(snapStr);
-                            if (parsed?.data && ((parsed.data.products && parsed.data.products.length > 0) || (parsed.data.customers && parsed.data.customers.length > 0))) {
-                                backupToRestore = parsed.data;
-                                break;
+
+                let recoveredAny = false;
+                const restoreIfEmpty = (stateProp, dataProp, filterFn) => {
+                    if (!state[stateProp] || state[stateProp].length === 0) {
+                        for (const backup of candidateBackups) {
+                            if (Array.isArray(backup[dataProp]) && backup[dataProp].length > 0) {
+                                const restored = filterFn ? backup[dataProp].filter(filterFn) : backup[dataProp];
+                                if (restored.length > 0) {
+                                    state[stateProp] = restored;
+                                    console.warn(`[Offline Engine] Granularly auto-recovered ${stateProp} (${restored.length} items) from local snapshot`);
+                                    recoveredAny = true;
+                                    break;
+                                }
                             }
                         }
                     }
-                }
-                if (backupToRestore) {
-                    console.warn('[Offline Engine] Auto-recovered offline business data from local snapshot backup');
-                    if (Array.isArray(backupToRestore.products)) state.products = backupToRestore.products.filter(p => !isItemDeleted(p));
-                    if (Array.isArray(backupToRestore.cosProducts)) state.cosProducts = backupToRestore.cosProducts.filter(p => !isItemDeleted(p));
-                    if (Array.isArray(backupToRestore.customers)) state.customers = backupToRestore.customers.filter(c => !isCustItemDeleted(c));
-                    if (Array.isArray(backupToRestore.purchases)) state.purchases = backupToRestore.purchases.filter(p => !isItemDeleted(p));
-                    if (Array.isArray(backupToRestore.expenses)) state.expenses = backupToRestore.expenses.filter(e => !isItemDeleted(e));
-                    if (Array.isArray(backupToRestore.cosPurchases)) state.cosPurchases = backupToRestore.cosPurchases.filter(p => !isItemDeleted(p));
-                    if (Array.isArray(backupToRestore.cosSales)) state.cosSales = backupToRestore.cosSales.filter(s => !isItemDeleted(s));
-                    if (Array.isArray(backupToRestore.packages)) state.packages = backupToRestore.packages.filter(p => !isItemDeleted(p));
-                    if (Array.isArray(backupToRestore.stockReturns)) state.stockReturns = backupToRestore.stockReturns;
-                    if (Array.isArray(backupToRestore.clearedDayBookEntries)) state.clearedDayBookEntries = backupToRestore.clearedDayBookEntries;
-                    if (backupToRestore.dayBookOpeningBalance !== undefined) state.dayBookOpeningBalance = Number(backupToRestore.dayBookOpeningBalance || 0);
-                    if (backupToRestore.dayBookOpeningExpense !== undefined) state.dayBookOpeningExpense = Number(backupToRestore.dayBookOpeningExpense || 0);
-                    if (backupToRestore.appPin) state.appPin = backupToRestore.appPin;
+                };
+
+                restoreIfEmpty('products', 'products', p => !isItemDeleted(p));
+                restoreIfEmpty('cosProducts', 'cosProducts', p => !isItemDeleted(p));
+                restoreIfEmpty('customers', 'customers', c => !isCustItemDeleted(c));
+                restoreIfEmpty('purchases', 'purchases', p => !isItemDeleted(p));
+                restoreIfEmpty('expenses', 'expenses', e => !isItemDeleted(e));
+                restoreIfEmpty('cosPurchases', 'cosPurchases', p => !isItemDeleted(p));
+                restoreIfEmpty('cosSales', 'cosSales', s => !isItemDeleted(s));
+                restoreIfEmpty('packages', 'packages', p => !isItemDeleted(p));
+                restoreIfEmpty('stockReturns', 'stockReturns', null);
+                restoreIfEmpty('clearedDayBookEntries', 'clearedDayBookEntries', null);
+
+                if (recoveredAny) {
                     saveLocalStateSafely();
                 }
             } catch (recoveryErr) {
-                console.warn('Auto-recovery check failed:', recoveryErr);
+                console.warn('Granular auto-recovery check failed:', recoveryErr);
             }
         }
 
@@ -453,27 +472,28 @@ export function loadFromLocalStorage() {
 
 export function saveLocalStateSafely() {
     try {
-        // Safety guard: Never overwrite existing populated localStorage if in-memory state is empty
-        if ((!state.products || state.products.length === 0) && (!state.customers || state.customers.length === 0)) {
-            const existingProds = localStorage.getItem('fia_products');
-            const existingCusts = localStorage.getItem('fia_customers');
-            if ((existingProds && existingProds.length > 10 && existingProds !== '[]') ||
-                (existingCusts && existingCusts.length > 10 && existingCusts !== '[]')) {
-                console.warn('[Safety Guard] Blocked overwrite of populated localStorage with empty in-memory state.');
-                return;
+        const saveCollectionSafely = (key, memoryList, filterFn) => {
+            const cleanList = (memoryList || []).filter(filterFn);
+            if (cleanList.length === 0) {
+                const existing = localStorage.getItem(key);
+                if (existing && existing.length > 5 && existing !== '[]') {
+                    console.warn(`[Safety Guard] Blocked overwrite of populated ${key} with empty array.`);
+                    return;
+                }
             }
-        }
+            localStorage.setItem(key, JSON.stringify(cleanList));
+        };
 
-        localStorage.setItem('fia_products', JSON.stringify((state.products || []).filter(p => !isItemDeleted(p))));
-        localStorage.setItem('fia_cosproducts', JSON.stringify((state.cosProducts || []).filter(p => !isItemDeleted(p))));
-        localStorage.setItem('fia_customers', JSON.stringify((state.customers || []).filter(c => !isCustItemDeleted(c))));
-        localStorage.setItem('fia_purchases', JSON.stringify((state.purchases || []).filter(p => !isItemDeleted(p))));
-        localStorage.setItem('fia_expenses', JSON.stringify((state.expenses || []).filter(e => !isItemDeleted(e))));
-        localStorage.setItem('fia_cospurchases', JSON.stringify((state.cosPurchases || []).filter(p => !isItemDeleted(p))));
-        localStorage.setItem('fia_cossales', JSON.stringify((state.cosSales || []).filter(s => !isItemDeleted(s))));
-        localStorage.setItem('fia_packages', JSON.stringify((state.packages || []).filter(p => !isItemDeleted(p))));
-        localStorage.setItem('fia_stock_returns', JSON.stringify(state.stockReturns || []));
-        localStorage.setItem('fia_cleared_daybook', JSON.stringify(state.clearedDayBookEntries || []));
+        saveCollectionSafely('fia_products', state.products, p => !isItemDeleted(p));
+        saveCollectionSafely('fia_cosproducts', state.cosProducts, p => !isItemDeleted(p));
+        saveCollectionSafely('fia_customers', state.customers, c => !isCustItemDeleted(c));
+        saveCollectionSafely('fia_purchases', state.purchases, p => !isItemDeleted(p));
+        saveCollectionSafely('fia_expenses', state.expenses, e => !isItemDeleted(e));
+        saveCollectionSafely('fia_cospurchases', state.cosPurchases, p => !isItemDeleted(p));
+        saveCollectionSafely('fia_cossales', state.cosSales, s => !isItemDeleted(s));
+        saveCollectionSafely('fia_packages', state.packages, p => !isItemDeleted(p));
+        saveCollectionSafely('fia_stock_returns', state.stockReturns, () => true);
+        saveCollectionSafely('fia_cleared_daybook', state.clearedDayBookEntries, () => true);
         localStorage.setItem('fia_daybook_opening_balance', String(state.dayBookOpeningBalance || 0));
         localStorage.setItem('fia_daybook_opening_expense', String(state.dayBookOpeningExpense || 0));
         localStorage.setItem('fia_app_pin', state.appPin || "1234");
@@ -499,6 +519,36 @@ export function createAutomaticLocalBackup() {
         const now = new Date();
         const todayDate = now.toISOString().slice(0, 10);
         const snapKey = 'fia_snap_' + todayDate;
+
+        let existingBackupData = null;
+        try {
+            const existingStr = localStorage.getItem('fia_auto_backup_latest');
+            if (existingStr) existingBackupData = JSON.parse(existingStr)?.data || null;
+        } catch (e) {}
+
+        const getSafeList = (currentList, backupProp, storageKey, filterFn) => {
+            const filtered = (currentList || []).filter(filterFn);
+            if (filtered.length > 0) return filtered;
+            if (existingBackupData && Array.isArray(existingBackupData[backupProp]) && existingBackupData[backupProp].length > 0) {
+                return existingBackupData[backupProp].filter(filterFn);
+            }
+            if (storageKey) {
+                try {
+                    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                    if (Array.isArray(stored) && stored.length > 0) return stored.filter(filterFn);
+                } catch (e) {}
+            }
+            return filtered;
+        };
+
+        const safeProducts = getSafeList(state.products, 'products', 'fia_products', p => !isItemDeleted(p));
+        const safeCosProducts = getSafeList(state.cosProducts, 'cosProducts', 'fia_cosproducts', p => !isItemDeleted(p));
+        const safeCustomers = getSafeList(state.customers, 'customers', 'fia_customers', c => !isCustItemDeleted(c));
+        const safePurchases = getSafeList(state.purchases, 'purchases', 'fia_purchases', p => !isItemDeleted(p));
+        const safeExpenses = getSafeList(state.expenses, 'expenses', 'fia_expenses', e => !isItemDeleted(e));
+        const safeCosPurchases = getSafeList(state.cosPurchases, 'cosPurchases', 'fia_cospurchases', p => !isItemDeleted(p));
+        const safeCosSales = getSafeList(state.cosSales, 'cosSales', 'fia_cossales', s => !isItemDeleted(s));
+        const safePackages = getSafeList(state.packages, 'packages', 'fia_packages', p => !isItemDeleted(p));
         
         const backupData = {
             backupVersion: 1,
@@ -506,20 +556,20 @@ export function createAutomaticLocalBackup() {
             snapshotDate: todayDate,
             createdAt: now.toISOString(),
             stats: {
-                products: (state.products || []).length,
-                cosProducts: (state.cosProducts || []).length,
-                customers: (state.customers || []).length,
-                packages: (state.packages || []).length
+                products: safeProducts.length,
+                cosProducts: safeCosProducts.length,
+                customers: safeCustomers.length,
+                packages: safePackages.length
             },
             data: {
-                products: state.products || [],
-                cosProducts: state.cosProducts || [],
-                customers: state.customers || [],
-                purchases: state.purchases || [],
-                expenses: state.expenses || [],
-                cosPurchases: state.cosPurchases || [],
-                cosSales: state.cosSales || [],
-                packages: state.packages || [],
+                products: safeProducts,
+                cosProducts: safeCosProducts,
+                customers: safeCustomers,
+                purchases: safePurchases,
+                expenses: safeExpenses,
+                cosPurchases: safeCosPurchases,
+                cosSales: safeCosSales,
+                packages: safePackages,
                 stockReturns: state.stockReturns || [],
                 clearedDayBookEntries: state.clearedDayBookEntries || [],
                 dayBookOpeningBalance: Number(state.dayBookOpeningBalance || 0),

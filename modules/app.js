@@ -859,7 +859,7 @@ if (typeof window !== 'undefined') {
 
         // Auto-refresh when switching back to the app or turning phone screen back on
         document.addEventListener('visibilitychange', function() {
-            if (document.visibilityState === 'visible') {
+            if (document.visibilityState === 'visible' && navigator.onLine) {
                 if (window.FB_DB) {
                     try { window.FB_DB.goOnline(); } catch(e) {}
                     if (typeof pullFromFirebase === 'function') pullFromFirebase();
@@ -867,7 +867,7 @@ if (typeof window !== 'undefined') {
             }
         });
         window.addEventListener('focus', function() {
-            if (window.FB_DB && typeof pullFromFirebase === 'function') {
+            if (navigator.onLine && window.FB_DB && typeof pullFromFirebase === 'function') {
                 pullFromFirebase();
             }
         });
