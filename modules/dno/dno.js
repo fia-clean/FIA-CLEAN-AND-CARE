@@ -1064,16 +1064,18 @@ export function updateDnoBadge() {
     }
 }
 
-// Global window mappings
-window.switchDnoSubTab = switchDnoSubTab;
-window.renderDno = function() {
+export function renderDno() {
     if (currentDnoSubTab === 'demands') {
         renderDemands();
     } else {
         renderOrders();
     }
     updateDnoBadge();
-};
+}
+
+// Global window mappings
+window.switchDnoSubTab = switchDnoSubTab;
+window.renderDno = renderDno;
 window.renderDemands = renderDemands;
 window.renderOrders = renderOrders;
 window.filterDemands = filterDemands;

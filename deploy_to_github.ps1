@@ -11,7 +11,7 @@ Write-Host "Adding modified files..." -ForegroundColor Yellow
 git add index.html dev.html sw.js manifest.json icon-192.png icon-512.png icon.svg apple-touch-icon.png favicon.png lib/ modules/ public/ src/ deploy_to_github.bat deploy_to_github.ps1
 
 Write-Host "Committing changes..." -ForegroundColor Yellow
-git commit -m "feat(dno): add Demands & Orders module with voice alerts and upgrade to Modern White Accounting theme (v50.0)"
+git commit -m "fix(dno): resolve ES module exports for D&O and bump to v50.1"
 
 Write-Host "Pushing to GitHub origin main..." -ForegroundColor Yellow
 git push origin main
