@@ -517,7 +517,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '50.9.4';
+                var CURRENT_APP_VERSION = '50.9.5';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -541,7 +541,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.4) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.5) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -841,12 +841,11 @@
 
         <!-- Modern Floating Status & Action Bar (Compact 2-Line Mobile Layout) -->
         <div class="max-w-md md:max-w-2xl mx-auto mb-3.5 rounded-2xl p-2.5 sm:px-3.5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style="background: linear-gradient(135deg, #e0f2fe 0%, #eff6ff 50%, #e0e7ff 100%); border: 1.5px solid #93c5fd;">
-            <!-- Line 1: Cloud Sync Status (Left) & App Version (Right) -->
-            <div class="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+            <!-- Line 1: Cloud Sync Status -->
+            <div class="flex items-center justify-start gap-2 w-full sm:w-auto">
                 <span id="syncStatus" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300 shadow-xs whitespace-nowrap min-w-0 transition-colors">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span> Connecting to Cloud Database...
                 </span>
-                <span class="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">v50.9.4 PRO</span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
             <div class="grid grid-cols-4 sm:flex items-center gap-1.5 w-full sm:w-auto">
@@ -2721,7 +2720,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=50.9.4"></script>
+    <script type="module" src="./modules/app.js?v=50.9.5"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2733,7 +2732,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.4) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.5) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2787,7 +2786,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=50.9.4')
+                navigator.serviceWorker.register('./sw.js?v=50.9.5')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

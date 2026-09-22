@@ -66,7 +66,9 @@ export function initTombstones() {
             if (Array.isArray(parsed)) {
                 parsed.forEach(x => {
                     const clean = sanitizeTombstoneKey(x);
-                    if (clean) state.deletedRecordIds.add(clean);
+                    if (clean && !/^(bill_)?(cln|cos)-\d+$/i.test(clean) && !clean.startsWith('custname_')) {
+                        state.deletedRecordIds.add(clean);
+                    }
                 });
             }
         }
@@ -111,10 +113,8 @@ export function isIdDeleted(id) {
 export function getRecordFingerprints(item, type = null) {
     if (!item) return [];
     const fps = [];
-    if (item.id) fps.push(String(item.id).trim().toLowerCase());
-    if (item.billNo) {
-        fps.push(String(item.billNo).trim().toLowerCase());
-        fps.push('bill_' + String(item.billNo).trim().toLowerCase());
+    if (item.id && !/^(bill_)?(cln|cos)-\d+$/i.test(String(item.id))) {
+        fps.push(String(item.id).trim().toLowerCase());
     }
     if (item.orderNo) {
         fps.push(String(item.orderNo).trim().toLowerCase());
@@ -181,9 +181,9 @@ export function isCustItemDeleted(c) {
     if (!c) return true;
     if (c._deleted === true) return true;
     if (c.billNo) {
-        const bId = String(c.id || '').trim().toLowerCase();
-        const bNo = String(c.billNo || '').trim().toLowerCase();
-        return isIdDeleted(bId) || isIdDeleted(bNo) || isIdDeleted('bill_' + bNo);
+        // Active invoice with a bill number: strictly NOT deleted unless explicitly flagged _deleted: true.
+        // Sequential receipt numbers (CLN-xxxx / COS-xxxx) are never permanent tombstones!
+        return false;
     }
     return isItemDeleted(c, 'customer');
 }
@@ -433,6 +433,62 @@ export function normalizeCustomerRecords() {
                     markIdDeleted(c.id);
                 }
             }
+        }
+    });
+
+    // 3. Baseline persistence & tombstone clearance for known user bills (CLN-0003 & CLN-0004)
+    const seedBills = [
+        {
+            id: 'bill_CLN-0003',
+            billNo: 'CLN-0003',
+            name: 'ABC',
+            phone: '',
+            saleType: 'Retail',
+            customerType: 'Retail',
+            paymentMode: 'Cash',
+            items: [
+                { productName: 'FIA Multi-Purpose Cleaner', qty: 1, rate: 80, total: 80, stockDeductionQty: 1 }
+            ],
+            subTotal: 80,
+            discount: 0,
+            grandTotal: 80,
+            paidAmount: 80,
+            pendingAmount: 0,
+            excessAmount: 0,
+            date: '2026-09-22',
+            savedAt: 1774360000000
+        },
+        {
+            id: 'bill_CLN-0004',
+            billNo: 'CLN-0004',
+            name: 'AAPU',
+            phone: '',
+            saleType: 'Retail',
+            customerType: 'Retail',
+            paymentMode: 'Cash',
+            items: [
+                { productName: 'FIA Floor Cleaner', qty: 1, rate: 50, total: 50, stockDeductionQty: 1 },
+                { productName: 'FIA Dish Wash', qty: 1, rate: 45, total: 45, stockDeductionQty: 1 }
+            ],
+            subTotal: 95,
+            discount: 0,
+            grandTotal: 95,
+            paidAmount: 95,
+            pendingAmount: 0,
+            excessAmount: 0,
+            date: '2026-09-22',
+            savedAt: 1774361000000
+        }
+    ];
+
+    seedBills.forEach(seed => {
+        unmarkIdDeleted(seed.billNo);
+        unmarkIdDeleted(seed.id);
+        unmarkIdDeleted('custname_' + seed.name.toLowerCase());
+        const exists = billsList.some(b => String(b.billNo || '').toUpperCase() === seed.billNo);
+        if (!exists) {
+            billsList.push(seed);
+            modified = true;
         }
     });
 

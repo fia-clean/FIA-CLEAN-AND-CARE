@@ -274,9 +274,10 @@ export function deleteCustomerBill(billIdentifier, askConfirm = true) {
     if (askConfirm && !confirm('Are you sure you want to delete this bill?')) return;
 
     const c = state.customers[index];
-    markRecordDeleted(c, 'customer');
-    if (c.billNo) markIdDeleted(c.billNo);
-    if (c.id) markIdDeleted(c.id);
+    c._deleted = true;
+    if (c.id && !/^(bill_)?(cln|cos)-\d+$/i.test(c.id)) {
+        markIdDeleted(c.id);
+    }
     if (Array.isArray(state.clearedDayBookEntries)) {
         state.clearedDayBookEntries = state.clearedDayBookEntries.filter(x => x !== c.billNo && x !== c.id && x !== ('cust_' + c.billNo) && x !== ('bill_' + c.billNo));
     }
@@ -315,9 +316,10 @@ export function deleteCosSale(billIdentifier, askConfirm = true) {
     if (askConfirm && !confirm('Are you sure you want to delete this cosmetics bill?')) return;
 
     const s = state.cosSales[index];
-    markRecordDeleted(s, 'cosSale');
-    if (s.billNo) markIdDeleted(s.billNo);
-    if (s.id) markIdDeleted(s.id);
+    s._deleted = true;
+    if (s.id && !/^(bill_)?(cln|cos)-\d+$/i.test(s.id)) {
+        markIdDeleted(s.id);
+    }
 
     if (window.restoreCosSaleStock) window.restoreCosSaleStock(s);
     if (window.restorePackageStock) window.restorePackageStock(s.items || []);

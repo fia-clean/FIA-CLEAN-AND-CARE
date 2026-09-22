@@ -466,7 +466,13 @@ export function buildSyncPayload() {
         dayBookOpeningBalance: Number(state.dayBookOpeningBalance || 0),
         dayBookOpeningExpense: Number(state.dayBookOpeningExpense || 0),
         appPin: state.appPin || "1234",
-        _deletedIds: Array.from(state.deletedRecordIds).map(sanitizeTombstoneKey).filter(Boolean).slice(-2000),
+        _deletedIds: (() => {
+            unmarkAllActiveLocalRecords();
+            return Array.from(state.deletedRecordIds)
+                .map(sanitizeTombstoneKey)
+                .filter(k => k && !/^(bill_)?(cln|cos)-\d+$/i.test(k) && !k.startsWith('custname_'))
+                .slice(-2000);
+        })(),
         _meta: {
             clientId: myFiaClientId,
             updatedAt: Date.now()
@@ -484,11 +490,11 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     const hadPendingFlag = localStorage.getItem('fia_has_pending_sync') === 'true';
     const localHasAdditions = detectLocalUnsynced(state, data);
 
-    // 1. Ingest all remote tombstones first so deletions propagate permanently
+    // 1. Ingest remote tombstones, ignoring sequential receipt numbers and customer names
     const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
     remoteDeleted.forEach(k => {
         const cleanKey = sanitizeTombstoneKey(k);
-        if (cleanKey) {
+        if (cleanKey && !/^(bill_)?(cln|cos)-\d+$/i.test(cleanKey) && !cleanKey.startsWith('custname_')) {
             state.deletedRecordIds.add(cleanKey);
         }
     });
@@ -855,6 +861,11 @@ export function startRealtimeSync() {
             });
         }
     };
+
+    // Trigger immediate pull and sync on startup if browser is online
+    if (navigator.onLine) {
+        checkAndSync();
+    }
 
     // Firebase .info/connected listener with debouncing to prevent false offline mode
     window.FB_DB.ref('.info/connected').on('value', function(snap) {
