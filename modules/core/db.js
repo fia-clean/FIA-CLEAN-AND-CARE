@@ -15,7 +15,21 @@ import {
     normalizeLoadedProducts,
     normalizeCustomerRecords
 } from './state.js';
-import { ensureFirebaseAuth } from './auth.js';
+
+export function ensureFirebaseAuth() {
+    if (!window.FB_AUTH) return Promise.resolve(null);
+    if (window.FB_AUTH.currentUser) return Promise.resolve(window.FB_AUTH.currentUser);
+    if (typeof window.ensureFirebaseAuth === 'function') {
+        return window.ensureFirebaseAuth();
+    }
+    const persistence = (window.firebase && firebase.auth && firebase.auth.Auth && firebase.auth.Auth.Persistence)
+        ? window.FB_AUTH.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {})
+        : Promise.resolve();
+    return persistence.then(() => {
+        if (window.FB_AUTH.currentUser) return window.FB_AUTH.currentUser;
+        return window.FB_AUTH.signInAnonymously().then(c => c.user).catch(() => null);
+    });
+}
 
 export function updateSyncStatus(connected, customText) {
     const el = document.getElementById('syncStatus');
