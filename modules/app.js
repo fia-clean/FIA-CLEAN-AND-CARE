@@ -29,7 +29,8 @@ import {
     manualCloudSync,
     downloadFullBackup,
     openBackupFilePicker,
-    restoreFullBackup
+    restoreFullBackup,
+    updateBillingFormDisplays
 } from './core/db.js';
 import {
     verifyLoginPin,
@@ -648,14 +649,18 @@ export function openBillingSection(type) {
             btnHist.className = 'py-3 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
         }
         window.__fiaSalesHistoryFilter = window.__fiaSalesHistoryFilter || 'all';
-        if (typeof window.setSalesHistoryFilter === 'function') {
+        if (window.__fiaSalesHistoryFilter === 'customer' && typeof window.renderCustomerSalesHistory === 'function') {
+            window.renderCustomerSalesHistory();
+        } else if (typeof window.setSalesHistoryFilter === 'function') {
             window.setSalesHistoryFilter(window.__fiaSalesHistoryFilter);
         } else {
             renderSalesHistory();
         }
         if (typeof pullFromFirebase === 'function') {
             pullFromFirebase().then(() => {
-                if (typeof window.setSalesHistoryFilter === 'function') {
+                if (window.__fiaSalesHistoryFilter === 'customer' && typeof window.renderCustomerSalesHistory === 'function') {
+                    window.renderCustomerSalesHistory();
+                } else if (typeof window.setSalesHistoryFilter === 'function') {
                     window.setSalesHistoryFilter(window.__fiaSalesHistoryFilter || 'all');
                 } else {
                     renderSalesHistory();
@@ -674,15 +679,19 @@ export function openBillingSection(type) {
         btnHist.className = 'py-3 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
     }
 
-    const idxEl = document.getElementById('custIndex');
-    const billNoEl = document.getElementById('billNumberDisplay');
-    if (idxEl && billNoEl && String(idxEl.value) === '-1') {
-        billNoEl.textContent = getNextBillNumber();
-    }
+    updateBillingFormDisplays();
     updateProductDropdown();
     updateCustomerDropdown();
     const curSaleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
     updateBillTypeBadge(curSaleType);
+
+    // Background sync to ensure bill numbers and customer directory are completely fresh
+    if (typeof pullFromFirebase === 'function') {
+        pullFromFirebase().then(() => {
+            updateBillingFormDisplays();
+            updateCustomerDropdown();
+        });
+    }
 }
 
 export function openCosmeticsSalesEntry() {
@@ -731,6 +740,7 @@ export function renderAll() {
     safeRun(renderCosmeticsSummary);
     safeRun(renderAccounts);
     safeRun(renderSalesHistory);
+    safeRun(updateBillingFormDisplays);
     safeRun(renderPurchaseConsolidationView);
     safeRun(renderPurchaseConsolidationReport);
     safeRun(updateDnoBadge);

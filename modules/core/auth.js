@@ -282,16 +282,17 @@ export function updateCloudAuthUI(user) {
     }
 }
 
-let isAutoSigningIn = false;
+let inFlightAuthPromise = null;
 export function autoSignInFirebase() {
     if (!window.FB_AUTH) return Promise.resolve(null);
     if (window.FB_AUTH.currentUser) return Promise.resolve(window.FB_AUTH.currentUser);
+    if (inFlightAuthPromise) return inFlightAuthPromise;
 
     const persistencePromise = (window.firebase && firebase.auth && firebase.auth.Auth && firebase.auth.Auth.Persistence)
         ? window.FB_AUTH.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e => console.warn('Auth persistence notice:', e))
         : Promise.resolve();
 
-    return persistencePromise.then(() => {
+    inFlightAuthPromise = persistencePromise.then(() => {
         if (window.FB_AUTH.currentUser) return window.FB_AUTH.currentUser;
         return window.FB_AUTH.signInAnonymously()
             .then(cred => {
@@ -304,7 +305,11 @@ export function autoSignInFirebase() {
                 console.warn('Firebase Anonymous Auto-Auth notice:', err);
                 return null;
             });
+    }).finally(() => {
+        inFlightAuthPromise = null;
     });
+
+    return inFlightAuthPromise;
 }
 
 export function ensureFirebaseAuth() {

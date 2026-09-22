@@ -233,17 +233,25 @@ export function setSalesHistoryFilter(f) {
 export function refreshSalesHistoryFromCloud() {
     const b = document.getElementById('centralSalesHistoryRefreshBtn');
     if (b) { b.disabled = true; b.innerHTML = '⟳ Syncing with Cloud…'; }
-    pullFromFirebase().then(() => {
-        renderSalesHistory();
+    const updateUi = () => {
+        if (window.__fiaSalesHistoryFilter === 'customer') {
+            if (typeof renderCustomerSalesHistory === 'function') renderCustomerSalesHistory();
+        } else {
+            renderSalesHistory();
+        }
         if (window.renderCustomers) window.renderCustomers();
         if (window.renderAccounts) window.renderAccounts();
+        if (typeof window.updateBillingFormDisplays === 'function') window.updateBillingFormDisplays();
+    };
+    pullFromFirebase().then(() => {
+        updateUi();
         if (b) {
             b.disabled = false;
             b.innerHTML = '✓ Synced';
             setTimeout(() => { b.innerHTML = '↻ Refresh'; }, 1500);
         }
     }).catch(() => {
-        renderSalesHistory();
+        updateUi();
         if (b) { b.disabled = false; b.innerHTML = '↻ Refresh'; }
     });
 }

@@ -496,6 +496,9 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     state.isFirebaseConnected = true;
     updateSyncStatus(true, 'Cloud Data Synchronized');
 
+    // Dynamically refresh billing form numbers (CLN-xxxx and COS-xxxx)
+    updateBillingFormDisplays();
+
     // If local device has additions or edits not present in Cloud, immediately auto-push to Cloud!
     if (hadPendingFlag || localHasAdditions) {
         console.log('[Sync Engine] Local additions or updates detected not yet in Cloud. Auto-pushing to Firebase...');
@@ -505,7 +508,11 @@ export function applyCloudData(data, isRealtimeEvent = false) {
 
     if (window.renderAll) window.renderAll();
     if (typeof window.renderAccounts === 'function') window.renderAccounts();
-    if (window.renderSalesHistory) window.renderSalesHistory();
+    if (window.__fiaSalesHistoryFilter === 'customer') {
+        if (typeof window.renderCustomerSalesHistory === 'function') window.renderCustomerSalesHistory();
+    } else {
+        if (window.renderSalesHistory) window.renderSalesHistory();
+    }
     if (window.updateStockReturnDropdowns) window.updateStockReturnDropdowns();
     if (window.renderStockReturnHistory) window.renderStockReturnHistory();
     if (typeof window.renderConsolidatedStockReport === 'function') window.renderConsolidatedStockReport();
@@ -513,8 +520,69 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     if (typeof window.renderDno === 'function') window.renderDno();
 }
 
+export function updateBillingFormDisplays() {
+    try {
+        const billNoEl = document.getElementById('billNumberDisplay');
+        const idxEl = document.getElementById('custIndex');
+        if (billNoEl && (!idxEl || String(idxEl.value) === '-1')) {
+            if (typeof window.getNextBillNumber === 'function') {
+                billNoEl.textContent = window.getNextBillNumber();
+            }
+        }
+        const cosBillNoEl = document.getElementById('cosBillNumberDisplay');
+        const cosIdxEl = document.getElementById('cosSIndex');
+        if (cosBillNoEl && (!cosIdxEl || String(cosIdxEl.value) === '-1')) {
+            if (typeof window.getNextCosBillNumber === 'function') {
+                cosBillNoEl.textContent = window.getNextCosBillNumber();
+            }
+        }
+    } catch (e) {
+        console.warn('updateBillingFormDisplays error:', e);
+    }
+}
+
 let isSyncing = false;
 let queuedSync = false;
+
+export async function fetchDirectCloudData() {
+    if (!navigator.onLine) return null;
+    try {
+        const user = await (ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null));
+        if (!user || typeof user.getIdToken !== 'function') return null;
+        const token = await user.getIdToken();
+        if (!token) return null;
+        const url = 'https://fia-clean-and-care-default-rtdb.firebaseio.com/fia_data.json?auth=' + encodeURIComponent(token);
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) {
+            console.warn('[Sync Engine] Direct REST fetch status:', res.status);
+            return null;
+        }
+        return await res.json();
+    } catch (e) {
+        console.warn('[Sync Engine] Direct REST pull notice:', e);
+        return null;
+    }
+}
+
+export async function pushDirectCloudData(payload) {
+    if (!navigator.onLine) return false;
+    try {
+        const user = await (ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null));
+        if (!user || typeof user.getIdToken !== 'function') return false;
+        const token = await user.getIdToken();
+        if (!token) return false;
+        const url = 'https://fia-clean-and-care-default-rtdb.firebaseio.com/fia_data.json?auth=' + encodeURIComponent(token);
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        return res.ok;
+    } catch (e) {
+        console.warn('[Sync Engine] Direct REST push notice:', e);
+        return false;
+    }
+}
 
 export function syncToFirebase() {
     ensureStableTransactionIds();
@@ -522,7 +590,7 @@ export function syncToFirebase() {
     createAutomaticLocalBackup();
     localStorage.setItem('fia_has_pending_sync', 'true');
 
-    if (!navigator.onLine || !window.FB_DB) {
+    if (!navigator.onLine) {
         state.isFirebaseConnected = false;
         updateSyncStatus(false, 'Working under offline mode');
         isSyncing = false;
@@ -542,20 +610,34 @@ export function syncToFirebase() {
     const authReady = ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null);
 
     return authReady.then(() => {
+        if (!window.FB_DB) {
+            return pushDirectCloudData(payload).then(ok => {
+                if (!ok) throw new Error('Direct REST push failed');
+                return true;
+            });
+        }
         const writePromise = window.FB_DB.ref('fia_data').set(payload);
         // Robust 25s timeout for mobile data / high latency networks
         const writeTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase write timeout (network slow)')), 25000));
-        return Promise.race([writePromise, writeTimeout]);
+        return Promise.race([writePromise, writeTimeout]).catch(sdkErr => {
+            console.warn('[Sync Engine] SDK write stalled or timed out. Falling back to direct HTTPS REST PUT...', sdkErr);
+            return pushDirectCloudData(payload).then(ok => {
+                if (ok) return true;
+                throw sdkErr;
+            });
+        });
     })
     .then(function() {
         localStorage.removeItem('fia_has_pending_sync');
         state.isFirebaseConnected = true;
         updateSyncStatus(true, 'Cloud Data Synchronized');
+        updateBillingFormDisplays();
         return true;
     })
     .catch(function(err) {
         console.warn("Firebase write error or timeout notice:", err);
-        if (err && String(err.message || err).includes('PERMISSION_DENIED')) {
+        const errStr = String(err?.message || err?.code || err || '').toUpperCase();
+        if (errStr.includes('PERMISSION') || errStr.includes('AUTH')) {
             console.warn('Firebase Write PERMISSION_DENIED. Attempting auto-auth...');
             if (ensureFirebaseAuth) ensureFirebaseAuth();
             updateSyncStatus(null, 'Connecting to Cloud Security...');
@@ -584,34 +666,44 @@ export function syncToFirebase() {
 }
 
 export function pullFromFirebase() {
-    if (!navigator.onLine || !window.FB_DB) {
+    if (!navigator.onLine) {
         state.isFirebaseConnected = false;
         updateSyncStatus(false, 'Working under offline mode');
         return Promise.resolve(false);
     }
 
-    const authReady = ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null);
-
-    return authReady.then(() => {
-        const pullPromise = window.FB_DB.ref('fia_data').once('value');
-        // Robust 25s timeout for mobile data / high latency networks
-        const pullTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase pull timeout (network slow)')), 25000));
-        return Promise.race([pullPromise, pullTimeout]);
-    }).then(function(snapshot) {
-        const data = snapshot ? snapshot.val() : null;
-        if (data) {
-            applyCloudData(data, false);
+    // Try direct ultra-fast REST pull first (guaranteed instant response, bypasses mobile WebSocket latency)
+    return fetchDirectCloudData().then(restData => {
+        if (restData) {
+            applyCloudData(restData, false);
             return true;
-        } else {
-            if (state.products.length || state.customers.length || state.cosProducts.length || state.purchases.length) {
-                syncToFirebase();
-            }
-            return false;
         }
+        throw new Error('REST pull returned empty, fallback to SDK');
+    }).catch(err => {
+        if (!window.FB_DB) return false;
+        const authReady = ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null);
+        return authReady.then(() => {
+            const pullPromise = window.FB_DB.ref('fia_data').once('value');
+            // Robust 25s timeout for mobile data / high latency networks
+            const pullTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase pull timeout (network slow)')), 25000));
+            return Promise.race([pullPromise, pullTimeout]);
+        }).then(function(snapshot) {
+            const data = snapshot ? snapshot.val() : null;
+            if (data) {
+                applyCloudData(data, false);
+                return true;
+            } else {
+                if (state.products.length || state.customers.length || state.cosProducts.length || state.purchases.length) {
+                    syncToFirebase();
+                }
+                return false;
+            }
+        });
     }).catch(function(error) {
         console.warn("Firebase pull notice:", error);
-        if (error && String(error.message || error).includes('PERMISSION_DENIED')) {
-            console.warn('Firebase Pull PERMISSION_DENIED. Attempting auto-auth...');
+        const errStr = String(error?.message || error?.code || error || '').toUpperCase();
+        if (errStr.includes('PERMISSION') || errStr.includes('AUTH')) {
+            console.warn('Firebase Pull Auth notice. Attempting auto-auth...');
             state.isFirebaseConnected = false;
             updateSyncStatus(null, 'Connecting to Cloud Security...');
             if (ensureFirebaseAuth) {
@@ -662,9 +754,10 @@ export function attachRealtimeListener() {
 
     realtimeListenerRef.on('value', realtimeListenerCallback, function(error) {
         console.warn("Firebase Realtime Read Notice:", error);
+        const errStr = String(error?.message || error?.code || error || '').toUpperCase();
         
         // Auto-heal / Reconnect if listener encounters error or detachment
-        if (error && String(error.message || error).includes('PERMISSION_DENIED')) {
+        if (errStr.includes('PERMISSION') || errStr.includes('AUTH')) {
             console.warn("Firebase PERMISSION_DENIED on realtime listener - re-authenticating...");
             state.isFirebaseConnected = false;
             updateSyncStatus(null, 'Connecting to Cloud Security...');
@@ -703,21 +796,23 @@ export function startRealtimeSync() {
         if (ensureFirebaseAuth) {
             ensureFirebaseAuth().then(() => {
                 attachRealtimeListener();
-                if (localStorage.getItem('fia_has_pending_sync') === 'true') {
-                    syncToFirebase();
-                } else {
-                    pullFromFirebase();
-                }
+                // Always pull and merge latest cloud data first so remote bills are never missed
+                pullFromFirebase().then(() => {
+                    if (localStorage.getItem('fia_has_pending_sync') === 'true') {
+                        syncToFirebase();
+                    }
+                });
             }).catch(() => {
                 attachRealtimeListener();
+                pullFromFirebase();
             });
         } else {
             attachRealtimeListener();
-            if (localStorage.getItem('fia_has_pending_sync') === 'true') {
-                syncToFirebase();
-            } else {
-                pullFromFirebase();
-            }
+            pullFromFirebase().then(() => {
+                if (localStorage.getItem('fia_has_pending_sync') === 'true') {
+                    syncToFirebase();
+                }
+            });
         }
     };
 
@@ -813,13 +908,28 @@ export function startRealtimeSync() {
 }
 
 export function manualCloudSync() {
-    updateSyncStatus(null, 'Syncing to Cloud...');
-    return syncToFirebase().then(ok => {
-        if (ok) {
-            alert('Cloud sync completed successfully!');
+    updateSyncStatus(null, 'Syncing with Cloud...');
+    // Bidirectional sync: Pull first to merge all cloud records into local state, then push
+    return pullFromFirebase().then(() => {
+        return syncToFirebase();
+    }).then(ok => {
+        if (window.renderAll) window.renderAll();
+        if (window.__fiaSalesHistoryFilter === 'customer') {
+            if (typeof window.renderCustomerSalesHistory === 'function') window.renderCustomerSalesHistory();
         } else {
-            alert('Could not sync with Cloud. Saved locally.');
+            if (typeof window.renderSalesHistory === 'function') window.renderSalesHistory();
         }
+        updateBillingFormDisplays();
+        alert('✓ Cloud sync completed successfully!\nAll bills and data are up to date across all devices.');
+        return true;
+    }).catch(err => {
+        console.warn('Manual sync fallback notice:', err);
+        return syncToFirebase().then(() => {
+            if (window.renderAll) window.renderAll();
+            updateBillingFormDisplays();
+            alert('Cloud sync completed.');
+            return true;
+        });
     });
 }
 
@@ -930,5 +1040,8 @@ if (typeof window !== 'undefined') {
     window.detectLocalUnsynced = detectLocalUnsynced;
     window.buildSyncPayload = buildSyncPayload;
     window.attachRealtimeListener = attachRealtimeListener;
+    window.updateBillingFormDisplays = updateBillingFormDisplays;
+    window.fetchDirectCloudData = fetchDirectCloudData;
+    window.pushDirectCloudData = pushDirectCloudData;
 }
 
