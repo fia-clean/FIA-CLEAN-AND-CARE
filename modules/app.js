@@ -5,6 +5,14 @@
 
 // Core Modules
 import {
+    renderDno,
+    renderDemands,
+    renderOrders,
+    updateDnoBadge,
+    checkOverdueOrderAlerts,
+    toggleAudioMute
+} from './dno/dno.js';
+import {
     state,
     loadFromLocalStorage,
     startAutomaticBackup,
@@ -500,7 +508,7 @@ export function switchTab(tabName, pushToHistory = true) {
     state.isLoggedIn = true;
     window._isLoggedInFlag = true;
 
-    const sections = ['home', 'customers', 'billing', 'operations', 'stock', 'purchase', 'expenses', 'cosmetics', 'accounts'];
+    const sections = ['home', 'customers', 'billing', 'operations', 'stock', 'purchase', 'expenses', 'cosmetics', 'accounts', 'dno'];
 
     sections.forEach(sec => {
         const secEl = document.getElementById('section' + sec.charAt(0).toUpperCase() + sec.slice(1));
@@ -528,11 +536,14 @@ export function switchTab(tabName, pushToHistory = true) {
     }
     renderAll();
     hideUnwantedStockMenus();
-    if (['billing', 'customers', 'stock', 'operations', 'cosmetics', 'purchase', 'expenses', 'accounts'].includes(tabName)) {
+    if (['billing', 'customers', 'stock', 'operations', 'cosmetics', 'purchase', 'expenses', 'accounts', 'dno'].includes(tabName)) {
         if (typeof pullFromFirebase === 'function') pullFromFirebase();
     }
     if (tabName === 'accounts' && typeof renderAccounts === 'function') {
         renderAccounts();
+    }
+    if (tabName === 'dno' && typeof renderDno === 'function') {
+        renderDno();
     }
 }
 
@@ -667,6 +678,10 @@ export function renderAll() {
     safeRun(renderSalesHistory);
     safeRun(renderPurchaseConsolidationView);
     safeRun(renderPurchaseConsolidationReport);
+    safeRun(updateDnoBadge);
+    if (document.getElementById('sectionDno') && !document.getElementById('sectionDno').classList.contains('hidden')) {
+        safeRun(renderDno);
+    }
 }
 
 // ================= BROWSER POPSTATE & HISTORY =================
@@ -835,6 +850,10 @@ if (typeof window !== 'undefined') {
         try { startRealtimeSync(); } catch (e) { console.error('startRealtimeSync error:', e); }
         try { pullFromFirebase(); } catch (e) { console.error('pullFromFirebase error:', e); }
         try { startAutomaticBackup(); } catch (e) { console.error('startAutomaticBackup error:', e); }
+        try { 
+            setTimeout(() => { if (typeof checkOverdueOrderAlerts === 'function') checkOverdueOrderAlerts(); }, 3000);
+            setInterval(() => { if (typeof checkOverdueOrderAlerts === 'function') checkOverdueOrderAlerts(); }, 300000);
+        } catch (e) {}
     }
 
     window.bootstrapApp = bootstrapApp;

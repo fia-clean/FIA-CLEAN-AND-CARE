@@ -94,6 +94,16 @@ export function ensureStableTransactionIds() {
         if (!r.id) r.id = 'ret_' + (stamp + idx);
         if (!r.savedAt) r.savedAt = stamp + idx;
     });
+    (state.demands || []).forEach((d, idx) => {
+        if (!d) return;
+        if (!d.id) d.id = 'dem_' + (stamp + idx);
+        if (!d.savedAt) d.savedAt = stamp + idx;
+    });
+    (state.orders || []).forEach((o, idx) => {
+        if (!o) return;
+        if (!o.id) o.id = 'ord_' + (stamp + idx);
+        if (!o.savedAt) o.savedAt = stamp + idx;
+    });
 }
 
 export function mergeInventoryProducts(localList, cloudList) {
@@ -380,6 +390,8 @@ export function buildSyncPayload() {
         cosPurchases: getSafeArray(state.cosPurchases, 'fia_cospurchases', p => !isItemDeleted(p)),
         cosSales: getSafeArray(state.cosSales, 'fia_cossales', s => !isItemDeleted(s)),
         packages: getSafeArray(state.packages, 'fia_packages', p => !isItemDeleted(p)),
+        demands: getSafeArray(state.demands, 'fia_demands', d => !isItemDeleted(d)),
+        orders: getSafeArray(state.orders, 'fia_orders', o => !isItemDeleted(o)),
         stockReturns: state.stockReturns || [],
         clearedDayBookEntries: state.clearedDayBookEntries || [],
         dayBookOpeningBalance: Number(state.dayBookOpeningBalance || 0),
@@ -431,6 +443,8 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     unmarkActive(data.expenses, e => [e.id]);
     unmarkActive(data.stockReturns, r => [r.id]);
     unmarkActive(data.packages, p => [p.id, p.name]);
+    unmarkActive(data.demands, d => [d.id]);
+    unmarkActive(data.orders, o => [o.id, o.orderNo]);
 
     // Step C: Sync remote tombstone deleted IDs into local tombstones, BUT NEVER re-tombstone any active local key!
     const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
@@ -454,6 +468,8 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     state.cosSales = mergeCollection(state.cosSales, data.cosSales, 'id');
     state.packages = mergeInventoryProducts(state.packages, data.packages);
     state.stockReturns = mergeCollection(state.stockReturns, data.stockReturns, 'id');
+    state.demands = mergeCollection(state.demands, data.demands, 'id');
+    state.orders = mergeCollection(state.orders, data.orders, 'id');
     normalizeLoadedProducts();
     normalizeCustomerRecords();
 
@@ -483,6 +499,7 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     if (window.renderStockReturnHistory) window.renderStockReturnHistory();
     if (typeof window.renderConsolidatedStockReport === 'function') window.renderConsolidatedStockReport();
     if (typeof window.renderPackageConsolidationReport === 'function') window.renderPackageConsolidationReport();
+    if (typeof window.renderDno === 'function') window.renderDno();
 }
 
 let isSyncing = false;

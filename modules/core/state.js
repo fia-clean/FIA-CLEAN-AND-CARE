@@ -17,6 +17,8 @@ export const state = {
     cosPurchases: [],
     cosSales: [],
     packages: [],
+    demands: [],
+    orders: [],
     stockReturns: [],
     clearedDayBookEntries: [],
     dayBookOpeningBalance: 0,
@@ -391,6 +393,8 @@ export function loadFromLocalStorage() {
         state.cosPurchases = (JSON.parse(localStorage.getItem('fia_cospurchases')) || []).filter(p => !isItemDeleted(p));
         state.cosSales = (JSON.parse(localStorage.getItem('fia_cossales')) || []).filter(s => !isItemDeleted(s));
         state.packages = (JSON.parse(localStorage.getItem('fia_packages')) || []).filter(p => !isItemDeleted(p));
+        state.demands = (JSON.parse(localStorage.getItem('fia_demands')) || []).filter(d => !isItemDeleted(d));
+        state.orders = (JSON.parse(localStorage.getItem('fia_orders')) || []).filter(o => !isItemDeleted(o));
         state.stockReturns = JSON.parse(localStorage.getItem('fia_stock_returns')) || [];
         state.clearedDayBookEntries = JSON.parse(localStorage.getItem('fia_cleared_daybook')) || [];
         state.dayBookOpeningBalance = Number(localStorage.getItem('fia_daybook_opening_balance') || 0);
@@ -492,6 +496,8 @@ export function saveLocalStateSafely() {
         saveCollectionSafely('fia_cospurchases', state.cosPurchases, p => !isItemDeleted(p));
         saveCollectionSafely('fia_cossales', state.cosSales, s => !isItemDeleted(s));
         saveCollectionSafely('fia_packages', state.packages, p => !isItemDeleted(p));
+        saveCollectionSafely('fia_demands', state.demands, d => !isItemDeleted(d));
+        saveCollectionSafely('fia_orders', state.orders, o => !isItemDeleted(o));
         saveCollectionSafely('fia_stock_returns', state.stockReturns, () => true);
         saveCollectionSafely('fia_cleared_daybook', state.clearedDayBookEntries, () => true);
         localStorage.setItem('fia_daybook_opening_balance', String(state.dayBookOpeningBalance || 0));
@@ -549,6 +555,8 @@ export function createAutomaticLocalBackup() {
         const safeCosPurchases = getSafeList(state.cosPurchases, 'cosPurchases', 'fia_cospurchases', p => !isItemDeleted(p));
         const safeCosSales = getSafeList(state.cosSales, 'cosSales', 'fia_cossales', s => !isItemDeleted(s));
         const safePackages = getSafeList(state.packages, 'packages', 'fia_packages', p => !isItemDeleted(p));
+        const safeDemands = getSafeList(state.demands, 'demands', 'fia_demands', d => !isItemDeleted(d));
+        const safeOrders = getSafeList(state.orders, 'orders', 'fia_orders', o => !isItemDeleted(o));
         
         const backupData = {
             backupVersion: 1,
@@ -559,7 +567,9 @@ export function createAutomaticLocalBackup() {
                 products: safeProducts.length,
                 cosProducts: safeCosProducts.length,
                 customers: safeCustomers.length,
-                packages: safePackages.length
+                packages: safePackages.length,
+                demands: safeDemands.length,
+                orders: safeOrders.length
             },
             data: {
                 products: safeProducts,
@@ -570,6 +580,8 @@ export function createAutomaticLocalBackup() {
                 cosPurchases: safeCosPurchases,
                 cosSales: safeCosSales,
                 packages: safePackages,
+                demands: safeDemands,
+                orders: safeOrders,
                 stockReturns: state.stockReturns || [],
                 clearedDayBookEntries: state.clearedDayBookEntries || [],
                 dayBookOpeningBalance: Number(state.dayBookOpeningBalance || 0),

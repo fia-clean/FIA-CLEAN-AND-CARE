@@ -102,8 +102,9 @@
             bottom: 0 !important;
             width: 100vw !important;
             height: 100vh !important;
-            background-color: #020617 !important;
-            background-image: radial-gradient(circle at center, #0f172a 0%, #020617 100%) !important;
+            background-color: rgba(15, 23, 42, 0.55) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
             z-index: 999999 !important;
             display: flex !important;
             align-items: center !important;
@@ -131,7 +132,8 @@
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #020617;
+            background-color: #f1f5f9;
+            color: #0f172a;
             margin: 0;
             padding: 0;
         }
@@ -302,9 +304,84 @@
             #printSection { display: block !important; position: static !important; width: 100% !important; height: auto !important; overflow: visible !important; background: #fff !important; }
             #billPreviewModal { display: none !important; }
         }
+
+        /* ===== MODERN WHITE & SOFT SLATE HIGH-VISIBILITY ACCOUNTING THEME (v50.0) ===== */
+        body {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
+
+        /* Pure white cards with elegant slate borders */
+        .bg-slate-900, .bg-slate-900\/90, .bg-slate-900\/80, .bg-slate-900\/70,
+        .bg-slate-950, .bg-slate-950\/95, .bg-slate-950\/90, .bg-slate-950\/80, .bg-slate-950\/70, .bg-slate-950\/60, .bg-slate-950\/50, .bg-slate-950\/40 {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        /* Soft gray secondary surfaces */
+        .bg-slate-950\/30, .bg-slate-950\/20, .bg-slate-900\/60, .bg-slate-800 {
+            background-color: #f8fafc !important;
+            color: #1e293b !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        /* High contrast text overrides */
+        .text-slate-100, .text-slate-200, .text-white {
+            color: #0f172a !important;
+        }
+        .text-slate-300, .text-slate-400 {
+            color: #475569 !important;
+        }
+        .text-emerald-400 {
+            color: #047857 !important;
+        }
+        .text-rose-300, .text-rose-400 {
+            color: #e11d48 !important;
+        }
+        .text-amber-300, .text-amber-400 {
+            color: #b45309 !important;
+        }
+        .text-blue-300, .text-blue-400 {
+            color: #1d4ed8 !important;
+        }
+        .text-pink-300, .text-pink-400 {
+            color: #be185d !important;
+        }
+
+        /* Crisp white inputs with visible slate borders */
+        input, select, textarea {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1.5px solid #cbd5e1 !important;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #059669 !important;
+            box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15) !important;
+            outline: none !important;
+        }
+        input::placeholder, textarea::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        /* Preserve bright text inside primary buttons and banners */
+        button.bg-emerald-600, button.bg-emerald-700, button.bg-blue-600, button.bg-rose-600,
+        button.bg-slate-900, .bg-emerald-600, .bg-emerald-700, .bg-rose-600, .bg-indigo-600 {
+            color: #ffffff !important;
+        }
+        button.bg-emerald-600 *, button.bg-emerald-700 *, button.bg-rose-600 *, .bg-emerald-600 *, .bg-rose-600 *, .bg-indigo-600 * {
+            color: #ffffff !important;
+        }
+
+        /* Modals Backdrop */
+        .fixed.inset-0.z-\[999999\], .fixed.inset-0.z-50, .fixed.inset-0.z-\[70\] {
+            background-color: rgba(15, 23, 42, 0.55) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 min-h-screen text-slate-100 p-2 sm:p-6">
+<body class="bg-slate-100 min-h-screen text-slate-900 p-2 sm:p-6">
 
     <!-- ================= INSTANT SYNCHRONOUS AUTHENTICATION ENGINE ================= -->
     <script>
@@ -593,19 +670,20 @@
     </script>
 
     <!-- ================= LOGIN OVERLAY ================= -->
-    <div id="loginOverlay" class="fixed inset-0 bg-slate-950/95 z-[999999] flex items-center justify-center p-4 backdrop-blur-md">
-        <div class="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-3xl max-w-sm w-full space-y-5 shadow-2xl text-center">
+    <div id="loginOverlay" class="fixed inset-0 bg-slate-900/50 z-[999999] flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl max-w-sm w-full space-y-5 shadow-2xl text-center">
             <!-- Official FIA Logo Badge -->
-            <div class="w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-emerald-500/40 shadow-2xl shadow-emerald-950/60 bg-black flex items-center justify-center p-1">
+            <div class="w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-emerald-500/40 shadow-lg bg-emerald-50 flex items-center justify-center p-1">
                 <img src="./icon-192.png" alt="FIA CLEAN & CARE Logo" class="w-full h-full object-contain rounded-full">
             </div>
             <div>
-                <h2 class="text-xl font-extrabold text-emerald-400 tracking-tight">FIA CLEAN & CARE</h2>
+                <h2 class="text-xl font-extrabold text-emerald-700 tracking-tight">FIA CLEAN & CARE</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Wholesale & Retail Management</p>
             </div>
             
             <div class="relative">
-                <input type="password" id="loginPinInput" placeholder="Enter PIN" onkeydown="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();verifyLoginPin();}" class="w-full p-3.5 pr-12 bg-slate-950 border border-slate-700 rounded-2xl text-center tracking-widest text-xl text-white focus:outline-none focus:border-emerald-500 transition shadow-inner" maxlength="32" autofocus autocomplete="current-password">
-                <button type="button" onclick="togglePinVisibility('loginPinInput','loginPinEye')" id="loginPinEye" aria-label="Toggle PIN Visibility" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-400 p-1 transition cursor-pointer">
+                <input type="password" id="loginPinInput" placeholder="Enter PIN" onkeydown="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();verifyLoginPin();}" class="w-full p-3.5 pr-12 bg-slate-50 border border-slate-300 rounded-2xl text-center tracking-widest text-xl text-slate-900 focus:outline-none focus:border-emerald-600 transition shadow-inner" maxlength="32" autofocus autocomplete="current-password">
+                <button type="button" onclick="togglePinVisibility('loginPinInput','loginPinEye')" id="loginPinEye" aria-label="Toggle PIN Visibility" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-700 p-1 transition cursor-pointer">
                     <svg id="eyeIconShow" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
@@ -616,11 +694,11 @@
                     </svg>
                 </button>
             </div>
-            <button type="button" onclick="verifyLoginPin()" class="w-full bg-emerald-600 text-white py-3.5 rounded-2xl font-bold text-sm hover:bg-emerald-500 active:scale-[0.99] transition shadow-lg shadow-emerald-900/40 cursor-pointer">Login</button>
+            <button type="button" onclick="verifyLoginPin()" class="w-full bg-emerald-600 text-white py-3.5 rounded-2xl font-bold text-sm hover:bg-emerald-700 active:scale-[0.99] transition shadow-lg shadow-emerald-700/20 cursor-pointer">Login</button>
             
-            <div class="flex justify-between text-xs pt-2 border-t border-slate-800">
-                <button type="button" onclick="openChangePinModal()" class="text-emerald-400 hover:underline">Change PIN</button>
-                <button type="button" onclick="openResetPinModal()" class="text-amber-400 hover:underline">Forgot PIN?</button>
+            <div class="flex justify-between text-xs pt-2 border-t border-slate-100">
+                <button type="button" onclick="openChangePinModal()" class="text-emerald-700 hover:underline font-semibold">Change PIN</button>
+                <button type="button" onclick="openResetPinModal()" class="text-amber-700 hover:underline font-semibold">Forgot PIN?</button>
             </div>
         </div>
     </div>
@@ -629,78 +707,87 @@
     <div id="mainAppContainer" class="hidden">
 
         <!-- Firebase Sync Status Indicator -->
-        <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-400">
+        <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-500 font-semibold">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm">v49.6</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">v50.0 PRO</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
-                <button onclick="openSettingsModal()" class="hover:text-emerald-400 transition underline">Settings</button>
-                <button onclick="manualCloudSync()" class="hover:text-emerald-400 transition underline">Force Sync</button>
-                <button type="button" onclick="openBackupModal()" class="hover:text-emerald-400 transition underline text-blue-400 font-bold">💾 Backup</button>
-                <button type="button" onclick="logoutApp()" aria-label="Logout" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-800 bg-rose-950/40 text-rose-300 hover:bg-rose-900/60 transition font-bold"><span>🚪</span><span>Logout</span></button>
+                <button onclick="openSettingsModal()" class="hover:text-emerald-700 transition underline">Settings</button>
+                <button onclick="manualCloudSync()" class="hover:text-emerald-700 transition underline">Force Sync</button>
+                <button type="button" onclick="openBackupModal()" class="hover:text-emerald-700 transition underline text-blue-600 font-bold">💾 Backup</button>
+                <button type="button" onclick="logoutApp()" aria-label="Logout" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition font-bold shadow-xs"><span>🚪</span><span>Logout</span></button>
             </div>
         </div>
 
-    <div class="max-w-md mx-auto bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl overflow-hidden md:max-w-2xl p-3 sm:p-6 mb-10 space-y-6">
+    <div class="max-w-md mx-auto bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden md:max-w-2xl p-3 sm:p-6 mb-10 space-y-6">
         
         <!-- Header Title -->
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
-                <h1 class="text-2xl font-extrabold tracking-tight text-emerald-400">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/80">v49.6</span>
+                <h1 class="text-2xl font-extrabold tracking-tight text-emerald-700">FIA CLEAN & CARE</h1>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">v50.0</span>
             </div>
-            <p class="text-xs text-slate-400">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
+            <p class="text-xs text-slate-500 font-medium">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
 
         <!-- Main Tab Navigation -->
-        <div class="tab-scroll border-b border-slate-800 pb-2 gap-2 text-xs">
-            <button onclick="switchTab('home')" id="tabHome" class="px-3 py-2 text-center font-bold text-emerald-400 border-b-2 border-emerald-400 whitespace-nowrap transition">🏠 Home</button>
-            <button onclick="switchTab('customers')" id="tabCustomers" class="px-3 py-2 text-center font-medium text-slate-400 hover:text-slate-200 whitespace-nowrap transition">👥 Customers</button>
-            <button onclick="switchTab('billing')" id="tabBilling" class="px-3 py-2 text-center font-medium text-slate-400 hover:text-slate-200 whitespace-nowrap transition">🧾 Billing</button>
-            <button onclick="switchTab('operations')" id="tabOperations" class="px-3 py-2 text-center font-medium text-slate-400 hover:text-slate-200 whitespace-nowrap transition">⚙️ Operations</button>
-            <button onclick="switchTab('accounts')" id="tabAccounts" class="px-3 py-2 text-center font-medium text-slate-400 hover:text-slate-200 whitespace-nowrap transition">📖 Day Book</button>
+        <div class="tab-scroll border-b border-slate-200 pb-2 gap-1.5 text-xs">
+            <button onclick="switchTab('home')" id="tabHome" class="px-3 py-2 text-center font-bold text-emerald-700 border-b-2 border-emerald-600 whitespace-nowrap transition">🏠 Home</button>
+            <button onclick="switchTab('customers')" id="tabCustomers" class="px-3 py-2 text-center font-medium text-slate-600 hover:text-slate-900 whitespace-nowrap transition">👥 Customers</button>
+            <button onclick="switchTab('billing')" id="tabBilling" class="px-3 py-2 text-center font-medium text-slate-600 hover:text-slate-900 whitespace-nowrap transition">🧾 Billing</button>
+            <button onclick="switchTab('dno')" id="tabDno" class="px-3 py-2 text-center font-medium text-slate-600 hover:text-slate-900 whitespace-nowrap transition relative inline-flex items-center gap-1">
+                <span>📋 D & O</span>
+                <span id="navDnoBadge" class="hidden px-1.5 py-0.2 bg-rose-600 text-white text-[9px] font-black rounded-full shadow-xs">0</span>
+            </button>
+            <button onclick="switchTab('operations')" id="tabOperations" class="px-3 py-2 text-center font-medium text-slate-600 hover:text-slate-900 whitespace-nowrap transition">⚙️ Operations</button>
+            <button onclick="switchTab('accounts')" id="tabAccounts" class="px-3 py-2 text-center font-medium text-slate-600 hover:text-slate-900 whitespace-nowrap transition">📖 Day Book</button>
         </div>
 
         <!-- ================= SECTION 0: HOME ================= -->
         <div id="sectionHome" class="space-y-4">
-            <div class="bg-gradient-to-br from-emerald-950/80 via-slate-900/90 to-slate-950 p-5 rounded-3xl border border-emerald-800/50 shadow-xl">
+            <div class="bg-gradient-to-r from-emerald-700 via-teal-700 to-indigo-800 p-5 rounded-3xl text-white shadow-md">
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <div class="text-[10px] uppercase tracking-[0.18em] text-emerald-400 font-bold">FIA CLEAN & CARE</div>
-                        <h2 class="text-xl sm:text-2xl font-extrabold text-white mt-1">Business Dashboard</h2>
-                        <p class="text-[11px] text-slate-400 mt-1">Billing • Operations • Customers • Day Book</p>
+                        <div class="text-[10px] uppercase tracking-[0.18em] text-emerald-200 font-bold">FIA CLEAN & CARE</div>
+                        <h2 class="text-xl sm:text-2xl font-black text-white mt-1">Business Dashboard</h2>
+                        <p class="text-[11px] text-emerald-100/90 mt-1">Billing • Operations • Demands & Orders • Day Book</p>
                     </div>
                     <div class="text-right shrink-0">
-                        <div id="dashboardDate" class="text-[10px] text-slate-400"></div>
-                        <div id="dashboardSyncBadge" class="mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-sky-300 bg-sky-950/40 border border-sky-800/50 px-2.5 py-1.5 rounded-full">
-                            <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> Connecting...
+                        <div id="dashboardDate" class="text-[10px] text-emerald-200 font-semibold"></div>
+                        <div id="dashboardSyncBadge" class="mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-900 bg-white/90 border border-white px-2.5 py-1.5 rounded-full shadow-xs">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Connecting...
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Key business indicators -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <button onclick="switchTab('stock')" class="text-left bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 hover:border-emerald-700/70 transition">
-                    <div class="flex items-center justify-between"><span class="text-xl">📦</span><span class="text-[9px] text-slate-500 uppercase">Stock</span></div>
-                    <div id="dashProductCount" class="text-xl font-extrabold text-white mt-2">0</div>
-                    <div class="text-[10px] text-slate-400">Products</div>
+            <!-- Key business indicators (5 Columns on Desktop, 2 on Mobile) -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
+                <button onclick="switchTab('stock')" class="text-left bg-slate-50 border border-slate-200 rounded-2xl p-3 hover:border-emerald-600 transition shadow-xs">
+                    <div class="flex items-center justify-between"><span class="text-xl">📦</span><span class="text-[9px] text-slate-500 uppercase font-bold">Stock</span></div>
+                    <div id="dashProductCount" class="text-xl font-black text-slate-900 mt-2">0</div>
+                    <div class="text-[10px] text-slate-500 font-medium">Products</div>
                 </button>
-                <button onclick="switchTab('customers')" class="text-left bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 hover:border-indigo-700/70 transition">
-                    <div class="flex items-center justify-between"><span class="text-xl">👥</span><span class="text-[9px] text-slate-500 uppercase">CRM</span></div>
-                    <div id="dashCustomerCount" class="text-xl font-extrabold text-white mt-2">0</div>
-                    <div class="text-[10px] text-slate-400">Customers</div>
+                <button onclick="switchTab('customers')" class="text-left bg-slate-50 border border-slate-200 rounded-2xl p-3 hover:border-indigo-600 transition shadow-xs">
+                    <div class="flex items-center justify-between"><span class="text-xl">👥</span><span class="text-[9px] text-slate-500 uppercase font-bold">CRM</span></div>
+                    <div id="dashCustomerCount" class="text-xl font-black text-slate-900 mt-2">0</div>
+                    <div class="text-[10px] text-slate-500 font-medium">Customers</div>
                 </button>
-                <button onclick="openDueAmountList()" class="text-left bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 hover:border-rose-700/70 transition">
-                    <div class="flex items-center justify-between"><span class="text-xl">🧾</span><span class="text-[9px] text-slate-500 uppercase">Due</span></div>
-                    <div id="dashDueAmount" class="text-lg font-extrabold text-rose-300 mt-2">₹0</div>
-                    <div class="text-[10px] text-slate-400">Pending amount • Tap to view</div>
+                <button onclick="openDueAmountList()" class="text-left bg-rose-50/60 border border-rose-200 rounded-2xl p-3 hover:border-rose-500 transition shadow-xs">
+                    <div class="flex items-center justify-between"><span class="text-xl">🧾</span><span class="text-[9px] text-rose-700 uppercase font-bold">Due</span></div>
+                    <div id="dashDueAmount" class="text-lg font-black text-rose-700 mt-2">₹0</div>
+                    <div class="text-[10px] text-rose-600 font-medium">Pending • Tap</div>
                 </button>
-                <button onclick="openLowStockList()" class="text-left bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 hover:border-rose-700/70 transition">
-                    <div class="flex items-center justify-between"><span class="text-xl">📦</span><span class="text-[9px] text-slate-500 uppercase">Low Stock</span></div>
-                    <div id="dashLowStockMainCount" class="text-xl font-extrabold text-rose-300 mt-2">0</div>
-                    <div class="text-[10px] text-slate-400">Low stock products</div>
+                <button onclick="openLowStockList()" class="text-left bg-amber-50/60 border border-amber-200 rounded-2xl p-3 hover:border-amber-500 transition shadow-xs">
+                    <div class="flex items-center justify-between"><span class="text-xl">⚠️</span><span class="text-[9px] text-amber-700 uppercase font-bold">Low Stock</span></div>
+                    <div id="dashLowStockMainCount" class="text-xl font-black text-amber-700 mt-2">0</div>
+                    <div class="text-[10px] text-amber-600 font-medium">Shortage</div>
+                </button>
+                <button onclick="switchTab('dno')" class="text-left bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3 hover:border-emerald-600 transition shadow-xs col-span-2 sm:col-span-1">
+                    <div class="flex items-center justify-between"><span class="text-xl">📋</span><span class="text-[9px] text-emerald-800 uppercase font-bold">D & O</span></div>
+                    <div id="dashboardDnoAlertCount" class="text-xl font-black text-emerald-800 mt-2">0</div>
+                    <div class="text-[10px] text-emerald-700 font-medium">Demand & Orders</div>
                 </button>
             </div>
             <!-- Alerts -->
@@ -828,6 +915,90 @@
                     <!-- Scrollable list with max-height to prevent endless scrolling -->
                     <div id="recentTransactionsList" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1 overscroll-contain"></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ================= SECTION: D & O (DEMANDS & ORDERS) ================= -->
+        <div id="sectionDno" class="space-y-4 hidden">
+            <!-- Header banner with sub-tabs and sound control -->
+            <div class="bg-gradient-to-r from-emerald-700 via-teal-700 to-indigo-800 p-4 sm:p-5 rounded-3xl text-white shadow-md">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <div class="text-[10px] uppercase tracking-[0.18em] text-emerald-200 font-bold">FIA CLEAN & CARE</div>
+                        <h2 class="text-lg sm:text-xl font-black mt-0.5">Demands & Customer Orders (D & O)</h2>
+                        <p class="text-xs text-emerald-100/90 mt-0.5">Shortage tracking • Packaging demand • Bulk booking • Delivery alerts</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="window.toggleAudioMute()" id="btnToggleDnoAudio" class="px-3 py-1.5 rounded-xl border border-white/20 bg-white/10 text-white text-xs font-bold hover:bg-white/20 transition backdrop-blur-xs">
+                            🔊 Sound On
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sub-tab Switcher: Demands vs Orders -->
+                <div class="flex gap-2 mt-4 bg-black/20 p-1 rounded-2xl backdrop-blur-xs">
+                    <button type="button" onclick="window.switchDnoSubTab('demands')" id="subTabDemands" class="flex-1 py-2.5 px-4 text-center font-bold text-xs sm:text-sm rounded-xl bg-emerald-600 text-white shadow-sm transition">
+                        📉 Demands & Shortages
+                    </button>
+                    <button type="button" onclick="window.switchDnoSubTab('orders')" id="subTabOrders" class="flex-1 py-2.5 px-4 text-center font-bold text-xs sm:text-sm rounded-xl bg-white/10 text-emerald-100 hover:bg-white/20 transition">
+                        📦 Bulk Orders & Reminders
+                    </button>
+                </div>
+            </div>
+
+            <!-- SUB-TAB 1: DEMANDS CONTENT -->
+            <div id="dnoDemandsContent" class="space-y-4">
+                <!-- Summary stats -->
+                <div id="demandsSummaryStats"></div>
+
+                <!-- Actions & Filters bar -->
+                <div class="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" onclick="window.filterDemands('all')" id="filterDemand_all" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-xs transition">All</button>
+                        <button type="button" onclick="window.filterDemands('needed')" id="filterDemand_needed" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">Needed</button>
+                        <button type="button" onclick="window.filterDemands('urgent')" id="filterDemand_urgent" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">⚠️ Urgent</button>
+                        <button type="button" onclick="window.filterDemands('received')" id="filterDemand_received" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">✓ Received</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="window.shareDemandsWhatsApp()" class="px-3 py-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs hover:bg-emerald-200 transition flex items-center gap-1.5">
+                            <span>📲</span> <span>Share List</span>
+                        </button>
+                        <button type="button" onclick="window.openAddDemandModal()" class="px-3.5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5">
+                            <span>➕</span> <span>Quick Add Demand</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Demands list container -->
+                <div id="demandsListContainer" class="space-y-3"></div>
+            </div>
+
+            <!-- SUB-TAB 2: ORDERS CONTENT -->
+            <div id="dnoOrdersContent" class="hidden space-y-4">
+                <!-- Summary stats -->
+                <div id="ordersSummaryStats"></div>
+
+                <!-- Actions & Filters bar -->
+                <div class="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" onclick="window.filterOrders('all')" id="filterOrder_all" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-xs transition">All Orders</button>
+                        <button type="button" onclick="window.filterOrders('overdue')" id="filterOrder_overdue" class="px-3 py-1.5 rounded-xl bg-slate-100 text-rose-700 hover:bg-rose-50 font-bold text-xs transition">⚠️ Overdue / Today</button>
+                        <button type="button" onclick="window.filterOrders('pending')" id="filterOrder_pending" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">Pending</button>
+                        <button type="button" onclick="window.filterOrders('processing')" id="filterOrder_processing" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">Processing</button>
+                        <button type="button" onclick="window.filterOrders('delivered')" id="filterOrder_delivered" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">✓ Delivered</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="window.checkOverdueOrderAlerts(true)" title="Check Reminders & Voice Alert" class="px-3 py-2 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs hover:bg-amber-200 transition flex items-center gap-1.5">
+                            <span>🔔</span> <span>Check Alerts</span>
+                        </button>
+                        <button type="button" onclick="window.openNewOrderModal()" class="px-3.5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5">
+                            <span>➕</span> <span>New Order Booking</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Orders list container -->
+                <div id="ordersListContainer" class="space-y-3"></div>
             </div>
         </div>
 
@@ -2152,6 +2323,199 @@
     </div>
 
 
+    <!-- ================= ADD / EDIT DEMAND MODAL ================= -->
+    <div id="addDemandModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
+        <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📉</span>
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-sm">Quick Add Demand / Shortage</h3>
+                        <p class="text-[10px] text-slate-500">Record missing materials or stock on-the-go</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAddDemandModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 py-1">×</button>
+            </div>
+
+            <form onsubmit="event.preventDefault(); saveDemandItem();" class="space-y-3 text-xs">
+                <input type="hidden" id="demandItemId" value="">
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Item / Material Name <span class="text-rose-500">*</span></label>
+                    <input type="text" id="demandItemName" placeholder="e.g. 500ml Pet Bottle, Trigger Spray, Caustic, Sticker..." required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:border-emerald-600 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Category</label>
+                        <select id="demandItemCategory" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none font-medium">
+                            <option value="packaging">📦 Packaging / Bottles / Caps</option>
+                            <option value="raw_material">🧪 Raw Chemical / Material</option>
+                            <option value="finished_goods">🧴 Finished Product</option>
+                            <option value="other">📌 Other Item</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Unit</label>
+                        <select id="demandItemUnit" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none font-medium">
+                            <option value="Pcs">Pcs</option>
+                            <option value="Btls">Bottles</option>
+                            <option value="Caps">Caps</option>
+                            <option value="Rolls">Rolls</option>
+                            <option value="Boxes">Boxes</option>
+                            <option value="Kg">Kg</option>
+                            <option value="Ltr">Ltr</option>
+                            <option value="Gram">Gram</option>
+                            <option value="ml">ml</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Quantity Needed <span class="text-rose-500">*</span></label>
+                        <input type="number" step="any" min="0.1" id="demandItemQty" placeholder="e.g. 100" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm font-bold focus:border-emerald-600 focus:outline-none">
+                    </div>
+                    <div class="flex items-center pt-5">
+                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox" id="demandItemUrgent" class="w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-rose-500">
+                            <span class="font-extrabold text-rose-600 text-xs">🔴 Mark as Urgent</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Short Notes / Details (Optional)</label>
+                    <input type="text" id="demandItemNotes" placeholder="e.g. White color cap, transparent bottle, 28mm neck..." class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none">
+                </div>
+
+                <div class="flex gap-2 pt-2 border-t border-slate-100">
+                    <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-sm">
+                        ✓ Save Demand
+                    </button>
+                    <button type="button" onclick="closeAddDemandModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs hover:bg-slate-200 transition">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= NEW CUSTOMER BULK ORDER MODAL ================= -->
+    <div id="newOrderModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
+        <div class="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📦</span>
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-sm">Bulk Customer Order Booking</h3>
+                        <p class="text-[10px] text-slate-500">Take shop orders with automated due date reminder</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeNewOrderModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 py-1">×</button>
+            </div>
+
+            <form onsubmit="event.preventDefault(); saveOrderBooking();" class="space-y-3.5 text-xs">
+                <input type="hidden" id="orderBookingId" value="">
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Order No</label>
+                        <input type="text" id="orderBookingNo" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-700 font-mono text-xs" readonly>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Customer / Shop Name <span class="text-rose-500">*</span></label>
+                        <input type="text" id="orderCustomerName" list="orderCustomerDatalist" oninput="onOrderCustomerSelect()" placeholder="Search or type shop name..." required class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:border-emerald-600 focus:outline-none">
+                        <datalist id="orderCustomerDatalist"></datalist>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Phone Number</label>
+                        <input type="tel" id="orderCustomerPhone" placeholder="Mobile / WhatsApp..." class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Delivery Route / Address</label>
+                        <input type="text" id="orderCustomerAddress" placeholder="Shop location / Route..." class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Delivery Due Date & Time -->
+                <div class="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2">
+                    <span class="text-[11px] font-extrabold text-amber-900 block">⏰ Delivery Due Schedule (Reminder Trigger)</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Due Date <span class="text-rose-500">*</span></label>
+                            <input type="date" id="orderDueDate" required class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:border-amber-600 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Due Time (Optional)</label>
+                            <input type="time" id="orderDueTime" value="17:00" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:border-amber-600 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Items Picker Section -->
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+                    <span class="text-[11px] font-extrabold text-slate-800 block">🛒 Add Products to Order</span>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <select id="orderItemProductSelect" onchange="onOrderItemSelectChange()" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none font-medium">
+                            <option value="">-- Choose Product --</option>
+                        </select>
+                        <input type="text" id="orderItemCustomName" placeholder="Or Custom item name..." class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Qty</label>
+                            <input type="number" step="any" min="0.1" id="orderItemQty" value="1" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold text-center">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Rate (₹)</label>
+                            <input type="number" step="any" min="0" id="orderItemRate" placeholder="0" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold text-center">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="button" onclick="addTempOrderItem()" class="w-full py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs hover:bg-emerald-700 transition shadow-xs">
+                                + Add Item
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Temp items list -->
+                    <div id="tempOrderItemsList" class="space-y-1.5 pt-1 max-h-36 overflow-y-auto"></div>
+
+                    <!-- Totals summary -->
+                    <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs font-bold">
+                        <span>Grand Total: <strong id="orderModalGrandTotal" class="text-emerald-700 text-sm">₹0.00</strong></span>
+                        <span>Balance Due: <strong id="orderModalBalance" class="text-rose-600 text-sm">₹0.00</strong></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Advance Received (₹)</label>
+                        <input type="number" step="any" min="0" id="orderAdvancePaid" oninput="updateOrderModalTotals()" placeholder="0" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:border-emerald-600 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Notes / Instructions</label>
+                        <input type="text" id="orderNotes" placeholder="e.g. Green bottle only..." class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2 border-t border-slate-100">
+                    <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-sm">
+                        ✓ Book Order
+                    </button>
+                    <button type="button" onclick="closeNewOrderModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs hover:bg-slate-200 transition">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Low Stock Products Modal -->
     <div id="lowStockListModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
       <div class="max-w-md w-full bg-slate-900 border border-rose-800/80 rounded-2xl shadow-2xl p-5 space-y-3 max-h-[85vh] overflow-y-auto">
@@ -2170,7 +2534,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=49.6"></script>
+    <script type="module" src="./modules/app.js?v=50.0"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2182,7 +2546,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v49.6) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.0) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2236,7 +2600,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=49.6')
+                navigator.serviceWorker.register('./sw.js?v=50.0')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
