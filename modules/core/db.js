@@ -45,21 +45,31 @@ export function updateSyncStatus(connected, customText) {
     }
 
     if (el) {
-        if (customText) {
-            el.innerHTML = `<span class="w-2 h-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}"></span> ${customText}`;
-        } else if (connected) {
-            el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Cloud Database Connected`;
+        if (connected === true) {
+            const text = customText || 'Cloud Data Synchronized';
+            el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span> ${text}`;
+            el.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300 shadow-xs whitespace-nowrap min-w-0 transition-colors';
+        } else if (connected === false) {
+            const text = customText || 'Working under offline mode';
+            el.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500 shrink-0 animate-pulse"></span> ${text}`;
+            el.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold text-rose-800 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-300 shadow-xs whitespace-nowrap min-w-0 transition-colors';
         } else {
-            el.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Working under offline mode`;
+            // connecting / syncing
+            const text = customText || 'Connecting to Cloud Database...';
+            el.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 shrink-0 animate-pulse"></span> ${text}`;
+            el.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300 shadow-xs whitespace-nowrap min-w-0 transition-colors';
         }
     }
 
     if (syncBadge) {
-        if (connected) {
+        if (connected === true) {
             syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Direct Sync Active';
             syncBadge.className = 'mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1.5 rounded-full';
+        } else if (connected === false) {
+            syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Offline Mode';
+            syncBadge.className = 'mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-rose-300 bg-rose-950/40 border border-rose-800/50 px-2.5 py-1.5 rounded-full';
         } else {
-            syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Offline Mode';
+            syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> Connecting...';
             syncBadge.className = 'mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-300 bg-amber-950/40 border border-amber-800/50 px-2.5 py-1.5 rounded-full';
         }
     }
@@ -533,24 +543,34 @@ export function syncToFirebase() {
 
     return authReady.then(() => {
         const writePromise = window.FB_DB.ref('fia_data').set(payload);
-        const writeTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase write timeout (offline)')), 4000));
+        // Robust 25s timeout for mobile data / high latency networks
+        const writeTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase write timeout (network slow)')), 25000));
         return Promise.race([writePromise, writeTimeout]);
     })
     .then(function() {
         localStorage.removeItem('fia_has_pending_sync');
         state.isFirebaseConnected = true;
-        updateSyncStatus(true, 'Cloud Database Synced');
+        updateSyncStatus(true, 'Cloud Data Synchronized');
         return true;
     })
     .catch(function(err) {
-        console.warn("Firebase write error or offline timeout:", err);
-        state.isFirebaseConnected = false;
+        console.warn("Firebase write error or timeout notice:", err);
         if (err && String(err.message || err).includes('PERMISSION_DENIED')) {
             console.warn('Firebase Write PERMISSION_DENIED. Attempting auto-auth...');
             if (ensureFirebaseAuth) ensureFirebaseAuth();
-            updateSyncStatus(false, 'Connecting to Cloud Security...');
+            updateSyncStatus(null, 'Connecting to Cloud Security...');
+            state.isFirebaseConnected = false;
+        } else if (!navigator.onLine) {
+            state.isFirebaseConnected = false;
+            updateSyncStatus(false, 'Working under offline mode');
         } else {
-            updateSyncStatus(false, 'Sync Pending (Offline Mode)');
+            // Still online, network was slow or momentary blip - keep pending flag to auto-retry
+            updateSyncStatus(null, 'Syncing to Cloud (Retrying)...');
+            setTimeout(() => {
+                if (localStorage.getItem('fia_has_pending_sync') === 'true' && navigator.onLine) {
+                    syncToFirebase();
+                }
+            }, 3000);
         }
         return false;
     })
@@ -574,7 +594,8 @@ export function pullFromFirebase() {
 
     return authReady.then(() => {
         const pullPromise = window.FB_DB.ref('fia_data').once('value');
-        const pullTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase pull timeout (offline)')), 3500));
+        // Robust 25s timeout for mobile data / high latency networks
+        const pullTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase pull timeout (network slow)')), 25000));
         return Promise.race([pullPromise, pullTimeout]);
     }).then(function(snapshot) {
         const data = snapshot ? snapshot.val() : null;
@@ -588,18 +609,25 @@ export function pullFromFirebase() {
             return false;
         }
     }).catch(function(error) {
-        console.warn("Firebase pull error or offline timeout:", error);
-        state.isFirebaseConnected = false;
+        console.warn("Firebase pull notice:", error);
         if (error && String(error.message || error).includes('PERMISSION_DENIED')) {
             console.warn('Firebase Pull PERMISSION_DENIED. Attempting auto-auth...');
+            state.isFirebaseConnected = false;
+            updateSyncStatus(null, 'Connecting to Cloud Security...');
             if (ensureFirebaseAuth) {
                 ensureFirebaseAuth().then(u => {
                     if (u) setTimeout(pullFromFirebase, 1200);
                 });
             }
-            updateSyncStatus(false, 'Connecting to Cloud Security...');
-        } else {
+        } else if (!navigator.onLine) {
+            state.isFirebaseConnected = false;
             updateSyncStatus(false, 'Working under offline mode');
+        } else {
+            // Online but slow pull - do not falsely scream offline mode
+            console.log('[Sync Engine] Pull latency. Retrying cloud pull...');
+            setTimeout(() => {
+                if (navigator.onLine) pullFromFirebase();
+            }, 3000);
         }
         if (window.renderAll) window.renderAll();
         return false;
@@ -608,9 +636,14 @@ export function pullFromFirebase() {
 
 let realtimeListenerRef = null;
 let realtimeListenerCallback = null;
+let realtimeRetryTimeout = null;
 
 export function attachRealtimeListener() {
     if (!window.FB_DB) return;
+    if (realtimeRetryTimeout) {
+        clearTimeout(realtimeRetryTimeout);
+        realtimeRetryTimeout = null;
+    }
     if (realtimeListenerRef && realtimeListenerCallback) {
         try {
             realtimeListenerRef.off('value', realtimeListenerCallback);
@@ -629,24 +662,35 @@ export function attachRealtimeListener() {
 
     realtimeListenerRef.on('value', realtimeListenerCallback, function(error) {
         console.warn("Firebase Realtime Read Notice:", error);
-        state.isFirebaseConnected = false;
+        
+        // Auto-heal / Reconnect if listener encounters error or detachment
         if (error && String(error.message || error).includes('PERMISSION_DENIED')) {
             console.warn("Firebase PERMISSION_DENIED on realtime listener - re-authenticating...");
+            state.isFirebaseConnected = false;
+            updateSyncStatus(null, 'Connecting to Cloud Security...');
             if (ensureFirebaseAuth) {
                 ensureFirebaseAuth().then(user => {
                     if (user) {
-                        setTimeout(attachRealtimeListener, 1200);
-                    } else {
-                        updateSyncStatus(false, 'Connecting to Cloud Security...');
+                        setTimeout(attachRealtimeListener, 1500);
                     }
                 });
             }
-        } else {
+        } else if (!navigator.onLine) {
+            state.isFirebaseConnected = false;
             updateSyncStatus(false, 'Working under offline mode');
+        } else {
+            // Transient network interruption or socket reset - automatically re-attach!
+            console.log('[Sync Engine] Transient realtime listener error. Scheduling auto-reconnect...');
+            updateSyncStatus(null, 'Reconnecting to Cloud...');
+            realtimeRetryTimeout = setTimeout(() => {
+                attachRealtimeListener();
+            }, 3000);
         }
         if (window.renderAll) window.renderAll();
     });
 }
+
+let offlineDebounceTimer = null;
 
 export function startRealtimeSync() {
     if (!window.FB_DB) {
@@ -654,13 +698,6 @@ export function startRealtimeSync() {
         return;
     }
     updateSyncStatus(null, 'Connecting to Cloud Database...');
-
-    let resolvedInitialConnection = false;
-    const connectTimeout = setTimeout(() => {
-        if (!resolvedInitialConnection && !state.isFirebaseConnected) {
-            updateSyncStatus(false, 'Working under offline mode');
-        }
-    }, 2500);
 
     const checkAndSync = () => {
         if (ensureFirebaseAuth) {
@@ -684,21 +721,43 @@ export function startRealtimeSync() {
         }
     };
 
+    // Firebase .info/connected listener with debouncing to prevent false offline mode
     window.FB_DB.ref('.info/connected').on('value', function(snap) {
-        resolvedInitialConnection = true;
-        clearTimeout(connectTimeout);
         const isOnline = snap.val() === true;
         if (isOnline) {
+            if (offlineDebounceTimer) {
+                clearTimeout(offlineDebounceTimer);
+                offlineDebounceTimer = null;
+            }
             state.isFirebaseConnected = true;
-            updateSyncStatus(true, 'Cloud Database Connected');
+            updateSyncStatus(true, 'Cloud Data Synchronized');
             checkAndSync();
         } else {
-            state.isFirebaseConnected = false;
-            updateSyncStatus(false, 'Working under offline mode');
+            // When disconnected, check if browser actually has network connection
+            if (navigator.onLine) {
+                // Device has internet, socket is negotiating or reconnecting
+                updateSyncStatus(null, 'Connecting to Cloud Database...');
+                if (!offlineDebounceTimer) {
+                    // Only transition to offline mode if disconnected continuously for > 15s
+                    offlineDebounceTimer = setTimeout(() => {
+                        if (!state.isFirebaseConnected) {
+                            updateSyncStatus(false, 'Working under offline mode');
+                        }
+                    }, 15000);
+                }
+            } else {
+                state.isFirebaseConnected = false;
+                updateSyncStatus(false, 'Working under offline mode');
+            }
         }
     });
 
     window.addEventListener('online', function() {
+        if (offlineDebounceTimer) {
+            clearTimeout(offlineDebounceTimer);
+            offlineDebounceTimer = null;
+        }
+        updateSyncStatus(null, 'Connecting to Cloud Database...');
         if (window.FB_DB) {
             try { window.FB_DB.goOnline(); } catch(e) {}
         }
@@ -706,9 +765,48 @@ export function startRealtimeSync() {
     });
 
     window.addEventListener('offline', function() {
+        if (offlineDebounceTimer) {
+            clearTimeout(offlineDebounceTimer);
+            offlineDebounceTimer = null;
+        }
         state.isFirebaseConnected = false;
         updateSyncStatus(false, 'Working under offline mode');
     });
+
+    // Mobile / Tablet Sleep, Resume & Tab Switching Handlers
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            console.log('[Sync Engine] App visible/resumed. Refreshing cloud sync...');
+            if (window.FB_DB) {
+                try { window.FB_DB.goOnline(); } catch(e) {}
+            }
+            if (navigator.onLine) {
+                checkAndSync();
+            }
+        }
+    });
+
+    window.addEventListener('focus', function() {
+        if (window.FB_DB) {
+            try { window.FB_DB.goOnline(); } catch(e) {}
+        }
+        if (navigator.onLine && !state.isFirebaseConnected) {
+            checkAndSync();
+        }
+    });
+
+    // Periodic Heartbeat Watchdog: ensure realtime listener is active and fetch any updates
+    setInterval(() => {
+        if (navigator.onLine && window.FB_DB) {
+            if (!realtimeListenerRef) {
+                console.log('[Sync Engine Watchdog] Re-attaching dormant realtime listener...');
+                attachRealtimeListener();
+            }
+            if (!state.isFirebaseConnected) {
+                try { window.FB_DB.goOnline(); } catch(e) {}
+            }
+        }
+    }, 45000);
 
     // Initial listener attachment and sync
     checkAndSync();

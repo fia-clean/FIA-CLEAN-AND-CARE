@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-v50.9.1';
+const CACHE_NAME = 'fia-clean-care-v50.9.2';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [
@@ -80,10 +80,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Bypass Firebase database websocket and live endpoints
+  // Bypass all Firebase database, auth, websocket and Google live endpoints
   if (
     url.hostname.includes('firebaseio.com') ||
-    url.hostname.includes('googleapis.com/upload') ||
+    url.hostname.includes('googleapis.com') ||
+    url.hostname.includes('firebaseapp.com') ||
+    url.hostname.includes('identitytoolkit') ||
+    url.hostname.includes('securetoken') ||
     url.protocol === 'ws:' ||
     url.protocol === 'wss:'
   ) {

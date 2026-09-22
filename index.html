@@ -819,7 +819,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3.5 rounded-2xl p-2.5 sm:px-3.5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style="background: linear-gradient(135deg, #e0f2fe 0%, #eff6ff 50%, #e0e7ff 100%); border: 1.5px solid #93c5fd;">
             <!-- Line 1: Cloud Sync Status (Left) & App Version (Right) -->
             <div class="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
-                <span id="syncStatus" class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 bg-white px-2.5 py-1 rounded-full border border-slate-200 shadow-xs whitespace-nowrap min-w-0">
+                <span id="syncStatus" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300 shadow-xs whitespace-nowrap min-w-0 transition-colors">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span> Connecting to Cloud Database...
                 </span>
                 <span class="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">v50.9 PRO</span>
@@ -2766,7 +2766,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=50.9.1')
+                navigator.serviceWorker.register('./sw.js?v=50.9.2')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
