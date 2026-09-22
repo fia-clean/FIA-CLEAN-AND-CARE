@@ -716,6 +716,9 @@ export function openNewOrderModal(orderData = null) {
     document.getElementById('orderDueTime').value = orderData ? (orderData.dueTime || '17:00') : '17:00';
     document.getElementById('orderAdvancePaid').value = orderData ? (orderData.advancePaid || '') : '';
     document.getElementById('orderNotes').value = orderData ? (orderData.notes || '') : '';
+    if (document.getElementById('orderItemCustomName')) document.getElementById('orderItemCustomName').value = '';
+    if (document.getElementById('orderItemRate')) document.getElementById('orderItemRate').value = '';
+    if (document.getElementById('orderItemQty')) document.getElementById('orderItemQty').value = '1';
 
     if (orderData && Array.isArray(orderData.items)) {
         tempOrderItems = JSON.parse(JSON.stringify(orderData.items));
@@ -755,17 +758,92 @@ export function populateProductSelect() {
     const select = document.getElementById('orderItemProductSelect');
     if (!select) return;
 
-    let html = '<option value="">-- Choose Product --</option>';
-    
-    html += '<optgroup label="Cleaning Products">';
+    let html = '<option value="">-- Choose Product / Pack Size --</option>';
+
+    // Cleaning Products & Variants
+    html += '<optgroup label="🧴 Cleaning Products & Pack Sizes">';
     (state.products || []).filter(p => !isItemDeleted(p)).forEach(p => {
-        html += `<option value="cln_${p.id}" data-name="${p.name}" data-unit="${p.unit || 'Ltr'}" data-rate="${p.wholesalePrice || p.retailPrice || 0}">${p.name} (Stock: ${p.stock} ${p.unit})</option>`;
+        const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+        if (hasVariants) {
+            p.variants.forEach(v => {
+                const varDisplayName = v.name && v.name.toLowerCase().includes(p.name.toLowerCase())
+                    ? v.name
+                    : `${p.name} (${v.name || (v.size + ' ' + (v.unit || ''))})`;
+                const rate = v.wholesalePrice || v.retailPrice || p.wholesalePrice || p.retailPrice || 0;
+                const unit = v.unit || 'Bottle';
+                const size = v.size || 1;
+                html += `<option value="var_${p.id}_${v.id}" 
+                    data-parent-id="${p.id}" 
+                    data-parent-name="${p.name}" 
+                    data-variant-id="${v.id}" 
+                    data-name="${varDisplayName}" 
+                    data-unit="${unit}" 
+                    data-size="${size}" 
+                    data-rate="${rate}">
+                    ${varDisplayName} — ₹${Number(rate).toFixed(2)}
+                </option>`;
+            });
+            const baseRate = p.wholesalePrice || p.retailPrice || 0;
+            html += `<option value="cln_${p.id}" 
+                data-parent-id="${p.id}" 
+                data-parent-name="${p.name}" 
+                data-variant-id="" 
+                data-name="${p.name} (Bulk)" 
+                data-unit="${p.unit || 'Ltr'}" 
+                data-size="1" 
+                data-rate="${baseRate}">
+                ${p.name} [Bulk] — ₹${Number(baseRate).toFixed(2)}
+            </option>`;
+        } else {
+            const baseRate = p.wholesalePrice || p.retailPrice || 0;
+            const packNote = p.packageName ? ` [${p.packageName}]` : '';
+            html += `<option value="cln_${p.id}" 
+                data-parent-id="${p.id}" 
+                data-parent-name="${p.name}" 
+                data-variant-id="" 
+                data-name="${p.name}${packNote}" 
+                data-unit="${p.unit || 'Ltr'}" 
+                data-size="1" 
+                data-rate="${baseRate}">
+                ${p.name}${packNote} — ₹${Number(baseRate).toFixed(2)}
+            </option>`;
+        }
     });
     html += '</optgroup>';
 
-    html += '<optgroup label="Cosmetics Products">';
+    // Cosmetics Products & Variants
+    html += '<optgroup label="💄 Cosmetics Products">';
     (state.cosProducts || []).filter(p => !isItemDeleted(p)).forEach(p => {
-        html += `<option value="cos_${p.id}" data-name="${p.name}" data-unit="${p.unit || 'Units'}" data-rate="${p.costPrice || p.salePrice || 0}">${p.name} (Stock: ${p.stock} ${p.unit})</option>`;
+        const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+        if (hasVariants) {
+            p.variants.forEach(v => {
+                const varDisplayName = v.name && v.name.toLowerCase().includes(p.name.toLowerCase())
+                    ? v.name
+                    : `${p.name} (${v.name || (v.size + ' ' + (v.unit || ''))})`;
+                const rate = v.costPrice || v.salePrice || p.costPrice || p.salePrice || 0;
+                html += `<option value="cosvar_${p.id}_${v.id}" 
+                    data-parent-id="${p.id}" 
+                    data-parent-name="${p.name}" 
+                    data-variant-id="${v.id}" 
+                    data-name="${varDisplayName}" 
+                    data-unit="${v.unit || 'Pcs'}" 
+                    data-size="${v.size || 1}" 
+                    data-rate="${rate}">
+                    ${varDisplayName} — ₹${Number(rate).toFixed(2)}
+                </option>`;
+            });
+        }
+        const baseRate = p.costPrice || p.salePrice || 0;
+        html += `<option value="cos_${p.id}" 
+            data-parent-id="${p.id}" 
+            data-parent-name="${p.name}" 
+            data-variant-id="" 
+            data-name="${p.name}" 
+            data-unit="${p.unit || 'Units'}" 
+            data-size="1" 
+            data-rate="${baseRate}">
+            ${p.name} — ₹${Number(baseRate).toFixed(2)}
+        </option>`;
     });
     html += '</optgroup>';
 
@@ -774,33 +852,62 @@ export function populateProductSelect() {
 
 export function onOrderItemSelectChange() {
     const select = document.getElementById('orderItemProductSelect');
-    const opt = select.options[select.selectedIndex];
+    const opt = select ? select.options[select.selectedIndex] : null;
     if (opt && opt.dataset.name) {
         document.getElementById('orderItemRate').value = opt.dataset.rate || 0;
         document.getElementById('orderItemQty').value = 1;
+        const customNameEl = document.getElementById('orderItemCustomName');
+        if (customNameEl) {
+            customNameEl.value = opt.dataset.name;
+        }
+        const unitEl = document.getElementById('orderItemUnit');
+        if (unitEl && opt.dataset.unit) {
+            const u = opt.dataset.unit;
+            if ([...unitEl.options].some(o => o.value.toLowerCase() === u.toLowerCase())) {
+                unitEl.value = u;
+            } else if (/ml|l|ltr/i.test(u)) {
+                unitEl.value = 'Bottle';
+            }
+        }
     }
 }
 
 export function addTempOrderItem() {
     const select = document.getElementById('orderItemProductSelect');
     const customNameInput = document.getElementById('orderItemCustomName');
-    const opt = select.options[select.selectedIndex];
+    const unitSelect = document.getElementById('orderItemUnit');
+    const opt = select ? select.options[select.selectedIndex] : null;
     
     let productName = '';
-    let unit = 'Pcs';
+    let unit = unitSelect ? unitSelect.value : 'Bottle';
     let productId = '';
+    let parentId = '';
+    let parentName = '';
+    let variantId = '';
+    let size = 1;
+
+    if (customNameInput && customNameInput.value.trim()) {
+        productName = customNameInput.value.trim();
+    } else if (opt && opt.dataset.name) {
+        productName = opt.dataset.name;
+    }
 
     if (opt && opt.value) {
-        productName = opt.dataset.name;
-        unit = opt.dataset.unit || 'Pcs';
         productId = opt.value;
-    } else if (customNameInput && customNameInput.value.trim()) {
-        productName = customNameInput.value.trim();
+        parentId = opt.dataset.parentId || '';
+        parentName = opt.dataset.parentName || '';
+        variantId = opt.dataset.variantId || '';
+        size = parseFloat(opt.dataset.size) || 1;
+        if (!unitSelect || !unitSelect.value) {
+            unit = opt.dataset.unit || 'Bottle';
+        }
+    } else {
         productId = 'custom_' + Date.now();
+        parentName = productName;
     }
 
     if (!productName) {
-        alert("Please select a product or enter a custom item name.");
+        alert("Please select a product or enter an item name.");
         return;
     }
 
@@ -811,6 +918,10 @@ export function addTempOrderItem() {
     tempOrderItems.push({
         productId,
         productName,
+        parentName,
+        parentId,
+        variantId,
+        size,
         qty,
         unit,
         rate,
@@ -818,7 +929,7 @@ export function addTempOrderItem() {
     });
 
     // Reset row
-    select.value = '';
+    if (select) select.value = '';
     if (customNameInput) customNameInput.value = '';
     document.getElementById('orderItemQty').value = 1;
     document.getElementById('orderItemRate').value = '';
@@ -844,7 +955,7 @@ export function renderTempOrderItems() {
     let html = '';
     tempOrderItems.forEach((item, idx) => {
         html += `
-            <div class="flex items-center justify-between p-2 bg-slate-100 rounded-xl text-xs gap-2">
+            <div class="flex items-center justify-between p-2 bg-white border border-slate-200 rounded-xl text-xs gap-2 shadow-xs">
                 <div class="min-w-0 flex-1">
                     <strong class="text-slate-900 block truncate">${item.productName}</strong>
                     <span class="text-slate-500 text-[11px]">${item.qty} ${item.unit} × ₹${item.rate} = <strong class="text-slate-800">₹${item.total.toFixed(2)}</strong></span>
@@ -987,17 +1098,52 @@ export function convertOrderToBill(id) {
 
     // 2. Transfer items into Billing currentBillItems
     if (!Array.isArray(state.currentBillItems)) state.currentBillItems = [];
-    state.currentBillItems = (order.items || []).map(item => ({
-        id: 'bi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        productName: item.productName,
-        stockId: item.productId,
-        qty: item.qty,
-        packUnit: item.unit || 'Ltr',
-        rate: item.rate,
-        total: item.total,
-        unitType: `${item.qty} ${item.unit || 'Ltr'}`,
-        stockDeductionQty: item.qty
-    }));
+    
+    (order.items || []).forEach(item => {
+        const parentProduct = (state.products || []).find(p => 
+            (item.parentId && String(p.id) === String(item.parentId)) || 
+            (item.parentName && p.name.toLowerCase() === item.parentName.toLowerCase()) ||
+            p.name.toLowerCase() === item.productName.toLowerCase()
+        ) || (state.cosProducts || []).find(cp => 
+            (item.parentId && String(cp.id) === String(item.parentId)) || 
+            (item.parentName && cp.name.toLowerCase() === item.parentName.toLowerCase()) ||
+            cp.name.toLowerCase() === item.productName.toLowerCase()
+        );
+
+        let variant = null;
+        if (parentProduct && Array.isArray(parentProduct.variants)) {
+            if (item.variantId) {
+                variant = parentProduct.variants.find(v => String(v.id) === String(item.variantId));
+            }
+            if (!variant) {
+                variant = parentProduct.variants.find(v => 
+                    item.productName.toLowerCase().includes(String(v.name || '').toLowerCase()) ||
+                    (v.size && item.productName.includes(String(v.size)))
+                );
+            }
+        }
+
+        const qtyUnits = Number(item.qty || 1);
+        const itemRate = Number(item.rate || 0);
+
+        state.currentBillItems.push({
+            id: 'bi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            productName: parentProduct ? parentProduct.name : item.productName,
+            variantId: variant ? variant.id : (item.variantId || ''),
+            variantName: variant ? variant.name : '',
+            displayName: item.productName,
+            qty: variant ? (variant.size || 1) : 1,
+            rate: itemRate,
+            unitType: item.unit || (variant ? variant.unit : 'Bottle'),
+            quantityType: item.unit || 'Bottle',
+            numberOfUnits: qtyUnits,
+            total: itemRate * qtyUnits,
+            stockDeductionQty: variant ? ((variant.size || 1) * qtyUnits) : qtyUnits,
+            packageId: variant?.packageId || parentProduct?.packageId || null,
+            stockId: parentProduct ? parentProduct.id : item.productId,
+            category: parentProduct?.category || 'Cleaning'
+        });
+    });
 
     // 3. Navigate to Billing
     if (typeof window.switchTab === 'function') {

@@ -305,9 +305,9 @@
             #billPreviewModal { display: none !important; }
         }
 
-        /* ===== MODERN WHITE & SOFT SLATE HIGH-VISIBILITY ACCOUNTING THEME (v50.0) ===== */
+        /* ===== MODERN WHITE & SOFT PASTEL HIGH-VISIBILITY ACCOUNTING THEME (v50.1) ===== */
         body {
-            background-color: #f1f5f9 !important;
+            background-color: #f8fafc !important;
             color: #0f172a !important;
         }
 
@@ -326,18 +326,94 @@
             border-color: #e2e8f0 !important;
         }
 
+        /* Soft Pastel Green (Emerald) Cards & Highlights */
+        .bg-emerald-950, .bg-emerald-950\/80, .bg-emerald-950\/70, .bg-emerald-950\/60, .bg-emerald-950\/50, .bg-emerald-950\/40, .bg-emerald-950\/30, .bg-emerald-950\/20,
+        .bg-emerald-900, .bg-emerald-900\/80, .bg-emerald-900\/50, .bg-emerald-900\/40, .bg-emerald-900\/30, .bg-emerald-900\/20,
+        .bg-emerald-800, .bg-emerald-800\/50, .bg-emerald-800\/30, .bg-emerald-800\/20 {
+            background-color: #ecfdf5 !important;
+            border-color: #a7f3d0 !important;
+            color: #065f46 !important;
+        }
+
+        /* Soft Pastel Red/Rose Cards & Alerts */
+        .bg-rose-950, .bg-rose-950\/80, .bg-rose-950\/70, .bg-rose-950\/60, .bg-rose-950\/50, .bg-rose-950\/40, .bg-rose-950\/30, .bg-rose-950\/20,
+        .bg-rose-900, .bg-rose-900\/80, .bg-rose-900\/50, .bg-rose-900\/40, .bg-rose-900\/30, .bg-rose-900\/20,
+        .bg-rose-800, .bg-rose-800\/50, .bg-rose-800\/30, .bg-rose-800\/20,
+        .bg-red-950, .bg-red-900 {
+            background-color: #fff1f2 !important;
+            border-color: #fecdd3 !important;
+            color: #9f1239 !important;
+        }
+
+        /* Soft Pastel Amber/Orange Cards & Warnings */
+        .bg-amber-950, .bg-amber-950\/80, .bg-amber-950\/70, .bg-amber-950\/60, .bg-amber-950\/50, .bg-amber-950\/40, .bg-amber-950\/30, .bg-amber-950\/20,
+        .bg-amber-900, .bg-amber-900\/80, .bg-amber-900\/50, .bg-amber-900\/40, .bg-amber-900\/30, .bg-amber-900\/20,
+        .bg-amber-800, .bg-amber-800\/50, .bg-amber-800\/30, .bg-amber-800\/20,
+        .bg-yellow-950, .bg-yellow-900 {
+            background-color: #fffbeb !important;
+            border-color: #fde68a !important;
+            color: #92400e !important;
+        }
+
+        /* Soft Pastel Blue Cards */
+        .bg-blue-950, .bg-blue-950\/80, .bg-blue-950\/70, .bg-blue-950\/60, .bg-blue-950\/50, .bg-blue-950\/40, .bg-blue-950\/30, .bg-blue-950\/20,
+        .bg-blue-900, .bg-blue-900\/80, .bg-blue-900\/50, .bg-blue-900\/40, .bg-blue-900\/30, .bg-blue-900\/20,
+        .bg-blue-800, .bg-blue-800\/50, .bg-blue-800\/30, .bg-blue-800\/20 {
+            background-color: #eff6ff !important;
+            border-color: #bfdbfe !important;
+            color: #1e40af !important;
+        }
+
+        /* Soft Pastel Sky/Cyan Cards */
+        .bg-sky-950, .bg-sky-950\/80, .bg-sky-950\/70, .bg-sky-950\/60, .bg-sky-950\/50, .bg-sky-950\/40, .bg-sky-950\/30, .bg-sky-950\/20,
+        .bg-sky-900, .bg-sky-900\/80, .bg-sky-900\/50, .bg-sky-900\/40, .bg-sky-900\/30, .bg-sky-900\/20,
+        .bg-cyan-950, .bg-cyan-900 {
+            background-color: #f0f9ff !important;
+            border-color: #bae6fd !important;
+            color: #075985 !important;
+        }
+
+        /* Soft Pastel Indigo & Purple Cards */
+        .bg-indigo-950, .bg-indigo-950\/80, .bg-indigo-950\/70, .bg-indigo-950\/60, .bg-indigo-950\/50, .bg-indigo-950\/40, .bg-indigo-950\/30, .bg-indigo-950\/20,
+        .bg-indigo-900, .bg-indigo-900\/80, .bg-indigo-900\/50, .bg-indigo-900\/40, .bg-indigo-900\/30, .bg-indigo-900\/20,
+        .bg-purple-950, .bg-purple-900 {
+            background-color: #eef2ff !important;
+            border-color: #c7d2fe !important;
+            color: #3730a3 !important;
+        }
+
+        /* Convert dark borders to soft subtle borders */
+        .border-slate-800, .border-slate-700, .border-slate-600 {
+            border-color: #e2e8f0 !important;
+        }
+        .border-emerald-800\/50, .border-emerald-900\/50 {
+            border-color: #a7f3d0 !important;
+        }
+        .border-rose-800\/50, .border-rose-900\/50, .border-rose-700\/60 {
+            border-color: #fecdd3 !important;
+        }
+        .border-amber-800\/50, .border-amber-900\/50 {
+            border-color: #fde68a !important;
+        }
+        .border-blue-800\/50, .border-blue-900\/50 {
+            border-color: #bfdbfe !important;
+        }
+        .border-sky-800\/50, .border-sky-900\/50 {
+            border-color: #bae6fd !important;
+        }
+
         /* High contrast text overrides */
-        .text-slate-100, .text-slate-200, .text-white {
+        .text-slate-100, .text-slate-200 {
             color: #0f172a !important;
         }
         .text-slate-300, .text-slate-400 {
-            color: #475569 !important;
+            color: #334155 !important;
         }
-        .text-emerald-400 {
+        .text-emerald-400, .text-emerald-300 {
             color: #047857 !important;
         }
         .text-rose-300, .text-rose-400 {
-            color: #e11d48 !important;
+            color: #be123c !important;
         }
         .text-amber-300, .text-amber-400 {
             color: #b45309 !important;
@@ -345,8 +421,22 @@
         .text-blue-300, .text-blue-400 {
             color: #1d4ed8 !important;
         }
+        .text-sky-300, .text-sky-400 {
+            color: #0369a1 !important;
+        }
         .text-pink-300, .text-pink-400 {
             color: #be185d !important;
+        }
+
+        /* Secondary and utility buttons - convert to clean light buttons */
+        button.bg-slate-800, button.bg-slate-900, button.bg-slate-700 {
+            background-color: #f1f5f9 !important;
+            color: #1e293b !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+        button.bg-slate-800:hover, button.bg-slate-900:hover, button.bg-slate-700:hover {
+            background-color: #e2e8f0 !important;
+            color: #0f172a !important;
         }
 
         /* Crisp white inputs with visible slate borders */
@@ -364,17 +454,17 @@
             color: #94a3b8 !important;
         }
 
-        /* Preserve bright text inside primary buttons and banners */
+        /* Preserve bright white text inside primary CTA buttons */
         button.bg-emerald-600, button.bg-emerald-700, button.bg-blue-600, button.bg-rose-600,
-        button.bg-slate-900, .bg-emerald-600, .bg-emerald-700, .bg-rose-600, .bg-indigo-600 {
+        button.bg-indigo-600, .btn-primary {
             color: #ffffff !important;
         }
-        button.bg-emerald-600 *, button.bg-emerald-700 *, button.bg-rose-600 *, .bg-emerald-600 *, .bg-rose-600 *, .bg-indigo-600 * {
+        button.bg-emerald-600 *, button.bg-emerald-700 *, button.bg-blue-600 *, button.bg-rose-600 *, button.bg-indigo-600 * {
             color: #ffffff !important;
         }
 
         /* Modals Backdrop */
-        .fixed.inset-0.z-\[999999\], .fixed.inset-0.z-50, .fixed.inset-0.z-\[70\] {
+        .fixed.inset-0.z-\[999999\], .fixed.inset-0.z-50, .fixed.inset-0.z-\[70\], .fixed.inset-0.z-\[100000\] {
             background-color: rgba(15, 23, 42, 0.55) !important;
             backdrop-filter: blur(8px) !important;
             -webkit-backdrop-filter: blur(8px) !important;
@@ -710,7 +800,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-500 font-semibold">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">v50.0 PRO</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">v50.2 PRO</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-700 transition underline">Settings</button>
@@ -726,7 +816,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-700">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">v50.0</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">v50.2</span>
             </div>
             <p class="text-xs text-slate-500 font-medium">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -746,16 +836,16 @@
 
         <!-- ================= SECTION 0: HOME ================= -->
         <div id="sectionHome" class="space-y-4">
-            <div class="bg-gradient-to-r from-emerald-700 via-teal-700 to-indigo-800 p-5 rounded-3xl text-white shadow-md">
+            <div class="bg-gradient-to-r from-emerald-50 via-teal-50 to-slate-50 p-5 rounded-3xl border border-emerald-200/90 shadow-xs">
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <div class="text-[10px] uppercase tracking-[0.18em] text-emerald-200 font-bold">FIA CLEAN & CARE</div>
-                        <h2 class="text-xl sm:text-2xl font-black text-white mt-1">Business Dashboard</h2>
-                        <p class="text-[11px] text-emerald-100/90 mt-1">Billing • Operations • Demands & Orders • Day Book</p>
+                        <div class="text-[10px] uppercase tracking-[0.18em] text-emerald-700 font-extrabold">FIA CLEAN & CARE</div>
+                        <h2 class="text-xl sm:text-2xl font-black text-slate-900 mt-1">Business Dashboard</h2>
+                        <p class="text-[11px] text-slate-600 mt-1 font-medium">Billing • Operations • Demands & Orders • Day Book</p>
                     </div>
                     <div class="text-right shrink-0">
-                        <div id="dashboardDate" class="text-[10px] text-emerald-200 font-semibold"></div>
-                        <div id="dashboardSyncBadge" class="mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-900 bg-white/90 border border-white px-2.5 py-1.5 rounded-full shadow-xs">
+                        <div id="dashboardDate" class="text-[10px] text-slate-600 font-bold"></div>
+                        <div id="dashboardSyncBadge" class="mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-800 bg-white border border-emerald-200 px-2.5 py-1.5 rounded-full shadow-xs">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Connecting...
                         </div>
                     </div>
@@ -774,108 +864,108 @@
                     <div id="dashCustomerCount" class="text-xl font-black text-slate-900 mt-2">0</div>
                     <div class="text-[10px] text-slate-500 font-medium">Customers</div>
                 </button>
-                <button onclick="openDueAmountList()" class="text-left bg-rose-50/60 border border-rose-200 rounded-2xl p-3 hover:border-rose-500 transition shadow-xs">
-                    <div class="flex items-center justify-between"><span class="text-xl">🧾</span><span class="text-[9px] text-rose-700 uppercase font-bold">Due</span></div>
-                    <div id="dashDueAmount" class="text-lg font-black text-rose-700 mt-2">₹0</div>
-                    <div class="text-[10px] text-rose-600 font-medium">Pending • Tap</div>
+                <button onclick="openDueAmountList()" class="text-left bg-rose-50 border border-rose-200 rounded-2xl p-3 hover:border-rose-400 transition shadow-xs">
+                    <div class="flex items-center justify-between"><span class="text-xl">🧾</span><span class="text-[9px] text-rose-800 uppercase font-bold">Due</span></div>
+                    <div id="dashDueAmount" class="text-lg font-black text-rose-800 mt-2">₹0</div>
+                    <div class="text-[10px] text-rose-700 font-medium">Pending • Tap</div>
                 </button>
-                <button onclick="openLowStockList()" class="text-left bg-amber-50/60 border border-amber-200 rounded-2xl p-3 hover:border-amber-500 transition shadow-xs">
-                    <div class="flex items-center justify-between"><span class="text-xl">⚠️</span><span class="text-[9px] text-amber-700 uppercase font-bold">Low Stock</span></div>
-                    <div id="dashLowStockMainCount" class="text-xl font-black text-amber-700 mt-2">0</div>
-                    <div class="text-[10px] text-amber-600 font-medium">Shortage</div>
+                <button onclick="openLowStockList()" class="text-left bg-amber-50 border border-amber-200 rounded-2xl p-3 hover:border-amber-400 transition shadow-xs">
+                    <div class="flex items-center justify-between"><span class="text-xl">⚠️</span><span class="text-[9px] text-amber-800 uppercase font-bold">Low Stock</span></div>
+                    <div id="dashLowStockMainCount" class="text-xl font-black text-amber-800 mt-2">0</div>
+                    <div class="text-[10px] text-amber-700 font-medium">Shortage</div>
                 </button>
-                <button onclick="switchTab('dno')" class="text-left bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3 hover:border-emerald-600 transition shadow-xs col-span-2 sm:col-span-1">
+                <button onclick="switchTab('dno')" class="text-left bg-emerald-50 border border-emerald-200 rounded-2xl p-3 hover:border-emerald-400 transition shadow-xs col-span-2 sm:col-span-1">
                     <div class="flex items-center justify-between"><span class="text-xl">📋</span><span class="text-[9px] text-emerald-800 uppercase font-bold">D & O</span></div>
                     <div id="dashboardDnoAlertCount" class="text-xl font-black text-emerald-800 mt-2">0</div>
                     <div class="text-[10px] text-emerald-700 font-medium">Demand & Orders</div>
                 </button>
             </div>
             <!-- Alerts -->
-            <div id="lowStockAlertBanner" class="hidden bg-rose-950/80 border border-rose-700/60 p-3.5 rounded-2xl space-y-2 text-xs">
-                <div class="flex items-center justify-between gap-2 font-bold text-rose-300">
+            <div id="lowStockAlertBanner" class="hidden bg-rose-50 border border-rose-200 p-3.5 rounded-2xl space-y-2 text-xs">
+                <div class="flex items-center justify-between gap-2 font-bold text-rose-900">
                     <div class="flex items-center gap-2 min-w-0">
                         <span class="text-base leading-none">⚠️</span>
                         <div class="min-w-0">
-                            <div>Low Stock Warning</div>
-                            <div class="text-[9px] font-semibold text-rose-200/80 uppercase tracking-wide mt-0.5">Cleaning • Cosmetics • Packaging</div>
+                            <div class="font-extrabold text-rose-900">Low Stock Warning</div>
+                            <div class="text-[9px] font-semibold text-rose-700 uppercase tracking-wide mt-0.5">Cleaning • Cosmetics • Packaging</div>
                         </div>
                     </div>
-                    <button onclick="openLowStockList()" class="shrink-0 text-[10px] underline text-rose-200">View Low Stock</button>
+                    <button onclick="openLowStockList()" class="shrink-0 text-[10px] font-bold underline text-rose-700 hover:text-rose-950">View Low Stock</button>
                 </div>
-                <div id="lowStockListPreview" class="text-slate-300 text-[11px]"></div>
+                <div id="lowStockListPreview" class="text-rose-800 text-[11px]"></div>
             </div>
 
             <!-- Main Modules -->
-            <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4">
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
                 <div class="mb-3">
-                    <h3 class="font-bold text-slate-200 text-sm">Main Modules</h3>
+                    <h3 class="font-extrabold text-slate-900 text-sm">Main Modules</h3>
                     <p class="text-[10px] text-slate-500">Quick access</p>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div class="rounded-2xl bg-slate-950/60 border border-slate-800 p-3">
+                    <div class="rounded-2xl bg-slate-50/80 border border-slate-200 p-3">
                         <button type="button" onclick="switchTab('billing')" class="w-full flex items-center gap-3 text-left">
                             <span class="text-2xl">🧾</span>
-                            <span><span class="block font-bold text-sm text-slate-100">Billing</span><span class="block text-[10px] text-slate-500">Unified Invoice • Cleaning & Cosmetics</span></span>
+                            <span><span class="block font-bold text-sm text-slate-900">Billing</span><span class="block text-[10px] text-slate-500">Unified Invoice • Cleaning & Cosmetics</span></span>
                         </button>
                         <div class="grid grid-cols-2 gap-2 mt-3">
-                            <button type="button" onclick="openBillingSection('new')" class="py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center justify-center gap-1 shadow-md shadow-indigo-950/40">➕ New Bill</button>
-                            <button type="button" onclick="openBillingSection('history')" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-800/50 text-xs font-bold transition flex items-center justify-center gap-1">📋 Bill History</button>
+                            <button type="button" onclick="openBillingSection('new')" class="py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center justify-center gap-1 shadow-xs">➕ New Bill</button>
+                            <button type="button" onclick="openBillingSection('history')" class="py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold transition flex items-center justify-center gap-1 shadow-xs">📋 Bill History</button>
                         </div>
                     </div>
-                    <div class="rounded-2xl bg-slate-950/50 border border-slate-700/70 p-3">
+                    <div class="rounded-2xl bg-slate-50/80 border border-slate-200 p-3">
                         <button type="button" onclick="switchTab('operations')" class="w-full flex items-center gap-3 text-left">
                             <span class="text-2xl">⚙️</span>
-                            <span><span class="block font-bold text-sm text-slate-200">Operations</span><span class="block text-[10px] text-slate-500">Stock • Purchase • Expenses & Income</span></span>
+                            <span><span class="block font-bold text-sm text-slate-900">Operations</span><span class="block text-[10px] text-slate-500">Stock • Purchase • Expenses & Income</span></span>
                         </button>
                         <div class="grid grid-cols-3 gap-2 mt-3">
-                            <button type="button" onclick="openOperationSection('stock')" class="py-2 rounded-xl bg-emerald-700 text-white text-[10px] font-bold">📦 Stock</button>
-                            <button type="button" onclick="openOperationSection('purchase')" class="py-2 rounded-xl bg-blue-700 text-white text-[10px] font-bold">🛒 Purchase</button>
-                            <button type="button" onclick="openOperationSection('expenses')" class="py-2 rounded-xl bg-rose-700 text-white text-[10px] font-bold">💸 Expenses & Income</button>
+                            <button type="button" onclick="openOperationSection('stock')" class="py-2 rounded-xl bg-emerald-100/80 hover:bg-emerald-200 text-emerald-900 border border-emerald-200 text-[10px] font-bold transition">📦 Stock</button>
+                            <button type="button" onclick="openOperationSection('purchase')" class="py-2 rounded-xl bg-blue-100/80 hover:bg-blue-200 text-blue-900 border border-blue-200 text-[10px] font-bold transition">🛒 Purchase</button>
+                            <button type="button" onclick="openOperationSection('expenses')" class="py-2 rounded-xl bg-rose-100/80 hover:bg-rose-200 text-rose-900 border border-rose-200 text-[10px] font-bold transition">💸 Expenses</button>
                         </div>
                     </div>
-                    <button type="button" onclick="switchTab('customers')" class="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 text-left hover:border-indigo-500 transition">
-                        <div class="text-2xl">👥</div><div class="font-bold text-sm text-slate-200 mt-2">Customers</div><div class="text-[10px] text-slate-500 mt-1">Customer directory & history</div>
+                    <button type="button" onclick="switchTab('customers')" class="rounded-2xl bg-slate-50/80 border border-slate-200 p-4 text-left hover:border-emerald-600 hover:bg-slate-100/80 transition shadow-xs">
+                        <div class="text-2xl">👥</div><div class="font-bold text-sm text-slate-900 mt-2">Customers</div><div class="text-[10px] text-slate-500 mt-1">Customer directory & history</div>
                     </button>
-                    <button type="button" onclick="switchTab('accounts')" class="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 text-left hover:border-indigo-500 transition">
-                        <div class="text-2xl">📖</div><div class="font-bold text-sm text-slate-200 mt-2">Day Book</div>
+                    <button type="button" onclick="switchTab('accounts')" class="rounded-2xl bg-slate-50/80 border border-slate-200 p-4 text-left hover:border-emerald-600 hover:bg-slate-100/80 transition shadow-xs">
+                        <div class="text-2xl">📖</div><div class="font-bold text-sm text-slate-900 mt-2">Day Book</div>
                         <div class="text-[10px] text-slate-500 mt-1">Reports & accounts</div>
                     </button>
                 </div>
             </div>
 
             <div class="text-center text-[10px] text-slate-500 pt-2">
-                <span class="font-semibold text-emerald-500">FIA Clean & Care</span> • Edathanattukara
+                <span class="font-semibold text-emerald-600">FIA Clean & Care</span> • Edathanattukara
             </div>
         </div>
 
         <!-- ================= SECTION: OPERATIONS ================= -->
         <div id="sectionOperations" class="space-y-4 hidden">
-            <div class="bg-gradient-to-br from-slate-950/80 to-slate-900/80 p-5 rounded-3xl border border-slate-800 shadow-xl">
-                <div class="text-[10px] uppercase tracking-[0.18em] text-emerald-400 font-bold">OPERATIONS</div>
-                <h2 class="text-xl font-extrabold text-white mt-1">Business Operations</h2>
-                <p class="text-[11px] text-slate-400 mt-1">Stock • Purchase • Expenses & Other Income</p>
+            <div class="bg-gradient-to-r from-slate-50 via-emerald-50 to-teal-50 p-5 rounded-3xl border border-slate-200 shadow-xs">
+                <div class="text-[10px] uppercase tracking-[0.18em] text-emerald-700 font-extrabold">OPERATIONS</div>
+                <h2 class="text-xl font-extrabold text-slate-900 mt-1">Business Operations</h2>
+                <p class="text-[11px] text-slate-600 mt-1 font-medium">Stock • Purchase • Expenses & Other Income</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <button type="button" onclick="openOperationSection('stock')" class="text-left bg-emerald-950/30 border border-emerald-800/50 rounded-2xl p-4 hover:border-emerald-500 transition">
-                    <div class="text-2xl">📦</div><div class="font-bold text-sm text-emerald-300 mt-2">Stock</div><div class="text-[10px] text-slate-500 mt-1">Cleaning & Cosmetics</div>
+                <button type="button" onclick="openOperationSection('stock')" class="text-left bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 hover:border-emerald-400 hover:bg-emerald-100/60 transition shadow-xs">
+                    <div class="text-2xl">📦</div><div class="font-bold text-sm text-emerald-900 mt-2">Stock</div><div class="text-[10px] text-emerald-700 mt-1">Cleaning & Cosmetics</div>
                 </button>
-                <button type="button" onclick="openOperationSection('purchase')" class="text-left bg-blue-950/30 border border-blue-800/50 rounded-2xl p-4 hover:border-blue-500 transition">
-                    <div class="text-2xl">🛒</div><div class="font-bold text-sm text-blue-300 mt-2">Purchase</div><div class="text-[10px] text-slate-500 mt-1">Cleaning & Cosmetics</div>
+                <button type="button" onclick="openOperationSection('purchase')" class="text-left bg-blue-50/80 border border-blue-200 rounded-2xl p-4 hover:border-blue-400 hover:bg-blue-100/60 transition shadow-xs">
+                    <div class="text-2xl">🛒</div><div class="font-bold text-sm text-blue-900 mt-2">Purchase</div><div class="text-[10px] text-blue-700 mt-1">Cleaning & Cosmetics</div>
                 </button>
-                <button type="button" onclick="openOperationSection('expenses')" class="text-left bg-rose-950/30 border border-rose-800/50 rounded-2xl p-4 hover:border-rose-500 transition">
-                    <div class="text-2xl">💸</div><div class="font-bold text-sm text-rose-300 mt-2">Expenses & Other Income</div><div class="text-[10px] text-slate-500 mt-1">Shop expenses, scrap & surplus cash</div>
+                <button type="button" onclick="openOperationSection('expenses')" class="text-left bg-rose-50/80 border border-rose-200 rounded-2xl p-4 hover:border-rose-400 hover:bg-rose-100/60 transition shadow-xs">
+                    <div class="text-2xl">💸</div><div class="font-bold text-sm text-rose-900 mt-2">Expenses & Other Income</div><div class="text-[10px] text-rose-700 mt-1">Shop expenses, scrap & surplus cash</div>
                 </button>
             </div>
-            <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-xs">
                 <div class="flex items-center justify-between">
-                    <div><h3 class="font-bold text-slate-200 text-sm">Today's Business</h3><p class="text-[10px] text-slate-500">Live summary from current records</p></div>
-                    <span class="text-[10px] text-emerald-400 font-semibold">TODAY</span>
+                    <div><h3 class="font-bold text-slate-900 text-sm">Today's Business</h3><p class="text-[10px] text-slate-500">Live summary from current records</p></div>
+                    <span class="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold">TODAY</span>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                    <button onclick="switchTab('billing')" class="bg-emerald-950/30 border border-emerald-900/50 rounded-xl p-3 text-left"><div class="text-[9px] text-slate-500 uppercase">Sales</div><div id="dashTodaySales" class="text-sm font-extrabold text-emerald-300 mt-1">₹0</div></button>
-                    <button onclick="switchTab('purchase')" class="bg-blue-950/30 border border-blue-900/50 rounded-xl p-3 text-left"><div class="text-[9px] text-slate-500 uppercase">Purchase</div><div id="dashTodayPurchase" class="text-sm font-extrabold text-blue-300 mt-1">₹0</div></button>
-                    <button onclick="switchTab('expenses')" class="bg-rose-950/30 border border-rose-900/50 rounded-xl p-3 text-left"><div class="text-[9px] text-slate-500 uppercase">Expense</div><div id="dashTodayExpense" class="text-sm font-extrabold text-rose-300 mt-1">₹0</div></button>
-                    <button onclick="switchTab('billing')" class="bg-sky-950/30 border border-sky-900/50 rounded-xl p-3 text-left"><div class="text-[9px] text-slate-500 uppercase">Collection</div><div id="dashTodayCollection" class="text-sm font-extrabold text-sky-300 mt-1">₹0</div></button>
+                    <button onclick="switchTab('billing')" class="bg-emerald-50 border border-emerald-200 hover:border-emerald-300 rounded-xl p-3 text-left transition shadow-xs"><div class="text-[9px] text-emerald-800 uppercase font-bold">Sales</div><div id="dashTodaySales" class="text-sm font-extrabold text-emerald-900 mt-1">₹0</div></button>
+                    <button onclick="switchTab('purchase')" class="bg-blue-50 border border-blue-200 hover:border-blue-300 rounded-xl p-3 text-left transition shadow-xs"><div class="text-[9px] text-blue-800 uppercase font-bold">Purchase</div><div id="dashTodayPurchase" class="text-sm font-extrabold text-blue-900 mt-1">₹0</div></button>
+                    <button onclick="switchTab('expenses')" class="bg-rose-50 border border-rose-200 hover:border-rose-300 rounded-xl p-3 text-left transition shadow-xs"><div class="text-[9px] text-rose-800 uppercase font-bold">Expense</div><div id="dashTodayExpense" class="text-sm font-extrabold text-rose-900 mt-1">₹0</div></button>
+                    <button onclick="switchTab('billing')" class="bg-sky-50 border border-sky-200 hover:border-sky-300 rounded-xl p-3 text-left transition shadow-xs"><div class="text-[9px] text-sky-800 uppercase font-bold">Collection</div><div id="dashTodayCollection" class="text-sm font-extrabold text-sky-900 mt-1">₹0</div></button>
                 </div>
             </div>
             <!-- ================= OPERATIONS RECENT TRANSACTIONS FOLDER (Collapsible) ================= -->
@@ -2458,22 +2548,47 @@
 
                 <!-- Items Picker Section -->
                 <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
-                    <span class="text-[11px] font-extrabold text-slate-800 block">🛒 Add Products to Order</span>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-extrabold text-slate-800 block">🛒 Add Products to Order</span>
+                        <span class="text-[10px] text-emerald-700 font-semibold">Select pack size or enter custom</span>
+                    </div>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <select id="orderItemProductSelect" onchange="onOrderItemSelectChange()" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none font-medium">
-                            <option value="">-- Choose Product --</option>
-                        </select>
-                        <input type="text" id="orderItemCustomName" placeholder="Or Custom item name..." class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none">
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Select Product & Pack Size</label>
+                            <select id="orderItemProductSelect" onchange="onOrderItemSelectChange()" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none font-medium">
+                                <option value="">-- Choose Product / Pack Size --</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Item Name / Variant Description</label>
+                                <input type="text" id="orderItemCustomName" placeholder="e.g. Dishwash 250 ml, Handwash 500 ml..." class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:border-emerald-600 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Packaging / Unit</label>
+                                <select id="orderItemUnit" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-medium focus:border-emerald-600 focus:outline-none">
+                                    <option value="Bottle">Bottle</option>
+                                    <option value="Pcs">Pcs / Pieces</option>
+                                    <option value="Can">Can</option>
+                                    <option value="Box">Box</option>
+                                    <option value="Pack">Pack</option>
+                                    <option value="Pouch">Pouch</option>
+                                    <option value="Ltr">Litre (Ltr)</option>
+                                    <option value="ml">ml</option>
+                                    <option value="Kg">Kg</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-3 gap-2">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Qty</label>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Quantity</label>
                             <input type="number" step="any" min="0.1" id="orderItemQty" value="1" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold text-center">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Rate (₹)</label>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Rate / Price (₹)</label>
                             <input type="number" step="any" min="0" id="orderItemRate" placeholder="0" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold text-center">
                         </div>
                         <div class="flex items-end">
@@ -2488,8 +2603,8 @@
 
                     <!-- Totals summary -->
                     <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs font-bold">
-                        <span>Grand Total: <strong id="orderModalGrandTotal" class="text-emerald-700 text-sm">₹0.00</strong></span>
-                        <span>Balance Due: <strong id="orderModalBalance" class="text-rose-600 text-sm">₹0.00</strong></span>
+                        <span>Grand Total: <strong id="orderModalGrandTotal" class="text-emerald-800 text-sm font-black">₹0.00</strong></span>
+                        <span>Balance Due: <strong id="orderModalBalance" class="text-rose-700 text-sm font-black">₹0.00</strong></span>
                     </div>
                 </div>
 
@@ -2534,7 +2649,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=50.1"></script>
+    <script type="module" src="./modules/app.js?v=50.2"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2546,7 +2661,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.1) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.2) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2600,7 +2715,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=50.1')
+                navigator.serviceWorker.register('./sw.js?v=50.2')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
