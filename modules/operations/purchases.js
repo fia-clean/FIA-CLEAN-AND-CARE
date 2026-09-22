@@ -12,6 +12,7 @@ import {
     todayDDMMYYYY,
     markIdDeleted,
     unmarkIdDeleted,
+    markRecordDeleted,
     saveLocalStateSafely,
     toTitleCase
 } from '../core/state.js';
@@ -498,8 +499,8 @@ export function deletePurchase(identifier) {
     if (typeof identifier === 'number') {
         index = identifier;
     } else if (identifier !== undefined && identifier !== null) {
-        const idStr = String(identifier).trim();
-        index = state.purchases.findIndex(p => p && String(p.id) === idStr);
+        const idStr = String(identifier).trim().toLowerCase();
+        index = state.purchases.findIndex(p => p && String(p.id || '').trim().toLowerCase() === idStr);
         if (index === -1 && /^\d+$/.test(idStr)) {
             index = parseInt(idStr, 10);
         }
@@ -507,13 +508,16 @@ export function deletePurchase(identifier) {
     if (index < 0 || !state.purchases[index]) return;
     if (!confirm('Delete this purchase?')) return;
     const old = state.purchases[index];
+    markRecordDeleted(old, 'purchase');
     if (old.id) markIdDeleted(old.id);
     if (old.stockId) {
         const op = state.products.find(p => p.id === old.stockId);
         if (op) op.stock = Math.max(0, (parseFloat(op.stock) || 0) - (parseFloat(old.rawQty) || 0) + (Number(old.returnedQty) || 0));
     }
     state.purchases.splice(index, 1);
+    saveLocalStateSafely();
     syncToFirebase();
+    renderPurchases();
     if (typeof window.renderAll === 'function') window.renderAll();
 }
 
@@ -1604,8 +1608,8 @@ export function deleteCosPurchase(identifier) {
     if (typeof identifier === 'number') {
         index = identifier;
     } else if (identifier !== undefined && identifier !== null) {
-        const idStr = String(identifier).trim();
-        index = state.cosPurchases.findIndex(p => p && String(p.id) === idStr);
+        const idStr = String(identifier).trim().toLowerCase();
+        index = state.cosPurchases.findIndex(p => p && String(p.id || '').trim().toLowerCase() === idStr);
         if (index === -1 && /^\d+$/.test(idStr)) {
             index = parseInt(idStr, 10);
         }
@@ -1613,13 +1617,16 @@ export function deleteCosPurchase(identifier) {
     if (index < 0 || !state.cosPurchases[index]) return;
     if (!confirm('Delete this cosmetics purchase?')) return;
     const old = state.cosPurchases[index];
+    markRecordDeleted(old, 'cosPurchase');
     if (old.id) markIdDeleted(old.id);
     if (old.stockId) {
         const op = state.cosProducts.find(p => p.id === old.stockId);
         if (op) op.stock = Math.max(0, (parseFloat(op.stock) || 0) - (parseFloat(old.qty) || 0) + (Number(old.returnedQty) || 0));
     }
     state.cosPurchases.splice(index, 1);
+    saveLocalStateSafely();
     syncToFirebase();
+    renderCosPurchases();
     if (typeof window.renderAll === 'function') window.renderAll();
 }
 

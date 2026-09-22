@@ -318,7 +318,7 @@ export function getAllMasterEntries() {
         let incomeVal = Number(c.grandTotal !== undefined ? c.grandTotal : (c.netTotal !== undefined ? c.netTotal : (c.total !== undefined ? c.total : (c.paidAmount !== undefined ? c.paidAmount : itemsSum))));
         if ((!incomeVal || incomeVal <= 0) && itemsSum > 0) incomeVal = itemsSum;
 
-        const entryId = 'bill_' + (c.id || (c.billNo ? String(c.billNo) : (c.savedAt || i)));
+        const entryId = c.id ? (c.id.startsWith('bill_') || c.id.startsWith('cust_') ? c.id : 'bill_' + c.id) : ('bill_' + (c.billNo ? String(c.billNo) : (c.savedAt || i)));
         if (incomeVal > 0 || Number(c.paidAmount || 0) > 0) {
             const cleanDate = normalizeToDateKey(c.date) || normalizeToDateKey(c.savedAt) || normalizeToDateKey(c.createdAt) || getTodayDateString();
             entries.push({
@@ -345,7 +345,7 @@ export function getAllMasterEntries() {
         if ((!incomeVal || incomeVal <= 0) && Array.isArray(norm.items) && norm.items.length > 0) {
             incomeVal = norm.items.reduce((sum, it) => sum + (Number(it?.total || (Number(it?.price || it?.rate || 0) * Number(it?.qty || 1))) || 0), 0);
         }
-        const entryId = 'cossale_' + (s.id || (s.billNo ? String(s.billNo) : (s.savedAt || i)));
+        const entryId = s.id ? (s.id.startsWith('cossale_') ? s.id : 'cossale_' + s.id) : ('cossale_' + (s.billNo ? String(s.billNo) : (s.savedAt || i)));
         if (incomeVal > 0 || Number(norm.paidAmount || 0) > 0) {
             const cleanDate = normalizeToDateKey(s.date) || normalizeToDateKey(s.savedAt) || normalizeToDateKey(s.createdAt) || getTodayDateString();
             entries.push({
@@ -369,7 +369,7 @@ export function getAllMasterEntries() {
         if (!p || p._deleted) return;
         const gross = Number(p.rawCost !== undefined ? p.rawCost : (p.cost !== undefined ? p.cost : (p.amount !== undefined ? p.amount : (p.paid || 0))));
         const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : (gross || Number(p.paid || 0));
-        const entryId = 'purch_' + (p.id || (p.savedAt || i));
+        const entryId = p.id ? (p.id.startsWith('purch_') ? p.id : 'purch_' + p.id) : ('purch_' + (p.savedAt || i));
         if (amount > 0 || gross > 0 || Number(p.paid || 0) > 0) {
             const cleanDate = normalizeToDateKey(p.date) || normalizeToDateKey(p.savedAt) || normalizeToDateKey(p.createdAt) || getTodayDateString();
             entries.push({
@@ -392,7 +392,7 @@ export function getAllMasterEntries() {
         if (!p || p._deleted) return;
         const gross = Number(p.amount !== undefined ? p.amount : (p.cost !== undefined ? p.cost : (p.total !== undefined ? p.total : (p.paid || 0))));
         const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : (gross || Number(p.paid || 0));
-        const entryId = 'cospurch_' + (p.id || (p.savedAt || i));
+        const entryId = p.id ? (p.id.startsWith('cospurch_') ? p.id : 'cospurch_' + p.id) : ('cospurch_' + (p.savedAt || i));
         if (amount > 0 || gross > 0 || Number(p.paid || 0) > 0) {
             const cleanDate = normalizeToDateKey(p.date) || normalizeToDateKey(p.savedAt) || normalizeToDateKey(p.createdAt) || getTodayDateString();
             entries.push({
@@ -414,7 +414,7 @@ export function getAllMasterEntries() {
     (state.expenses || []).forEach((ex, i) => {
         if (!ex || ex._deleted) return;
         const amount = Number(ex.amount !== undefined ? ex.amount : (ex.cost !== undefined ? ex.cost : 0));
-        const entryId = 'exp_' + (ex.id || (ex.savedAt || i));
+        const entryId = ex.id ? (ex.id.startsWith('exp_') ? ex.id : 'exp_' + ex.id) : ('exp_' + (ex.savedAt || i));
         if (amount > 0) {
             const cleanDate = normalizeToDateKey(ex.date) || normalizeToDateKey(ex.savedAt) || normalizeToDateKey(ex.createdAt) || getTodayDateString();
             const isIncome = ex.type === 'Income';

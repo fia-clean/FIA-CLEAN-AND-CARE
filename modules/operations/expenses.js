@@ -12,6 +12,7 @@ import {
     getTodayDateString,
     markIdDeleted,
     unmarkIdDeleted,
+    markRecordDeleted,
     saveLocalStateSafely,
     toTitleCase
 } from '../core/state.js';
@@ -170,8 +171,8 @@ export function deleteExpense(identifier) {
     if (typeof identifier === 'number') {
         index = identifier;
     } else if (identifier !== undefined && identifier !== null) {
-        const idStr = String(identifier).trim();
-        index = state.expenses.findIndex(e => e && String(e.id) === idStr);
+        const idStr = String(identifier).trim().toLowerCase();
+        index = state.expenses.findIndex(e => e && String(e.id || '').trim().toLowerCase() === idStr);
         if (index === -1 && /^\d+$/.test(idStr)) {
             index = parseInt(idStr, 10);
         }
@@ -181,6 +182,7 @@ export function deleteExpense(identifier) {
     const isIncome = ex.type === 'Income';
     if (!confirm(isIncome ? 'Delete this additional income record?' : 'Delete this expense record?')) return;
     
+    markRecordDeleted(ex, 'expense');
     if (ex.id) markIdDeleted(ex.id);
     state.expenses.splice(index, 1);
     saveLocalStateSafely();

@@ -32,6 +32,25 @@ export function getProductWholesalePrice(p) {
         });
         if (vW) return parseFloat(vW.wholesalePrice || vW.costPrice);
     }
+    // Look up last wholesale bill in history for this product
+    try {
+        const pastWholesaleBill = (state.customers || []).slice().reverse().find(cust => {
+            if (!cust || cust._deleted) return false;
+            const isW = String(cust.saleType || '').toLowerCase() === 'wholesale';
+            if (!isW) return false;
+            const items = Array.isArray(cust.items) ? cust.items : (cust.items && typeof cust.items === 'object' ? Object.values(cust.items) : []);
+            return items.some(it => it && (it.productName === p.name || it.name === p.name) && Number(it.rate || it.price) > 0);
+        });
+        if (pastWholesaleBill) {
+            const items = Array.isArray(pastWholesaleBill.items) ? pastWholesaleBill.items : Object.values(pastWholesaleBill.items || {});
+            const matchedItem = items.find(it => it && (it.productName === p.name || it.name === p.name) && Number(it.rate || it.price) > 0);
+            if (matchedItem) {
+                const histRate = parseFloat(matchedItem.rate || matchedItem.price);
+                if (Number.isFinite(histRate) && histRate > 0) return histRate;
+            }
+        }
+    } catch (e) {}
+
     return getProductRetailPrice(p);
 }
 
@@ -95,6 +114,28 @@ export function getVariantRetailPrice(v, product) {
         if (baseRetail > 0) return baseRetail;
     }
     return 0;
+}
+
+export function updateCurrentBillItemsSaleType(saleType) {
+    if (!Array.isArray(state.currentBillItems) || state.currentBillItems.length === 0) return;
+    const isWholesale = String(saleType || '').toLowerCase() === 'wholesale';
+    state.currentBillItems.forEach(item => {
+        const prod = findUnifiedProduct(item.productName);
+        if (!prod) return;
+        let variantObj = null;
+        if (item.variantId && Array.isArray(prod.variants)) {
+            variantObj = prod.variants.find(v => String(v.id) === String(item.variantId));
+        }
+        const newRate = isWholesale
+            ? (variantObj ? getVariantWholesalePrice(variantObj, prod) : getProductWholesalePrice(prod))
+            : (variantObj ? getVariantRetailPrice(variantObj, prod) : getProductRetailPrice(prod));
+        if (newRate > 0) {
+            item.rate = newRate;
+            item.total = Number(item.numberOfUnits || 1) * newRate;
+        }
+    });
+    renderBillPreviewInput();
+    calculateBalance();
 }
 
 export function findUnifiedProduct(productName) {
@@ -620,6 +661,49 @@ export function addToBillItems() {
     }
 
     const total = numberOfUnits * rate;
+
+    // Smart Wholesale Auto-Save: Persist entered wholesale rate so future bills default to it automatically
+    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+    const isWholesale = saleType === 'Wholesale';
+    if (isWholesale && rate > 0 && product) {
+        let rateChanged = false;
+        if (variant && Number(variant.wholesalePrice) !== rate) {
+            variant.wholesalePrice = rate;
+            rateChanged = true;
+        }
+        if (!variant && Number(product.wholesalePrice) !== rate) {
+            product.wholesalePrice = rate;
+            rateChanged = true;
+        }
+        if (rateChanged) {
+            const pMatch = (state.products || []).find(p => p && (p.name === product.name || (product.id && p.id === product.id)));
+            if (pMatch) {
+                if (variant && Array.isArray(pMatch.variants)) {
+                    const vm = pMatch.variants.find(v => String(v.id) === String(variant.id));
+                    if (vm) vm.wholesalePrice = rate;
+                } else {
+                    pMatch.wholesalePrice = rate;
+                }
+                pMatch.savedAt = Date.now();
+            }
+            const cpMatch = (state.cosProducts || []).find(cp => cp && (cp.name === product.name || (product.id && cp.id === product.id)));
+            if (cpMatch) {
+                if (variant && Array.isArray(cpMatch.variants)) {
+                    const vm = cpMatch.variants.find(v => String(v.id) === String(variant.id));
+                    if (vm) vm.wholesalePrice = rate;
+                } else {
+                    cpMatch.wholesalePrice = rate;
+                }
+                cpMatch.savedAt = Date.now();
+            }
+            try {
+                if (typeof window.saveLocalStateSafely === 'function') window.saveLocalStateSafely();
+                syncToFirebase();
+            } catch (e) {
+                console.warn('Auto-save wholesale rate sync warning:', e);
+            }
+        }
+    }
 
     state.currentBillItems.push({
         productName,

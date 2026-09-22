@@ -108,28 +108,76 @@ export function isIdDeleted(id) {
     return state.deletedRecordIds.has(String(id).trim().toLowerCase());
 }
 
-export function isItemDeleted(item) {
+export function getRecordFingerprints(item, type = null) {
+    if (!item) return [];
+    const fps = [];
+    if (item.id) fps.push(String(item.id).trim().toLowerCase());
+    if (item.billNo) {
+        fps.push(String(item.billNo).trim().toLowerCase());
+        fps.push('bill_' + String(item.billNo).trim().toLowerCase());
+    }
+    if (item.orderNo) {
+        fps.push(String(item.orderNo).trim().toLowerCase());
+        fps.push('ord_' + String(item.orderNo).trim().toLowerCase());
+    }
+    if (item.barcode) {
+        fps.push(String(item.barcode).trim().toLowerCase());
+    }
+    const nameStr = String(item.name || item.customer || item.supplierName || item.supplier || '').trim().toLowerCase();
+    if (nameStr) {
+        fps.push('custname_' + nameStr);
+        fps.push('prodname_' + nameStr);
+        fps.push('pkgname_' + nameStr);
+    }
+    // Expense composite fingerprint: date + amount + title
+    if (item.amount && (item.title || item.category || item.desc)) {
+        const titleStr = String(item.title || item.category || item.desc || '').trim().toLowerCase();
+        const cleanDate = normalizeToDateKey(item.date) || '';
+        const amtStr = Number(item.amount || 0).toFixed(2);
+        fps.push(`exp_fp_${cleanDate}_${amtStr}_${titleStr}`);
+    }
+    // Purchase composite fingerprint: date + supplier + rawMaterial/item
+    if (item.supplierName || item.supplier || item.rawMaterial || item.item) {
+        const sName = String(item.supplierName || item.supplier || '').trim().toLowerCase();
+        const mat = String(item.rawMaterial || item.item || '').trim().toLowerCase();
+        const cleanDate = normalizeToDateKey(item.date) || '';
+        fps.push(`purch_fp_${cleanDate}_${sName}_${mat}`);
+    }
+    return fps;
+}
+
+export function markRecordDeleted(item, type = null) {
+    if (!item) return;
+    item._deleted = true;
+    const fps = getRecordFingerprints(item, type);
+    fps.forEach(fp => {
+        const clean = sanitizeTombstoneKey(fp);
+        if (clean) state.deletedRecordIds.add(clean);
+    });
+    try {
+        localStorage.setItem('fia_deleted_ids', JSON.stringify(Array.from(state.deletedRecordIds)));
+    } catch(e) {}
+}
+
+export function isItemDeleted(item, type = null) {
     if (!item) return true;
     if (item._deleted === true) return true;
-    if (item.id && isIdDeleted(item.id)) return true;
-    if (item.billNo && isIdDeleted(item.billNo)) return true;
-    if (!item.billNo && item.name && isIdDeleted('custname_' + String(item.name).trim().toLowerCase())) return true;
+    const fps = getRecordFingerprints(item, type);
+    for (let i = 0; i < fps.length; i++) {
+        if (isIdDeleted(fps[i])) return true;
+    }
     return false;
 }
 
 export function isCustItemDeleted(c) {
     if (!c) return true;
     if (c._deleted === true) return true;
-    if (c.billNo && isIdDeleted(c.billNo)) return true;
-    if (c.id && isIdDeleted(c.id)) return true;
-    if (!c.billNo && c.name && isIdDeleted('custname_' + String(c.name).trim().toLowerCase())) return true;
-    return false;
+    return isItemDeleted(c, 'customer');
 }
 
 export function isRecordDeleted(type, item) {
     if (!item) return false;
-    if (type === 'customer') return isCustItemDeleted(item);
-    return isItemDeleted(item);
+    return isItemDeleted(item, type);
 }
 
 // -------------------------------------------------------------
@@ -756,5 +804,11 @@ if (typeof window !== 'undefined') {
     window.downloadSnapshot = downloadSnapshot;
     window.sortByNameAsc = sortByNameAsc;
     window.toTitleCase = toTitleCase;
+    window.markRecordDeleted = markRecordDeleted;
+    window.markIdDeleted = markIdDeleted;
+    window.unmarkIdDeleted = unmarkIdDeleted;
+    window.isItemDeleted = isItemDeleted;
+    window.isCustItemDeleted = isCustItemDeleted;
+    window.isRecordDeleted = isRecordDeleted;
 }
 

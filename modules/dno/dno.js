@@ -11,6 +11,8 @@ import {
     formatCurrency,
     isItemDeleted,
     markIdDeleted,
+    markRecordDeleted,
+    saveLocalStateSafely,
     toTitleCase
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
@@ -20,6 +22,7 @@ let currentDemandFilter = 'all'; // 'all' | 'needed' | 'urgent' | 'received'
 let currentOrderFilter = 'all'; // 'all' | 'overdue' | 'pending' | 'processing' | 'delivered'
 let tempOrderItems = [];
 let editingOrderItemIndex = -1;
+let tempDemandItems = [];
 let audioMuted = localStorage.getItem('fia_audio_muted') === 'true';
 
 // -------------------------------------------------------------
@@ -180,10 +183,79 @@ export function renderDemands() {
 
     let html = '';
 
-    // 1. Automatic Low Stock Section (Shown when 'all', 'needed', or 'urgent' is active)
+    // 1. Manual Shortages / Demand Items Section (PRIMARY - Shown at the TOP)
+    html += `
+        <div class="space-y-2 mb-6">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                    <span>📝 Shortages & Procurement Requirements</span>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">${filteredManual.length}</span>
+                </span>
+                <span class="text-[10px] text-slate-500">Packaging, Raw Chemical, Finished Goods</span>
+            </div>
+    `;
+
+    if (filteredManual.length === 0) {
+        html += `
+            <div class="text-center py-6 bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-slate-500 space-y-1.5">
+                <span class="text-2xl block">📋</span>
+                <p class="text-xs font-bold">No active demand entries found for this filter.</p>
+                <p class="text-[11px] text-slate-400">Click "+ Quick Add Demand" above to note down any shortage on the go!</p>
+            </div>
+        `;
+    } else {
+        html += `<div class="grid grid-cols-1 gap-2.5">`;
+        filteredManual.forEach(item => {
+            const isReceived = item.status === 'received';
+            const categoryBadge = getCategoryBadge(item.category);
+
+            html += `
+                <div class="p-3.5 bg-white border ${item.isUrgent && !isReceived ? 'border-rose-300 bg-rose-50/25 shadow-xs' : 'border-slate-200'} rounded-2xl shadow-2xs hover:border-slate-300 transition flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-extrabold text-sm text-slate-900 ${isReceived ? 'line-through text-slate-400' : ''}">${item.itemName}</span>
+                            ${categoryBadge}
+                            ${item.isUrgent && !isReceived ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200 animate-pulse">🔴 URGENT</span>' : ''}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusBadgeClass(item.status)}">${item.status ? item.status.toUpperCase() : 'NEEDED'}</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-slate-600 mt-1 flex-wrap">
+                            <span>Qty Needed: <strong class="text-emerald-700 font-extrabold text-sm">${item.qtyNeeded} ${item.unit}</strong></span>
+                            ${item.notes ? `<span class="text-slate-500 italic">"${item.notes}"</span>` : ''}
+                            <span class="text-[10px] text-slate-400">• ${item.createdAt ? formatDateDDMMYYYY(new Date(item.createdAt).toISOString().slice(0, 10)) : ''}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        ${!isReceived ? `
+                            <button type="button" onclick="window.setDemandStatus('${item.id}', 'ordered')" title="Mark Ordered" class="px-2.5 py-1.5 rounded-xl border ${item.status === 'ordered' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'} font-bold text-xs transition cursor-pointer">
+                                Ordered
+                            </button>
+                            <button type="button" onclick="window.setDemandStatus('${item.id}', 'received')" title="Mark Received / Fulfilled" class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-xs cursor-pointer">
+                                ✓ Received
+                            </button>
+                        ` : `
+                            <button type="button" onclick="window.setDemandStatus('${item.id}', 'needed')" title="Re-open Demand" class="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition cursor-pointer">
+                                ↺ Reopen
+                            </button>
+                        `}
+                        <button type="button" onclick="window.editDemandItem('${item.id}')" title="Edit Demand" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer">
+                            ✏️
+                        </button>
+                        <button type="button" onclick="window.deleteDemandItem('${item.id}')" title="Delete Demand" class="p-1.5 text-rose-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    html += `</div>`;
+
+    // 2. Automatic Low Stock Section (Shown BELOW manual demands at the bottom)
     if (currentDemandFilter !== 'received' && lowStockItems.length > 0) {
         html += `
-            <div class="space-y-2 mb-4">
+            <div class="space-y-2 pt-2 border-t border-slate-200">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-1.5 text-xs font-black text-amber-800 uppercase tracking-wide">
                         <span>⚠️ Automated Low Stock Shortages</span>
@@ -204,7 +276,7 @@ export function renderDemands() {
                                     ${Number(p.stock) === 0 ? '<span class="ml-1 text-[10px] bg-rose-600 text-white px-1.5 py-0.2 rounded font-bold">OUT OF STOCK</span>' : ''}
                                 </div>
                             </div>
-                            <button type="button" onclick="window.quickAddLowStockToDemand('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.unit || 'Units'}', ${p.stock})" class="shrink-0 px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition">
+                            <button type="button" onclick="window.quickAddLowStockToDemand('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.unit || 'Units'}', ${p.stock})" class="shrink-0 px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition cursor-pointer">
                                 + Add Qty
                             </button>
                         </div>
@@ -214,74 +286,6 @@ export function renderDemands() {
         `;
     }
 
-    // 2. Manual Shortages / Demand Items Section
-    html += `
-        <div class="space-y-2">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-black text-slate-800 uppercase tracking-wide">
-                    📝 Shortages & Procurement Requirements (${filteredManual.length})
-                </span>
-                <span class="text-[10px] text-slate-500">Packaging, Raw Chemical, Bottles, Finished Goods</span>
-            </div>
-    `;
-
-    if (filteredManual.length === 0) {
-        html += `
-            <div class="text-center py-8 bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-slate-500 space-y-2">
-                <span class="text-3xl block">📋</span>
-                <p class="text-xs font-bold">No demand entries found for this filter.</p>
-                <p class="text-[11px] text-slate-400">Click "+ Quick Add Demand" above to note down any shortage on the go!</p>
-            </div>
-        `;
-    } else {
-        html += `<div class="grid grid-cols-1 gap-2.5">`;
-        filteredManual.forEach(item => {
-            const isReceived = item.status === 'received';
-            const categoryBadge = getCategoryBadge(item.category);
-
-            html += `
-                <div class="p-3.5 bg-white border ${item.isUrgent && !isReceived ? 'border-rose-300 bg-rose-50/20' : 'border-slate-200'} rounded-2xl shadow-xs hover:border-slate-300 transition flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-extrabold text-sm text-slate-900 ${isReceived ? 'line-through text-slate-400' : ''}">${item.itemName}</span>
-                            ${categoryBadge}
-                            ${item.isUrgent && !isReceived ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200 animate-pulse">🔴 URGENT</span>' : ''}
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusBadgeClass(item.status)}">${item.status ? item.status.toUpperCase() : 'NEEDED'}</span>
-                        </div>
-                        <div class="flex items-center gap-3 text-xs text-slate-600 mt-1 flex-wrap">
-                            <span>Qty Needed: <strong class="text-emerald-700 font-extrabold text-sm">${item.qtyNeeded} ${item.unit}</strong></span>
-                            ${item.notes ? `<span class="text-slate-500 italic">"${item.notes}"</span>` : ''}
-                            <span class="text-[10px] text-slate-400">• ${item.createdAt ? formatDateDDMMYYYY(new Date(item.createdAt).toISOString().slice(0, 10)) : ''}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center gap-1.5 shrink-0">
-                        ${!isReceived ? `
-                            <button type="button" onclick="window.setDemandStatus('${item.id}', 'ordered')" title="Mark Ordered" class="px-2.5 py-1.5 rounded-xl border ${item.status === 'ordered' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'} font-bold text-xs transition">
-                                Ordered
-                            </button>
-                            <button type="button" onclick="window.setDemandStatus('${item.id}', 'received')" title="Mark Received / Fulfilled" class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-xs">
-                                ✓ Received
-                            </button>
-                        ` : `
-                            <button type="button" onclick="window.setDemandStatus('${item.id}', 'needed')" title="Re-open Demand" class="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition">
-                                ↺ Reopen
-                            </button>
-                        `}
-                        <button type="button" onclick="window.editDemandItem('${item.id}')" title="Edit Demand" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
-                            ✏️
-                        </button>
-                        <button type="button" onclick="window.deleteDemandItem('${item.id}')" title="Delete Demand" class="p-1.5 text-rose-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition">
-                            🗑️
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        html += `</div>`;
-    }
-
-    html += `</div>`;
     container.innerHTML = html;
     updateDnoBadge();
 }
@@ -335,6 +339,9 @@ export function openAddDemandModal(prefill = {}) {
     document.getElementById('demandItemUrgent').checked = !!prefill.isUrgent;
     document.getElementById('demandItemNotes').value = prefill.notes || '';
     
+    tempDemandItems = [];
+    renderTempDemandStaging();
+
     modal.classList.remove('hidden');
     setTimeout(() => document.getElementById('demandItemName')?.focus(), 50);
 }
@@ -342,33 +349,107 @@ export function openAddDemandModal(prefill = {}) {
 export function closeAddDemandModal() {
     const modal = document.getElementById('addDemandModal');
     if (modal) modal.classList.add('hidden');
+    tempDemandItems = [];
+}
+
+export function addMoreDemandItem() {
+    const itemName = (document.getElementById('demandItemName')?.value || '').trim();
+    const category = document.getElementById('demandItemCategory')?.value || 'packaging';
+    const qtyNeeded = parseFloat(document.getElementById('demandItemQty')?.value) || 0;
+    const unit = (document.getElementById('demandItemUnit')?.value || 'Pcs').trim();
+    const isUrgent = document.getElementById('demandItemUrgent')?.checked || false;
+    const notes = (document.getElementById('demandItemNotes')?.value || '').trim();
+
+    if (!itemName) {
+        alert("Please enter the Item Name first!");
+        document.getElementById('demandItemName')?.focus();
+        return;
+    }
+    if (qtyNeeded <= 0) {
+        alert("Please enter a valid Quantity!");
+        document.getElementById('demandItemQty')?.focus();
+        return;
+    }
+
+    tempDemandItems.push({
+        itemName,
+        category,
+        qtyNeeded,
+        unit,
+        isUrgent,
+        notes
+    });
+
+    // Reset input fields for the next item
+    document.getElementById('demandItemName').value = '';
+    document.getElementById('demandItemQty').value = '';
+    document.getElementById('demandItemNotes').value = '';
+    document.getElementById('demandItemUrgent').checked = false;
+    document.getElementById('demandItemName').focus();
+
+    renderTempDemandStaging();
+}
+
+export function removeTempDemandItem(idx) {
+    tempDemandItems.splice(idx, 1);
+    renderTempDemandStaging();
+}
+
+export function renderTempDemandStaging() {
+    const area = document.getElementById('tempDemandStagingArea');
+    const rows = document.getElementById('tempDemandListRows');
+    const badge = document.getElementById('tempDemandCountBadge');
+    const submitBtn = document.getElementById('btnSaveDemandModal');
+
+    if (!area || !rows) return;
+
+    if (tempDemandItems.length === 0) {
+        area.classList.add('hidden');
+        if (submitBtn) submitBtn.textContent = '✓ Save Demand';
+        return;
+    }
+
+    area.classList.remove('hidden');
+    if (badge) badge.textContent = tempDemandItems.length;
+    if (submitBtn) submitBtn.textContent = `✓ Save All (${tempDemandItems.length} Demands)`;
+
+    rows.innerHTML = tempDemandItems.map((it, i) => `
+        <div class="flex items-center justify-between gap-2 p-1.5 bg-white border border-slate-200 rounded-lg shadow-2xs">
+            <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-slate-800">${i + 1}. ${it.itemName}</span>
+                <span class="text-emerald-700 font-extrabold">(${it.qtyNeeded} ${it.unit})</span>
+                ${it.isUrgent ? '<span class="text-[9px] font-black px-1.5 py-0.2 bg-rose-100 text-rose-700 rounded-full">URGENT</span>' : ''}
+                ${it.notes ? `<span class="text-slate-400 italic text-[10px]">"${it.notes}"</span>` : ''}
+            </div>
+            <button type="button" onclick="window.removeTempDemandItem(${i})" class="text-rose-500 hover:text-rose-700 font-bold px-1 py-0.5 text-xs cursor-pointer">🗑️</button>
+        </div>
+    `).join('');
 }
 
 export function saveDemandItem() {
     const id = document.getElementById('demandItemId').value;
     const itemName = (document.getElementById('demandItemName').value || '').trim();
     const category = document.getElementById('demandItemCategory').value;
-    const qtyNeeded = parseFloat(document.getElementById('demandItemQty').value) || 1;
+    const qtyNeeded = parseFloat(document.getElementById('demandItemQty').value) || 0;
     const unit = (document.getElementById('demandItemUnit').value || 'Pcs').trim();
     const isUrgent = document.getElementById('demandItemUrgent').checked;
     const notes = (document.getElementById('demandItemNotes').value || '').trim();
 
-    if (!itemName) {
-        alert("Please enter the Item Name (e.g. 500ml Bottle, Caps, Dishwash concentrate)");
-        return;
-    }
-
     if (!Array.isArray(state.demands)) state.demands = [];
 
+    // If editing a single item
     if (id) {
-        // Edit existing
+        if (!itemName) {
+            alert("Please enter the Item Name");
+            return;
+        }
         const idx = state.demands.findIndex(d => d.id === id);
         if (idx !== -1) {
             state.demands[idx] = {
                 ...state.demands[idx],
                 itemName,
                 category,
-                qtyNeeded,
+                qtyNeeded: qtyNeeded || 1,
                 unit,
                 isUrgent,
                 notes,
@@ -376,25 +457,39 @@ export function saveDemandItem() {
             };
         }
     } else {
-        // New item
-        const newDemand = {
-            id: 'dem_' + Date.now(),
-            itemName,
-            category,
-            qtyNeeded,
-            unit,
-            isUrgent,
-            status: 'needed',
-            notes,
-            createdAt: Date.now(),
-            savedAt: Date.now()
-        };
-        state.demands.unshift(newDemand);
+        // Collect items: staged list + currently typed item if filled
+        const toSave = [...tempDemandItems];
+        if (itemName && qtyNeeded > 0) {
+            toSave.push({ itemName, category, qtyNeeded, unit, isUrgent, notes });
+        }
+
+        if (toSave.length === 0) {
+            alert("Please enter an Item Name and Quantity first!");
+            return;
+        }
+
+        const now = Date.now();
+        toSave.forEach((item, index) => {
+            const newDemand = {
+                id: 'dem_' + (now + index),
+                itemName: item.itemName,
+                category: item.category,
+                qtyNeeded: item.qtyNeeded,
+                unit: item.unit,
+                isUrgent: item.isUrgent,
+                status: 'needed',
+                notes: item.notes,
+                createdAt: now + index,
+                savedAt: now + index
+            };
+            state.demands.unshift(newDemand);
+        });
     }
 
     closeAddDemandModal();
-    renderDemands();
+    saveLocalStateSafely();
     syncToFirebase();
+    renderDemands();
 }
 
 export function quickAddLowStockToDemand(prodId, prodName, unit, currentStock) {
@@ -414,8 +509,9 @@ export function setDemandStatus(id, newStatus) {
     if (item) {
         item.status = newStatus;
         item.updatedAt = Date.now();
-        renderDemands();
+        saveLocalStateSafely();
         syncToFirebase();
+        renderDemands();
     }
 }
 
@@ -427,11 +523,16 @@ export function editDemandItem(id) {
 }
 
 export function deleteDemandItem(id) {
-    if (confirm("Are you sure you want to delete this demand requirement?")) {
+    if (!id) return;
+    const item = (state.demands || []).find(d => String(d.id) === String(id));
+    const name = item ? item.itemName : 'demand requirement';
+    if (confirm(`Are you sure you want to delete "${name}"?`)) {
+        if (item) markRecordDeleted(item, 'demand');
         markIdDeleted(id);
-        state.demands = (state.demands || []).filter(d => d.id !== id);
-        renderDemands();
+        state.demands = (state.demands || []).filter(d => String(d.id) !== String(id));
+        saveLocalStateSafely();
         syncToFirebase();
+        renderDemands();
     }
 }
 
@@ -1251,11 +1352,16 @@ export function editOrderBooking(id) {
 }
 
 export function deleteOrderBooking(id) {
-    if (confirm("Are you sure you want to delete this order booking?")) {
+    if (!id) return;
+    const order = (state.orders || []).find(o => String(o.id) === String(id));
+    const name = order ? (order.orderNo || order.customerName) : 'order booking';
+    if (confirm(`Are you sure you want to delete order booking "${name}"?`)) {
+        if (order) markRecordDeleted(order, 'order');
         markIdDeleted(id);
-        state.orders = (state.orders || []).filter(o => o.id !== id);
-        renderOrders();
+        state.orders = (state.orders || []).filter(o => String(o.id) !== String(id));
+        saveLocalStateSafely();
         syncToFirebase();
+        renderOrders();
     }
 }
 
@@ -1364,17 +1470,16 @@ export function shareOrderWhatsApp(id) {
 }
 
 export function updateDnoBadge() {
-    const today = getTodayDateString();
-    const lowStockCount = getLowStockProducts().length;
-    const urgentDemandsCount = (state.demands || []).filter(d => !isItemDeleted(d) && d.isUrgent && d.status !== 'received').length;
-    const overdueOrdersCount = (state.orders || []).filter(o => !isItemDeleted(o) && o.status !== 'delivered' && o.status !== 'cancelled' && (o.dueDate <= today)).length;
+    // Only count manually entered Demands and active Orders (EXCLUDE automated low stock from D & O dashboard count, as requested by user)
+    const allPendingDemandsCount = (state.demands || []).filter(d => !isItemDeleted(d) && d.status !== 'received').length;
+    const activeOrdersCount = (state.orders || []).filter(o => !isItemDeleted(o) && o.status !== 'delivered' && o.status !== 'cancelled').length;
     
-    const totalAlerts = lowStockCount + urgentDemandsCount + overdueOrdersCount;
+    const manualDnoTotal = allPendingDemandsCount + activeOrdersCount;
 
     const navBadge = document.getElementById('navDnoBadge');
     if (navBadge) {
-        if (totalAlerts > 0) {
-            navBadge.textContent = totalAlerts;
+        if (manualDnoTotal > 0) {
+            navBadge.textContent = manualDnoTotal;
             navBadge.classList.remove('hidden');
         } else {
             navBadge.classList.add('hidden');
@@ -1383,7 +1488,7 @@ export function updateDnoBadge() {
 
     const dashboardCardCount = document.getElementById('dashboardDnoAlertCount');
     if (dashboardCardCount) {
-        dashboardCardCount.textContent = totalAlerts;
+        dashboardCardCount.textContent = manualDnoTotal;
     }
 }
 
@@ -1405,6 +1510,8 @@ window.filterDemands = filterDemands;
 window.filterOrders = filterOrders;
 window.openAddDemandModal = openAddDemandModal;
 window.closeAddDemandModal = closeAddDemandModal;
+window.addMoreDemandItem = addMoreDemandItem;
+window.removeTempDemandItem = removeTempDemandItem;
 window.saveDemandItem = saveDemandItem;
 window.quickAddLowStockToDemand = quickAddLowStockToDemand;
 window.setDemandStatus = setDemandStatus;

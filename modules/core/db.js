@@ -369,8 +369,6 @@ export function unmarkAllActiveLocalRecords() {
 }
 
 export function buildSyncPayload() {
-    unmarkAllActiveLocalRecords();
-
     const getSafeArray = (memArray, storageKey, filterFn) => {
         if (Array.isArray(memArray)) {
             return memArray.filter(filterFn);
@@ -385,17 +383,17 @@ export function buildSyncPayload() {
     };
 
     return {
-        products: getSafeArray(state.products, 'fia_products', p => !isItemDeleted(p)),
-        cosProducts: getSafeArray(state.cosProducts, 'fia_cosproducts', p => !isItemDeleted(p)),
+        products: getSafeArray(state.products, 'fia_products', p => !isItemDeleted(p, 'product')),
+        cosProducts: getSafeArray(state.cosProducts, 'fia_cosproducts', p => !isItemDeleted(p, 'cosProduct')),
         customers: getSafeArray(state.customers, 'fia_customers', c => !isCustItemDeleted(c)),
-        purchases: getSafeArray(state.purchases, 'fia_purchases', p => !isItemDeleted(p)),
-        expenses: getSafeArray(state.expenses, 'fia_expenses', e => !isItemDeleted(e)),
-        cosPurchases: getSafeArray(state.cosPurchases, 'fia_cospurchases', p => !isItemDeleted(p)),
-        cosSales: getSafeArray(state.cosSales, 'fia_cossales', s => !isItemDeleted(s)),
-        packages: getSafeArray(state.packages, 'fia_packages', p => !isItemDeleted(p)),
-        demands: getSafeArray(state.demands, 'fia_demands', d => !isItemDeleted(d)),
-        orders: getSafeArray(state.orders, 'fia_orders', o => !isItemDeleted(o)),
-        stockReturns: state.stockReturns || [],
+        purchases: getSafeArray(state.purchases, 'fia_purchases', p => !isItemDeleted(p, 'purchase')),
+        expenses: getSafeArray(state.expenses, 'fia_expenses', e => !isItemDeleted(e, 'expense')),
+        cosPurchases: getSafeArray(state.cosPurchases, 'fia_cospurchases', p => !isItemDeleted(p, 'cosPurchase')),
+        cosSales: getSafeArray(state.cosSales, 'fia_cossales', s => !isItemDeleted(s, 'cosSale')),
+        packages: getSafeArray(state.packages, 'fia_packages', p => !isItemDeleted(p, 'package')),
+        demands: getSafeArray(state.demands, 'fia_demands', d => !isItemDeleted(d, 'demand')),
+        orders: getSafeArray(state.orders, 'fia_orders', o => !isItemDeleted(o, 'order')),
+        stockReturns: (state.stockReturns || []).filter(r => !isItemDeleted(r, 'stockReturn')),
         clearedDayBookEntries: state.clearedDayBookEntries || [],
         dayBookOpeningBalance: Number(state.dayBookOpeningBalance || 0),
         dayBookOpeningExpense: Number(state.dayBookOpeningExpense || 0),
@@ -418,14 +416,11 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     const hadPendingFlag = localStorage.getItem('fia_has_pending_sync') === 'true';
     const localHasAdditions = detectLocalUnsynced(state, data);
 
-    // Step A: Un-tombstone all active local records first so remote tombstones never kill them
-    const activeLocalKeys = unmarkAllActiveLocalRecords();
-
-    // Step B: Sync remote tombstone deleted IDs into local tombstones, BUT NEVER re-tombstone any active local key!
+    // 1. Ingest all remote tombstones first so deletions propagate permanently
     const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
     remoteDeleted.forEach(k => {
         const cleanKey = sanitizeTombstoneKey(k);
-        if (cleanKey && !activeLocalKeys.has(cleanKey)) {
+        if (cleanKey) {
             state.deletedRecordIds.add(cleanKey);
         }
     });
@@ -433,7 +428,20 @@ export function applyCloudData(data, isRealtimeEvent = false) {
         localStorage.setItem('fia_deleted_ids', JSON.stringify(Array.from(state.deletedRecordIds)));
     } catch(e) {}
 
-    // 3. Safe bidirectional union: local unsaved records are NEVER erased!
+    // 2. Immediately purge any locally stored items that match tombstones
+    state.products = (state.products || []).filter(p => !isItemDeleted(p, 'product'));
+    state.cosProducts = (state.cosProducts || []).filter(p => !isItemDeleted(p, 'cosProduct'));
+    state.customers = (state.customers || []).filter(c => !isCustItemDeleted(c));
+    state.purchases = (state.purchases || []).filter(p => !isItemDeleted(p, 'purchase'));
+    state.expenses = (state.expenses || []).filter(e => !isItemDeleted(e, 'expense'));
+    state.cosPurchases = (state.cosPurchases || []).filter(p => !isItemDeleted(p, 'cosPurchase'));
+    state.cosSales = (state.cosSales || []).filter(s => !isItemDeleted(s, 'cosSale'));
+    state.packages = (state.packages || []).filter(p => !isItemDeleted(p, 'package'));
+    state.stockReturns = (state.stockReturns || []).filter(r => !isItemDeleted(r, 'stockReturn'));
+    state.demands = (state.demands || []).filter(d => !isItemDeleted(d, 'demand'));
+    state.orders = (state.orders || []).filter(o => !isItemDeleted(o, 'order'));
+
+    // 3. Safe bidirectional union: local unsaved records are preserved, tombstoned cloud items are filtered out
     state.products = mergeInventoryProducts(state.products, data.products);
     state.cosProducts = mergeInventoryProducts(state.cosProducts, data.cosProducts);
     state.customers = mergeCustomerBills(state.customers, data.customers);
@@ -481,7 +489,6 @@ let isSyncing = false;
 let queuedSync = false;
 
 export function syncToFirebase() {
-    unmarkAllActiveLocalRecords();
     ensureStableTransactionIds();
     saveLocalStateSafely();
     createAutomaticLocalBackup();
@@ -501,50 +508,18 @@ export function syncToFirebase() {
 
     isSyncing = true;
 
-    // Fast-bounded cloud merge: attempt to read latest cloud state within 2500ms
-    const cloudFetchPromise = window.FB_DB.ref('fia_data').once('value')
-        .then(snap => snap.val())
-        .catch(() => null);
-    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 2500));
+    // Direct push: Push current local state and tombstones directly without re-fetching stale cloud records
+    const payload = buildSyncPayload();
 
-    return Promise.race([cloudFetchPromise, timeoutPromise])
-        .then(function(cloud) {
-            if (cloud) {
-                const activeKeys = unmarkAllActiveLocalRecords();
-                const remoteDeleted = Array.isArray(cloud._deletedIds) ? cloud._deletedIds : (Array.isArray(cloud._deletedKeys) ? cloud._deletedKeys : []);
-                remoteDeleted.forEach(k => {
-                    const cleanKey = sanitizeTombstoneKey(k);
-                    if (cleanKey && !activeKeys.has(cleanKey)) {
-                        state.deletedRecordIds.add(cleanKey);
-                    }
-                });
-                state.products = mergeInventoryProducts(state.products, cloud.products);
-                state.cosProducts = mergeInventoryProducts(state.cosProducts, cloud.cosProducts);
-                state.customers = mergeCustomerBills(state.customers, cloud.customers);
-                state.purchases = mergeCollection(state.purchases, cloud.purchases, 'id');
-                state.expenses = mergeCollection(state.expenses, cloud.expenses, 'id');
-                state.cosPurchases = mergeCollection(state.cosPurchases, cloud.cosPurchases, 'id');
-                state.cosSales = mergeCollection(state.cosSales, cloud.cosSales, 'id');
-                state.packages = mergeInventoryProducts(state.packages, cloud.packages);
-                state.stockReturns = mergeCollection(state.stockReturns, cloud.stockReturns, 'id');
-                state.demands = mergeCollection(state.demands, cloud.demands, 'id');
-                state.orders = mergeCollection(state.orders, cloud.orders, 'id');
-                saveLocalStateSafely();
-            }
+    const writePromise = window.FB_DB.ref('fia_data').set(payload);
+    const writeTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase write timeout (offline)')), 3000));
 
-            const payload = buildSyncPayload();
-
-            // Guard Firebase RTDB write with explicit 2500ms timeout
-            // In Firebase Web SDK, .set() promise hangs indefinitely if connection drops
-            const writePromise = window.FB_DB.ref('fia_data').set(payload);
-            const writeTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase write timeout (offline)')), 2500));
-
-            return Promise.race([writePromise, writeTimeout]).then(function() {
-                localStorage.removeItem('fia_has_pending_sync');
-                state.isFirebaseConnected = true;
-                updateSyncStatus(true, 'Cloud Database Synced');
-                return true;
-            });
+    return Promise.race([writePromise, writeTimeout])
+        .then(function() {
+            localStorage.removeItem('fia_has_pending_sync');
+            state.isFirebaseConnected = true;
+            updateSyncStatus(true, 'Cloud Database Synced');
+            return true;
         })
         .catch(function(err) {
             console.warn("Firebase write error or offline timeout:", err);

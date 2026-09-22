@@ -6,6 +6,8 @@ import {
     state,
     markIdDeleted,
     unmarkIdDeleted,
+    markRecordDeleted,
+    saveLocalStateSafely,
     isCustItemDeleted,
     getTodayDateString,
     formatDateDDMMYYYY,
@@ -137,9 +139,11 @@ export function deleteDirectCustomer(name) {
     if (confirm(`Are you sure you want to delete customer "${targetName}"?`)) {
         const key = targetName.toLowerCase();
         markIdDeleted('custname_' + key);
+        markIdDeleted('custname_' + key.replace(/\s+/g, ''));
         // Permanently tombstone each matching record's ID and billNo
         state.customers.forEach(c => {
             if (c && String(c.name || '').trim().toLowerCase() === key) {
+                markRecordDeleted(c, 'customer');
                 if (c.billNo) markIdDeleted(c.billNo);
                 if (c.id) markIdDeleted(c.id);
             }
@@ -148,6 +152,7 @@ export function deleteDirectCustomer(name) {
         saveLocalStateSafely();
         syncToFirebase();
         if (window.renderAll) window.renderAll();
+        renderCustomers();
         alert(`Customer "${targetName}" deleted successfully!`);
     }
 }
@@ -239,6 +244,19 @@ export function fillExistingCustomer() {
         document.getElementById('custName').value = name.toUpperCase();
         const selectedOpt = select.options[select.selectedIndex];
         document.getElementById('custPhone').value = selectedOpt?.getAttribute('data-phone') || '';
+
+        // Auto-detect Wholesale preference from customer's latest bill
+        try {
+            const upperName = name.toUpperCase();
+            const lastBill = (state.customers || []).slice().reverse().find(c => c && !isCustItemDeleted(c) && String(c.name || '').trim().toUpperCase() === upperName);
+            if (lastBill && String(lastBill.saleType || '').toLowerCase() === 'wholesale') {
+                const wholesaleRadio = document.getElementById('billSaleTypeWholesale');
+                if (wholesaleRadio && !wholesaleRadio.checked) {
+                    wholesaleRadio.checked = true;
+                    if (typeof window.onSaleTypeChange === 'function') window.onSaleTypeChange();
+                }
+            }
+        } catch (e) {}
     } else {
         document.getElementById('custName').value = '';
         document.getElementById('custPhone').value = '';

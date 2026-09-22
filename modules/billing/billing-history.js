@@ -5,6 +5,8 @@
 import {
     state,
     markIdDeleted,
+    markRecordDeleted,
+    saveLocalStateSafely,
     formatDateDDMMYYYY,
     dateSortValue,
     toTitleCase
@@ -264,6 +266,7 @@ export function deleteCustomerBill(billIdentifier, askConfirm = true) {
     if (askConfirm && !confirm('Are you sure you want to delete this bill?')) return;
 
     const c = state.customers[index];
+    markRecordDeleted(c, 'customer');
     if (c.billNo) markIdDeleted(c.billNo);
     if (c.id) markIdDeleted(c.id);
     if (Array.isArray(state.clearedDayBookEntries)) {
@@ -282,8 +285,10 @@ export function deleteCustomerBill(billIdentifier, askConfirm = true) {
     }
 
     state.customers.splice(index, 1);
+    saveLocalStateSafely();
     syncToFirebase();
     if (window.renderAll) window.renderAll();
+    if (typeof window.renderSalesHistory === 'function') window.renderSalesHistory();
     alert("Bill deleted successfully!");
 }
 
@@ -302,6 +307,7 @@ export function deleteCosSale(billIdentifier, askConfirm = true) {
     if (askConfirm && !confirm('Are you sure you want to delete this cosmetics bill?')) return;
 
     const s = state.cosSales[index];
+    markRecordDeleted(s, 'cosSale');
     if (s.billNo) markIdDeleted(s.billNo);
     if (s.id) markIdDeleted(s.id);
 
@@ -309,8 +315,10 @@ export function deleteCosSale(billIdentifier, askConfirm = true) {
     if (window.restorePackageStock) window.restorePackageStock(s.items || []);
 
     state.cosSales.splice(index, 1);
+    saveLocalStateSafely();
     syncToFirebase();
     if (window.renderAll) window.renderAll();
+    if (typeof window.renderSalesHistory === 'function') window.renderSalesHistory();
     alert("Cosmetics bill deleted successfully!");
 }
 

@@ -10,6 +10,7 @@ import {
     saveLocalStateSafely,
     markIdDeleted,
     unmarkIdDeleted,
+    markRecordDeleted,
     toTitleCase
 } from '../core/state.js';
 import { syncToFirebase, pullFromFirebase } from '../core/db.js';
@@ -369,11 +370,13 @@ export function deletePackage(id) {
     const pkg = state.packages.find(x => String(x.id) === String(id));
     const name = pkg ? pkg.name : 'package item';
     if (!confirm(`Delete package item "${name}"?`)) return;
+    if (pkg) markRecordDeleted(pkg, 'package');
     markIdDeleted(id);
     state.packages = state.packages.filter(x => String(x.id) !== String(id));
     const stamp = Date.now();
     state.products.forEach(p => { if (String(p.packageId) === String(id)) { p.packageId = ''; p.packageQty = 0; p.savedAt = stamp; } });
     state.cosProducts.forEach(p => { if (String(p.packageId) === String(id)) { p.packageId = ''; p.packageQty = 0; p.savedAt = stamp; } });
+    saveLocalStateSafely();
     syncToFirebase();
     if (typeof window.renderAll === 'function') window.renderAll();
     renderPackages();
@@ -790,8 +793,10 @@ export function deleteProduct(id) {
     const p = state.products.find(x => String(x.id) === String(id));
     const name = p ? p.name : 'product';
     if (confirm(`Are you sure you want to delete "${name}"?`)) {
+        if (p) markRecordDeleted(p, 'product');
         markIdDeleted(id);
         state.products = state.products.filter(p => String(p.id) !== String(id));
+        saveLocalStateSafely();
         syncToFirebase();
         if (typeof window.renderAll === 'function') window.renderAll();
     }
@@ -898,8 +903,10 @@ export function deleteCosProduct(id) {
     const p = state.cosProducts.find(x => String(x.id) === String(id));
     const name = p ? p.name : 'product';
     if (!confirm(`Delete "${name}" from cosmetic product stock?`)) return;
+    if (p) markRecordDeleted(p, 'cosProduct');
     markIdDeleted(id);
     state.cosProducts = state.cosProducts.filter(x => String(x.id) !== String(id));
+    saveLocalStateSafely();
     syncToFirebase();
     if (typeof window.renderAll === 'function') window.renderAll();
 }
