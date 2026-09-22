@@ -580,7 +580,16 @@ export function startRealtimeSync() {
     }
     updateSyncStatus(null, 'Connecting to Cloud Database...');
 
+    let resolvedInitialConnection = false;
+    const connectTimeout = setTimeout(() => {
+        if (!resolvedInitialConnection && !state.isFirebaseConnected) {
+            updateSyncStatus(false, 'Working under offline mode');
+        }
+    }, 2500);
+
     window.FB_DB.ref('.info/connected').on('value', function(snap) {
+        resolvedInitialConnection = true;
+        clearTimeout(connectTimeout);
         const isOnline = snap.val() === true;
         if (isOnline) {
             state.isFirebaseConnected = true;

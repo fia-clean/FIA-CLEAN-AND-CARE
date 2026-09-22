@@ -326,6 +326,9 @@ export function updateDashboard() {
     
     updateRecentTransactions();
     checkLowStockAlerts();
+    if (typeof window.updateDnoBadge === 'function') {
+        try { window.updateDnoBadge(); } catch (e) {}
+    }
     if (document.getElementById('dueAmountListModal') && !document.getElementById('dueAmountListModal').classList.contains('hidden')) {
         renderDueAmountList();
     }

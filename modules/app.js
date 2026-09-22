@@ -304,6 +304,58 @@ import {
     getYesterdayDateString
 } from './daybook/daybook.js';
 
+// ================= GLOBAL WINDOW BINDINGS (ATTACHED FIRST) =================
+// Guarantees all inline HTML onclick handlers (switchTab, modals, etc.) are available immediately
+if (typeof window !== 'undefined') {
+    window.showRecordView = showRecordView;
+    window.closeRecordView = closeRecordView;
+    window.openBarcodeScanner = openBarcodeScanner;
+    window.openBarcodeScannerForBilling = openBarcodeScannerForBilling;
+    window.openBarcodeScannerForCosmeticStock = openBarcodeScannerForCosmeticStock;
+    window.openBarcodeScannerForCosmeticsSales = openBarcodeScannerForCosmeticsSales;
+    window.openBarcodeScannerForCleaningPurchase = openBarcodeScannerForCleaningPurchase;
+    window.openBarcodeScannerForCosmeticsPurchase = openBarcodeScannerForCosmeticsPurchase;
+    window.closeBarcodeScanner = closeBarcodeScanner;
+    window.hideUnwantedStockMenus = hideUnwantedStockMenus;
+    window.switchTab = switchTab;
+    window.openOperationSection = openOperationSection;
+    window.openBillingSection = openBillingSection;
+    window.openCosmeticsSalesEntry = openCosmeticsSalesEntry;
+    window.renderAll = renderAll;
+    window.purchaseActionCleaning = 'add';
+    window.purchaseActionCosmetics = 'add';
+    window.switchStockTopTab = switchStockTopTab;
+    window.switchStockSubTab = switchStockSubTab;
+    window.switchStockActionTab = switchStockActionTab;
+    window.switchPurchaseSubTab = switchPurchaseSubTab;
+    window.switchPurchaseActionTab = switchPurchaseActionTab;
+    window.switchCustomerSubTab = switchCustomerSubTab;
+    window.switchCustomerConsolidationView = switchCustomerConsolidationView;
+    window.renderCustomerConsolidationReport = renderCustomerConsolidationReport;
+    window.renderCustomerConsolidationView = renderCustomerConsolidationView;
+    window.renderConsolidatedStockReport = renderConsolidatedStockReport;
+    window.updatePurchaseReturnLiveCalc = updatePurchaseReturnLiveCalc;
+    window.openPurchaseReturn = openPurchaseReturn;
+    window.deletePurchaseReturn = deletePurchaseReturn;
+    window.getConsolidatedPurchaseData = getConsolidatedPurchaseData;
+    window.switchPurchaseConsolidationView = switchPurchaseConsolidationView;
+    window.renderPurchaseConsolidationView = renderPurchaseConsolidationView;
+    window.renderPurchaseConsolidationReport = renderPurchaseConsolidationReport;
+    window.openSupplierConsolidatedDetail = openSupplierConsolidatedDetail;
+    window.closeSupplierConsolidatedDetail = closeSupplierConsolidatedDetail;
+    window.shareSelectedSupplierConsolidatedDetail = shareSelectedSupplierConsolidatedDetail;
+    window.sharePurchaseConsolidationReport = sharePurchaseConsolidationReport;
+    window.downloadPurchaseConsolidationReportPDF = downloadPurchaseConsolidationReportPDF;
+    window.shareBillSmartWhatsApp = shareBillSmartWhatsApp;
+    window.shareBillPdfWhatsApp = shareBillPdfWhatsApp;
+    window.generateBillPdfBlob = generateBillPdfBlob;
+    window.toggleDayBookEntriesFolder = toggleDayBookEntriesFolder;
+    window.toggleRecentTransactionsFolder = toggleRecentTransactionsFolder;
+    window.addMoreDemandItem = addMoreDemandItem;
+    window.removeTempDemandItem = removeTempDemandItem;
+    window.saveDemandItem = saveDemandItem;
+}
+
 // ================= RECORD VIEW MODAL =================
 export function showRecordView(title, html) {
     const titleEl = document.getElementById('recordViewTitle');
@@ -725,56 +777,6 @@ if (typeof window !== 'undefined') {
             switchTab('home', false);
         }
     };
-
-    // ================= GLOBAL WINDOW BINDINGS (ATTACHED FIRST) =================
-    // Guarantees all inline HTML onclick handlers (switchTab, modals, etc.) are available immediately
-    window.showRecordView = showRecordView;
-    window.closeRecordView = closeRecordView;
-    window.openBarcodeScanner = openBarcodeScanner;
-    window.openBarcodeScannerForBilling = openBarcodeScannerForBilling;
-    window.openBarcodeScannerForCosmeticStock = openBarcodeScannerForCosmeticStock;
-    window.openBarcodeScannerForCosmeticsSales = openBarcodeScannerForCosmeticsSales;
-    window.openBarcodeScannerForCleaningPurchase = openBarcodeScannerForCleaningPurchase;
-    window.openBarcodeScannerForCosmeticsPurchase = openBarcodeScannerForCosmeticsPurchase;
-    window.closeBarcodeScanner = closeBarcodeScanner;
-    window.hideUnwantedStockMenus = hideUnwantedStockMenus;
-    window.switchTab = switchTab;
-    window.openOperationSection = openOperationSection;
-    window.openBillingSection = openBillingSection;
-    window.openCosmeticsSalesEntry = openCosmeticsSalesEntry;
-    window.renderAll = renderAll;
-    window.purchaseActionCleaning = 'add';
-    window.purchaseActionCosmetics = 'add';
-    window.switchStockTopTab = switchStockTopTab;
-    window.switchStockSubTab = switchStockSubTab;
-    window.switchStockActionTab = switchStockActionTab;
-    window.switchPurchaseSubTab = switchPurchaseSubTab;
-    window.switchPurchaseActionTab = switchPurchaseActionTab;
-    window.switchCustomerSubTab = switchCustomerSubTab;
-    window.switchCustomerConsolidationView = switchCustomerConsolidationView;
-    window.renderCustomerConsolidationReport = renderCustomerConsolidationReport;
-    window.renderCustomerConsolidationView = renderCustomerConsolidationView;
-    window.renderConsolidatedStockReport = renderConsolidatedStockReport;
-    window.updatePurchaseReturnLiveCalc = updatePurchaseReturnLiveCalc;
-    window.openPurchaseReturn = openPurchaseReturn;
-    window.deletePurchaseReturn = deletePurchaseReturn;
-    window.getConsolidatedPurchaseData = getConsolidatedPurchaseData;
-    window.switchPurchaseConsolidationView = switchPurchaseConsolidationView;
-    window.renderPurchaseConsolidationView = renderPurchaseConsolidationView;
-    window.renderPurchaseConsolidationReport = renderPurchaseConsolidationReport;
-    window.openSupplierConsolidatedDetail = openSupplierConsolidatedDetail;
-    window.closeSupplierConsolidatedDetail = closeSupplierConsolidatedDetail;
-    window.shareSelectedSupplierConsolidatedDetail = shareSelectedSupplierConsolidatedDetail;
-    window.sharePurchaseConsolidationReport = sharePurchaseConsolidationReport;
-    window.downloadPurchaseConsolidationReportPDF = downloadPurchaseConsolidationReportPDF;
-    window.shareBillSmartWhatsApp = shareBillSmartWhatsApp;
-    window.shareBillPdfWhatsApp = shareBillPdfWhatsApp;
-    window.generateBillPdfBlob = generateBillPdfBlob;
-    window.toggleDayBookEntriesFolder = toggleDayBookEntriesFolder;
-    window.toggleRecentTransactionsFolder = toggleRecentTransactionsFolder;
-    window.addMoreDemandItem = addMoreDemandItem;
-    window.removeTempDemandItem = removeTempDemandItem;
-    window.saveDemandItem = saveDemandItem;
 
     // ================= INITIALIZATION & MOUNTING =================
     let isAppBootstrapped = false;

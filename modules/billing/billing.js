@@ -119,7 +119,9 @@ export function getVariantRetailPrice(v, product) {
 export function updateCurrentBillItemsSaleType(saleType) {
     if (!Array.isArray(state.currentBillItems) || state.currentBillItems.length === 0) return;
     const isWholesale = String(saleType || '').toLowerCase() === 'wholesale';
+    let changed = false;
     state.currentBillItems.forEach(item => {
+        if (item.isPackage) return;
         const prod = findUnifiedProduct(item.productName);
         if (!prod) return;
         let variantObj = null;
@@ -129,13 +131,16 @@ export function updateCurrentBillItemsSaleType(saleType) {
         const newRate = isWholesale
             ? (variantObj ? getVariantWholesalePrice(variantObj, prod) : getProductWholesalePrice(prod))
             : (variantObj ? getVariantRetailPrice(variantObj, prod) : getProductRetailPrice(prod));
-        if (newRate > 0) {
+        if (Number.isFinite(newRate) && newRate > 0 && Math.abs(item.rate - newRate) > 0.001) {
             item.rate = newRate;
             item.total = Number(item.numberOfUnits || 1) * newRate;
+            changed = true;
         }
     });
-    renderBillPreviewInput();
-    calculateBalance();
+    if (changed) {
+        renderBillPreviewInput();
+        calculateBalance();
+    }
 }
 
 export function findUnifiedProduct(productName) {
@@ -1089,34 +1094,6 @@ export function updateBillQuantityTypeDropdown() {
     }
 }
 
-export function updateCurrentBillItemsSaleType(saleType) {
-    if (!Array.isArray(state.currentBillItems) || state.currentBillItems.length === 0) return;
-    let changed = false;
-    state.currentBillItems.forEach(item => {
-        if (item.isPackage) return;
-        const product = findUnifiedProduct(item.productName);
-        if (!product) return;
-        let newRate = 0;
-        if (item.variantId && Array.isArray(product.variants)) {
-            const variant = product.variants.find(v => String(v.id) === String(item.variantId));
-            if (variant) {
-                newRate = saleType === 'Wholesale' ? getVariantWholesalePrice(variant, product) : getVariantRetailPrice(variant, product);
-            }
-        }
-        if (!newRate) {
-            newRate = saleType === 'Wholesale' ? getProductWholesalePrice(product) : getProductRetailPrice(product);
-        }
-        if (Number.isFinite(newRate) && newRate > 0 && Math.abs(item.rate - newRate) > 0.001) {
-            item.rate = newRate;
-            item.total = (item.numberOfUnits || 1) * newRate;
-            changed = true;
-        }
-    });
-    if (changed) {
-        renderBillPreviewInput();
-        calculateBalance();
-    }
-}
 
 export function stepCombinedBillUnits(delta) {
     const input = document.getElementById('combinedNumberOfUnits');
