@@ -800,7 +800,7 @@
         <div class="max-w-md md:max-w-2xl mx-auto mb-3 flex flex-wrap justify-between items-center gap-2 px-1 text-[10px] text-slate-500 font-semibold">
             <div class="flex items-center gap-2">
                 <span id="syncStatus" class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Connecting to Cloud Database...</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">v50.2 PRO</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">v50.3 PRO</span>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <button onclick="openSettingsModal()" class="hover:text-emerald-700 transition underline">Settings</button>
@@ -816,7 +816,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-700">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">v50.2</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">v50.3</span>
             </div>
             <p class="text-xs text-slate-500 font-medium">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -1011,26 +1011,26 @@
         <!-- ================= SECTION: D & O (DEMANDS & ORDERS) ================= -->
         <div id="sectionDno" class="space-y-4 hidden">
             <!-- Header banner with sub-tabs and sound control -->
-            <div class="bg-gradient-to-r from-emerald-700 via-teal-700 to-indigo-800 p-4 sm:p-5 rounded-3xl text-white shadow-md">
+            <div class="bg-gradient-to-r from-emerald-50 via-teal-50 to-slate-50 p-4 sm:p-5 rounded-3xl border border-emerald-200/90 shadow-xs">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <div class="text-[10px] uppercase tracking-[0.18em] text-emerald-200 font-bold">FIA CLEAN & CARE</div>
-                        <h2 class="text-lg sm:text-xl font-black mt-0.5">Demands & Customer Orders (D & O)</h2>
-                        <p class="text-xs text-emerald-100/90 mt-0.5">Shortage tracking • Packaging demand • Bulk booking • Delivery alerts</p>
+                        <div class="text-[10px] uppercase tracking-[0.18em] text-emerald-700 font-extrabold">FIA CLEAN & CARE</div>
+                        <h2 class="text-lg sm:text-xl font-black text-slate-900 mt-0.5">Demands & Customer Orders (D & O)</h2>
+                        <p class="text-xs text-slate-600 mt-0.5 font-medium">Shortage tracking • Packaging demand • Bulk booking • Delivery alerts</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button type="button" onclick="window.toggleAudioMute()" id="btnToggleDnoAudio" class="px-3 py-1.5 rounded-xl border border-white/20 bg-white/10 text-white text-xs font-bold hover:bg-white/20 transition backdrop-blur-xs">
+                        <button type="button" onclick="window.toggleAudioMute()" id="btnToggleDnoAudio" class="px-3 py-1.5 rounded-xl border border-emerald-300 bg-white text-emerald-800 text-xs font-bold hover:bg-emerald-50 transition shadow-xs">
                             🔊 Sound On
                         </button>
                     </div>
                 </div>
 
                 <!-- Sub-tab Switcher: Demands vs Orders -->
-                <div class="flex gap-2 mt-4 bg-black/20 p-1 rounded-2xl backdrop-blur-xs">
-                    <button type="button" onclick="window.switchDnoSubTab('demands')" id="subTabDemands" class="flex-1 py-2.5 px-4 text-center font-bold text-xs sm:text-sm rounded-xl bg-emerald-600 text-white shadow-sm transition">
+                <div class="flex gap-2 mt-4 bg-slate-200/60 p-1 rounded-2xl">
+                    <button type="button" onclick="window.switchDnoSubTab('demands')" id="subTabDemands" class="flex-1 py-2.5 px-4 text-center font-bold text-xs sm:text-sm rounded-xl bg-emerald-600 text-white shadow-xs transition">
                         📉 Demands & Shortages
                     </button>
-                    <button type="button" onclick="window.switchDnoSubTab('orders')" id="subTabOrders" class="flex-1 py-2.5 px-4 text-center font-bold text-xs sm:text-sm rounded-xl bg-white/10 text-emerald-100 hover:bg-white/20 transition">
+                    <button type="button" onclick="window.switchDnoSubTab('orders')" id="subTabOrders" class="flex-1 py-2.5 px-4 text-center font-bold text-xs sm:text-sm rounded-xl bg-transparent text-slate-700 hover:text-slate-900 transition">
                         📦 Bulk Orders & Reminders
                     </button>
                 </div>
@@ -1982,52 +1982,52 @@
 
         <!-- ================= SECTION 7: DAY BOOK ================= -->
         <div id="sectionAccounts" class="space-y-4 hidden">
-            <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner space-y-3">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
                 <div class="flex justify-between items-center">
-                    <h2 class="font-bold text-slate-100 text-sm">Day Book & Date-wise Reports</h2>
+                    <h2 class="font-bold text-slate-900 text-sm">Day Book & Date-wise Reports</h2>
                     <div class="flex gap-1.5 flex-wrap justify-end">
-                        <button id="dayBookRefreshBtn" type="button" onclick="refreshDayBookRealtime()" class="text-[10px] bg-slate-800 text-slate-200 border border-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-700 transition font-bold flex items-center gap-1 cursor-pointer">🔄 Refresh</button>
-                        <button id="restoreDayBookBtn" type="button" onclick="restoreClearedDayBook()" class="text-[10px] bg-slate-800 text-sky-300 border border-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-700 transition font-bold hidden cursor-pointer">🔄 Restore</button>
-                        <button onclick="exportDayBookToCSV()" class="text-[10px] bg-slate-800 text-emerald-300 border border-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-700 transition font-bold cursor-pointer">📥 Excel Export</button>
-                        <button onclick="clearDayBook()" class="text-[10px] bg-slate-800 text-rose-300 border border-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-700 transition font-bold cursor-pointer">🗑️ Clear</button>
-                        <button type="button" onclick="openBackupModal()" class="text-[10px] bg-slate-800 text-sky-300 border border-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-700 transition font-bold cursor-pointer">💾 Backup</button>
+                        <button id="dayBookRefreshBtn" type="button" onclick="refreshDayBookRealtime()" class="text-[10px] bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg hover:bg-slate-200 transition font-bold flex items-center gap-1 cursor-pointer">🔄 Refresh</button>
+                        <button id="restoreDayBookBtn" type="button" onclick="restoreClearedDayBook()" class="text-[10px] bg-slate-100 text-sky-700 border border-slate-300 px-2.5 py-1 rounded-lg hover:bg-slate-200 transition font-bold hidden cursor-pointer">🔄 Restore</button>
+                        <button onclick="exportDayBookToCSV()" class="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-300 px-2.5 py-1 rounded-lg hover:bg-emerald-100 transition font-bold cursor-pointer">📥 Excel Export</button>
+                        <button onclick="clearDayBook()" class="text-[10px] bg-rose-50 text-rose-700 border border-rose-300 px-2.5 py-1 rounded-lg hover:bg-rose-100 transition font-bold cursor-pointer">🗑️ Clear</button>
+                        <button type="button" onclick="openBackupModal()" class="text-[10px] bg-sky-50 text-sky-800 border border-sky-300 px-2.5 py-1 rounded-lg hover:bg-sky-100 transition font-bold cursor-pointer">💾 Backup</button>
                     </div>
                 </div>
                 <div id="dayBookClearedBanner" class="hidden"></div>
 
                 <!-- ================= STREAMLINED COMPACT PICTORIAL ANALYSIS (NO OVERLAP) ================= -->
-                <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800 p-3.5 rounded-xl shadow-inner space-y-3">
+                <div class="bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50 border border-slate-200 p-3.5 rounded-xl shadow-xs space-y-3">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] uppercase tracking-wider font-extrabold text-indigo-300">📊 Net Profit & Margin Analysis</span>
-                        <span id="profitStatusBadge" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/60">Healthy Margin</span>
+                        <span class="text-[11px] uppercase tracking-wider font-extrabold text-indigo-900">📊 Net Profit & Margin Analysis</span>
+                        <span id="profitStatusBadge" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">Healthy Margin</span>
                     </div>
                     
                     <div class="flex flex-col sm:flex-row items-center gap-3">
                         <!-- Compact SVG Donut Ring -->
                         <div class="relative w-16 h-16 shrink-0 flex items-center justify-center">
                             <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 80 80">
-                                <circle cx="40" cy="40" r="32" stroke="#1e293b" stroke-width="8" fill="transparent" />
-                                <circle id="profitRingCircle" cx="40" cy="40" r="32" stroke="#10b981" stroke-width="8" stroke-dasharray="201.06" stroke-dashoffset="50" stroke-linecap="round" fill="transparent" class="transition-all duration-700 ease-out" />
+                                <circle cx="40" cy="40" r="32" stroke="#e2e8f0" stroke-width="8" fill="transparent" />
+                                <circle id="profitRingCircle" cx="40" cy="40" r="32" stroke="#059669" stroke-width="8" stroke-dasharray="201.06" stroke-dashoffset="50" stroke-linecap="round" fill="transparent" class="transition-all duration-700 ease-out" />
                             </svg>
                             <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-1">
-                                <span id="profitMarginPercentText" class="text-[11px] font-black text-emerald-400 leading-none">0%</span>
-                                <span class="text-[7px] text-slate-400 uppercase font-bold leading-none mt-0.5">Margin</span>
+                                <span id="profitMarginPercentText" class="text-[11px] font-black text-emerald-700 leading-none">0%</span>
+                                <span class="text-[7px] text-slate-500 uppercase font-bold leading-none mt-0.5">Margin</span>
                             </div>
                         </div>
 
                         <!-- 3 Non-Overlapping Financial Stat Cards (No truncate clipping) -->
                         <div class="w-full flex-1 grid grid-cols-3 gap-2 text-center">
-                            <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800 flex flex-col justify-center min-w-0">
-                                <span class="text-[9px] text-slate-400 block font-semibold">Income</span>
-                                <b id="dbIncomeText" class="text-[11px] sm:text-xs font-black text-emerald-400 mt-0.5 break-all leading-tight">₹0.00</b>
+                            <div class="bg-emerald-50 p-2 rounded-xl border border-emerald-200 flex flex-col justify-center min-w-0">
+                                <span class="text-[9px] text-emerald-800 block font-semibold">Income</span>
+                                <b id="dbIncomeText" class="text-[11px] sm:text-xs font-black text-emerald-900 mt-0.5 break-all leading-tight">₹0.00</b>
                             </div>
-                            <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800 flex flex-col justify-center min-w-0">
-                                <span class="text-[9px] text-slate-400 block font-semibold">Expense</span>
-                                <b id="dbExpenseText" class="text-[11px] sm:text-xs font-black text-rose-400 mt-0.5 break-all leading-tight">₹0.00</b>
+                            <div class="bg-rose-50 p-2 rounded-xl border border-rose-200 flex flex-col justify-center min-w-0">
+                                <span class="text-[9px] text-rose-800 block font-semibold">Expense</span>
+                                <b id="dbExpenseText" class="text-[11px] sm:text-xs font-black text-rose-900 mt-0.5 break-all leading-tight">₹0.00</b>
                             </div>
-                            <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800 flex flex-col justify-center min-w-0">
-                                <span class="text-[9px] text-slate-400 block font-semibold">Net Profit</span>
-                                <b id="dbNetProfitText" class="text-[11px] sm:text-xs font-black text-white mt-0.5 break-all leading-tight">₹0.00</b>
+                            <div class="bg-slate-50 p-2 rounded-xl border border-slate-200 flex flex-col justify-center min-w-0">
+                                <span class="text-[9px] text-slate-600 block font-semibold">Net Profit</span>
+                                <b id="dbNetProfitText" class="text-[11px] sm:text-xs font-black text-slate-900 mt-0.5 break-all leading-tight">₹0.00</b>
                             </div>
                         </div>
                     </div>
@@ -2035,72 +2035,72 @@
                     <!-- Clean Ratio Bar with clear non-colliding labels -->
                     <div class="space-y-1">
                         <div class="flex justify-between items-center text-[10px] font-bold px-0.5">
-                            <span id="dbIncomeRatioText" class="text-emerald-400 mr-2">Income: 50%</span>
-                            <span id="dbExpenseRatioText" class="text-rose-400 ml-2 text-right">Expense: 50%</span>
+                            <span id="dbIncomeRatioText" class="text-emerald-700 mr-2">Income: 50%</span>
+                            <span id="dbExpenseRatioText" class="text-rose-700 ml-2 text-right">Expense: 50%</span>
                         </div>
-                        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex border border-slate-700/60">
+                        <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex border border-slate-300">
                             <div id="profitProgressBar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 50%;"></div>
                             <div id="expenseProgressBar" class="h-full bg-rose-500 transition-all duration-500" style="width: 50%;"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800 text-xs space-y-2">
+                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs space-y-2.5">
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">Opening Balance (₹):</label>
-                            <input type="number" id="dayBookOpeningBalanceInput" min="0" step="any" value="0" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-emerald-300 font-bold focus:outline-none focus:border-indigo-500">
+                            <label class="text-[10px] text-slate-600 font-bold block mb-1">Opening Balance (₹):</label>
+                            <input type="number" id="dayBookOpeningBalanceInput" min="0" step="any" value="0" class="w-full p-2 border border-slate-300 rounded-xl bg-white text-emerald-800 font-black focus:outline-none focus:border-indigo-500">
                         </div>
                         <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">Opening Expense (₹):</label>
-                            <input type="number" id="dayBookOpeningExpenseInput" min="0" step="any" value="0" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-rose-300 font-bold focus:outline-none focus:border-indigo-500">
+                            <label class="text-[10px] text-slate-600 font-bold block mb-1">Opening Expense (₹):</label>
+                            <input type="number" id="dayBookOpeningExpenseInput" min="0" step="any" value="0" class="w-full p-2 border border-slate-300 rounded-xl bg-white text-rose-800 font-black focus:outline-none focus:border-indigo-500">
                         </div>
                     </div>
-                    <button type="button" onclick="saveDayBookOpeningValues()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl text-[11px] font-bold shadow-md shadow-indigo-950/40 transition cursor-pointer">💾 Save Opening Values</button>
+                    <button type="button" onclick="saveDayBookOpeningValues()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer">💾 Save Opening Values</button>
                 </div>
                 <div id="accountsSummaryContainer" class="text-xs space-y-2"></div>
 
                 <!-- ================= DATE FILTERS & PRESET TABS (Placed directly above the entries!) ================= -->
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs space-y-2.5">
-                    <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Filter Period</div>
+                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs space-y-2.5">
+                    <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Filter Period</div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">From Date:</label>
-                            <input type="date" id="filterFromDate" onchange="onDayBookDateInputChange()" aria-label="From Date" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <label class="text-[10px] text-slate-600 font-bold block mb-1">From Date:</label>
+                            <input type="date" id="filterFromDate" onchange="onDayBookDateInputChange()" aria-label="From Date" class="w-full p-2 border border-slate-300 rounded-xl bg-white text-slate-800 font-semibold focus:outline-none focus:border-indigo-500">
                         </div>
                         <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">To Date:</label>
-                            <input type="date" id="filterToDate" onchange="onDayBookDateInputChange()" aria-label="To Date" class="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <label class="text-[10px] text-slate-600 font-bold block mb-1">To Date:</label>
+                            <input type="date" id="filterToDate" onchange="onDayBookDateInputChange()" aria-label="To Date" class="w-full p-2 border border-slate-300 rounded-xl bg-white text-slate-800 font-semibold focus:outline-none focus:border-indigo-500">
                         </div>
                     </div>
                     <div class="grid grid-cols-4 gap-1.5">
-                        <button type="button" id="dayBookTabToday" onclick="setFilterPreset('today')" class="bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer text-center">📅 Today</button>
-                        <button type="button" id="dayBookTabYesterday" onclick="setFilterPreset('yesterday')" class="bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer text-center">⏮️ Yesterday</button>
-                        <button type="button" id="dayBookTabMonth" onclick="setFilterPreset('month')" class="bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-bold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer text-center">🗓️ Month</button>
-                        <button type="button" id="dayBookTabAll" onclick="setFilterPreset('all')" class="bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold border border-indigo-400 shadow-md transition cursor-pointer text-center">🌐 All Time</button>
+                        <button type="button" id="dayBookTabToday" onclick="setFilterPreset('today')" class="bg-white text-slate-700 py-2 rounded-xl text-xs font-bold border border-slate-300 hover:bg-slate-100 transition cursor-pointer text-center">📅 Today</button>
+                        <button type="button" id="dayBookTabYesterday" onclick="setFilterPreset('yesterday')" class="bg-white text-slate-700 py-2 rounded-xl text-xs font-bold border border-slate-300 hover:bg-slate-100 transition cursor-pointer text-center">⏮️ Yesterday</button>
+                        <button type="button" id="dayBookTabMonth" onclick="setFilterPreset('month')" class="bg-white text-slate-700 py-2 rounded-xl text-xs font-bold border border-slate-300 hover:bg-slate-100 transition cursor-pointer text-center">🗓️ Month</button>
+                        <button type="button" id="dayBookTabAll" onclick="setFilterPreset('all')" class="bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold border border-indigo-600 shadow-xs transition cursor-pointer text-center">🌐 All Time</button>
                     </div>
                 </div>
             </div>
 
             <!-- ================= FILTERED DAY BOOK ENTRIES FOLDER (Collapsible) ================= -->
-            <div id="dayBookFolderCard" class="bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-xl transition-all">
+            <div id="dayBookFolderCard" class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs transition-all">
                 <!-- Folder Header / Accordion Bar (Always visible, sleek single-line header on mobile) -->
-                <div onclick="window.toggleDayBookEntriesFolder()" role="button" tabindex="0" class="p-2.5 sm:p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-800/60 transition select-none">
+                <div onclick="window.toggleDayBookEntriesFolder()" role="button" tabindex="0" class="p-2.5 sm:p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-50 transition select-none">
                     <div class="flex items-center gap-2 min-w-0 flex-1">
-                        <div class="w-8 h-8 rounded-xl bg-indigo-950/80 border border-indigo-700/60 flex items-center justify-center text-base shrink-0 shadow-inner">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-base shrink-0 shadow-xs">
                             📁
                         </div>
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5 flex-nowrap overflow-hidden">
-                                <h3 class="font-bold text-slate-100 text-xs sm:text-sm whitespace-nowrap">Day Book Entries</h3>
-                                <span id="dayBookEntriesCountBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-700/60 shrink-0 whitespace-nowrap">0 Entries</span>
+                                <h3 class="font-extrabold text-slate-900 text-xs sm:text-sm whitespace-nowrap">Day Book Entries</h3>
+                                <span id="dayBookEntriesCountBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0 whitespace-nowrap">0 Entries</span>
                             </div>
-                            <p id="dayBookFolderStatusText" class="text-[10px] text-slate-400 truncate mt-0.5">Tap to view transactions</p>
+                            <p id="dayBookFolderStatusText" class="text-[10px] text-slate-500 truncate mt-0.5">Tap to view transactions</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-1.5 shrink-0">
-                        <span id="dayBookActivePeriodBadge" class="hidden sm:inline-block text-[10px] text-sky-300 font-bold bg-sky-950/60 px-2 py-0.5 rounded-md border border-sky-800/40 whitespace-nowrap">🌐 All Time</span>
-                        <button type="button" id="dayBookFolderToggleBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded-xl border border-indigo-500 text-xs font-bold shadow-md shadow-indigo-950/40 transition flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                        <span id="dayBookActivePeriodBadge" class="hidden sm:inline-block text-[10px] text-sky-800 font-bold bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200 whitespace-nowrap">🌐 All Time</span>
+                        <button type="button" id="dayBookFolderToggleBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 rounded-xl border border-indigo-600 text-xs font-bold shadow-xs transition flex items-center gap-1 cursor-pointer whitespace-nowrap">
                             <span id="dayBookFolderBtnIcon">👁️</span>
                             <span id="dayBookFolderBtnText">View</span>
                         </button>
@@ -2108,38 +2108,38 @@
                 </div>
 
                 <!-- Folder Content (Collapsed / Hidden by default) -->
-                <div id="dayBookEntriesFolderContent" class="hidden border-t border-slate-800/80 p-2.5 sm:p-3 bg-slate-950/60 space-y-2">
+                <div id="dayBookEntriesFolderContent" class="hidden border-t border-slate-200 p-2.5 sm:p-3 bg-slate-50/70 space-y-2">
                     <!-- Compact Date & Duration Filter Card -->
-                    <div class="bg-slate-900/95 p-2 rounded-xl border border-slate-800/90 space-y-1.5">
+                    <div class="bg-white p-2 rounded-xl border border-slate-200 space-y-1.5">
                         <!-- Quick Duration Presets -->
                         <div class="grid grid-cols-4 gap-1 text-[11px]">
-                            <button type="button" onclick="setFilterPreset('today')" id="folderTabToday" class="py-1 px-1 text-center rounded-lg font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer whitespace-nowrap">📅 Today</button>
-                            <button type="button" onclick="setFilterPreset('yesterday')" id="folderTabYesterday" class="py-1 px-1 text-center rounded-lg font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer whitespace-nowrap">⏮️ Y'day</button>
-                            <button type="button" onclick="setFilterPreset('month')" id="folderTabMonth" class="py-1 px-1 text-center rounded-lg font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer whitespace-nowrap">🗓️ Month</button>
-                            <button type="button" onclick="setFilterPreset('all')" id="folderTabAll" class="py-1 px-1 text-center rounded-lg font-bold transition bg-indigo-600 text-white border border-indigo-500 shadow-sm cursor-pointer whitespace-nowrap">🌐 All</button>
+                            <button type="button" onclick="setFilterPreset('today')" id="folderTabToday" class="py-1 px-1 text-center rounded-lg font-bold transition bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 cursor-pointer whitespace-nowrap">📅 Today</button>
+                            <button type="button" onclick="setFilterPreset('yesterday')" id="folderTabYesterday" class="py-1 px-1 text-center rounded-lg font-bold transition bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 cursor-pointer whitespace-nowrap">⏮️ Y'day</button>
+                            <button type="button" onclick="setFilterPreset('month')" id="folderTabMonth" class="py-1 px-1 text-center rounded-lg font-bold transition bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 cursor-pointer whitespace-nowrap">🗓️ Month</button>
+                            <button type="button" onclick="setFilterPreset('all')" id="folderTabAll" class="py-1 px-1 text-center rounded-lg font-bold transition bg-indigo-600 text-white border border-indigo-600 shadow-xs cursor-pointer whitespace-nowrap">🌐 All</button>
                         </div>
 
                         <!-- Specific Date-wise Picker + Current Filter Badge (In 1 single line!) -->
-                        <div class="flex items-center gap-1.5 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
-                            <label for="folderSpecificDate" class="text-[10px] text-slate-400 font-bold whitespace-nowrap">📅 Date-wise:</label>
-                            <input type="date" id="folderSpecificDate" onchange="onFolderSpecificDateChange(this.value)" class="flex-1 min-w-0 bg-transparent text-slate-200 text-xs font-semibold focus:outline-none cursor-pointer">
-                            <span id="folderCurrentFilterBadge" class="text-[10px] font-bold text-indigo-300 bg-indigo-950/80 px-2 py-0.5 rounded-md border border-indigo-700/60 shrink-0 whitespace-nowrap">🌐 All Time</span>
+                        <div class="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+                            <label for="folderSpecificDate" class="text-[10px] text-slate-600 font-bold whitespace-nowrap">📅 Date-wise:</label>
+                            <input type="date" id="folderSpecificDate" onchange="onFolderSpecificDateChange(this.value)" class="flex-1 min-w-0 bg-transparent text-slate-800 text-xs font-semibold focus:outline-none cursor-pointer">
+                            <span id="folderCurrentFilterBadge" class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 shrink-0 whitespace-nowrap">🌐 All Time</span>
                         </div>
 
                         <!-- Optional Collapsible Custom Range (From / To) -->
-                        <details class="group text-[10px] text-slate-400 pt-0.5">
-                            <summary class="cursor-pointer hover:text-slate-200 select-none flex items-center justify-between text-[10px] font-semibold text-slate-400 py-0.5">
+                        <details class="group text-[10px] text-slate-500 pt-0.5">
+                            <summary class="cursor-pointer hover:text-slate-800 select-none flex items-center justify-between text-[10px] font-semibold text-slate-600 py-0.5">
                                 <span>🔍 Custom Date Range (From - To)</span>
                                 <span class="text-[9px] text-slate-400 group-open:rotate-180 transition-transform">▼</span>
                             </summary>
                             <div class="grid grid-cols-2 gap-1.5 pt-1.5">
-                                <div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
-                                    <span class="text-[10px] text-slate-400 shrink-0">From:</span>
-                                    <input type="date" id="folderFilterFromDate" onchange="onFolderDateRangeChange()" class="w-full bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer">
+                                <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+                                    <span class="text-[10px] text-slate-600 shrink-0 font-bold">From:</span>
+                                    <input type="date" id="folderFilterFromDate" onchange="onFolderDateRangeChange()" class="w-full bg-transparent text-slate-800 text-xs focus:outline-none cursor-pointer">
                                 </div>
-                                <div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
-                                    <span class="text-[10px] text-slate-400 shrink-0">To:</span>
-                                    <input type="date" id="folderFilterToDate" onchange="onFolderDateRangeChange()" class="w-full bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer">
+                                <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+                                    <span class="text-[10px] text-slate-600 shrink-0 font-bold">To:</span>
+                                    <input type="date" id="folderFilterToDate" onchange="onFolderDateRangeChange()" class="w-full bg-transparent text-slate-800 text-xs focus:outline-none cursor-pointer">
                                 </div>
                             </div>
                         </details>
@@ -2148,10 +2148,10 @@
                     <!-- Search within entries + Quick Fold Button (Merged in 1 compact line) -->
                     <div class="flex items-center gap-1.5">
                         <div class="relative flex-1 min-w-0">
-                            <input type="search" id="dayBookSearchInput" oninput="renderAccounts()" placeholder="🔍 Search transactions by name, item, mode, amount..." class="w-full px-2.5 py-1.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 focus:outline-none focus:border-indigo-500 placeholder-slate-500">
+                            <input type="search" id="dayBookSearchInput" oninput="renderAccounts()" placeholder="🔍 Search transactions by name, item, mode, amount..." class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 focus:outline-none focus:border-indigo-500 placeholder-slate-400 font-medium">
                         </div>
-                        <span id="dayBookEntriesHeading" class="hidden sm:inline-block text-[11px] font-semibold text-slate-400 whitespace-nowrap">Filtered (0)</span>
-                        <button type="button" onclick="window.toggleDayBookEntriesFolder(false)" class="text-[11px] font-bold text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition cursor-pointer shrink-0 whitespace-nowrap">✕ Fold</button>
+                        <span id="dayBookEntriesHeading" class="hidden sm:inline-block text-[11px] font-bold text-slate-500 whitespace-nowrap">Filtered (0)</span>
+                        <button type="button" onclick="window.toggleDayBookEntriesFolder(false)" class="text-[11px] font-bold text-slate-700 hover:text-slate-900 px-2.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 transition cursor-pointer shrink-0 whitespace-nowrap">✕ Fold</button>
                     </div>
 
                     <!-- Scrollable List Container (max-h-[60vh]) prevents endless scrolling -->
@@ -2555,14 +2555,26 @@
                     
                     <div class="space-y-2">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Select Product & Pack Size</label>
-                            <select id="orderItemProductSelect" onchange="onOrderItemSelectChange()" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none font-medium">
-                                <option value="">-- Choose Product / Pack Size --</option>
+                            <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Select Product</label>
+                            <select id="orderItemProductSelect" onchange="onOrderProductChange()" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none font-medium">
+                                <option value="">-- Choose Product --</option>
                             </select>
                         </div>
+
+                        <!-- Dynamic Pack Size / Variant Selector (Matching Billing) -->
+                        <div id="orderPackVariantWrapper" class="hidden space-y-1 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200 shadow-xs">
+                            <div class="flex justify-between items-center">
+                                <label class="font-bold text-[11px] text-emerald-900">📦 Select Pack Size / Packaging:</label>
+                                <span class="text-[10px] text-emerald-700 font-semibold" id="orderPackVariantBadge"></span>
+                            </div>
+                            <select id="orderPackVariantSelect" onchange="onOrderPackVariantSelected()" class="w-full p-2 bg-white border border-emerald-300 rounded-xl text-slate-900 text-xs font-bold focus:border-emerald-600 focus:outline-none">
+                                <option value="">-- Select Pack Size --</option>
+                            </select>
+                        </div>
+
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Item Name / Variant Description</label>
+                                <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Item Name / Variant Description (Customizable)</label>
                                 <input type="text" id="orderItemCustomName" placeholder="e.g. Dishwash 250 ml, Handwash 500 ml..." class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold focus:border-emerald-600 focus:outline-none">
                             </div>
                             <div>
@@ -2632,16 +2644,16 @@
     </div>
 
     <!-- Low Stock Products Modal -->
-    <div id="lowStockListModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
-      <div class="max-w-md w-full bg-slate-900 border border-rose-800/80 rounded-2xl shadow-2xl p-5 space-y-3 max-h-[85vh] overflow-y-auto">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+    <div id="lowStockListModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
+      <div class="max-w-md w-full bg-white border border-slate-200 rounded-3xl shadow-2xl p-5 space-y-3 max-h-[85vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
             <div>
-                <h3 class="font-bold text-rose-300 text-sm flex items-center gap-1.5">
+                <h3 class="font-extrabold text-rose-700 text-sm flex items-center gap-1.5">
                     <span>⚠️</span> <span>Low Stock Products</span>
                 </h3>
-                <p class="text-[10px] text-slate-400">Tap any product to directly add stock</p>
+                <p class="text-[10px] text-slate-500">Tap any product to directly add stock</p>
             </div>
-            <button type="button" onclick="closeLowStockList()" class="text-slate-400 hover:text-white font-bold text-xl px-2 py-1">×</button>
+            <button type="button" onclick="closeLowStockList()" class="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 py-1">×</button>
         </div>
         <div id="lowStockListContainer" class="space-y-2 pt-1"></div>
       </div>
@@ -2649,7 +2661,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=50.2"></script>
+    <script type="module" src="./modules/app.js?v=50.3"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2661,7 +2673,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.2) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.3) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2715,7 +2727,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=50.2')
+                navigator.serviceWorker.register('./sw.js?v=50.3')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

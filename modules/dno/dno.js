@@ -719,6 +719,10 @@ export function openNewOrderModal(orderData = null) {
     if (document.getElementById('orderItemCustomName')) document.getElementById('orderItemCustomName').value = '';
     if (document.getElementById('orderItemRate')) document.getElementById('orderItemRate').value = '';
     if (document.getElementById('orderItemQty')) document.getElementById('orderItemQty').value = '1';
+    const variantWrapper = document.getElementById('orderPackVariantWrapper');
+    if (variantWrapper) variantWrapper.classList.add('hidden');
+    const variantSelect = document.getElementById('orderPackVariantSelect');
+    if (variantSelect) variantSelect.innerHTML = '<option value="">-- Select Pack Size --</option>';
 
     if (orderData && Array.isArray(orderData.items)) {
         tempOrderItems = JSON.parse(JSON.stringify(orderData.items));
@@ -758,152 +762,184 @@ export function populateProductSelect() {
     const select = document.getElementById('orderItemProductSelect');
     if (!select) return;
 
-    let html = '<option value="">-- Choose Product / Pack Size --</option>';
+    let html = '<option value="">-- Choose Product --</option>';
 
-    // Cleaning Products & Variants
-    html += '<optgroup label="🧴 Cleaning Products & Pack Sizes">';
+    // Cleaning Products
+    html += '<optgroup label="🧴 Cleaning Products">';
     (state.products || []).filter(p => !isItemDeleted(p)).forEach(p => {
-        const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
-        if (hasVariants) {
-            p.variants.forEach(v => {
-                const varDisplayName = v.name && v.name.toLowerCase().includes(p.name.toLowerCase())
-                    ? v.name
-                    : `${p.name} (${v.name || (v.size + ' ' + (v.unit || ''))})`;
-                const rate = v.wholesalePrice || v.retailPrice || p.wholesalePrice || p.retailPrice || 0;
-                const unit = v.unit || 'Bottle';
-                const size = v.size || 1;
-                html += `<option value="var_${p.id}_${v.id}" 
-                    data-parent-id="${p.id}" 
-                    data-parent-name="${p.name}" 
-                    data-variant-id="${v.id}" 
-                    data-name="${varDisplayName}" 
-                    data-unit="${unit}" 
-                    data-size="${size}" 
-                    data-rate="${rate}">
-                    ${varDisplayName} — ₹${Number(rate).toFixed(2)}
-                </option>`;
-            });
-            const baseRate = p.wholesalePrice || p.retailPrice || 0;
-            html += `<option value="cln_${p.id}" 
-                data-parent-id="${p.id}" 
-                data-parent-name="${p.name}" 
-                data-variant-id="" 
-                data-name="${p.name} (Bulk)" 
-                data-unit="${p.unit || 'Ltr'}" 
-                data-size="1" 
-                data-rate="${baseRate}">
-                ${p.name} [Bulk] — ₹${Number(baseRate).toFixed(2)}
-            </option>`;
-        } else {
-            const baseRate = p.wholesalePrice || p.retailPrice || 0;
-            const packNote = p.packageName ? ` [${p.packageName}]` : '';
-            html += `<option value="cln_${p.id}" 
-                data-parent-id="${p.id}" 
-                data-parent-name="${p.name}" 
-                data-variant-id="" 
-                data-name="${p.name}${packNote}" 
-                data-unit="${p.unit || 'Ltr'}" 
-                data-size="1" 
-                data-rate="${baseRate}">
-                ${p.name}${packNote} — ₹${Number(baseRate).toFixed(2)}
-            </option>`;
-        }
+        const variantCount = Array.isArray(p.variants) && p.variants.length > 0 ? ` (${p.variants.length} pack sizes)` : '';
+        html += `<option value="cln_${p.id}" data-type="cleaning" data-id="${p.id}">${p.name}${variantCount}</option>`;
     });
     html += '</optgroup>';
 
-    // Cosmetics Products & Variants
+    // Cosmetics Products
     html += '<optgroup label="💄 Cosmetics Products">';
     (state.cosProducts || []).filter(p => !isItemDeleted(p)).forEach(p => {
-        const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
-        if (hasVariants) {
-            p.variants.forEach(v => {
-                const varDisplayName = v.name && v.name.toLowerCase().includes(p.name.toLowerCase())
-                    ? v.name
-                    : `${p.name} (${v.name || (v.size + ' ' + (v.unit || ''))})`;
-                const rate = v.costPrice || v.salePrice || p.costPrice || p.salePrice || 0;
-                html += `<option value="cosvar_${p.id}_${v.id}" 
-                    data-parent-id="${p.id}" 
-                    data-parent-name="${p.name}" 
-                    data-variant-id="${v.id}" 
-                    data-name="${varDisplayName}" 
-                    data-unit="${v.unit || 'Pcs'}" 
-                    data-size="${v.size || 1}" 
-                    data-rate="${rate}">
-                    ${varDisplayName} — ₹${Number(rate).toFixed(2)}
-                </option>`;
-            });
-        }
-        const baseRate = p.costPrice || p.salePrice || 0;
-        html += `<option value="cos_${p.id}" 
-            data-parent-id="${p.id}" 
-            data-parent-name="${p.name}" 
-            data-variant-id="" 
-            data-name="${p.name}" 
-            data-unit="${p.unit || 'Units'}" 
-            data-size="1" 
-            data-rate="${baseRate}">
-            ${p.name} — ₹${Number(baseRate).toFixed(2)}
-        </option>`;
+        const variantCount = Array.isArray(p.variants) && p.variants.length > 0 ? ` (${p.variants.length} pack sizes)` : '';
+        html += `<option value="cos_${p.id}" data-type="cosmetics" data-id="${p.id}">${p.name}${variantCount}</option>`;
     });
     html += '</optgroup>';
 
     select.innerHTML = html;
 }
 
-export function onOrderItemSelectChange() {
+export function onOrderProductChange() {
     const select = document.getElementById('orderItemProductSelect');
     const opt = select ? select.options[select.selectedIndex] : null;
-    if (opt && opt.dataset.name) {
-        document.getElementById('orderItemRate').value = opt.dataset.rate || 0;
-        document.getElementById('orderItemQty').value = 1;
-        const customNameEl = document.getElementById('orderItemCustomName');
-        if (customNameEl) {
-            customNameEl.value = opt.dataset.name;
+    const wrapper = document.getElementById('orderPackVariantWrapper');
+    const variantSelect = document.getElementById('orderPackVariantSelect');
+    const badgeEl = document.getElementById('orderPackVariantBadge');
+    const customNameEl = document.getElementById('orderItemCustomName');
+    const rateEl = document.getElementById('orderItemRate');
+    const qtyEl = document.getElementById('orderItemQty');
+    const unitEl = document.getElementById('orderItemUnit');
+
+    if (!opt || !opt.value) {
+        if (wrapper) wrapper.classList.add('hidden');
+        if (badgeEl) badgeEl.textContent = '';
+        if (customNameEl) customNameEl.value = '';
+        if (rateEl) rateEl.value = '';
+        return;
+    }
+
+    const type = opt.dataset.type;
+    const prodId = opt.dataset.id;
+    let product = null;
+
+    if (type === 'cleaning') {
+        product = (state.products || []).find(p => String(p.id) === String(prodId));
+    } else if (type === 'cosmetics') {
+        product = (state.cosProducts || []).find(p => String(p.id) === String(prodId));
+    }
+
+    if (!product) return;
+
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    if (variants.length > 0) {
+        if (wrapper && variantSelect) {
+            wrapper.classList.remove('hidden');
+            if (badgeEl) badgeEl.textContent = `${variants.length} options available`;
+
+            let varHtml = `<option value="">-- Select Pack Size (${variants.length} options) --</option>`;
+            variants.forEach(v => {
+                const varDisplayName = v.name && v.name.toLowerCase().includes(product.name.toLowerCase())
+                    ? v.name
+                    : `${product.name} (${v.name || (v.size + ' ' + (v.unit || ''))})`;
+                const rate = v.wholesalePrice || v.retailPrice || product.wholesalePrice || product.retailPrice || 0;
+                varHtml += `<option value="${v.id}" data-name="${varDisplayName}" data-size="${v.size || 1}" data-unit="${v.unit || 'Bottle'}" data-rate="${rate}">
+                    ${v.name || (v.size + ' ' + (v.unit || ''))} — ₹${Number(rate).toFixed(2)}
+                </option>`;
+            });
+
+            // Add standard/bulk fallback
+            const baseRate = product.wholesalePrice || product.retailPrice || 0;
+            varHtml += `<option value="base_bulk" data-name="${product.name} (Bulk)" data-size="1" data-unit="${product.unit || 'Ltr'}" data-rate="${baseRate}">
+                Standard / Bulk (${product.unit || 'Ltr'}) — ₹${Number(baseRate).toFixed(2)}
+            </option>`;
+
+            variantSelect.innerHTML = varHtml;
+            variantSelect.selectedIndex = 1; // Default to first pack size
+            onOrderPackVariantSelected();
         }
-        const unitEl = document.getElementById('orderItemUnit');
-        if (unitEl && opt.dataset.unit) {
-            const u = opt.dataset.unit;
+    } else {
+        if (wrapper) wrapper.classList.add('hidden');
+        if (badgeEl) badgeEl.textContent = '';
+        if (variantSelect) variantSelect.innerHTML = '<option value="">-- None --</option>';
+
+        const baseRate = product.wholesalePrice || product.retailPrice || 0;
+        if (customNameEl) customNameEl.value = product.name;
+        if (rateEl) rateEl.value = baseRate ? Number(baseRate).toFixed(2) : '';
+        if (qtyEl && (!qtyEl.value || parseFloat(qtyEl.value) <= 0)) qtyEl.value = '1';
+        if (unitEl && product.unit) {
+            const u = product.unit;
             if ([...unitEl.options].some(o => o.value.toLowerCase() === u.toLowerCase())) {
                 unitEl.value = u;
-            } else if (/ml|l|ltr/i.test(u)) {
+            } else {
                 unitEl.value = 'Bottle';
             }
         }
     }
 }
 
+export function onOrderPackVariantSelected() {
+    const select = document.getElementById('orderItemProductSelect');
+    const opt = select ? select.options[select.selectedIndex] : null;
+    const variantSelect = document.getElementById('orderPackVariantSelect');
+    const vOpt = variantSelect ? variantSelect.options[variantSelect.selectedIndex] : null;
+    const customNameEl = document.getElementById('orderItemCustomName');
+    const rateEl = document.getElementById('orderItemRate');
+    const unitEl = document.getElementById('orderItemUnit');
+    const qtyEl = document.getElementById('orderItemQty');
+
+    if (!opt || !vOpt || !vOpt.value) return;
+
+    if (vOpt.dataset.name && customNameEl) {
+        customNameEl.value = vOpt.dataset.name;
+    }
+    if (vOpt.dataset.rate && rateEl) {
+        rateEl.value = Number(vOpt.dataset.rate).toFixed(2);
+    }
+    if (qtyEl && (!qtyEl.value || parseFloat(qtyEl.value) <= 0)) {
+        qtyEl.value = '1';
+    }
+    if (vOpt.dataset.unit && unitEl) {
+        const u = vOpt.dataset.unit;
+        if ([...unitEl.options].some(o => o.value.toLowerCase() === u.toLowerCase())) {
+            unitEl.value = u;
+        } else if (/ml|l|ltr/i.test(u)) {
+            unitEl.value = 'Bottle';
+        }
+    }
+}
+
+// Backward-compatibility alias
+export function onOrderItemSelectChange() {
+    onOrderProductChange();
+}
+
 export function addTempOrderItem() {
     const select = document.getElementById('orderItemProductSelect');
+    const opt = select ? select.options[select.selectedIndex] : null;
+    const variantWrapper = document.getElementById('orderPackVariantWrapper');
+    const variantSelect = document.getElementById('orderPackVariantSelect');
+    const isVariantVisible = variantWrapper && !variantWrapper.classList.contains('hidden');
+    const vOpt = isVariantVisible && variantSelect && variantSelect.selectedIndex > 0
+        ? variantSelect.options[variantSelect.selectedIndex] 
+        : null;
+
     const customNameInput = document.getElementById('orderItemCustomName');
     const unitSelect = document.getElementById('orderItemUnit');
-    const opt = select ? select.options[select.selectedIndex] : null;
     
-    let productName = '';
-    let unit = unitSelect ? unitSelect.value : 'Bottle';
-    let productId = '';
-    let parentId = '';
-    let parentName = '';
+    let prodType = opt ? opt.dataset.type : '';
+    let parentId = opt ? opt.dataset.id : '';
+    let parentName = opt && opt.value ? opt.text.replace(/\s*\(\d+\s*pack sizes\)$/i, '').trim() : '';
+
     let variantId = '';
     let size = 1;
+    let unit = unitSelect ? unitSelect.value : 'Bottle';
 
-    if (customNameInput && customNameInput.value.trim()) {
-        productName = customNameInput.value.trim();
-    } else if (opt && opt.dataset.name) {
-        productName = opt.dataset.name;
+    if (vOpt && vOpt.value && vOpt.value !== 'base_bulk') {
+        variantId = vOpt.value;
+        size = parseFloat(vOpt.dataset.size) || 1;
+        if (vOpt.dataset.unit && (!unitSelect || !unitSelect.value)) {
+            unit = vOpt.dataset.unit;
+        }
     }
 
-    if (opt && opt.value) {
-        productId = opt.value;
-        parentId = opt.dataset.parentId || '';
-        parentName = opt.dataset.parentName || '';
-        variantId = opt.dataset.variantId || '';
-        size = parseFloat(opt.dataset.size) || 1;
-        if (!unitSelect || !unitSelect.value) {
-            unit = opt.dataset.unit || 'Bottle';
+    const rawEnteredName = customNameInput ? customNameInput.value.trim() : '';
+    let productName = '';
+
+    if (rawEnteredName) {
+        // If user typed e.g. "250" or "250 ml" and a parent product was chosen, combine them cleanly!
+        if (parentName && !rawEnteredName.toLowerCase().includes(parentName.toLowerCase())) {
+            productName = `${parentName} (${rawEnteredName})`;
+        } else {
+            productName = rawEnteredName;
         }
-    } else {
-        productId = 'custom_' + Date.now();
-        parentName = productName;
+    } else if (vOpt && vOpt.dataset.name) {
+        productName = vOpt.dataset.name;
+    } else if (parentName) {
+        productName = parentName;
     }
 
     if (!productName) {
@@ -915,10 +951,14 @@ export function addTempOrderItem() {
     const rate = parseFloat(document.getElementById('orderItemRate').value) || 0;
     const total = qty * rate;
 
+    const productId = parentId 
+        ? (prodType === 'cleaning' ? `cln_${parentId}` : `cos_${parentId}`) 
+        : ('custom_' + Date.now());
+
     tempOrderItems.push({
         productId,
         productName,
-        parentName,
+        parentName: parentName || productName,
         parentId,
         variantId,
         size,
@@ -930,6 +970,10 @@ export function addTempOrderItem() {
 
     // Reset row
     if (select) select.value = '';
+    if (variantSelect) {
+        variantSelect.innerHTML = '<option value="">-- Select Pack Size --</option>';
+        if (variantWrapper) variantWrapper.classList.add('hidden');
+    }
     if (customNameInput) customNameInput.value = '';
     document.getElementById('orderItemQty').value = 1;
     document.getElementById('orderItemRate').value = '';
@@ -1238,6 +1282,8 @@ window.openNewOrderModal = openNewOrderModal;
 window.closeNewOrderModal = closeNewOrderModal;
 window.onOrderCustomerSelect = onOrderCustomerSelect;
 window.onOrderItemSelectChange = onOrderItemSelectChange;
+window.onOrderProductChange = onOrderProductChange;
+window.onOrderPackVariantSelected = onOrderPackVariantSelected;
 window.addTempOrderItem = addTempOrderItem;
 window.removeTempOrderItem = removeTempOrderItem;
 window.saveOrderBooking = saveOrderBooking;

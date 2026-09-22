@@ -198,19 +198,19 @@ export function openLowStockList() {
     ].sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
     
     container.innerHTML = rows.length ? rows.map(p => `
-        <div onclick="window.goToAddStockFromLowStock('${p.category}', '${p.id}')" class="bg-slate-950/80 hover:bg-slate-950 border border-slate-800 hover:border-emerald-600/70 rounded-xl p-3 text-xs transition cursor-pointer group shadow-sm">
+        <div onclick="window.goToAddStockFromLowStock('${p.category}', '${p.id}')" class="bg-slate-50 hover:bg-emerald-50/50 border border-slate-200 hover:border-emerald-300 rounded-2xl p-3 text-xs transition cursor-pointer group shadow-xs">
             <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0 flex-1">
-                    <div class="font-bold ${p.category === 'Cosmetics' ? 'text-pink-300' : p.category === 'Packaging' ? 'text-cyan-300' : 'text-emerald-300'} truncate group-hover:underline">
+                    <div class="font-extrabold ${p.category === 'Cosmetics' ? 'text-purple-900' : p.category === 'Packaging' ? 'text-sky-900' : 'text-emerald-900'} truncate group-hover:text-emerald-700">
                         ${p.name || 'Product'}
                     </div>
-                    <div class="text-[10px] text-slate-400 mt-1 flex flex-wrap items-center gap-1.5">
-                        <span class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">${p.category}</span>
-                        <span>Stock: <b class="text-rose-400 font-extrabold">${p.stock || 0} ${p.unit || ''}</b></span>
+                    <div class="text-[10px] text-slate-500 mt-1 flex flex-wrap items-center gap-1.5">
+                        <span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold">${p.category}</span>
+                        <span>Stock: <b class="text-rose-600 font-black">${p.stock || 0} ${p.unit || ''}</b></span>
                     </div>
                 </div>
                 <div class="shrink-0">
-                    <button type="button" onclick="event.stopPropagation(); window.goToAddStockFromLowStock('${p.category}', '${p.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition shadow-md shadow-emerald-950 flex items-center gap-1 cursor-pointer">
+                    <button type="button" onclick="event.stopPropagation(); window.goToAddStockFromLowStock('${p.category}', '${p.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-xs flex items-center gap-1 cursor-pointer">
                         <span>➕</span> <span>Add Stock</span>
                     </button>
                 </div>

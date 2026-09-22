@@ -132,11 +132,11 @@ export function updateDayBookPresetButtons(preset) {
     const periodBadge = document.getElementById('dayBookActivePeriodBadge');
     const folderBadge = document.getElementById('folderCurrentFilterBadge');
 
-    const topActiveClass = 'bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold shadow-md border border-indigo-400 transition cursor-pointer text-center';
-    const topInactiveClass = 'bg-slate-900/90 text-slate-400 py-2 rounded-xl text-xs font-semibold border border-slate-800 hover:bg-slate-800 hover:text-slate-200 transition cursor-pointer text-center';
+    const topActiveClass = 'bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold shadow-xs border border-indigo-600 transition cursor-pointer text-center';
+    const topInactiveClass = 'bg-white text-slate-700 py-2 rounded-xl text-xs font-semibold border border-slate-300 hover:bg-slate-100 transition cursor-pointer text-center';
 
-    const folderActiveClass = 'py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-indigo-600 text-white border border-indigo-500 shadow-sm cursor-pointer';
-    const folderInactiveClass = 'py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60 cursor-pointer';
+    const folderActiveClass = 'py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-indigo-600 text-white border border-indigo-600 shadow-xs cursor-pointer';
+    const folderInactiveClass = 'py-1.5 px-1 text-center rounded-lg font-bold transition text-[11px] bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 cursor-pointer';
 
     if (btnToday) btnToday.className = (preset === 'today') ? topActiveClass : topInactiveClass;
     if (btnYesterday) btnYesterday.className = (preset === 'yesterday') ? topActiveClass : topInactiveClass;
@@ -155,28 +155,28 @@ export function updateDayBookPresetButtons(preset) {
     const yestStr = getYesterdayDateString();
 
     let badgeText = '🌐 All Time';
-    let badgeClass = 'text-[10px] text-sky-300 font-bold bg-sky-950/70 px-2.5 py-0.5 rounded-md border border-sky-800/60';
+    let badgeClass = 'text-[10px] text-sky-800 font-bold bg-sky-50 px-2.5 py-0.5 rounded-md border border-sky-200';
 
     if (preset === 'today' || (fromVal && fromVal === toVal && fromVal === todayStr)) {
         badgeText = '📅 Today';
-        badgeClass = 'text-[10px] text-emerald-300 font-bold bg-emerald-950/70 px-2.5 py-0.5 rounded-md border border-emerald-800/60';
+        badgeClass = 'text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200';
     } else if (preset === 'yesterday' || (fromVal && fromVal === toVal && fromVal === yestStr)) {
         badgeText = '⏮️ Yesterday';
-        badgeClass = 'text-[10px] text-amber-300 font-bold bg-amber-950/70 px-2.5 py-0.5 rounded-md border border-amber-800/60';
+        badgeClass = 'text-[10px] text-amber-800 font-bold bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200';
     } else if (preset === 'month') {
         badgeText = '🗓️ This Month';
-        badgeClass = 'text-[10px] text-indigo-300 font-bold bg-indigo-950/70 px-2.5 py-0.5 rounded-md border border-indigo-800/60';
+        badgeClass = 'text-[10px] text-indigo-800 font-bold bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-200';
     } else if (preset === 'all' || (!fromVal && !toVal)) {
         badgeText = '🌐 All Time';
-        badgeClass = 'text-[10px] text-sky-300 font-bold bg-sky-950/70 px-2.5 py-0.5 rounded-md border border-sky-800/60';
+        badgeClass = 'text-[10px] text-sky-800 font-bold bg-sky-50 px-2.5 py-0.5 rounded-md border border-sky-200';
     } else if (fromVal && toVal && fromVal === toVal) {
         badgeText = `📅 ${formatDateDDMMYYYY(fromVal)}`;
-        badgeClass = 'text-[10px] text-teal-300 font-bold bg-teal-950/70 px-2.5 py-0.5 rounded-md border border-teal-800/60';
+        badgeClass = 'text-[10px] text-teal-800 font-bold bg-teal-50 px-2.5 py-0.5 rounded-md border border-teal-200';
     } else {
         const fromDisp = fromVal ? formatDateDDMMYYYY(fromVal) : 'Start';
         const toDisp = toVal ? formatDateDDMMYYYY(toVal) : 'Now';
         badgeText = `🔍 ${fromDisp} → ${toDisp}`;
-        badgeClass = 'text-[10px] text-purple-300 font-bold bg-purple-950/70 px-2.5 py-0.5 rounded-md border border-purple-800/60';
+        badgeClass = 'text-[10px] text-purple-800 font-bold bg-purple-50 px-2.5 py-0.5 rounded-md border border-purple-200';
     }
 
     if (periodBadge) {
@@ -642,30 +642,30 @@ export function renderAccounts() {
     if (summaryEl) {
         summaryEl.innerHTML = `
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
-                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-emerald-700/50 flex flex-col justify-between shadow-sm">
-                    <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">${periodLabel} Sales</span>
-                    <b class="text-emerald-300 font-extrabold text-sm mt-1">₹${incSales.toFixed(2)}</b>
-                    <span class="text-[9px] text-slate-400 mt-0.5">Total Billed</span>
+                <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 flex flex-col justify-between shadow-xs">
+                    <span class="text-[10px] text-emerald-800 font-bold uppercase tracking-wider">${periodLabel} Sales</span>
+                    <b class="text-emerald-950 font-black text-sm mt-1">₹${incSales.toFixed(2)}</b>
+                    <span class="text-[9px] text-emerald-700 mt-0.5 font-medium">Total Billed</span>
                 </div>
-                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-sky-800/50 flex flex-col justify-between shadow-sm">
-                    <span class="text-[10px] text-sky-400 font-bold uppercase tracking-wider">${periodLabel} Collection</span>
-                    <b class="text-sky-300 font-extrabold text-sm mt-1">₹${incCollection.toFixed(2)}</b>
-                    <span class="text-[9px] text-slate-400 mt-0.5">Cash / Paid In</span>
+                <div class="bg-sky-50 p-2.5 rounded-xl border border-sky-200 flex flex-col justify-between shadow-xs">
+                    <span class="text-[10px] text-sky-800 font-bold uppercase tracking-wider">${periodLabel} Collection</span>
+                    <b class="text-sky-950 font-black text-sm mt-1">₹${incCollection.toFixed(2)}</b>
+                    <span class="text-[9px] text-sky-700 mt-0.5 font-medium">Cash / Paid In</span>
                 </div>
-                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-between shadow-sm">
-                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">${periodLabel} Due</span>
-                    <b class="text-rose-300 font-extrabold text-sm mt-1">₹${incDue.toFixed(2)}</b>
-                    <span class="text-[9px] text-slate-500 mt-0.5">Credit Pending</span>
+                <div class="bg-rose-50 p-2.5 rounded-xl border border-rose-200 flex flex-col justify-between shadow-xs">
+                    <span class="text-[10px] text-rose-800 font-bold uppercase tracking-wider">${periodLabel} Due</span>
+                    <b class="text-rose-950 font-black text-sm mt-1">₹${incDue.toFixed(2)}</b>
+                    <span class="text-[9px] text-rose-700 mt-0.5 font-medium">Credit Pending</span>
                 </div>
-                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-between shadow-sm">
-                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">${periodLabel} Expense</span>
-                    <b class="text-slate-100 font-extrabold text-sm mt-1">₹${expTotal.toFixed(2)}</b>
-                    <span class="text-[9px] text-slate-500 mt-0.5">Purchases & Costs</span>
+                <div class="bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex flex-col justify-between shadow-xs">
+                    <span class="text-[10px] text-amber-800 font-bold uppercase tracking-wider">${periodLabel} Expense</span>
+                    <b class="text-amber-950 font-black text-sm mt-1">₹${expTotal.toFixed(2)}</b>
+                    <span class="text-[9px] text-amber-700 mt-0.5 font-medium">Purchases & Costs</span>
                 </div>
             </div>
-            <div class="flex justify-between items-center text-[10px] text-slate-400 px-1 pt-0.5">
-                <span>Opening Bal: <b class="text-slate-200">₹${openingBalance.toFixed(2)}</b> · Opening Exp: <b class="text-slate-200">₹${openingExpense.toFixed(2)}</b></span>
-                <span>Net Balance: <b class="${isProfit ? 'text-emerald-400' : 'text-rose-400'} font-bold">₹${netBalance.toFixed(2)}</b></span>
+            <div class="flex justify-between items-center text-[10px] text-slate-500 px-1 pt-0.5">
+                <span>Opening Bal: <b class="text-slate-800 font-bold">₹${openingBalance.toFixed(2)}</b> · Opening Exp: <b class="text-slate-800 font-bold">₹${openingExpense.toFixed(2)}</b></span>
+                <span>Net Balance: <b class="${isProfit ? 'text-emerald-700' : 'text-rose-700'} font-black">₹${netBalance.toFixed(2)}</b></span>
             </div>`;
     }
 
@@ -697,46 +697,46 @@ export function renderAccounts() {
     if (filtered.length === 0) {
         const totalMasterCount = allEntries.length;
         const clearedNote = (state.clearedDayBookEntries && state.clearedDayBookEntries.length > 0)
-            ? `<div class="mt-2 text-sky-300 text-[11px] bg-slate-900/80 p-2 rounded-lg border border-slate-800">⚠️ ${state.clearedDayBookEntries.length} transaction(s) are currently marked as cleared. <button type="button" onclick="restoreClearedDayBook()" class="underline font-bold text-sky-200 ml-1 hover:text-white">Click here to restore</button></div>`
+            ? `<div class="mt-2 text-sky-800 text-[11px] bg-sky-50 p-2 rounded-xl border border-sky-200">⚠️ ${state.clearedDayBookEntries.length} transaction(s) are currently marked as cleared. <button type="button" onclick="restoreClearedDayBook()" class="underline font-bold text-sky-900 ml-1 hover:text-sky-700">Click here to restore</button></div>`
             : '';
         listContainer.innerHTML = `
-            <div class="bg-slate-950/40 border border-slate-800/70 p-6 rounded-2xl text-center space-y-2">
+            <div class="bg-white border border-dashed border-slate-300 p-6 rounded-2xl text-center space-y-2">
                 <div class="text-2xl">📋</div>
-                <p class="text-xs text-slate-300 font-bold">No transactions found for the selected filter period.</p>
-                ${totalMasterCount > 0 ? `<p class="text-[11px] text-slate-400">You have <span class="text-white font-bold">${totalMasterCount}</span> total transaction(s) in your system.</p>` : `<p class="text-[11px] text-slate-400">No transactions have been recorded yet.</p>`}
+                <p class="text-xs text-slate-700 font-bold">No transactions found for the selected filter period.</p>
+                ${totalMasterCount > 0 ? `<p class="text-[11px] text-slate-500">You have <span class="text-slate-900 font-bold">${totalMasterCount}</span> total transaction(s) in your system.</p>` : `<p class="text-[11px] text-slate-500">No transactions have been recorded yet.</p>`}
                 <div class="flex justify-center gap-2 pt-2">
-                    ${totalMasterCount > 0 ? `<button type="button" onclick="setFilterPreset('all')" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold px-4 py-2 rounded-xl shadow-md transition cursor-pointer">🌐 Show All Transactions (${totalMasterCount})</button>` : ''}
+                    ${totalMasterCount > 0 ? `<button type="button" onclick="setFilterPreset('all')" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-4 py-2 rounded-xl shadow-xs transition cursor-pointer">🌐 Show All Transactions (${totalMasterCount})</button>` : ''}
                 </div>
                 ${clearedNote}
             </div>`;
     } else if (displayList.length === 0) {
         listContainer.innerHTML = `
-            <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-xl text-center space-y-2">
-                <p class="text-xs text-slate-300">No transactions match your search "<b>${searchVal}</b>".</p>
-                <button type="button" onclick="document.getElementById('dayBookSearchInput').value=''; renderAccounts();" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1 rounded-lg border border-slate-700 transition cursor-pointer">Clear Search</button>
+            <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl text-center space-y-2">
+                <p class="text-xs text-slate-600">No transactions match your search "<b>${searchVal}</b>".</p>
+                <button type="button" onclick="document.getElementById('dayBookSearchInput').value=''; renderAccounts();" class="text-[11px] bg-white hover:bg-slate-100 text-slate-700 px-3 py-1 rounded-lg border border-slate-300 transition cursor-pointer font-bold">Clear Search</button>
             </div>`;
     } else {
         listContainer.innerHTML = displayList.map(e => {
             const isInc = e.type === 'Income';
-            const badgeBg = isInc ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60' : 'bg-slate-800 text-slate-300 border-slate-700/60';
+            const badgeBg = isInc ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200';
             const icon = isInc ? '💰' : '💸';
-            const payBadge = e.paymentMode ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">${e.paymentMode}</span>` : '';
+            const payBadge = e.paymentMode ? `<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-semibold">${e.paymentMode}</span>` : '';
             return `
-            <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3 text-xs hover:border-slate-700 transition">
+            <div class="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-3 text-xs shadow-xs hover:border-slate-300 transition">
                 <div class="flex items-start gap-2.5 min-w-0">
                     <span class="text-base shrink-0 mt-0.5">${icon}</span>
                     <div class="min-w-0 space-y-0.5">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${badgeBg}">[${e.type}]</span>
-                            <span class="font-bold text-slate-100 truncate">${e.desc}</span>
+                            <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold border ${badgeBg}">[${e.type}]</span>
+                            <span class="font-extrabold text-slate-900 truncate">${e.desc}</span>
                             ${payBadge}
                         </div>
-                        <p class="text-[10px] text-slate-400">📅 ${formatDateDDMMYYYY(e.date)} ${e.category ? '• ' + e.category : ''}</p>
+                        <p class="text-[10px] text-slate-500">📅 ${formatDateDDMMYYYY(e.date)} ${e.category ? '• ' + e.category : ''}</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <span class="font-black text-xs ${isInc ? 'text-emerald-400' : 'text-slate-200'}">₹${Number(e.amount || 0).toFixed(2)}</span>
-                    <button type="button" onclick="deleteDayBookEntry('${e.id}')" title="Remove from Day Book view" class="text-slate-500 hover:text-rose-300 hover:bg-slate-800 border border-transparent hover:border-rose-800/40 p-1 rounded-lg text-xs transition cursor-pointer">🗑️</button>
+                    <span class="font-black text-xs ${isInc ? 'text-emerald-700' : 'text-slate-800'}">₹${Number(e.amount || 0).toFixed(2)}</span>
+                    <button type="button" onclick="deleteDayBookEntry('${e.id}')" title="Remove from Day Book view" class="text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 p-1 rounded-lg text-xs transition cursor-pointer">🗑️</button>
                 </div>
             </div>`;
         }).join('');
