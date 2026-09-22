@@ -19,6 +19,7 @@ let currentDnoSubTab = 'demands'; // 'demands' | 'orders'
 let currentDemandFilter = 'all'; // 'all' | 'needed' | 'urgent' | 'received'
 let currentOrderFilter = 'all'; // 'all' | 'overdue' | 'pending' | 'processing' | 'delivered'
 let tempOrderItems = [];
+let editingOrderItemIndex = -1;
 let audioMuted = localStorage.getItem('fia_audio_muted') === 'true';
 
 // -------------------------------------------------------------
@@ -724,6 +725,13 @@ export function openNewOrderModal(orderData = null) {
     const variantSelect = document.getElementById('orderPackVariantSelect');
     if (variantSelect) variantSelect.innerHTML = '<option value="">-- Select Pack Size --</option>';
 
+    editingOrderItemIndex = -1;
+    const addBtn = document.getElementById('btnAddOrderItem');
+    if (addBtn) {
+        addBtn.innerHTML = '+ Add Item';
+        addBtn.className = 'w-full py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs hover:bg-emerald-700 transition shadow-xs';
+    }
+
     if (orderData && Array.isArray(orderData.items)) {
         tempOrderItems = JSON.parse(JSON.stringify(orderData.items));
     }
@@ -735,6 +743,12 @@ export function openNewOrderModal(orderData = null) {
 }
 
 export function closeNewOrderModal() {
+    editingOrderItemIndex = -1;
+    const addBtn = document.getElementById('btnAddOrderItem');
+    if (addBtn) {
+        addBtn.innerHTML = '+ Add Item';
+        addBtn.className = 'w-full py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs hover:bg-emerald-700 transition shadow-xs';
+    }
     const modal = document.getElementById('newOrderModal');
     if (modal) modal.classList.add('hidden');
 }
@@ -955,7 +969,7 @@ export function addTempOrderItem() {
         ? (prodType === 'cleaning' ? `cln_${parentId}` : `cos_${parentId}`) 
         : ('custom_' + Date.now());
 
-    tempOrderItems.push({
+    const itemObj = {
         productId,
         productName,
         parentName: parentName || productName,
@@ -966,7 +980,19 @@ export function addTempOrderItem() {
         unit,
         rate,
         total
-    });
+    };
+
+    if (editingOrderItemIndex >= 0 && editingOrderItemIndex < tempOrderItems.length) {
+        tempOrderItems[editingOrderItemIndex] = itemObj;
+        editingOrderItemIndex = -1;
+        const addBtn = document.getElementById('btnAddOrderItem');
+        if (addBtn) {
+            addBtn.innerHTML = '+ Add Item';
+            addBtn.className = 'w-full py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs hover:bg-emerald-700 transition shadow-xs';
+        }
+    } else {
+        tempOrderItems.push(itemObj);
+    }
 
     // Reset row
     if (select) select.value = '';
@@ -981,7 +1007,103 @@ export function addTempOrderItem() {
     renderTempOrderItems();
 }
 
+export function editTempOrderItem(idx) {
+    if (idx < 0 || idx >= tempOrderItems.length) return;
+    const item = tempOrderItems[idx];
+    if (!item) return;
+
+    editingOrderItemIndex = idx;
+
+    const select = document.getElementById('orderItemProductSelect');
+    const customNameInput = document.getElementById('orderItemCustomName');
+    const unitSelect = document.getElementById('orderItemUnit');
+    const qtyInput = document.getElementById('orderItemQty');
+    const rateInput = document.getElementById('orderItemRate');
+
+    // 1. Try to find and select matching product in orderItemProductSelect
+    if (select) {
+        let matched = false;
+        if (item.parentId) {
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].dataset.id === String(item.parentId)) {
+                    select.selectedIndex = i;
+                    matched = true;
+                    break;
+                }
+            }
+        }
+        if (!matched && (item.parentName || item.productName)) {
+            const check = (item.parentName || item.productName).toLowerCase();
+            for (let i = 0; i < select.options.length; i++) {
+                const optVal = select.options[i].value.toLowerCase();
+                if (optVal && (check.startsWith(optVal) || optVal.startsWith(check) || check.includes(optVal))) {
+                    select.selectedIndex = i;
+                    matched = true;
+                    break;
+                }
+            }
+        }
+
+        if (matched) {
+            onOrderProductChange();
+            if (item.variantId) {
+                const variantSelect = document.getElementById('orderPackVariantSelect');
+                if (variantSelect) {
+                    for (let j = 0; j < variantSelect.options.length; j++) {
+                        if (variantSelect.options[j].value === item.variantId) {
+                            variantSelect.selectedIndex = j;
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            select.selectedIndex = 0;
+            const variantWrapper = document.getElementById('orderPackVariantWrapper');
+            if (variantWrapper) variantWrapper.classList.add('hidden');
+        }
+    }
+
+    // 2. Pre-fill custom name, unit, qty, rate
+    if (customNameInput) customNameInput.value = item.productName || '';
+    if (unitSelect && item.unit) {
+        if ([...unitSelect.options].some(o => o.value.toLowerCase() === item.unit.toLowerCase())) {
+            unitSelect.value = item.unit;
+        }
+    }
+    if (qtyInput) qtyInput.value = item.qty !== undefined ? item.qty : 1;
+    if (rateInput) rateInput.value = item.rate !== undefined ? item.rate : '';
+
+    // 3. Switch add button to "✓ Update Item"
+    const addBtn = document.getElementById('btnAddOrderItem');
+    if (addBtn) {
+        addBtn.innerHTML = '✓ Update Item';
+        addBtn.className = 'w-full py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs hover:bg-indigo-700 transition shadow-xs ring-2 ring-indigo-300';
+    }
+
+    renderTempOrderItems();
+    customNameInput?.focus();
+}
+
 export function removeTempOrderItem(idx) {
+    if (editingOrderItemIndex === idx) {
+        editingOrderItemIndex = -1;
+        const addBtn = document.getElementById('btnAddOrderItem');
+        if (addBtn) {
+            addBtn.innerHTML = '+ Add Item';
+            addBtn.className = 'w-full py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs hover:bg-emerald-700 transition shadow-xs';
+        }
+        const select = document.getElementById('orderItemProductSelect');
+        if (select) select.value = '';
+        const variantWrapper = document.getElementById('orderPackVariantWrapper');
+        if (variantWrapper) variantWrapper.classList.add('hidden');
+        const customNameInput = document.getElementById('orderItemCustomName');
+        if (customNameInput) customNameInput.value = '';
+        if (document.getElementById('orderItemQty')) document.getElementById('orderItemQty').value = '1';
+        if (document.getElementById('orderItemRate')) document.getElementById('orderItemRate').value = '';
+    } else if (editingOrderItemIndex > idx) {
+        editingOrderItemIndex--;
+    }
     tempOrderItems.splice(idx, 1);
     renderTempOrderItems();
 }
@@ -998,13 +1120,24 @@ export function renderTempOrderItems() {
 
     let html = '';
     tempOrderItems.forEach((item, idx) => {
+        const isEditing = (editingOrderItemIndex === idx);
         html += `
-            <div class="flex items-center justify-between p-2 bg-white border border-slate-200 rounded-xl text-xs gap-2 shadow-xs">
+            <div class="flex items-center justify-between p-2.5 bg-white border ${isEditing ? 'border-indigo-400 ring-2 ring-indigo-200 bg-indigo-50/30' : 'border-slate-200'} rounded-xl text-xs gap-2 shadow-xs transition">
                 <div class="min-w-0 flex-1">
-                    <strong class="text-slate-900 block truncate">${item.productName}</strong>
-                    <span class="text-slate-500 text-[11px]">${item.qty} ${item.unit} × ₹${item.rate} = <strong class="text-slate-800">₹${item.total.toFixed(2)}</strong></span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <strong class="text-slate-900 block truncate">${item.productName}</strong>
+                        ${isEditing ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-bold border border-indigo-200">Editing...</span>' : ''}
+                    </div>
+                    <span class="text-slate-500 text-[11px]">${item.qty} ${item.unit} × ₹${Number(item.rate).toFixed(2)} = <strong class="text-slate-800">₹${Number(item.total).toFixed(2)}</strong></span>
                 </div>
-                <button type="button" onclick="window.removeTempOrderItem(${idx})" class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1">✕</button>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" onclick="window.editTempOrderItem(${idx})" title="Edit Item" class="px-2.5 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg font-bold text-xs transition border border-indigo-200 flex items-center gap-0.5">
+                        <span>✏️</span> <span>Edit</span>
+                    </button>
+                    <button type="button" onclick="window.removeTempOrderItem(${idx})" title="Remove Item" class="px-2 py-1 bg-rose-50 text-rose-600 hover:text-rose-800 hover:bg-rose-100 rounded-lg font-bold text-xs transition border border-rose-200">
+                        ✕
+                    </button>
+                </div>
             </div>
         `;
     });
@@ -1285,6 +1418,7 @@ window.onOrderItemSelectChange = onOrderItemSelectChange;
 window.onOrderProductChange = onOrderProductChange;
 window.onOrderPackVariantSelected = onOrderPackVariantSelected;
 window.addTempOrderItem = addTempOrderItem;
+window.editTempOrderItem = editTempOrderItem;
 window.removeTempOrderItem = removeTempOrderItem;
 window.saveOrderBooking = saveOrderBooking;
 window.setOrderStatus = setOrderStatus;

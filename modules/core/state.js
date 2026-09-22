@@ -54,10 +54,7 @@ export function notifyStateChange(eventType, details) {
 export function sanitizeTombstoneKey(k) {
     if (!k) return null;
     const str = String(k).trim().toLowerCase();
-    // Legacy name keys like 'cust_test' shouldn't blacklist real customers
-    if (str.startsWith('cust_') && !/^cust_\d{10,}/.test(str)) {
-        return null;
-    }
+    if (!str) return null;
     return str;
 }
 
@@ -116,6 +113,7 @@ export function isItemDeleted(item) {
     if (item._deleted === true) return true;
     if (item.id && isIdDeleted(item.id)) return true;
     if (item.billNo && isIdDeleted(item.billNo)) return true;
+    if (!item.billNo && item.name && isIdDeleted('custname_' + String(item.name).trim().toLowerCase())) return true;
     return false;
 }
 
@@ -124,6 +122,7 @@ export function isCustItemDeleted(c) {
     if (c._deleted === true) return true;
     if (c.billNo && isIdDeleted(c.billNo)) return true;
     if (c.id && isIdDeleted(c.id)) return true;
+    if (!c.billNo && c.name && isIdDeleted('custname_' + String(c.name).trim().toLowerCase())) return true;
     return false;
 }
 

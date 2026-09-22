@@ -899,6 +899,7 @@ export function saveCustomer(e) {
     const billId = (index >= 0 && state.customers[index]?.id) || ('bill_' + billNo);
     unmarkIdDeleted(billNo);
     unmarkIdDeleted(billId);
+    unmarkIdDeleted('custname_' + name.toLowerCase());
 
     const existingProfile = (state.customers || []).find(c => c && !c.billNo && String(c.name || '').trim().toLowerCase() === name.toLowerCase());
     const customerType = existingProfile?.customerType || saleType;
@@ -1310,6 +1311,7 @@ export function saveCosSales(e) {
     unmarkIdDeleted(billNo);
     unmarkIdDeleted(cosBillId);
     unmarkIdDeleted('cust_' + customer.toLowerCase());
+    unmarkIdDeleted('custname_' + customer.toLowerCase());
     const bill = {
         id: cosBillId,
         billNo,
@@ -1999,6 +2001,7 @@ export function saveCombinedBill(e) {
     const billNo = old?.billNo || getNextCombinedBillNumber();
     unmarkIdDeleted(billNo);
     unmarkIdDeleted('cust_' + name.toLowerCase());
+    unmarkIdDeleted('custname_' + name.toLowerCase());
 
     const billId = (old && old.id) || ('bill_' + (billNo || Date.now()) + '_' + Math.random().toString(36).slice(2, 7));
     unmarkIdDeleted(billNo);

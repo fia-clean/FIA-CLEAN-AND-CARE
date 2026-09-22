@@ -361,6 +361,8 @@ export function unmarkAllActiveLocalRecords() {
     register(state.expenses, e => [e.id]);
     register(state.stockReturns, r => [r.id]);
     register(state.packages, p => [p.id, p.name]);
+    register(state.demands, d => [d.id]);
+    register(state.orders, o => [o.id, o.orderNo]);
 
     activeLocalKeys.forEach(k => state.deletedRecordIds.delete(k));
     return activeLocalKeys;
@@ -370,15 +372,16 @@ export function buildSyncPayload() {
     unmarkAllActiveLocalRecords();
 
     const getSafeArray = (memArray, storageKey, filterFn) => {
-        let list = (memArray || []).filter(filterFn);
-        if (list.length > 0) return list;
+        if (Array.isArray(memArray)) {
+            return memArray.filter(filterFn);
+        }
         try {
             const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            if (Array.isArray(stored) && stored.length > 0) {
+            if (Array.isArray(stored)) {
                 return stored.filter(filterFn);
             }
         } catch(e) {}
-        return list;
+        return [];
     };
 
     return {
@@ -397,7 +400,7 @@ export function buildSyncPayload() {
         dayBookOpeningBalance: Number(state.dayBookOpeningBalance || 0),
         dayBookOpeningExpense: Number(state.dayBookOpeningExpense || 0),
         appPin: state.appPin || "1234",
-        _deletedIds: Array.from(state.deletedRecordIds).map(sanitizeTombstoneKey).filter(Boolean).slice(-1500),
+        _deletedIds: Array.from(state.deletedRecordIds).map(sanitizeTombstoneKey).filter(Boolean).slice(-2000),
         _meta: {
             clientId: myFiaClientId,
             updatedAt: Date.now()
@@ -418,35 +421,7 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     // Step A: Un-tombstone all active local records first so remote tombstones never kill them
     const activeLocalKeys = unmarkAllActiveLocalRecords();
 
-    // Step B: Un-tombstone active records sent by cloud so remote devices never suppress them
-    const unmarkActive = (list, keyFn) => {
-        const arr = Array.isArray(list) ? list : Object.values(list || {});
-        arr.forEach(item => {
-            if (!item || item._deleted === true) return;
-            const keys = keyFn(item);
-            keys.forEach(k => {
-                if (k) {
-                    const sk = sanitizeTombstoneKey(k);
-                    if (sk) state.deletedRecordIds.delete(sk);
-                    const raw = String(k).trim().toLowerCase();
-                    if (raw) state.deletedRecordIds.delete(raw);
-                }
-            });
-        });
-    };
-    unmarkActive(data.customers, c => [c.id, c.billNo]);
-    unmarkActive(data.cosSales, s => [s.id, s.billNo]);
-    unmarkActive(data.products, p => [p.id, p.barcode]);
-    unmarkActive(data.cosProducts, p => [p.id, p.barcode]);
-    unmarkActive(data.purchases, p => [p.id]);
-    unmarkActive(data.cosPurchases, p => [p.id]);
-    unmarkActive(data.expenses, e => [e.id]);
-    unmarkActive(data.stockReturns, r => [r.id]);
-    unmarkActive(data.packages, p => [p.id, p.name]);
-    unmarkActive(data.demands, d => [d.id]);
-    unmarkActive(data.orders, o => [o.id, o.orderNo]);
-
-    // Step C: Sync remote tombstone deleted IDs into local tombstones, BUT NEVER re-tombstone any active local key!
+    // Step B: Sync remote tombstone deleted IDs into local tombstones, BUT NEVER re-tombstone any active local key!
     const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
     remoteDeleted.forEach(k => {
         const cleanKey = sanitizeTombstoneKey(k);
@@ -535,7 +510,14 @@ export function syncToFirebase() {
     return Promise.race([cloudFetchPromise, timeoutPromise])
         .then(function(cloud) {
             if (cloud) {
-                unmarkAllActiveLocalRecords();
+                const activeKeys = unmarkAllActiveLocalRecords();
+                const remoteDeleted = Array.isArray(cloud._deletedIds) ? cloud._deletedIds : (Array.isArray(cloud._deletedKeys) ? cloud._deletedKeys : []);
+                remoteDeleted.forEach(k => {
+                    const cleanKey = sanitizeTombstoneKey(k);
+                    if (cleanKey && !activeKeys.has(cleanKey)) {
+                        state.deletedRecordIds.add(cleanKey);
+                    }
+                });
                 state.products = mergeInventoryProducts(state.products, cloud.products);
                 state.cosProducts = mergeInventoryProducts(state.cosProducts, cloud.cosProducts);
                 state.customers = mergeCustomerBills(state.customers, cloud.customers);
@@ -545,6 +527,8 @@ export function syncToFirebase() {
                 state.cosSales = mergeCollection(state.cosSales, cloud.cosSales, 'id');
                 state.packages = mergeInventoryProducts(state.packages, cloud.packages);
                 state.stockReturns = mergeCollection(state.stockReturns, cloud.stockReturns, 'id');
+                state.demands = mergeCollection(state.demands, cloud.demands, 'id');
+                state.orders = mergeCollection(state.orders, cloud.orders, 'id');
                 saveLocalStateSafely();
             }
 

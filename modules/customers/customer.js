@@ -65,6 +65,8 @@ export function saveDirectCustomerProfile(e) {
     }
 
     const cleanNameKey = name.toLowerCase();
+    unmarkIdDeleted('custname_' + cleanNameKey);
+    unmarkIdDeleted('custname_' + name.trim().toLowerCase());
 
     if (originalIndex === -1) {
         const existingIdx = (state.customers || []).findIndex(c => c && !c.billNo && String(c.name || '').trim().toLowerCase() === cleanNameKey);
@@ -134,6 +136,7 @@ export function deleteDirectCustomer(name) {
     const targetName = String(name).trim();
     if (confirm(`Are you sure you want to delete customer "${targetName}"?`)) {
         const key = targetName.toLowerCase();
+        markIdDeleted('custname_' + key);
         // Permanently tombstone each matching record's ID and billNo
         state.customers.forEach(c => {
             if (c && String(c.name || '').trim().toLowerCase() === key) {
@@ -142,6 +145,7 @@ export function deleteDirectCustomer(name) {
             }
         });
         state.customers = state.customers.filter(c => !c || !c.name || String(c.name).trim().toLowerCase() !== key);
+        saveLocalStateSafely();
         syncToFirebase();
         if (window.renderAll) window.renderAll();
         alert(`Customer "${targetName}" deleted successfully!`);
