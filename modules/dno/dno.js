@@ -147,9 +147,9 @@ export function renderDemands() {
     const lowStockItems = getLowStockProducts();
     const manualDemands = (state.demands || []).filter(d => !isItemDeleted(d));
 
-    // Calculate Summary Stats
-    const totalUrgent = manualDemands.filter(d => d.isUrgent && d.status !== 'received').length + lowStockItems.length;
-    const totalPendingDemands = manualDemands.filter(d => d.status !== 'received').length + lowStockItems.length;
+    // Calculate Summary Stats (strictly separate manual demands from automated inventory low stock)
+    const totalUrgent = manualDemands.filter(d => d.isUrgent && d.status !== 'received').length;
+    const totalPendingDemands = manualDemands.filter(d => d.status !== 'received').length;
     
     const statsEl = document.getElementById('demandsSummaryStats');
     if (statsEl) {
@@ -221,7 +221,7 @@ export function renderDemands() {
                         <div class="flex items-center gap-3 text-xs text-slate-600 mt-1 flex-wrap">
                             <span>Qty Needed: <strong class="text-emerald-700 font-extrabold text-sm">${item.qtyNeeded} ${item.unit}</strong></span>
                             ${item.notes ? `<span class="text-slate-500 italic">"${item.notes}"</span>` : ''}
-                            <span class="text-[10px] text-slate-400">• ${item.createdAt ? formatDateDDMMYYYY(new Date(item.createdAt).toISOString().slice(0, 10)) : ''}</span>
+                            <span class="text-[10px] text-slate-400">• ${item.createdAt ? formatDateDDMMYYYY(item.createdAt) : ''}</span>
                         </div>
                     </div>
                     
@@ -1471,15 +1471,19 @@ export function shareOrderWhatsApp(id) {
 
 export function updateDnoBadge() {
     // Only count manually entered Demands and active Orders (EXCLUDE automated low stock from D & O dashboard count, as requested by user)
-    const allPendingDemandsCount = (state.demands || []).filter(d => !isItemDeleted(d) && d.status !== 'received').length;
+    const manualDemands = (state.demands || []).filter(d => !isItemDeleted(d) && d.status !== 'received');
+    const urgentDemandsCount = manualDemands.filter(d => d.isUrgent).length;
     const activeOrdersCount = (state.orders || []).filter(o => !isItemDeleted(o) && o.status !== 'delivered' && o.status !== 'cancelled').length;
     
-    const manualDnoTotal = allPendingDemandsCount + activeOrdersCount;
+    // Total for navigation badge (all active demands + orders)
+    const totalDnoBadge = manualDemands.length + activeOrdersCount;
+    // For dashboard D&O card, show urgent manual requirements + active orders
+    const dashboardDnoCount = urgentDemandsCount + activeOrdersCount;
 
     const navBadge = document.getElementById('navDnoBadge');
     if (navBadge) {
-        if (manualDnoTotal > 0) {
-            navBadge.textContent = manualDnoTotal;
+        if (totalDnoBadge > 0) {
+            navBadge.textContent = totalDnoBadge;
             navBadge.classList.remove('hidden');
         } else {
             navBadge.classList.add('hidden');
@@ -1488,7 +1492,7 @@ export function updateDnoBadge() {
 
     const dashboardCardCount = document.getElementById('dashboardDnoAlertCount');
     if (dashboardCardCount) {
-        dashboardCardCount.textContent = manualDnoTotal;
+        dashboardCardCount.textContent = dashboardDnoCount;
     }
 }
 

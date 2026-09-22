@@ -123,11 +123,19 @@ export function getRecordFingerprints(item, type = null) {
     if (item.barcode) {
         fps.push(String(item.barcode).trim().toLowerCase());
     }
-    const nameStr = String(item.name || item.customer || item.supplierName || item.supplier || '').trim().toLowerCase();
-    if (nameStr) {
+    // Only customer profile deletion (when there is no billNo) should tombstone the customer name
+    if ((type === 'customer' || type === 'direct_customer') && !item.billNo && (item.name || item.customer)) {
+        const nameStr = String(item.name || item.customer).trim().toLowerCase();
         fps.push('custname_' + nameStr);
-        fps.push('prodname_' + nameStr);
-        fps.push('pkgname_' + nameStr);
+        fps.push('custname_' + nameStr.replace(/\s+/g, ''));
+    }
+    // Product deletion tombstones product name
+    if (type === 'product' && item.name) {
+        fps.push('prodname_' + String(item.name).trim().toLowerCase());
+    }
+    // Package deletion tombstones package name
+    if (type === 'package' && item.name) {
+        fps.push('pkgname_' + String(item.name).trim().toLowerCase());
     }
     // Expense composite fingerprint: date + amount + title
     if (item.amount && (item.title || item.category || item.desc)) {
@@ -529,13 +537,6 @@ export function saveLocalStateSafely() {
     try {
         const saveCollectionSafely = (key, memoryList, filterFn) => {
             const cleanList = (memoryList || []).filter(filterFn);
-            if (cleanList.length === 0) {
-                const existing = localStorage.getItem(key);
-                if (existing && existing.length > 5 && existing !== '[]') {
-                    console.warn(`[Safety Guard] Blocked overwrite of populated ${key} with empty array.`);
-                    return;
-                }
-            }
             localStorage.setItem(key, JSON.stringify(cleanList));
         };
 

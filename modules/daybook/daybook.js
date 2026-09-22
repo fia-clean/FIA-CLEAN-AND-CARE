@@ -13,7 +13,8 @@ import {
     getTodayDateString,
     todayDDMMYYYY,
     saveLocalStateSafely,
-    isItemDeleted
+    isItemDeleted,
+    isCustItemDeleted
 } from '../core/state.js';
 import { syncToFirebase, pullFromFirebase } from '../core/db.js';
 import { normalizeCosSale } from '../billing/billing-history.js';
@@ -312,7 +313,7 @@ export function getAllMasterEntries() {
 
     // 1. Cleaning & Combined Customer Bills
     (state.customers || []).forEach((c, i) => {
-        if (!c || c._deleted) return;
+        if (!c || c._deleted || isCustItemDeleted(c)) return;
         const safeItems = Array.isArray(c.items) ? c.items : (c.items && typeof c.items === 'object' ? Object.values(c.items) : []);
         const itemsSum = safeItems.reduce((s, it) => s + (Number(it?.total || (Number(it?.price || it?.rate || 0) * Number(it?.qty || 1))) || 0), 0);
         let incomeVal = Number(c.grandTotal !== undefined ? c.grandTotal : (c.netTotal !== undefined ? c.netTotal : (c.total !== undefined ? c.total : (c.paidAmount !== undefined ? c.paidAmount : itemsSum))));
@@ -339,7 +340,7 @@ export function getAllMasterEntries() {
 
     // 2. Cosmetics Sales Bills
     (state.cosSales || []).forEach((s, i) => {
-        if (!s || s._deleted) return;
+        if (!s || s._deleted || isItemDeleted(s, 'cosSale')) return;
         const norm = normalizeCosSale(s) || {};
         let incomeVal = Number(norm.grandTotal !== undefined ? norm.grandTotal : (norm.paidAmount || 0));
         if ((!incomeVal || incomeVal <= 0) && Array.isArray(norm.items) && norm.items.length > 0) {
@@ -366,7 +367,7 @@ export function getAllMasterEntries() {
 
     // 3. Cleaning Purchases
     (state.purchases || []).forEach((p, i) => {
-        if (!p || p._deleted) return;
+        if (!p || p._deleted || isItemDeleted(p, 'purchase')) return;
         const gross = Number(p.rawCost !== undefined ? p.rawCost : (p.cost !== undefined ? p.cost : (p.amount !== undefined ? p.amount : (p.paid || 0))));
         const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : (gross || Number(p.paid || 0));
         const entryId = p.id ? (p.id.startsWith('purch_') ? p.id : 'purch_' + p.id) : ('purch_' + (p.savedAt || i));
@@ -389,7 +390,7 @@ export function getAllMasterEntries() {
 
     // 4. Cosmetics Purchases
     (state.cosPurchases || []).forEach((p, i) => {
-        if (!p || p._deleted) return;
+        if (!p || p._deleted || isItemDeleted(p, 'cosPurchase')) return;
         const gross = Number(p.amount !== undefined ? p.amount : (p.cost !== undefined ? p.cost : (p.total !== undefined ? p.total : (p.paid || 0))));
         const amount = p.netPurchaseAmount !== undefined ? Number(p.netPurchaseAmount) : (gross || Number(p.paid || 0));
         const entryId = p.id ? (p.id.startsWith('cospurch_') ? p.id : 'cospurch_' + p.id) : ('cospurch_' + (p.savedAt || i));
@@ -412,7 +413,7 @@ export function getAllMasterEntries() {
 
     // 5. Operating Expenses & Additional Incomes
     (state.expenses || []).forEach((ex, i) => {
-        if (!ex || ex._deleted) return;
+        if (!ex || ex._deleted || isItemDeleted(ex, 'expense')) return;
         const amount = Number(ex.amount !== undefined ? ex.amount : (ex.cost !== undefined ? ex.cost : 0));
         const entryId = ex.id ? (ex.id.startsWith('exp_') ? ex.id : 'exp_' + ex.id) : ('exp_' + (ex.savedAt || i));
         if (amount > 0) {

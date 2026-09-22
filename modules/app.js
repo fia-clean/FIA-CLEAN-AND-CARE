@@ -10,7 +10,10 @@ import {
     renderOrders,
     updateDnoBadge,
     checkOverdueOrderAlerts,
-    toggleAudioMute
+    toggleAudioMute,
+    addMoreDemandItem,
+    removeTempDemandItem,
+    saveDemandItem
 } from './dno/dno.js';
 import {
     state,
@@ -517,7 +520,7 @@ export function switchTab(tabName, pushToHistory = true) {
             secEl.classList.add('hidden');
             secEl.style.display = 'none';
         }
-        if (tabEl) tabEl.className = "px-3 py-2 text-center font-medium text-slate-400 hover:text-slate-200 whitespace-nowrap transition";
+        if (tabEl) tabEl.className = "px-3 py-2 text-center font-medium text-slate-600 hover:text-slate-900 whitespace-nowrap transition";
     });
 
     const activeSec = document.getElementById('section' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
@@ -529,21 +532,21 @@ export function switchTab(tabName, pushToHistory = true) {
         activeSec.classList.remove('hidden');
         activeSec.style.display = '';
     }
-    if (activeTab) activeTab.className = "px-3 py-2 text-center font-bold text-emerald-400 border-b-2 border-emerald-400 whitespace-nowrap transition";
+    if (activeTab) activeTab.className = "px-3 py-2 text-center font-bold text-emerald-700 border-b-2 border-emerald-600 whitespace-nowrap transition";
 
     if (pushToHistory && state.isLoggedIn) {
-        history.pushState({ loggedIn: true, tab: tabName }, "", "#" + tabName);
+        try { history.pushState({ loggedIn: true, tab: tabName }, "", "#" + tabName); } catch (e) {}
     }
-    renderAll();
-    hideUnwantedStockMenus();
+    try { renderAll(); } catch (e) { console.warn('renderAll in switchTab warning:', e); }
+    try { hideUnwantedStockMenus(); } catch (e) { console.warn('hideUnwantedStockMenus warning:', e); }
     if (['billing', 'customers', 'stock', 'operations', 'cosmetics', 'purchase', 'expenses', 'accounts', 'dno'].includes(tabName)) {
-        if (typeof pullFromFirebase === 'function') pullFromFirebase();
+        try { if (typeof pullFromFirebase === 'function') pullFromFirebase(); } catch (e) { console.warn('pullFromFirebase warning:', e); }
     }
-    if (tabName === 'accounts' && typeof renderAccounts === 'function') {
-        renderAccounts();
+    if (tabName === 'accounts') {
+        try { if (typeof renderAccounts === 'function') renderAccounts(); } catch (e) { console.warn('renderAccounts warning:', e); }
     }
-    if (tabName === 'dno' && typeof renderDno === 'function') {
-        renderDno();
+    if (tabName === 'dno') {
+        try { if (typeof renderDno === 'function') renderDno(); } catch (e) { console.warn('renderDno warning:', e); }
     }
 }
 
@@ -769,6 +772,9 @@ if (typeof window !== 'undefined') {
     window.generateBillPdfBlob = generateBillPdfBlob;
     window.toggleDayBookEntriesFolder = toggleDayBookEntriesFolder;
     window.toggleRecentTransactionsFolder = toggleRecentTransactionsFolder;
+    window.addMoreDemandItem = addMoreDemandItem;
+    window.removeTempDemandItem = removeTempDemandItem;
+    window.saveDemandItem = saveDemandItem;
 
     // ================= INITIALIZATION & MOUNTING =================
     let isAppBootstrapped = false;
