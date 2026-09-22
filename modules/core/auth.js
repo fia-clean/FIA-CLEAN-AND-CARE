@@ -257,21 +257,60 @@ export function updateCloudAuthUI(user) {
 
     if (user && user.email) {
         if (badge) {
-            badge.textContent = 'Protected (auth!=null)';
+            badge.textContent = 'Protected (Admin: ' + user.email + ')';
             badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm';
         }
         if (inputContainer) inputContainer.classList.add('hidden');
         if (activeContainer) activeContainer.classList.remove('hidden');
         if (userEmailEl) userEmailEl.textContent = user.email;
+    } else if (user && (user.isAnonymous || user.uid)) {
+        if (badge) {
+            badge.textContent = 'Protected (Cloud Connected)';
+            badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 shadow-sm';
+        }
+        if (inputContainer) inputContainer.classList.remove('hidden');
+        if (activeContainer) activeContainer.classList.remove('hidden');
+        if (userEmailEl) userEmailEl.textContent = 'Device Authenticated (Cloud Synced)';
     } else {
         if (badge) {
-            badge.textContent = 'Not Authorized';
+            badge.textContent = 'Connecting...';
             badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800';
         }
         if (inputContainer) inputContainer.classList.remove('hidden');
         if (activeContainer) activeContainer.classList.add('hidden');
         if (userEmailEl) userEmailEl.textContent = '';
     }
+}
+
+let isAutoSigningIn = false;
+export function autoSignInFirebase() {
+    if (!window.FB_AUTH) return Promise.resolve(null);
+    if (window.FB_AUTH.currentUser) return Promise.resolve(window.FB_AUTH.currentUser);
+
+    const persistencePromise = (window.firebase && firebase.auth && firebase.auth.Auth && firebase.auth.Auth.Persistence)
+        ? window.FB_AUTH.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e => console.warn('Auth persistence notice:', e))
+        : Promise.resolve();
+
+    return persistencePromise.then(() => {
+        if (window.FB_AUTH.currentUser) return window.FB_AUTH.currentUser;
+        return window.FB_AUTH.signInAnonymously()
+            .then(cred => {
+                const user = cred ? cred.user : null;
+                console.log('Firebase Cloud Auth Active (Anonymous):', user ? user.uid : 'connected');
+                updateCloudAuthUI(user);
+                return user;
+            })
+            .catch(err => {
+                console.warn('Firebase Anonymous Auto-Auth notice:', err);
+                return null;
+            });
+    });
+}
+
+export function ensureFirebaseAuth() {
+    if (!window.FB_AUTH) return Promise.resolve(null);
+    if (window.FB_AUTH.currentUser) return Promise.resolve(window.FB_AUTH.currentUser);
+    return autoSignInFirebase();
 }
 
 export function loginFirebaseAuth() {
@@ -301,6 +340,7 @@ export function loginFirebaseAuth() {
             updateCloudAuthUI(userCred.user);
             const passInput = document.getElementById('cloudAuthPassword');
             if (passInput) passInput.value = '';
+            if (typeof window.attachRealtimeListener === 'function') window.attachRealtimeListener();
             if (typeof pullFromFirebase === 'function') pullFromFirebase();
         })
         .catch((err) => {
@@ -323,11 +363,12 @@ export function loginFirebaseAuth() {
 
 export function logoutFirebaseAuth() {
     if (!window.FB_AUTH) return;
-    if (!confirm('Disconnect this device from Firebase Cloud Admin?\n\nThe device will lose cloud synchronization until re-authorized.')) return;
+    if (!confirm('Disconnect this device from Firebase Cloud Admin?\n\nThe device will automatically continue using secure cloud synchronization.')) return;
 
     window.FB_AUTH.signOut().then(() => {
         updateCloudAuthUI(null);
-        alert('Device disconnected from Firebase Cloud.');
+        // Fall back seamlessly to anonymous connection
+        autoSignInFirebase();
     }).catch(err => {
         console.error('Firebase signout error:', err);
     });
@@ -339,12 +380,21 @@ export function setupFirebaseAuthListener() {
         window.FB_AUTH.onAuthStateChanged(function(user) {
             updateCloudAuthUI(user);
             if (user) {
-                console.log('Firebase Cloud Auth Active on device:', user.email);
+                console.log('Firebase Cloud Auth Active on device:', user.email || ('Anonymous: ' + user.uid));
+                if (typeof window.attachRealtimeListener === 'function') {
+                    window.attachRealtimeListener();
+                }
                 if (navigator.onLine && typeof pullFromFirebase === 'function') {
                     pullFromFirebase();
                 }
             } else {
-                console.log('Firebase Cloud Auth: No active session on this device.');
+                console.log('Firebase Cloud Auth: No active session. Connecting automatically...');
+                if (!isAutoSigningIn && navigator.onLine) {
+                    isAutoSigningIn = true;
+                    autoSignInFirebase().finally(() => {
+                        isAutoSigningIn = false;
+                    });
+                }
             }
         });
     } catch(e) {
@@ -372,4 +422,6 @@ if (typeof window !== 'undefined') {
     window.logoutFirebaseAuth = logoutFirebaseAuth;
     window.updateCloudAuthUI = updateCloudAuthUI;
     window.setupFirebaseAuthListener = setupFirebaseAuthListener;
+    window.autoSignInFirebase = autoSignInFirebase;
+    window.ensureFirebaseAuth = ensureFirebaseAuth;
 }

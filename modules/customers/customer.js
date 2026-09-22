@@ -396,6 +396,7 @@ export function renderCustomerConsolidationReport() {
 export const renderCustomerConsolidationList = renderCustomerConsolidationReport;
 
 export const saveDirectCustomer = saveDirectCustomerProfile;
+export const renderCustomers = renderDirectCustomerList;
 
 export function switchCustomerConsolidationView(view) {
     const viewContent = document.getElementById('customerConsolidationViewContent');

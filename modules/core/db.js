@@ -15,6 +15,7 @@ import {
     normalizeLoadedProducts,
     normalizeCustomerRecords
 } from './state.js';
+import { ensureFirebaseAuth } from './auth.js';
 
 export function updateSyncStatus(connected, customText) {
     const el = document.getElementById('syncStatus');
@@ -288,10 +289,13 @@ export function detectLocalUnsynced(localState, cloudData) {
         if (!c) return;
         if (c.id) cloudCustMap.set(String(c.id).trim().toLowerCase(), c);
         if (c.billNo) cloudCustMap.set('b_' + String(c.billNo).trim().toUpperCase(), c);
+        if (!c.billNo && c.name) cloudCustMap.set('p_' + String(c.name).trim().toUpperCase(), c);
     });
     for (const lc of (localState.customers || [])) {
         if (!lc || isCustItemDeleted(lc)) continue;
-        const cc = (lc.id && cloudCustMap.get(String(lc.id).trim().toLowerCase())) || (lc.billNo && cloudCustMap.get('b_' + String(lc.billNo).trim().toUpperCase()));
+        const cc = (lc.id && cloudCustMap.get(String(lc.id).trim().toLowerCase())) || 
+                   (lc.billNo && cloudCustMap.get('b_' + String(lc.billNo).trim().toUpperCase())) ||
+                   (!lc.billNo && lc.name && cloudCustMap.get('p_' + String(lc.name).trim().toUpperCase()));
         if (!cc) return true;
         if (Number(lc.savedAt || lc.createdAt || 0) > Number(cc.savedAt || cc.createdAt || 0)) return true;
     }
@@ -511,33 +515,38 @@ export function syncToFirebase() {
     // Direct push: Push current local state and tombstones directly without re-fetching stale cloud records
     const payload = buildSyncPayload();
 
-    const writePromise = window.FB_DB.ref('fia_data').set(payload);
-    const writeTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase write timeout (offline)')), 3000));
+    const authReady = ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null);
 
-    return Promise.race([writePromise, writeTimeout])
-        .then(function() {
-            localStorage.removeItem('fia_has_pending_sync');
-            state.isFirebaseConnected = true;
-            updateSyncStatus(true, 'Cloud Database Synced');
-            return true;
-        })
-        .catch(function(err) {
-            console.warn("Firebase write error or offline timeout:", err);
-            state.isFirebaseConnected = false;
-            if (err && String(err.message || err).includes('PERMISSION_DENIED')) {
-                updateSyncStatus(false, 'Cloud Locked: Authorize in Settings');
-            } else {
-                updateSyncStatus(false, 'Sync Pending (Offline Mode)');
-            }
-            return false;
-        })
-        .finally(function() {
-            isSyncing = false;
-            if (queuedSync) {
-                queuedSync = false;
-                syncToFirebase();
-            }
-        });
+    return authReady.then(() => {
+        const writePromise = window.FB_DB.ref('fia_data').set(payload);
+        const writeTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase write timeout (offline)')), 4000));
+        return Promise.race([writePromise, writeTimeout]);
+    })
+    .then(function() {
+        localStorage.removeItem('fia_has_pending_sync');
+        state.isFirebaseConnected = true;
+        updateSyncStatus(true, 'Cloud Database Synced');
+        return true;
+    })
+    .catch(function(err) {
+        console.warn("Firebase write error or offline timeout:", err);
+        state.isFirebaseConnected = false;
+        if (err && String(err.message || err).includes('PERMISSION_DENIED')) {
+            console.warn('Firebase Write PERMISSION_DENIED. Attempting auto-auth...');
+            if (ensureFirebaseAuth) ensureFirebaseAuth();
+            updateSyncStatus(false, 'Connecting to Cloud Security...');
+        } else {
+            updateSyncStatus(false, 'Sync Pending (Offline Mode)');
+        }
+        return false;
+    })
+    .finally(function() {
+        isSyncing = false;
+        if (queuedSync) {
+            queuedSync = false;
+            syncToFirebase();
+        }
+    });
 }
 
 export function pullFromFirebase() {
@@ -546,10 +555,14 @@ export function pullFromFirebase() {
         updateSyncStatus(false, 'Working under offline mode');
         return Promise.resolve(false);
     }
-    const pullPromise = window.FB_DB.ref('fia_data').once('value');
-    const pullTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase pull timeout (offline)')), 2500));
 
-    return Promise.race([pullPromise, pullTimeout]).then(function(snapshot) {
+    const authReady = ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null);
+
+    return authReady.then(() => {
+        const pullPromise = window.FB_DB.ref('fia_data').once('value');
+        const pullTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase pull timeout (offline)')), 3500));
+        return Promise.race([pullPromise, pullTimeout]);
+    }).then(function(snapshot) {
         const data = snapshot ? snapshot.val() : null;
         if (data) {
             applyCloudData(data, false);
@@ -564,12 +577,60 @@ export function pullFromFirebase() {
         console.warn("Firebase pull error or offline timeout:", error);
         state.isFirebaseConnected = false;
         if (error && String(error.message || error).includes('PERMISSION_DENIED')) {
-            updateSyncStatus(false, 'Cloud Locked: Authorize in Settings');
+            console.warn('Firebase Pull PERMISSION_DENIED. Attempting auto-auth...');
+            if (ensureFirebaseAuth) {
+                ensureFirebaseAuth().then(u => {
+                    if (u) setTimeout(pullFromFirebase, 1200);
+                });
+            }
+            updateSyncStatus(false, 'Connecting to Cloud Security...');
         } else {
             updateSyncStatus(false, 'Working under offline mode');
         }
         if (window.renderAll) window.renderAll();
         return false;
+    });
+}
+
+let realtimeListenerRef = null;
+let realtimeListenerCallback = null;
+
+export function attachRealtimeListener() {
+    if (!window.FB_DB) return;
+    if (realtimeListenerRef && realtimeListenerCallback) {
+        try {
+            realtimeListenerRef.off('value', realtimeListenerCallback);
+        } catch(e) {}
+        realtimeListenerRef = null;
+        realtimeListenerCallback = null;
+    }
+
+    realtimeListenerRef = window.FB_DB.ref('fia_data');
+    realtimeListenerCallback = function(snapshot) {
+        const data = snapshot.val();
+        if (data) {
+            applyCloudData(data, true);
+        }
+    };
+
+    realtimeListenerRef.on('value', realtimeListenerCallback, function(error) {
+        console.warn("Firebase Realtime Read Notice:", error);
+        state.isFirebaseConnected = false;
+        if (error && String(error.message || error).includes('PERMISSION_DENIED')) {
+            console.warn("Firebase PERMISSION_DENIED on realtime listener - re-authenticating...");
+            if (ensureFirebaseAuth) {
+                ensureFirebaseAuth().then(user => {
+                    if (user) {
+                        setTimeout(attachRealtimeListener, 1200);
+                    } else {
+                        updateSyncStatus(false, 'Connecting to Cloud Security...');
+                    }
+                });
+            }
+        } else {
+            updateSyncStatus(false, 'Working under offline mode');
+        }
+        if (window.renderAll) window.renderAll();
     });
 }
 
@@ -587,6 +648,28 @@ export function startRealtimeSync() {
         }
     }, 2500);
 
+    const checkAndSync = () => {
+        if (ensureFirebaseAuth) {
+            ensureFirebaseAuth().then(() => {
+                attachRealtimeListener();
+                if (localStorage.getItem('fia_has_pending_sync') === 'true') {
+                    syncToFirebase();
+                } else {
+                    pullFromFirebase();
+                }
+            }).catch(() => {
+                attachRealtimeListener();
+            });
+        } else {
+            attachRealtimeListener();
+            if (localStorage.getItem('fia_has_pending_sync') === 'true') {
+                syncToFirebase();
+            } else {
+                pullFromFirebase();
+            }
+        }
+    };
+
     window.FB_DB.ref('.info/connected').on('value', function(snap) {
         resolvedInitialConnection = true;
         clearTimeout(connectTimeout);
@@ -594,11 +677,7 @@ export function startRealtimeSync() {
         if (isOnline) {
             state.isFirebaseConnected = true;
             updateSyncStatus(true, 'Cloud Database Connected');
-            if (localStorage.getItem('fia_has_pending_sync') === 'true') {
-                syncToFirebase();
-            } else {
-                pullFromFirebase();
-            }
+            checkAndSync();
         } else {
             state.isFirebaseConnected = false;
             updateSyncStatus(false, 'Working under offline mode');
@@ -609,32 +688,16 @@ export function startRealtimeSync() {
         if (window.FB_DB) {
             try { window.FB_DB.goOnline(); } catch(e) {}
         }
-        if (localStorage.getItem('fia_has_pending_sync') === 'true') {
-            syncToFirebase();
-        } else {
-            pullFromFirebase();
-        }
+        checkAndSync();
     });
+
     window.addEventListener('offline', function() {
         state.isFirebaseConnected = false;
         updateSyncStatus(false, 'Working under offline mode');
     });
 
-    window.FB_DB.ref('fia_data').on('value', function(snapshot) {
-        const data = snapshot.val();
-        if (data) {
-            applyCloudData(data, true);
-        }
-    }, function(error) {
-        console.error("Firebase Read Error:", error);
-        state.isFirebaseConnected = false;
-        if (error && String(error.message || error).includes('PERMISSION_DENIED')) {
-            updateSyncStatus(false, 'Cloud Locked: Authorize in Settings');
-        } else {
-            updateSyncStatus(false, 'Working under offline mode');
-        }
-        if (window.renderAll) window.renderAll();
-    });
+    // Initial listener attachment and sync
+    checkAndSync();
 }
 
 export function manualCloudSync() {
@@ -754,5 +817,6 @@ if (typeof window !== 'undefined') {
     window.mergeCollection = mergeCollection;
     window.detectLocalUnsynced = detectLocalUnsynced;
     window.buildSyncPayload = buildSyncPayload;
+    window.attachRealtimeListener = attachRealtimeListener;
 }
 

@@ -889,13 +889,15 @@ if (typeof window !== 'undefined') {
             if (document.visibilityState === 'visible' && navigator.onLine) {
                 if (window.FB_DB) {
                     try { window.FB_DB.goOnline(); } catch(e) {}
+                    if (typeof window.attachRealtimeListener === 'function') window.attachRealtimeListener();
                     if (typeof pullFromFirebase === 'function') pullFromFirebase();
                 }
             }
         });
         window.addEventListener('focus', function() {
-            if (navigator.onLine && window.FB_DB && typeof pullFromFirebase === 'function') {
-                pullFromFirebase();
+            if (navigator.onLine && window.FB_DB) {
+                if (typeof window.attachRealtimeListener === 'function') window.attachRealtimeListener();
+                if (typeof pullFromFirebase === 'function') pullFromFirebase();
             }
         });
     }
