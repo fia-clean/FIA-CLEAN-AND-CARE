@@ -180,6 +180,11 @@ export function isItemDeleted(item, type = null) {
 export function isCustItemDeleted(c) {
     if (!c) return true;
     if (c._deleted === true) return true;
+    if (c.billNo) {
+        const bId = String(c.id || '').trim().toLowerCase();
+        const bNo = String(c.billNo || '').trim().toLowerCase();
+        return isIdDeleted(bId) || isIdDeleted(bNo) || isIdDeleted('bill_' + bNo);
+    }
     return isItemDeleted(c, 'customer');
 }
 

@@ -222,6 +222,17 @@ export function mergeCustomerBills(localList, cloudList) {
         return '';
     };
 
+    const getMaxBillNo = () => {
+        let maxNum = 0;
+        map.forEach(item => {
+            if (item && item.billNo) {
+                const m = String(item.billNo).match(/(\d+)$/);
+                if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+            }
+        });
+        return maxNum;
+    };
+
     const processItem = (c) => {
         if (!c || isCustItemDeleted(c)) return;
         if (c.name) c.name = String(c.name).trim().toUpperCase();
@@ -231,6 +242,35 @@ export function mergeCustomerBills(localList, cloudList) {
             map.set(k, c);
         } else {
             const existing = map.get(k);
+
+            // Bill number collision handling: two different bills with the same billNo created independently
+            if (c.billNo && existing.billNo) {
+                const sameName = String(c.name || '').trim().toUpperCase() === String(existing.name || '').trim().toUpperCase();
+                const sameId = c.id && existing.id && String(c.id).trim().toLowerCase() === String(existing.id).trim().toLowerCase();
+                if (!sameName && !sameId) {
+                    // Two different bills created concurrently on different devices with the same bill number!
+                    // Both must be preserved! The older bill keeps the lower number, the newer gets the next number.
+                    const incomingTime = Number(c.savedAt || c.createdAt || 0);
+                    const existingTime = Number(existing.savedAt || existing.createdAt || 0);
+
+                    const older = incomingTime < existingTime ? c : existing;
+                    const newer = incomingTime < existingTime ? existing : c;
+
+                    // Calculate next sequential bill number
+                    const nextNum = getMaxBillNo() + 1;
+                    const newBillNo = 'CLN-' + String(nextNum).padStart(4, '0');
+                    const renumberedNewer = {
+                        ...newer,
+                        billNo: newBillNo,
+                        id: 'bill_' + newBillNo
+                    };
+
+                    map.set(k, older);
+                    map.set('bill_' + newBillNo, renumberedNewer);
+                    return;
+                }
+            }
+
             const incomingTime = Number(c.savedAt || c.createdAt || 0);
             const existingTime = Number(existing.savedAt || existing.createdAt || 0);
             if (incomingTime >= existingTime) {

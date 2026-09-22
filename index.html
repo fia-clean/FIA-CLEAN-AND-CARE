@@ -515,9 +515,33 @@
                 }
             } catch(e) {}
 
+            // Automatic Cache Buster & SW Upgrade on Version Change
+            (function() {
+                var CURRENT_APP_VERSION = '50.9.4';
+                try {
+                    var storedVer = localStorage.getItem('fia_app_version');
+                    if (storedVer && storedVer !== CURRENT_APP_VERSION) {
+                        console.log('FIA version upgrade detected (' + storedVer + ' -> ' + CURRENT_APP_VERSION + '). Purging caches...');
+                        localStorage.setItem('fia_app_version', CURRENT_APP_VERSION);
+                        if ('caches' in window) {
+                            caches.keys().then(function(keys) {
+                                return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                            }).catch(function() {});
+                        }
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.getRegistrations().then(function(regs) {
+                                regs.forEach(function(r) { r.update(); });
+                            }).catch(function() {});
+                        }
+                    } else if (!storedVer) {
+                        localStorage.setItem('fia_app_version', CURRENT_APP_VERSION);
+                    }
+                } catch(e) {}
+            })();
+
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.4) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -822,7 +846,7 @@
                 <span id="syncStatus" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300 shadow-xs whitespace-nowrap min-w-0 transition-colors">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span> Connecting to Cloud Database...
                 </span>
-                <span class="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">v50.9 PRO</span>
+                <span class="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">v50.9.4 PRO</span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
             <div class="grid grid-cols-4 sm:flex items-center gap-1.5 w-full sm:w-auto">
@@ -839,7 +863,7 @@
         <div class="relative text-center space-y-1">
             <div class="inline-flex items-center justify-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-emerald-700">FIA CLEAN & CARE</h1>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">v50.9</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">v50.9.4</span>
             </div>
             <p class="text-xs text-slate-500 font-medium">ACCOUNTS MANAGEMENT & DIRECT REALTIME SYNC</p>
         </div>
@@ -2700,7 +2724,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=50.9"></script>
+    <script type="module" src="./modules/app.js?v=50.9.4"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2712,7 +2736,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.4) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2766,7 +2790,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=50.9.3')
+                navigator.serviceWorker.register('./sw.js?v=50.9.4')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
