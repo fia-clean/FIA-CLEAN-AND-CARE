@@ -815,19 +815,21 @@
     <!-- ================= MAIN AUTHENTICATED APP CONTAINER ================= -->
     <div id="mainAppContainer" class="hidden">
 
-        <!-- Modern Floating Status & Action Bar (Pastel Card Container) -->
-        <div class="max-w-md md:max-w-2xl mx-auto mb-3.5 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-2 sm:px-3.5 shadow-sm flex flex-wrap justify-between items-center gap-2 text-xs">
-            <div class="flex items-center gap-2 flex-wrap">
-                <span id="syncStatus" class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+        <!-- Modern Floating Status & Action Bar (Compact 2-Line Mobile Layout) -->
+        <div class="max-w-md md:max-w-2xl mx-auto mb-3.5 rounded-2xl p-2.5 sm:px-3.5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style="background: linear-gradient(135deg, #e0f2fe 0%, #eff6ff 50%, #e0e7ff 100%); border: 1.5px solid #93c5fd;">
+            <!-- Line 1: Cloud Sync Status (Left) & App Version (Right) -->
+            <div class="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+                <span id="syncStatus" class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 bg-white px-2.5 py-1 rounded-full border border-slate-200 shadow-xs whitespace-nowrap min-w-0">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span> Connecting to Cloud Database...
                 </span>
-                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">v50.9 PRO</span>
+                <span class="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">v50.9 PRO</span>
             </div>
-            <div class="flex items-center gap-1.5 flex-wrap ml-auto">
-                <button type="button" onclick="openSettingsModal()" class="px-2.5 py-1 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1">⚙️ Settings</button>
-                <button type="button" onclick="manualCloudSync()" class="px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1">🔄 Sync</button>
-                <button type="button" onclick="openBackupModal()" class="px-2.5 py-1 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1">💾 Backup</button>
-                <button type="button" onclick="logoutApp()" aria-label="Logout" class="px-2.5 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1">🚪 Logout</button>
+            <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
+            <div class="grid grid-cols-4 sm:flex items-center gap-1.5 w-full sm:w-auto">
+                <button type="button" onclick="openSettingsModal()" class="py-1.5 px-1 sm:px-2.5 rounded-xl bg-white hover:bg-slate-100 active:scale-95 text-slate-700 border border-slate-200 text-[10.5px] sm:text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center justify-center gap-1 whitespace-nowrap">⚙️ Settings</button>
+                <button type="button" onclick="manualCloudSync()" class="py-1.5 px-1 sm:px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-700 border border-emerald-200 text-[10.5px] sm:text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center justify-center gap-1 whitespace-nowrap">🔄 Sync</button>
+                <button type="button" onclick="openBackupModal()" class="py-1.5 px-1 sm:px-2.5 rounded-xl bg-sky-50 hover:bg-sky-100 active:scale-95 text-sky-700 border border-sky-200 text-[10.5px] sm:text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center justify-center gap-1 whitespace-nowrap">💾 Backup</button>
+                <button type="button" onclick="logoutApp()" aria-label="Logout" class="py-1.5 px-1 sm:px-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 text-[10.5px] sm:text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center justify-center gap-1 whitespace-nowrap">🚪 Logout</button>
             </div>
         </div>
 
@@ -2764,7 +2766,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=50.9')
+                navigator.serviceWorker.register('./sw.js?v=50.9.1')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
