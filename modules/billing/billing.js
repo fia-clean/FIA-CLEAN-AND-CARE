@@ -7,7 +7,8 @@ import {
     unmarkIdDeleted,
     isCustItemDeleted,
     getTodayDateString,
-    toTitleCase
+    toTitleCase,
+    generateUniqueRecordId
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
 import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName, formatInvoiceItemQty } from './invoice-preview.js';
@@ -283,20 +284,17 @@ export function updateBillRateNotice(saleType, product, baseRate, variantObj = n
                 notice.innerHTML = `
                     <div class="flex flex-wrap items-center justify-between gap-1.5 p-1.5 rounded-lg bg-sky-950/40 border border-sky-800/50">
                         <span class="text-sky-300 font-semibold text-[11px]">ℹ️ Wholesale rate not configured (Using Retail ₹${rPrice.toFixed(2)})</span>
-                        <button type="button" onclick="window.quickSaveProductRate('${safeName}', 'Wholesale')" class="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-md text-[10px] shadow transition">💾 Set Wholesale Rate</button>
                     </div>`;
             } else {
                 notice.innerHTML = `
                     <div class="flex flex-wrap items-center justify-between gap-1 text-[11px]">
                         <span class="text-sky-300 font-bold">🏷️ Wholesale Rate Applied: ₹${Number(baseRate||0).toFixed(2)} <span class="text-slate-400 text-[10px] font-normal">(Retail: ₹${rPrice.toFixed(2)})</span></span>
-                        <button type="button" onclick="window.quickSaveProductRate('${safeName}', 'Wholesale')" class="text-[10px] text-sky-400 underline hover:text-sky-300 font-bold ml-1">Change Default</button>
                     </div>`;
             }
         } else {
             notice.innerHTML = `
                 <div class="flex flex-wrap items-center justify-between gap-1 text-[11px]">
                     <span class="text-emerald-300 font-bold">🛍️ Retail Rate Applied: ₹${Number(baseRate||0).toFixed(2)} <span class="text-slate-400 text-[10px] font-normal">(Wholesale: ₹${wPrice.toFixed(2)})</span></span>
-                    <button type="button" onclick="window.quickSaveProductRate('${safeName}', 'Retail')" class="text-[10px] text-emerald-400 underline hover:text-emerald-300 font-bold ml-1">Change Default</button>
                 </div>`;
         }
     }
@@ -992,8 +990,7 @@ export function saveCustomer(e) {
     const paymentMode = document.getElementById('billPaymentMode')?.value || 'Cash';
     
     let billNo = (index >= 0 && state.customers[index]?.billNo) || getNextBillNumber();
-    const billId = (index >= 0 && state.customers[index]?.id) || ('bill_' + billNo);
-    unmarkIdDeleted(billNo);
+    const billId = (index >= 0 && state.customers[index]?.id) || generateUniqueRecordId('bill');
     unmarkIdDeleted(billId);
     unmarkIdDeleted('custname_' + name.toLowerCase());
 
@@ -1400,8 +1397,7 @@ export function saveCosSales(e) {
     const pendingAmount = Math.max(0, grandTotal - paidAmount);
     const excessAmount = Math.max(0, paidAmount - grandTotal);
     const billNo = (idx >= 0 && state.cosSales[idx]?.billNo) || getNextCosBillNumber();
-    const cosBillId = (idx >= 0 && state.cosSales[idx]?.id) || ('cossale_' + billNo);
-    unmarkIdDeleted(billNo);
+    const cosBillId = (idx >= 0 && state.cosSales[idx]?.id) || generateUniqueRecordId('cossale');
     unmarkIdDeleted(cosBillId);
     unmarkIdDeleted('cust_' + customer.toLowerCase());
     unmarkIdDeleted('custname_' + customer.toLowerCase());

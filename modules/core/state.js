@@ -51,10 +51,21 @@ export function notifyStateChange(eventType, details) {
 // -------------------------------------------------------------
 // Tombstone & Safe Deletion Engine (Permanently Prevents Resurrection)
 // -------------------------------------------------------------
+export function generateUniqueRecordId(prefix = 'bill') {
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+export function isBareBillNo(key) {
+    if (!key) return false;
+    return /^(?:cln|cos)-\d+$/i.test(String(key).trim());
+}
+
 export function sanitizeTombstoneKey(k) {
     if (!k) return null;
     const str = String(k).trim().toLowerCase();
     if (!str) return null;
+    // Reject bare sequential bill numbers like 'cln-0001' or 'cos-0002' to avoid cross-device bill suppression
+    if (isBareBillNo(str)) return null;
     return str;
 }
 
@@ -66,12 +77,19 @@ export function initTombstones() {
             if (Array.isArray(parsed)) {
                 parsed.forEach(x => {
                     const clean = sanitizeTombstoneKey(x);
-                    if (clean && !clean.startsWith('custname_')) {
+                    if (clean && !clean.startsWith('custname_') && !isBareBillNo(clean)) {
                         state.deletedRecordIds.add(clean);
                     }
                 });
             }
         }
+    } catch(e) {}
+    // Clean out any legacy bare bill number keys that may already exist in state
+    state.deletedRecordIds.forEach(k => {
+        if (isBareBillNo(k)) state.deletedRecordIds.delete(k);
+    });
+    try {
+        localStorage.setItem('fia_deleted_ids', JSON.stringify(Array.from(state.deletedRecordIds)));
     } catch(e) {}
 }
 
@@ -116,10 +134,7 @@ export function getRecordFingerprints(item, type = null) {
     if (item.id) {
         fps.push(String(item.id).trim().toLowerCase());
     }
-    if (item.billNo) {
-        fps.push(String(item.billNo).trim().toLowerCase());
-        fps.push('bill_' + String(item.billNo).trim().toLowerCase());
-    }
+    // Note: Do not tombstone sequential billNo (CLN-xxxx) to prevent cross-bill suppression
     if (item.orderNo) {
         fps.push(String(item.orderNo).trim().toLowerCase());
         fps.push('ord_' + String(item.orderNo).trim().toLowerCase());
@@ -184,10 +199,12 @@ export function isItemDeleted(item, type = null) {
 export function isCustItemDeleted(c) {
     if (!c) return true;
     if (c._deleted === true) return true;
+    // Check specific unique record ID tombstone
+    if (c.id && isIdDeleted(c.id)) return true;
+    // If it is a bill, it is NOT deleted unless c._deleted is true or its unique id is tombstoned.
+    // Bare bill numbers (CLN-xxxx) must NEVER suppress other bills!
     if (c.billNo) {
-        const bId = String(c.id || '').trim().toLowerCase();
-        const bNo = String(c.billNo || '').trim().toLowerCase();
-        return isIdDeleted(bId) || isIdDeleted(bNo) || isIdDeleted('bill_' + bNo);
+        return false;
     }
     return isItemDeleted(c, 'customer');
 }
@@ -820,5 +837,7 @@ if (typeof window !== 'undefined') {
     window.isItemDeleted = isItemDeleted;
     window.isCustItemDeleted = isCustItemDeleted;
     window.isRecordDeleted = isRecordDeleted;
+    window.generateUniqueRecordId = generateUniqueRecordId;
+    window.isBareBillNo = isBareBillNo;
 }
 

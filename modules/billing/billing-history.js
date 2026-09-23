@@ -275,10 +275,12 @@ export function deleteCustomerBill(billIdentifier, askConfirm = true) {
 
     const c = state.customers[index];
     c._deleted = true;
-    if (c.id) markIdDeleted(c.id);
-    if (c.billNo) {
-        markIdDeleted(c.billNo);
-        markIdDeleted('bill_' + c.billNo);
+    // Tombstone only the specific unique record ID to prevent suppressing other bills
+    if (c.id) {
+        markIdDeleted(c.id);
+    } else if (c.billNo) {
+        c.id = 'bill_' + c.billNo;
+        markIdDeleted(c.id);
     }
     if (Array.isArray(state.clearedDayBookEntries)) {
         state.clearedDayBookEntries = state.clearedDayBookEntries.filter(x => x !== c.billNo && x !== c.id && x !== ('cust_' + c.billNo) && x !== ('bill_' + c.billNo));
@@ -319,11 +321,12 @@ export function deleteCosSale(billIdentifier, askConfirm = true) {
 
     const s = state.cosSales[index];
     s._deleted = true;
-    if (s.id) markIdDeleted(s.id);
-    if (s.billNo) {
-        markIdDeleted(s.billNo);
-        markIdDeleted('bill_' + s.billNo);
-        markIdDeleted('cossale_' + s.billNo);
+    // Tombstone only the specific unique record ID
+    if (s.id) {
+        markIdDeleted(s.id);
+    } else if (s.billNo) {
+        s.id = 'cossale_' + s.billNo;
+        markIdDeleted(s.id);
     }
 
     if (window.restoreCosSaleStock) window.restoreCosSaleStock(s);

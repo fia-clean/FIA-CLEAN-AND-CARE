@@ -10,6 +10,7 @@ import {
     isItemDeleted,
     isCustItemDeleted,
     isRecordDeleted,
+    isBareBillNo,
     saveLocalStateSafely,
     createAutomaticLocalBackup,
     normalizeLoadedProducts,
@@ -212,77 +213,41 @@ export function mergeCollection(localList, cloudList, idField = 'id') {
 }
 
 export function mergeCustomerBills(localList, cloudList) {
-    const map = new Map();
-    const getKey = c => {
-        if (!c) return '';
-        if (c.billNo) return 'bill_' + String(c.billNo).trim().toUpperCase();
-        const upperName = String(c.name || '').trim().toUpperCase();
-        if (upperName) return 'profile_' + upperName;
-        if (c.id) return 'id_' + String(c.id).trim().toLowerCase();
-        return '';
-    };
-
-    const getMaxBillNo = () => {
-        let maxNum = 0;
-        map.forEach(item => {
-            if (item && item.billNo) {
-                const m = String(item.billNo).match(/(\d+)$/);
-                if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
-            }
-        });
-        return maxNum;
-    };
+    const profileMap = new Map(); // key: UPPERCASE customer name
+    const billMap = new Map();    // key: lowercase unique bill ID
 
     const processItem = (c) => {
         if (!c || isCustItemDeleted(c)) return;
         if (c.name) c.name = String(c.name).trim().toUpperCase();
-        const k = getKey(c);
-        if (!k) return;
-        if (!map.has(k)) {
-            map.set(k, c);
-        } else {
-            const existing = map.get(k);
 
-            // Bill number collision handling: two different bills with the same billNo created independently
-            if (c.billNo && existing.billNo) {
-                const sameName = String(c.name || '').trim().toUpperCase() === String(existing.name || '').trim().toUpperCase();
-                const sameId = c.id && existing.id && String(c.id).trim().toLowerCase() === String(existing.id).trim().toLowerCase();
-                if (!sameName && !sameId) {
-                    // Two different bills created concurrently on different devices with the same bill number!
-                    // Both must be preserved! The older bill keeps the lower number, the newer gets the next number.
-                    const incomingTime = Number(c.savedAt || c.createdAt || 0);
-                    const existingTime = Number(existing.savedAt || existing.createdAt || 0);
-
-                    const older = incomingTime < existingTime ? c : existing;
-                    const newer = incomingTime < existingTime ? existing : c;
-
-                    // Calculate next sequential bill number
-                    const nextNum = getMaxBillNo() + 1;
-                    const newBillNo = 'CLN-' + String(nextNum).padStart(4, '0');
-                    const renumberedNewer = {
-                        ...newer,
-                        billNo: newBillNo,
-                        id: 'bill_' + newBillNo
-                    };
-
-                    map.set(k, older);
-                    map.set('bill_' + newBillNo, renumberedNewer);
-                    return;
+        if (c.billNo) {
+            // It is a customer bill
+            const billId = String(c.id || ('bill_' + c.billNo)).trim().toLowerCase();
+            if (!billMap.has(billId)) {
+                billMap.set(billId, { ...c, id: c.id || ('bill_' + c.billNo) });
+            } else {
+                const existing = billMap.get(billId);
+                const incomingTime = Number(c.savedAt || c.createdAt || 0);
+                const existingTime = Number(existing.savedAt || existing.createdAt || 0);
+                if (incomingTime >= existingTime) {
+                    billMap.set(billId, { ...existing, ...c, phone: c.phone || existing.phone || '' });
+                } else if (!existing.phone && c.phone) {
+                    existing.phone = c.phone;
                 }
             }
-
-            const incomingTime = Number(c.savedAt || c.createdAt || 0);
-            const existingTime = Number(existing.savedAt || existing.createdAt || 0);
-            if (incomingTime >= existingTime) {
-                if (!c.billNo && !existing.billNo && c.id && existing.id && c.id !== existing.id) {
-                    markIdDeleted(existing.id);
-                }
-                map.set(k, { ...existing, ...c, phone: c.phone || existing.phone || '' });
+        } else {
+            // It is a pure customer directory profile
+            const upperName = String(c.name || '').trim().toUpperCase();
+            if (!upperName) return;
+            if (!profileMap.has(upperName)) {
+                profileMap.set(upperName, c);
             } else {
-                if (!c.billNo && !existing.billNo && c.id && existing.id && c.id !== existing.id) {
-                    markIdDeleted(c.id);
-                }
-                if (!existing.phone && c.phone) {
+                const existing = profileMap.get(upperName);
+                const incomingTime = Number(c.savedAt || c.createdAt || 0);
+                const existingTime = Number(existing.savedAt || existing.createdAt || 0);
+                if (incomingTime >= existingTime) {
+                    profileMap.set(upperName, { ...existing, ...c, phone: c.phone || existing.phone || '' });
+                } else if (!existing.phone && c.phone) {
                     existing.phone = c.phone;
                 }
             }
@@ -295,7 +260,86 @@ export function mergeCustomerBills(localList, cloudList) {
     const rawLocal = Array.isArray(localList) ? localList : Object.values(localList || {});
     rawLocal.forEach(c => processItem(c));
 
-    return Array.from(map.values());
+    // Handle bill number collisions between distinct bills with DIFFERENT IDs
+    const bills = Array.from(billMap.values());
+    let maxNum = 0;
+    bills.forEach(b => {
+        const m = String(b.billNo || '').match(/(\d+)$/);
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+    });
+
+    const billNoMap = new Map();
+    bills.forEach(b => {
+        const bNo = String(b.billNo || '').trim().toUpperCase();
+        if (!billNoMap.has(bNo)) {
+            billNoMap.set(bNo, b);
+        } else {
+            // Collision between two different bills created offline on different devices!
+            const existing = billNoMap.get(bNo);
+            const tIncoming = Number(b.savedAt || b.createdAt || 0);
+            const tExisting = Number(existing.savedAt || existing.createdAt || 0);
+            // The newer bill gets renumbered to next sequential number; older keeps its number
+            const newer = tIncoming >= tExisting ? b : existing;
+            maxNum++;
+            const newBillNo = 'CLN-' + String(maxNum).padStart(4, '0');
+            newer.billNo = newBillNo;
+            billNoMap.set(newBillNo, newer);
+        }
+    });
+
+    return [...Array.from(profileMap.values()), ...Array.from(billMap.values())];
+}
+
+export function mergeCosSales(localList, cloudList) {
+    const saleMap = new Map(); // key: lowercase unique sale ID
+
+    const processItem = (s) => {
+        if (!s || isCustItemDeleted(s) || isRecordDeleted('cosSale', s)) return;
+        const saleId = String(s.id || ('cossale_' + s.billNo)).trim().toLowerCase();
+        if (!saleMap.has(saleId)) {
+            saleMap.set(saleId, { ...s, id: s.id || ('cossale_' + s.billNo) });
+        } else {
+            const existing = saleMap.get(saleId);
+            const incomingTime = Number(s.savedAt || s.createdAt || 0);
+            const existingTime = Number(existing.savedAt || existing.createdAt || 0);
+            if (incomingTime >= existingTime) {
+                saleMap.set(saleId, { ...existing, ...s });
+            }
+        }
+    };
+
+    const rawCloud = Array.isArray(cloudList) ? cloudList : Object.values(cloudList || {});
+    rawCloud.forEach(s => processItem(s));
+
+    const rawLocal = Array.isArray(localList) ? localList : Object.values(localList || {});
+    rawLocal.forEach(s => processItem(s));
+
+    // Handle cosmetics bill number collisions between distinct sales with DIFFERENT IDs
+    const sales = Array.from(saleMap.values());
+    let maxNum = 0;
+    sales.forEach(s => {
+        const m = String(s.billNo || '').match(/(\d+)$/);
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+    });
+
+    const billNoMap = new Map();
+    sales.forEach(s => {
+        const bNo = String(s.billNo || '').trim().toUpperCase();
+        if (!billNoMap.has(bNo)) {
+            billNoMap.set(bNo, s);
+        } else {
+            const existing = billNoMap.get(bNo);
+            const tIncoming = Number(s.savedAt || s.createdAt || 0);
+            const tExisting = Number(existing.savedAt || existing.createdAt || 0);
+            const newer = tIncoming >= tExisting ? s : existing;
+            maxNum++;
+            const newBillNo = 'COS-' + String(maxNum).padStart(4, '0');
+            newer.billNo = newBillNo;
+            billNoMap.set(newBillNo, newer);
+        }
+    });
+
+    return Array.from(saleMap.values());
 }
 
 export function detectLocalUnsynced(localState, cloudData) {
@@ -420,8 +464,8 @@ export function unmarkAllActiveLocalRecords() {
         });
     };
 
-    register(state.customers, c => [c.id, c.billNo]);
-    register(state.cosSales, s => [s.id, s.billNo]);
+    register(state.customers, c => [c.id]);
+    register(state.cosSales, s => [s.id]);
     register(state.products, p => [p.id, p.barcode]);
     register(state.cosProducts, p => [p.id, p.barcode]);
     register(state.purchases, p => [p.id]);
@@ -470,7 +514,7 @@ export function buildSyncPayload() {
             unmarkAllActiveLocalRecords();
             return Array.from(state.deletedRecordIds)
                 .map(sanitizeTombstoneKey)
-                .filter(k => k && !k.startsWith('custname_'))
+                .filter(k => k && !k.startsWith('custname_') && !isBareBillNo(k))
                 .slice(-2000);
         })(),
         _meta: {
@@ -490,11 +534,11 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     const hadPendingFlag = localStorage.getItem('fia_has_pending_sync') === 'true';
     const localHasAdditions = detectLocalUnsynced(state, data);
 
-    // 1. Ingest remote tombstones (strictly excluding customer names to prevent cross-bill suppression)
+    // 1. Ingest remote tombstones (strictly excluding customer names and bare bill numbers)
     const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
     remoteDeleted.forEach(k => {
         const cleanKey = sanitizeTombstoneKey(k);
-        if (cleanKey && !cleanKey.startsWith('custname_')) {
+        if (cleanKey && !cleanKey.startsWith('custname_') && !isBareBillNo(cleanKey)) {
             state.deletedRecordIds.add(cleanKey);
         }
     });
@@ -522,7 +566,7 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     state.purchases = mergeCollection(state.purchases, data.purchases, 'id');
     state.expenses = mergeCollection(state.expenses, data.expenses, 'id');
     state.cosPurchases = mergeCollection(state.cosPurchases, data.cosPurchases, 'id');
-    state.cosSales = mergeCollection(state.cosSales, data.cosSales, 'id');
+    state.cosSales = mergeCosSales(state.cosSales, data.cosSales);
     state.packages = mergeInventoryProducts(state.packages, data.packages);
     state.stockReturns = mergeCollection(state.stockReturns, data.stockReturns, 'id');
     state.demands = mergeCollection(state.demands, data.demands, 'id');
@@ -1088,6 +1132,8 @@ if (typeof window !== 'undefined') {
     window.applyCloudData = applyCloudData;
     window.mergeInventoryProducts = mergeInventoryProducts;
     window.mergeCollection = mergeCollection;
+    window.mergeCustomerBills = mergeCustomerBills;
+    window.mergeCosSales = mergeCosSales;
     window.detectLocalUnsynced = detectLocalUnsynced;
     window.buildSyncPayload = buildSyncPayload;
     window.attachRealtimeListener = attachRealtimeListener;

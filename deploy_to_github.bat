@@ -11,7 +11,7 @@ echo Adding modified files...
 git add index.html dev.html sw.js manifest.json icon-192.png icon-512.png icon.svg apple-touch-icon.png favicon.png lib/ modules/ public/ src/ deploy_to_github.bat deploy_to_github.ps1
 
 echo Committing updates...
-git commit -m "fix(release): v50.9.7 - fix scrolling and up-down navigation in Demands and Orders modals with pinned action footers"
+git commit -m "fix(release): v50.9.8 - rock-solid cross-device billing sync, safe unique id bill deletion, and automatic wholesale pricing"
 
 echo Pushing to GitHub (origin main)...
 git push origin main
@@ -21,4 +21,3 @@ echo   Done! GitHub and GitHub Pages are now updating.
 echo   Please wait 30-60 seconds, then hard refresh (Ctrl+F5)
 echo   or clear site cache on your browser/PWA.
 echo ========================================================
-pause
