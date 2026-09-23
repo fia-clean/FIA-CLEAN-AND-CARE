@@ -343,6 +343,8 @@ export function openAddDemandModal(prefill = {}) {
     renderTempDemandStaging();
 
     modal.classList.remove('hidden');
+    const formEl = document.getElementById('addDemandForm');
+    if (formEl) formEl.scrollTop = 0;
     setTimeout(() => document.getElementById('demandItemName')?.focus(), 50);
 }
 
@@ -414,16 +416,22 @@ export function renderTempDemandStaging() {
     if (submitBtn) submitBtn.textContent = `✓ Save All (${tempDemandItems.length} Demands)`;
 
     rows.innerHTML = tempDemandItems.map((it, i) => `
-        <div class="flex items-center justify-between gap-2 p-1.5 bg-white border border-slate-200 rounded-lg shadow-2xs">
+        <div class="flex items-center justify-between gap-2 p-2 bg-white border border-slate-200 rounded-xl shadow-2xs">
             <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                 <span class="font-bold text-slate-800">${i + 1}. ${it.itemName}</span>
                 <span class="text-emerald-700 font-extrabold">(${it.qtyNeeded} ${it.unit})</span>
                 ${it.isUrgent ? '<span class="text-[9px] font-black px-1.5 py-0.2 bg-rose-100 text-rose-700 rounded-full">URGENT</span>' : ''}
                 ${it.notes ? `<span class="text-slate-400 italic text-[10px]">"${it.notes}"</span>` : ''}
             </div>
-            <button type="button" onclick="window.removeTempDemandItem(${i})" class="text-rose-500 hover:text-rose-700 font-bold px-1 py-0.5 text-xs cursor-pointer">🗑️</button>
+            <button type="button" onclick="window.removeTempDemandItem(${i})" class="text-rose-500 hover:text-rose-700 font-bold px-1.5 py-1 text-xs cursor-pointer">🗑️</button>
         </div>
     `).join('');
+
+    setTimeout(() => {
+        if (area && !area.classList.contains('hidden')) {
+            area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, 50);
 }
 
 export function saveDemandItem() {
@@ -841,6 +849,8 @@ export function openNewOrderModal(orderData = null) {
     populateProductSelect();
     renderTempOrderItems();
     modal.classList.remove('hidden');
+    const formEl = document.getElementById('newOrderBookingForm');
+    if (formEl) formEl.scrollTop = 0;
 }
 
 export function closeNewOrderModal() {
@@ -1245,6 +1255,14 @@ export function renderTempOrderItems() {
 
     container.innerHTML = html;
     updateOrderModalTotals();
+    if (tempOrderItems.length > 0) {
+        setTimeout(() => {
+            const lastItem = container.lastElementChild;
+            if (lastItem && typeof lastItem.scrollIntoView === 'function') {
+                lastItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 50);
+    }
 }
 
 export function updateOrderModalTotals() {

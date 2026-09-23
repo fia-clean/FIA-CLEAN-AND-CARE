@@ -157,6 +157,14 @@
             -webkit-overflow-scrolling: touch;
         }
 
+        /* Smooth vertical touch scrolling & overscroll containment for dialog modals */
+        .modal-scroll-body {
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            overscroll-behavior: contain !important;
+            scroll-behavior: smooth !important;
+        }
+
         /* ===== MOBILE-FRIENDLY RESPONSIVE STYLES (< 640px) ===== */
         @media (max-width: 640px) {
             /* 2x2 Subtabs and Action Grids on Smartphones */
@@ -517,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '50.9.6';
+                var CURRENT_APP_VERSION = '50.9.7';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -541,7 +549,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.6) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.7) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -841,10 +849,14 @@
 
         <!-- Modern Floating Status & Action Bar (Compact 2-Line Mobile Layout) -->
         <div class="max-w-md md:max-w-2xl mx-auto mb-3.5 rounded-2xl p-2.5 sm:px-3.5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style="background: linear-gradient(135deg, #e0f2fe 0%, #eff6ff 50%, #e0e7ff 100%); border: 1.5px solid #93c5fd;">
-            <!-- Line 1: Cloud Sync Status -->
-            <div class="flex items-center justify-start gap-2 w-full sm:w-auto">
+            <!-- Line 1: Cloud Sync Status & App Version Badge -->
+            <div class="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
                 <span id="syncStatus" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300 shadow-xs whitespace-nowrap min-w-0 transition-colors">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span> Connecting to Cloud Database...
+                </span>
+                <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span>v50.9.7</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -2461,9 +2473,10 @@
 
 
     <!-- ================= ADD / EDIT DEMAND MODAL ================= -->
-    <div id="addDemandModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
-        <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+    <div id="addDemandModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] hidden overflow-y-auto p-2 sm:p-4 flex items-center justify-center min-h-screen">
+        <div class="relative bg-white border border-slate-200 rounded-3xl max-w-md w-full shadow-2xl my-auto flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden">
+            <!-- Fixed Header (Always visible) -->
+            <div class="flex justify-between items-center border-b border-slate-100 p-4 sm:p-5 shrink-0 bg-white">
                 <div class="flex items-center gap-2">
                     <span class="text-xl">📉</span>
                     <div>
@@ -2471,10 +2484,11 @@
                         <p class="text-[10px] text-slate-500">Record missing materials or stock on-the-go</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeAddDemandModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 py-1">×</button>
+                <button type="button" onclick="closeAddDemandModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 py-1 cursor-pointer">×</button>
             </div>
 
-            <form onsubmit="event.preventDefault(); saveDemandItem();" class="space-y-3 text-xs">
+            <!-- Scrollable Form Body (Smooth up & down navigation) -->
+            <form id="addDemandForm" onsubmit="event.preventDefault(); saveDemandItem();" class="overflow-y-auto modal-scroll-body flex-1 p-4 sm:p-5 space-y-3.5 text-xs">
                 <input type="hidden" id="demandItemId" value="">
 
                 <div>
@@ -2528,36 +2542,38 @@
 
                 <!-- Add More Button to build multi-item demand list -->
                 <div class="pt-1">
-                    <button type="button" onclick="window.addMoreDemandItem()" class="w-full py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs border border-indigo-200 transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                    <button type="button" onclick="window.addMoreDemandItem()" class="w-full py-2.5 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs border border-indigo-200 transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
                         <span>➕</span><span>Add to List (Add More Items)</span>
                     </button>
                 </div>
 
                 <!-- Staged Multi-Item Demands Container -->
-                <div id="tempDemandStagingArea" class="hidden space-y-1.5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl max-h-36 overflow-y-auto">
+                <div id="tempDemandStagingArea" class="hidden space-y-1.5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
                     <div class="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1 border-b border-slate-200 pb-1">
                         <span>Staged Demands (<span id="tempDemandCountBadge">0</span>)</span>
                         <span class="text-[10px] text-slate-500">Will be saved together</span>
                     </div>
-                    <div id="tempDemandListRows" class="space-y-1 text-xs"></div>
-                </div>
-
-                <div class="flex gap-2 pt-2 border-t border-slate-100">
-                    <button type="submit" id="btnSaveDemandModal" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-sm cursor-pointer">
-                        ✓ Save Demand
-                    </button>
-                    <button type="button" onclick="closeAddDemandModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs hover:bg-slate-200 transition cursor-pointer">
-                        Cancel
-                    </button>
+                    <div id="tempDemandListRows" class="space-y-1.5 text-xs"></div>
                 </div>
             </form>
+
+            <!-- Pinned Footer (Save Button is ALWAYS visible on screen) -->
+            <div class="p-3 sm:px-5 sm:py-3.5 bg-slate-50 border-t border-slate-100 flex gap-2 shrink-0 rounded-b-3xl">
+                <button type="button" onclick="saveDemandItem()" id="btnSaveDemandModal" class="flex-1 py-2.5 sm:py-3 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5">
+                    ✓ Save Demand
+                </button>
+                <button type="button" onclick="closeAddDemandModal()" class="px-4 py-2.5 sm:py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-100 transition cursor-pointer">
+                    Cancel
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- ================= NEW CUSTOMER BULK ORDER MODAL ================= -->
-    <div id="newOrderModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
-        <div class="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+    <div id="newOrderModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] hidden overflow-y-auto p-2 sm:p-4 flex items-center justify-center min-h-screen">
+        <div class="relative bg-white border border-slate-200 rounded-3xl max-w-lg w-full shadow-2xl my-auto flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden">
+            <!-- Fixed Header (Always visible) -->
+            <div class="flex justify-between items-center border-b border-slate-100 p-4 sm:p-5 shrink-0 bg-white">
                 <div class="flex items-center gap-2">
                     <span class="text-xl">📦</span>
                     <div>
@@ -2565,10 +2581,11 @@
                         <p class="text-[10px] text-slate-500">Take shop orders with automated due date reminder</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeNewOrderModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 py-1">×</button>
+                <button type="button" onclick="closeNewOrderModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 py-1 cursor-pointer">×</button>
             </div>
 
-            <form onsubmit="event.preventDefault(); saveOrderBooking();" class="space-y-3.5 text-xs">
+            <!-- Scrollable Form Body (Smooth up & down navigation) -->
+            <form id="newOrderBookingForm" onsubmit="event.preventDefault(); saveOrderBooking();" class="overflow-y-auto modal-scroll-body flex-1 p-4 sm:p-5 space-y-3.5 text-xs">
                 <input type="hidden" id="orderBookingId" value="">
 
                 <div class="grid grid-cols-2 gap-2">
@@ -2667,20 +2684,14 @@
                             <input type="number" step="any" min="0" id="orderItemRate" placeholder="0" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs font-bold text-center">
                         </div>
                         <div class="flex items-end">
-                            <button type="button" id="btnAddOrderItem" onclick="addTempOrderItem()" class="w-full py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs hover:bg-emerald-700 transition shadow-xs">
+                            <button type="button" id="btnAddOrderItem" onclick="addTempOrderItem()" class="w-full py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs hover:bg-emerald-700 transition shadow-xs cursor-pointer">
                                 + Add Item
                             </button>
                         </div>
                     </div>
 
-                    <!-- Temp items list -->
-                    <div id="tempOrderItemsList" class="space-y-1.5 pt-1 max-h-36 overflow-y-auto"></div>
-
-                    <!-- Totals summary -->
-                    <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs font-bold">
-                        <span>Grand Total: <strong id="orderModalGrandTotal" class="text-emerald-800 text-sm font-black">₹0.00</strong></span>
-                        <span>Balance Due: <strong id="orderModalBalance" class="text-rose-700 text-sm font-black">₹0.00</strong></span>
-                    </div>
+                    <!-- Temp items list (clean scrolling) -->
+                    <div id="tempOrderItemsList" class="space-y-1.5 pt-1"></div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
@@ -2693,22 +2704,30 @@
                         <input type="text" id="orderNotes" placeholder="e.g. Green bottle only..." class="w-full p-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:border-emerald-600 focus:outline-none">
                     </div>
                 </div>
+            </form>
 
-                <div class="flex gap-2 pt-2 border-t border-slate-100">
-                    <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-sm">
+            <!-- Pinned Footer (Live Totals & Book Order button always accessible) -->
+            <div class="p-3 sm:px-5 sm:py-3.5 bg-slate-50 border-t border-slate-100 space-y-2.5 shrink-0 rounded-b-3xl">
+                <!-- Totals summary banner -->
+                <div class="flex items-center justify-between text-xs font-bold px-1">
+                    <span>Grand Total: <strong id="orderModalGrandTotal" class="text-emerald-800 text-sm font-black">₹0.00</strong></span>
+                    <span>Balance Due: <strong id="orderModalBalance" class="text-rose-700 text-sm font-black">₹0.00</strong></span>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" form="newOrderBookingForm" id="btnSaveOrderBooking" onclick="if(document.getElementById('newOrderBookingForm')?.reportValidity()) saveOrderBooking();" class="flex-1 py-2.5 sm:py-3 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5">
                         ✓ Book Order
                     </button>
-                    <button type="button" onclick="closeNewOrderModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs hover:bg-slate-200 transition">
+                    <button type="button" onclick="closeNewOrderModal()" class="px-4 py-2.5 sm:py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-100 transition cursor-pointer">
                         Cancel
                     </button>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 
     <!-- Low Stock Products Modal -->
-    <div id="lowStockListModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
-      <div class="max-w-md w-full bg-white border border-slate-200 rounded-3xl shadow-2xl p-5 space-y-3 max-h-[85vh] overflow-y-auto">
+    <div id="lowStockListModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] hidden overflow-y-auto p-2 sm:p-4 flex items-center justify-center min-h-screen">
+      <div class="relative max-w-md w-full bg-white border border-slate-200 rounded-3xl shadow-2xl p-5 space-y-3 max-h-[88vh] overflow-y-auto modal-scroll-body my-auto">
         <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
             <div>
                 <h3 class="font-extrabold text-rose-700 text-sm flex items-center gap-1.5">
@@ -2724,7 +2743,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=50.9.6"></script>
+    <script type="module" src="./modules/app.js?v=50.9.7"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2736,7 +2755,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.6) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.7) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2790,7 +2809,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=50.9.6')
+                navigator.serviceWorker.register('./sw.js?v=50.9.7')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
