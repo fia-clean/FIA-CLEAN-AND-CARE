@@ -470,7 +470,7 @@ export function buildSyncPayload() {
             unmarkAllActiveLocalRecords();
             return Array.from(state.deletedRecordIds)
                 .map(sanitizeTombstoneKey)
-                .filter(k => k && !/^(bill_)?(cln|cos)-\d+$/i.test(k) && !k.startsWith('custname_'))
+                .filter(k => k && !k.startsWith('custname_'))
                 .slice(-2000);
         })(),
         _meta: {
@@ -490,11 +490,11 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     const hadPendingFlag = localStorage.getItem('fia_has_pending_sync') === 'true';
     const localHasAdditions = detectLocalUnsynced(state, data);
 
-    // 1. Ingest remote tombstones, ignoring sequential receipt numbers and customer names
+    // 1. Ingest remote tombstones (strictly excluding customer names to prevent cross-bill suppression)
     const remoteDeleted = Array.isArray(data._deletedIds) ? data._deletedIds : (Array.isArray(data._deletedKeys) ? data._deletedKeys : []);
     remoteDeleted.forEach(k => {
         const cleanKey = sanitizeTombstoneKey(k);
-        if (cleanKey && !/^(bill_)?(cln|cos)-\d+$/i.test(cleanKey) && !cleanKey.startsWith('custname_')) {
+        if (cleanKey && !cleanKey.startsWith('custname_')) {
             state.deletedRecordIds.add(cleanKey);
         }
     });

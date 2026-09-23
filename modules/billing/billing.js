@@ -814,7 +814,7 @@ export function renderBillPreviewInput() {
                     <span>₹${Number(item.rate).toFixed(2)}</span>
                     <strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
                     <button type="button" onclick="window.editBillItem(${index})" class="text-sky-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
-                    <button type="button" onclick="window.state.currentBillItems.splice(${index},1);window.renderBillPreviewInput();window.calculateBalance();" class="text-rose-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
+                    <button type="button" onclick="window.removeBillItem(${index})" class="text-rose-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
                 </div>
                 <div class="sm:hidden flex flex-col gap-1.5">
                     <div class="flex justify-between items-start gap-2">
@@ -825,13 +825,20 @@ export function renderBillPreviewInput() {
                         <span>${qtyStr} × ${units} @ ₹${Number(item.rate).toFixed(2)}</span>
                         <div class="flex items-center gap-1.5 shrink-0">
                             <button type="button" onclick="window.editBillItem(${index})" class="px-2.5 py-1 rounded-lg bg-slate-800 text-sky-300 border border-sky-500/30 font-bold text-[10px]">✎ Edit</button>
-                            <button type="button" onclick="window.state.currentBillItems.splice(${index},1);window.renderBillPreviewInput();window.calculateBalance();" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
+                            <button type="button" onclick="window.removeBillItem(${index})" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
                         </div>
                     </div>
                 </div>
             </div>`;
     });
     if (state.currentBillItems.length > 0) container.innerHTML += `<div class="text-right font-extrabold text-xs text-slate-300 pt-1">Items Subtotal: ₹${grandTotal.toFixed(2)}</div>`;
+    calculateBalance();
+}
+
+export function removeBillItem(index) {
+    if (!Array.isArray(state.currentBillItems) || index < 0 || index >= state.currentBillItems.length) return;
+    state.currentBillItems.splice(index, 1);
+    renderBillPreviewInput();
     calculateBalance();
 }
 
@@ -1043,6 +1050,12 @@ export function resetCustomerForm() {
     if (existingSel) existingSel.value = '';
     const notice = document.getElementById('billRateNotice');
     if (notice) notice.innerHTML = '';
+    const btn = document.getElementById('custSubmitBtn');
+    if (btn) btn.textContent = 'Save Bill & Folder';
+    const delBtn = document.getElementById('custDeleteBtn');
+    if (delBtn) delBtn.classList.add('hidden');
+    const editModeCard = document.getElementById('billingEditMode');
+    if (editModeCard) editModeCard.classList.add('hidden');
 }
 
 export function editCustomerBill(identifier) {
@@ -1079,6 +1092,25 @@ export function editCustomerBill(identifier) {
     calculateBalance();
     const btn = document.getElementById('custSubmitBtn');
     if (btn) btn.textContent = 'Update Bill & Payment';
+    const delBtn = document.getElementById('custDeleteBtn');
+    if (delBtn) delBtn.classList.remove('hidden');
+    const editModeCard = document.getElementById('billingEditMode');
+    if (editModeCard) editModeCard.classList.remove('hidden');
+}
+
+export function deleteCurrentEditedBill() {
+    const idx = parseInt(document.getElementById('custIndex')?.value, 10);
+    if (isNaN(idx) || idx < 0 || !state.customers[idx]) {
+        alert('Please select an active bill to delete.');
+        return;
+    }
+    const bill = state.customers[idx];
+    if (confirm(`Are you sure you want to delete bill #${bill.billNo || 'selected'} (${bill.name || 'Customer'})?`)) {
+        if (typeof window.deleteCustomerBill === 'function') {
+            window.deleteCustomerBill(bill.billNo || bill.id || idx, false);
+        }
+        resetCustomerForm();
+    }
 }
 
 export function updateBillQuantityTypeDropdown() {
@@ -1866,7 +1898,7 @@ export function renderCombinedBillItems() {
                 <span>₹${Number(item.rate || 0).toFixed(2)}</span>
                 <strong class="text-emerald-400">₹${Number(item.total || 0).toFixed(2)}</strong>
                 <button type="button" onclick="editCombinedBillItem(${i})" class="text-sky-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
-                <button type="button" onclick="state.currentBillItems.splice(${i},1);renderCombinedBillItems();calculateCombinedBalance();" class="text-rose-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
+                <button type="button" onclick="window.removeCombinedBillItem(${i})" class="text-rose-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
             </div>
             <div class="sm:hidden flex flex-col gap-1.5">
                 <div class="flex justify-between items-start gap-2">
@@ -1877,12 +1909,19 @@ export function renderCombinedBillItems() {
                     <span>${qtyStr} × ${units} @ ₹${Number(item.rate || 0).toFixed(2)}</span>
                     <div class="flex items-center gap-1.5 shrink-0">
                         <button type="button" onclick="editCombinedBillItem(${i})" class="px-2.5 py-1 rounded-lg bg-slate-800 text-sky-300 border border-sky-500/30 font-bold text-[10px]">✎ Edit</button>
-                        <button type="button" onclick="state.currentBillItems.splice(${i},1);renderCombinedBillItems();calculateCombinedBalance();" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
+                        <button type="button" onclick="window.removeCombinedBillItem(${i})" class="px-2.5 py-1 rounded-lg bg-rose-950/60 text-rose-300 border border-rose-800/60 font-bold text-[10px]">✕ Remove</button>
                     </div>
                 </div>
             </div>
         </div>`;
     }).join('') + (state.currentBillItems.length ? `<div class="text-right font-bold text-cyan-300 pt-1">Grand Total: ₹${total.toFixed(2)}</div>` : '');
+    calculateCombinedBalance();
+}
+
+export function removeCombinedBillItem(index) {
+    if (!Array.isArray(state.currentBillItems) || index < 0 || index >= state.currentBillItems.length) return;
+    state.currentBillItems.splice(index, 1);
+    renderCombinedBillItems();
     calculateCombinedBalance();
 }
 
@@ -2146,10 +2185,12 @@ if (typeof window !== 'undefined') {
     window.addToBillItems = addToBillItems;
     window.editBillItem = editBillItem;
     window.renderBillPreviewInput = renderBillPreviewInput;
+    window.removeBillItem = removeBillItem;
     window.calculateBalance = calculateBalance;
     window.saveCustomer = saveCustomer;
     window.resetCustomerForm = resetCustomerForm;
     window.editCustomerBill = editCustomerBill;
+    window.deleteCurrentEditedBill = deleteCurrentEditedBill;
     window.restorePackageStock = restorePackageStock;
     window.checkAndDeductPackageStock = checkAndDeductPackageStock;
     window.getStockProductRecord = getStockProductRecord;
@@ -2181,6 +2222,7 @@ if (typeof window !== 'undefined') {
     window.addToCombinedBill = addToCombinedBill;
     window.finishAddCombinedItem = finishAddCombinedItem;
     window.renderCombinedBillItems = renderCombinedBillItems;
+    window.removeCombinedBillItem = removeCombinedBillItem;
     window.editCombinedBillItem = editCombinedBillItem;
     window.calculateCombinedBalance = calculateCombinedBalance;
     window.resetCombinedBillForm = resetCombinedBillForm;

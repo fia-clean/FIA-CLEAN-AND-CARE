@@ -138,6 +138,7 @@ import {
     editBillItem,
     addToBillItems,
     renderBillPreviewInput,
+    removeBillItem,
     updateCombinedCustomerSelect,
     fillCombinedCustomer,
     updateCombinedProductSelect,
@@ -147,6 +148,7 @@ import {
     calculateCombinedItemTotal,
     addToCombinedBill,
     renderCombinedBillItems,
+    removeCombinedBillItem,
     editCombinedBillItem,
     calculateCombinedBalance,
     getNextCombinedBillNumber,
@@ -158,6 +160,7 @@ import {
     saveCustomer,
     renderCustomers,
     editCustomerBill,
+    deleteCurrentEditedBill,
     editCombinedSavedBill,
     resetCustomerForm,
     saveCosSales,
@@ -355,6 +358,9 @@ if (typeof window !== 'undefined') {
     window.addMoreDemandItem = addMoreDemandItem;
     window.removeTempDemandItem = removeTempDemandItem;
     window.saveDemandItem = saveDemandItem;
+    window.removeBillItem = removeBillItem;
+    window.removeCombinedBillItem = removeCombinedBillItem;
+    window.deleteCurrentEditedBill = deleteCurrentEditedBill;
 }
 
 // ================= RECORD VIEW MODAL =================

@@ -275,8 +275,10 @@ export function deleteCustomerBill(billIdentifier, askConfirm = true) {
 
     const c = state.customers[index];
     c._deleted = true;
-    if (c.id && !/^(bill_)?(cln|cos)-\d+$/i.test(c.id)) {
-        markIdDeleted(c.id);
+    if (c.id) markIdDeleted(c.id);
+    if (c.billNo) {
+        markIdDeleted(c.billNo);
+        markIdDeleted('bill_' + c.billNo);
     }
     if (Array.isArray(state.clearedDayBookEntries)) {
         state.clearedDayBookEntries = state.clearedDayBookEntries.filter(x => x !== c.billNo && x !== c.id && x !== ('cust_' + c.billNo) && x !== ('bill_' + c.billNo));
@@ -317,8 +319,11 @@ export function deleteCosSale(billIdentifier, askConfirm = true) {
 
     const s = state.cosSales[index];
     s._deleted = true;
-    if (s.id && !/^(bill_)?(cln|cos)-\d+$/i.test(s.id)) {
-        markIdDeleted(s.id);
+    if (s.id) markIdDeleted(s.id);
+    if (s.billNo) {
+        markIdDeleted(s.billNo);
+        markIdDeleted('bill_' + s.billNo);
+        markIdDeleted('cossale_' + s.billNo);
     }
 
     if (window.restoreCosSaleStock) window.restoreCosSaleStock(s);

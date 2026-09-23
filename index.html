@@ -517,7 +517,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '50.9.5';
+                var CURRENT_APP_VERSION = '50.9.6';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -541,7 +541,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.5) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.6) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -1630,10 +1630,14 @@
                             <button type="button" onclick="adjustEditedPayment('add')" class="w-full bg-emerald-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold leading-tight">+ Add Paid</button>
                             <button type="button" onclick="adjustEditedPayment('reduce')" class="w-full bg-rose-700 text-white px-2 py-2.5 rounded-lg text-xs font-bold leading-tight">− Reduce Paid</button>
                         </div>
+                        <div class="pt-1.5 border-t border-slate-800">
+                            <button type="button" onclick="deleteCurrentEditedBill()" class="w-full bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-rose-200 border border-rose-800/80 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">🗑️ Delete This Bill</button>
+                        </div>
                     </div>
 
                     <div class="flex gap-2 pt-1">
                         <button type="submit" id="custSubmitBtn" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-emerald-500 transition shadow-lg shadow-emerald-950/40">Save Bill & Folder</button>
+                        <button type="button" id="custDeleteBtn" onclick="deleteCurrentEditedBill()" class="hidden bg-rose-900/80 hover:bg-rose-800 text-rose-200 px-4 py-3 rounded-xl font-bold text-sm transition border border-rose-700/60 cursor-pointer">🗑️ Delete</button>
                         <button type="button" onclick="resetCustomerForm()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm hover:bg-slate-700 transition border border-slate-700">Clear</button>
                     </div>
                 </form>
@@ -2720,7 +2724,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=50.9.5"></script>
+    <script type="module" src="./modules/app.js?v=50.9.6"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2732,7 +2736,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.5) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.6) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2786,7 +2790,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=50.9.5')
+                navigator.serviceWorker.register('./sw.js?v=50.9.6')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
