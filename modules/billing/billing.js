@@ -168,6 +168,50 @@ export function updateBillTypeBadge(saleType) {
     }
 }
 
+export function saveCurrentEnteredRateAsDefault() {
+    const select = document.getElementById('billProductSelect');
+    const opt = select ? select.options[select.selectedIndex] : null;
+    if (!opt || !opt.value) {
+        alert('⚠️ Please select a product first.');
+        return;
+    }
+    const rateEl = document.getElementById('billRate');
+    const enteredRate = parseFloat(rateEl?.value);
+    if (!Number.isFinite(enteredRate) || enteredRate <= 0) {
+        alert('⚠️ Please enter a valid price in the Price per Unit box.');
+        rateEl?.focus();
+        return;
+    }
+    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+    
+    // Save to master product record
+    quickSaveProductRate(opt.value, saleType, enteredRate);
+    
+    // Friendly instant feedback in the notice bar
+    const notice = document.getElementById('billRateNotice');
+    if (notice) {
+        const product = findUnifiedProduct(opt.value);
+        const variantSelect = document.getElementById('billPackVariantSelect');
+        const vId = variantSelect?.value;
+        const variantObj = (vId && vId !== 'default_pkg' && Array.isArray(product?.variants))
+            ? product.variants.find(v => String(v.id) === String(vId))
+            : null;
+        const targetName = variantObj ? `${product?.name || opt.value} (${variantObj.name || variantObj.size})` : (product?.name || opt.value);
+        notice.innerHTML = `
+            <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-emerald-950/70 border border-emerald-500/60 text-emerald-300 font-bold text-[11px]">
+                <span>✅ Saved ₹${enteredRate.toFixed(2)} as default wholesale rate for "${targetName}"!</span>
+            </div>
+        `;
+        setTimeout(() => {
+            const freshProd = findUnifiedProduct(opt.value);
+            const freshVar = (vId && vId !== 'default_pkg' && Array.isArray(freshProd?.variants))
+                ? freshProd.variants.find(v => String(v.id) === String(vId))
+                : null;
+            updateBillRateNotice(saleType, freshProd, enteredRate, freshVar);
+        }, 2200);
+    }
+}
+
 export function quickSaveProductRate(productName, targetSaleType = 'Wholesale', rateToSave = null) {
     const product = findUnifiedProduct(productName);
     if (!product) {
@@ -200,6 +244,7 @@ export function quickSaveProductRate(productName, targetSaleType = 'Wholesale', 
     const vId = variantSelect?.value;
 
     let updated = false;
+    let targetVariant = null;
     const updateItem = (item) => {
         let variantFound = false;
         if (vId && vId !== 'default_pkg' && Array.isArray(item.variants)) {
@@ -213,6 +258,7 @@ export function quickSaveProductRate(productName, targetSaleType = 'Wholesale', 
                     variant.salePrice = enteredRate;
                 }
                 variantFound = true;
+                targetVariant = variant;
             }
         }
         if (!variantFound) {
@@ -225,6 +271,7 @@ export function quickSaveProductRate(productName, targetSaleType = 'Wholesale', 
                 item.price = enteredRate;
             }
         }
+        item.savedAt = Date.now();
         updated = true;
     };
 
@@ -236,6 +283,9 @@ export function quickSaveProductRate(productName, targetSaleType = 'Wholesale', 
     });
 
     if (updated) {
+        try {
+            if (typeof window.saveLocalStateSafely === 'function') window.saveLocalStateSafely();
+        } catch (e) {}
         syncToFirebase();
         if (window.renderProducts) window.renderProducts();
         if (window.renderCosProductStock) window.renderCosProductStock();
@@ -247,6 +297,9 @@ export function quickSaveProductRate(productName, targetSaleType = 'Wholesale', 
             rateEl.dataset.autoRate = rateEl.value;
         }
         calculateItemTotal();
+
+        const freshProduct = findUnifiedProduct(product.name);
+        updateBillRateNotice(targetSaleType, freshProduct, enteredRate, targetVariant);
 
         if (Array.isArray(state.currentBillItems) && state.currentBillItems.length > 0) {
             const currentSaleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
@@ -282,18 +335,40 @@ export function updateBillRateNotice(saleType, product, baseRate, variantObj = n
         if (isWholesale) {
             if (!hasCustomWholesale && wPrice === rPrice && rPrice > 0) {
                 notice.innerHTML = `
-                    <div class="flex flex-wrap items-center justify-between gap-1.5 p-1.5 rounded-lg bg-sky-950/40 border border-sky-800/50">
-                        <span class="text-sky-300 font-semibold text-[11px]">ℹ️ Wholesale rate not configured (Using Retail ₹${rPrice.toFixed(2)})</span>
+                    <div class="flex flex-wrap items-center justify-between gap-1.5 p-1.5 rounded-lg bg-amber-950/40 border border-amber-800/60 shadow-sm">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-amber-300 font-bold text-[11px]">⚠️ Wholesale not set</span>
+                            <span class="text-slate-400 text-[10px] font-normal">(Using Retail ₹${rPrice.toFixed(2)})</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="saveCurrentEnteredRateAsDefault()" class="px-2 py-0.5 rounded-md bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-extrabold text-[10px] shadow transition flex items-center gap-1 cursor-pointer" title="Save price entered in box as permanent default wholesale rate">
+                                💾 Save as Default
+                            </button>
+                            <button type="button" onclick="quickSaveProductRate('${safeName}', 'Wholesale')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-bold text-[10px] transition cursor-pointer" title="Set default wholesale rate via prompt">
+                                ⚙️ Set Rate
+                            </button>
+                        </div>
                     </div>`;
             } else {
                 notice.innerHTML = `
-                    <div class="flex flex-wrap items-center justify-between gap-1 text-[11px]">
-                        <span class="text-sky-300 font-bold">🏷️ Wholesale Rate Applied: ₹${Number(baseRate||0).toFixed(2)} <span class="text-slate-400 text-[10px] font-normal">(Retail: ₹${rPrice.toFixed(2)})</span></span>
+                    <div class="flex flex-wrap items-center justify-between gap-1.5 p-1.5 rounded-lg bg-sky-950/40 border border-sky-800/60 shadow-sm text-[11px]">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-sky-300 font-bold">🏷️ Wholesale: ₹${Number(baseRate||0).toFixed(2)}</span>
+                            <span class="text-slate-400 text-[10px] font-normal">(Retail: ₹${rPrice.toFixed(2)})</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="saveCurrentEnteredRateAsDefault()" class="px-2 py-0.5 rounded-md bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-extrabold text-[10px] shadow transition flex items-center gap-1 cursor-pointer" title="Save price entered in box as new default wholesale rate">
+                                💾 Save as Default
+                            </button>
+                            <button type="button" onclick="quickSaveProductRate('${safeName}', 'Wholesale')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-bold text-[10px] transition cursor-pointer" title="Change default wholesale rate via prompt">
+                                ✏️ Change
+                            </button>
+                        </div>
                     </div>`;
             }
         } else {
             notice.innerHTML = `
-                <div class="flex flex-wrap items-center justify-between gap-1 text-[11px]">
+                <div class="flex flex-wrap items-center justify-between gap-1 text-[11px] px-0.5">
                     <span class="text-emerald-300 font-bold">🛍️ Retail Rate Applied: ₹${Number(baseRate||0).toFixed(2)} <span class="text-slate-400 text-[10px] font-normal">(Wholesale: ₹${wPrice.toFixed(2)})</span></span>
                 </div>`;
         }
@@ -664,49 +739,6 @@ export function addToBillItems() {
     }
 
     const total = numberOfUnits * rate;
-
-    // Smart Wholesale Auto-Save: Persist entered wholesale rate so future bills default to it automatically
-    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
-    const isWholesale = saleType === 'Wholesale';
-    if (isWholesale && rate > 0 && product) {
-        let rateChanged = false;
-        if (variant && Number(variant.wholesalePrice) !== rate) {
-            variant.wholesalePrice = rate;
-            rateChanged = true;
-        }
-        if (!variant && Number(product.wholesalePrice) !== rate) {
-            product.wholesalePrice = rate;
-            rateChanged = true;
-        }
-        if (rateChanged) {
-            const pMatch = (state.products || []).find(p => p && (p.name === product.name || (product.id && p.id === product.id)));
-            if (pMatch) {
-                if (variant && Array.isArray(pMatch.variants)) {
-                    const vm = pMatch.variants.find(v => String(v.id) === String(variant.id));
-                    if (vm) vm.wholesalePrice = rate;
-                } else {
-                    pMatch.wholesalePrice = rate;
-                }
-                pMatch.savedAt = Date.now();
-            }
-            const cpMatch = (state.cosProducts || []).find(cp => cp && (cp.name === product.name || (product.id && cp.id === product.id)));
-            if (cpMatch) {
-                if (variant && Array.isArray(cpMatch.variants)) {
-                    const vm = cpMatch.variants.find(v => String(v.id) === String(variant.id));
-                    if (vm) vm.wholesalePrice = rate;
-                } else {
-                    cpMatch.wholesalePrice = rate;
-                }
-                cpMatch.savedAt = Date.now();
-            }
-            try {
-                if (typeof window.saveLocalStateSafely === 'function') window.saveLocalStateSafely();
-                syncToFirebase();
-            } catch (e) {
-                console.warn('Auto-save wholesale rate sync warning:', e);
-            }
-        }
-    }
 
     state.currentBillItems.push({
         productName,
@@ -2166,6 +2198,7 @@ if (typeof window !== 'undefined') {
     window.findUnifiedProduct = findUnifiedProduct;
     window.updateBillTypeBadge = updateBillTypeBadge;
     window.quickSaveProductRate = quickSaveProductRate;
+    window.saveCurrentEnteredRateAsDefault = saveCurrentEnteredRateAsDefault;
     window.updateCurrentBillItemsSaleType = updateCurrentBillItemsSaleType;
     window.updateProductDropdown = updateProductDropdown;
     window.updateBillRateNotice = updateBillRateNotice;

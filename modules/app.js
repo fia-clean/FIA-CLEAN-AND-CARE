@@ -116,6 +116,7 @@ import {
     getProductRetailPrice,
     updateBillTypeBadge,
     quickSaveProductRate,
+    saveCurrentEnteredRateAsDefault,
     updateCurrentBillItemsSaleType,
     updateBillRateNotice,
     updateProductDropdown,

@@ -11,7 +11,7 @@ Write-Host "Adding modified files..." -ForegroundColor Yellow
 git add index.html dev.html sw.js manifest.json icon-192.png icon-512.png icon.svg apple-touch-icon.png favicon.png lib/ modules/ public/ src/ deploy_to_github.bat deploy_to_github.ps1
 
 Write-Host "Committing changes..." -ForegroundColor Yellow
-git commit -m "fix(release): v50.9.8 - rock-solid cross-device billing sync, safe unique id bill deletion, and automatic wholesale pricing"
+git commit -m "feat(release): v50.9.9 - dedicated Save as Default and Change Default wholesale pricing in billing"
 
 Write-Host "Pushing to GitHub origin main..." -ForegroundColor Yellow
 git push origin main
