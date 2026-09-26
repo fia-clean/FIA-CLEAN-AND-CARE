@@ -8,7 +8,8 @@ import {
     formatDateDDMMYYYY,
     getTodayDateString,
     normalizeToDateKey,
-    dateSortValue
+    dateSortValue,
+    isCustItemDeleted
 } from '../core/state.js';
 
 export function pushDashboardModalState(modalName) {
@@ -146,7 +147,7 @@ export function renderDueAmountList() {
         index,
         due: Math.max(0, Number(c && c.pendingAmount || 0))
     }))
-    .filter(row => row.c && row.due > 0)
+    .filter(row => row.c && row.due > 0 && !row.c.isCancelled && row.c.status !== 'cancelled' && !isCustItemDeleted(row.c))
     .sort((a, b) => b.due - a.due);
 
     const totalDue = dueRows.reduce((sum, row) => sum + row.due, 0);
@@ -266,7 +267,7 @@ export function updateDashboard() {
     const mainLowCount = document.getElementById('dashLowStockMainCount');
     const dateEl = document.getElementById('dashboardDate');
     
-    const totalDue = (state.customers || []).reduce((sum, c) => sum + Math.max(0, Number(c && c.pendingAmount || 0)), 0);
+    const totalDue = (state.customers || []).reduce((sum, c) => (c && !c.isCancelled && c.status !== 'cancelled' && !c._deleted && !isCustItemDeleted(c)) ? sum + Math.max(0, Number(c.pendingAmount || 0)) : sum, 0);
     const mainLow = (state.products || []).filter(p => Number(p.stock || 0) <= 5);
     const cosLow = (state.cosProducts || []).filter(p => Number(p.stock || 0) <= 5);
     const today = getTodayDateString();

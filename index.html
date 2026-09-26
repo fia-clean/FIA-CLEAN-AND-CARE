@@ -1481,11 +1481,101 @@
         <div id="sectionBilling" class="space-y-4 hidden">
             <div class="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 shadow-inner">
                 <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-2 font-bold">BILLING</div>
-                <div class="billing-subtabs-grid grid grid-cols-2 gap-2">
-                    <button type="button" id="btnBillingNew" onclick="openBillingSection('new')" class="py-3 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition">➕ New Bill</button>
-                    <button type="button" id="btnBillingHistory" onclick="openBillingSection('history')" class="py-3 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition">📋 Bill History</button>
+                <div class="billing-subtabs-grid grid grid-cols-3 gap-1.5 sm:gap-2">
+                    <button type="button" id="btnBillingNew" onclick="openBillingSection('new')" class="py-3 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1 transition">➕ New Bill</button>
+                    <button type="button" id="btnBillingHistory" onclick="openBillingSection('history')" class="py-3 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-xs font-bold flex items-center justify-center gap-1 transition">📋 History</button>
+                    <button type="button" id="btnBillingAnalysis" onclick="openBillingSection('analysis')" class="py-3 rounded-xl bg-slate-800 text-amber-300 border border-amber-800/50 text-xs font-bold flex items-center justify-center gap-1 transition">📊 Analysis</button>
                 </div>
             </div>
+
+            <!-- PRODUCT-WISE SALES ANALYSIS PANEL -->
+            <div id="billingProductAnalysisPanel" class="hidden space-y-3">
+                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner space-y-3">
+                    <div class="flex justify-between items-center gap-2">
+                        <div>
+                            <h2 class="font-bold text-slate-100 text-sm flex items-center gap-1.5">
+                                <span>📊</span> <span>Product-Wise Sales Analysis</span>
+                            </h2>
+                            <p class="text-[10px] text-slate-400">Consolidated quantity sold in descending order (Highest first)</p>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" id="paCloudRefreshBtn" onclick="refreshProductAnalysisFromCloud()" class="text-[10px] bg-slate-800 text-emerald-300 border border-slate-700 px-2.5 py-1.5 rounded-lg font-bold">↻ Cloud Sync</button>
+                            <button type="button" onclick="shareProductAnalysisWhatsApp()" class="text-[10px] bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1 shadow-sm">📲 Share</button>
+                        </div>
+                    </div>
+
+                    <!-- Summary KPIs -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-amber-500/40">
+                            <div class="text-[10px] text-amber-300 font-bold uppercase flex items-center gap-1">🥇 Top Selling</div>
+                            <div id="paKpiTopName" class="text-xs font-black text-slate-100 truncate mt-1">—</div>
+                            <div id="paKpiTopQty" class="text-[11px] font-bold text-amber-400">0 Qty</div>
+                        </div>
+                        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                            <div class="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1">📉 Lowest Sold</div>
+                            <div id="paKpiLowName" class="text-xs font-black text-slate-100 truncate mt-1">—</div>
+                            <div id="paKpiLowQty" class="text-[11px] font-bold text-slate-400">—</div>
+                        </div>
+                        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                            <div class="text-[10px] text-slate-400 font-bold uppercase">Total Units Sold</div>
+                            <div id="paKpiTotalUnits" class="text-base font-black text-sky-300 mt-1">0</div>
+                            <div id="paKpiProductCount" class="text-[10px] text-slate-400">0 Products</div>
+                        </div>
+                        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                            <div class="text-[10px] text-slate-400 font-bold uppercase">Product Revenue</div>
+                            <div id="paKpiTotalRevenue" class="text-base font-black text-emerald-400 mt-1">₹0.00</div>
+                            <div class="text-[10px] text-slate-400">Total Sales</div>
+                        </div>
+                    </div>
+
+                    <!-- Period Filters -->
+                    <div class="space-y-1.5 pt-1">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase">Time Period:</div>
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <button type="button" id="paPeriodBtn_all" onclick="setProductAnalysisPeriod('all')" class="px-3 py-1.5 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-sm transition">All Time</button>
+                            <button type="button" id="paPeriodBtn_today" onclick="setProductAnalysisPeriod('today')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">Today</button>
+                            <button type="button" id="paPeriodBtn_this_week" onclick="setProductAnalysisPeriod('this_week')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">This Week</button>
+                            <button type="button" id="paPeriodBtn_this_month" onclick="setProductAnalysisPeriod('this_month')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">This Month</button>
+                            <button type="button" id="paPeriodBtn_custom" onclick="setProductAnalysisPeriod('custom')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">Custom Range</button>
+                        </div>
+                    </div>
+
+                    <!-- Custom Date Range Picker (Hidden by default) -->
+                    <div id="paCustomDateRangeBox" class="hidden grid grid-cols-2 gap-2 p-2.5 bg-slate-900 rounded-xl border border-slate-800">
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">From Date:</label>
+                            <input type="date" id="paStartDate" onchange="onProductAnalysisCustomDateChange()" class="w-full p-2 bg-slate-950 text-slate-200 border border-slate-700 rounded-lg text-xs">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">To Date:</label>
+                            <input type="date" id="paEndDate" onchange="onProductAnalysisCustomDateChange()" class="w-full p-2 bg-slate-950 text-slate-200 border border-slate-700 rounded-lg text-xs">
+                        </div>
+                    </div>
+
+                    <!-- Category & Sale Type Filters Bar -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <button type="button" id="paCatBtn_all" onclick="setProductAnalysisCategory('all')" class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold text-[11px] shadow-sm transition">All Products</button>
+                            <button type="button" id="paCatBtn_cleaning" onclick="setProductAnalysisCategory('cleaning')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">🧹 Cleaning</button>
+                            <button type="button" id="paCatBtn_cosmetics" onclick="setProductAnalysisCategory('cosmetics')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">💄 Cosmetics</button>
+                        </div>
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <button type="button" id="paSaleTypeBtn_all" onclick="setProductAnalysisSaleType('all')" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] shadow-sm transition">All Types</button>
+                            <button type="button" id="paSaleTypeBtn_retail" onclick="setProductAnalysisSaleType('retail')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">🛍️ Retail</button>
+                            <button type="button" id="paSaleTypeBtn_wholesale" onclick="setProductAnalysisSaleType('wholesale')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">🏷️ Wholesale</button>
+                        </div>
+                    </div>
+
+                    <!-- Live Search Input -->
+                    <div>
+                        <input type="search" id="paSearchInput" oninput="onProductAnalysisSearch(this.value)" placeholder="🔍 Search product name..." class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-amber-500">
+                    </div>
+
+                    <!-- Product Analysis Container -->
+                    <div id="productAnalysisContainer" class="space-y-2 pt-1"></div>
+                </div>
+            </div>
+
             <div id="billingSalesHistoryPanel" class="hidden space-y-3">
                 <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 shadow-inner">
                     <div class="flex justify-between items-center gap-2 mb-3">
@@ -2743,7 +2833,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=50.9.9"></script>
+    <script type="module" src="./modules/app.js?v=51.0.0"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2755,7 +2845,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v50.9.9) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.0.0) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2809,7 +2899,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=50.9.9')
+                navigator.serviceWorker.register('./sw.js?v=51.0.0')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

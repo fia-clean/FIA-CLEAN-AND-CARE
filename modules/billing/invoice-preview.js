@@ -127,6 +127,10 @@ export function previewBill(identifier) {
                             ${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}
                         </span>
                     </div>
+                    ${(c.isCancelled || c.status === 'cancelled') ? `
+                    <div style="margin-top: 6px; background: #fee2e2; border: 1.5px solid #ef4444; color: #b91c1c; border-radius: 8px; padding: 4px 8px; text-align: center; font-weight: 900; font-size: 11px; letter-spacing: 0.5px;">
+                        ⛔ THIS INVOICE IS CANCELLED ${c.cancelReason ? `(${c.cancelReason})` : ''}
+                    </div>` : ''}
                 </div>
 
                 <!-- Bill & Customer Details -->
@@ -268,6 +272,10 @@ export function previewCosSaleBill(saleOrIdentifier) {
                             ${isWholesale ? '🏷️ COSMETICS WHOLESALE INVOICE' : '💄 COSMETICS RETAIL INVOICE'}
                         </span>
                     </div>
+                    ${(sale.isCancelled || sale.status === 'cancelled') ? `
+                    <div style="margin-top: 6px; background: #fee2e2; border: 1.5px solid #ef4444; color: #b91c1c; border-radius: 8px; padding: 4px 8px; text-align: center; font-weight: 900; font-size: 11px; letter-spacing: 0.5px;">
+                        ⛔ THIS INVOICE IS CANCELLED ${sale.cancelReason ? `(${sale.cancelReason})` : ''}
+                    </div>` : ''}
                 </div>
 
                 <!-- Bill & Customer Details -->

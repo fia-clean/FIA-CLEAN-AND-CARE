@@ -105,11 +105,24 @@ import {
 import {
     renderSalesHistory,
     renderCustomerSalesHistory,
+    cancelCustomerBill,
+    cancelCosSale,
     deleteCustomerBill,
     deleteCosSale,
     adjustEditedPayment,
     adjustCosmeticsSalePayment
 } from './billing/billing-history.js';
+
+import {
+    renderProductSalesAnalysis,
+    setProductAnalysisPeriod,
+    setProductAnalysisCategory,
+    setProductAnalysisSaleType,
+    onProductAnalysisSearch,
+    onProductAnalysisCustomDateChange,
+    shareProductAnalysisWhatsApp,
+    refreshProductAnalysisFromCloud
+} from './billing/product-analysis.js';
 
 import {
     getProductWholesalePrice,
@@ -362,6 +375,16 @@ if (typeof window !== 'undefined') {
     window.removeBillItem = removeBillItem;
     window.removeCombinedBillItem = removeCombinedBillItem;
     window.deleteCurrentEditedBill = deleteCurrentEditedBill;
+    window.cancelCustomerBill = cancelCustomerBill;
+    window.cancelCosSale = cancelCosSale;
+    window.renderProductSalesAnalysis = renderProductSalesAnalysis;
+    window.setProductAnalysisPeriod = setProductAnalysisPeriod;
+    window.setProductAnalysisCategory = setProductAnalysisCategory;
+    window.setProductAnalysisSaleType = setProductAnalysisSaleType;
+    window.onProductAnalysisSearch = onProductAnalysisSearch;
+    window.onProductAnalysisCustomDateChange = onProductAnalysisCustomDateChange;
+    window.shareProductAnalysisWhatsApp = shareProductAnalysisWhatsApp;
+    window.refreshProductAnalysisFromCloud = refreshProductAnalysisFromCloud;
 }
 
 // ================= RECORD VIEW MODAL =================
@@ -643,17 +666,47 @@ export function openBillingSection(type) {
     }
     const std = document.getElementById('billingStandardContent');
     const hist = document.getElementById('billingSalesHistoryPanel');
+    const analysis = document.getElementById('billingProductAnalysisPanel');
     const btnNew = document.getElementById('btnBillingNew');
     const btnHist = document.getElementById('btnBillingHistory');
+    const btnAnalysis = document.getElementById('btnBillingAnalysis');
+
+    if (type === 'analysis') {
+        if (std) std.classList.add('hidden');
+        if (hist) hist.classList.add('hidden');
+        if (analysis) analysis.classList.remove('hidden');
+        if (btnNew) {
+            btnNew.className = 'py-3 rounded-xl bg-slate-800 text-indigo-300 border border-indigo-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+        }
+        if (btnHist) {
+            btnHist.className = 'py-3 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+        }
+        if (btnAnalysis) {
+            btnAnalysis.className = 'py-3 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
+        }
+        if (typeof renderProductSalesAnalysis === 'function') {
+            renderProductSalesAnalysis();
+        }
+        if (typeof pullFromFirebase === 'function') {
+            pullFromFirebase().then(() => {
+                if (typeof renderProductSalesAnalysis === 'function') renderProductSalesAnalysis();
+            });
+        }
+        return;
+    }
 
     if (type === 'history') {
         if (std) std.classList.add('hidden');
+        if (analysis) analysis.classList.add('hidden');
         if (hist) hist.classList.remove('hidden');
         if (btnNew) {
             btnNew.className = 'py-3 rounded-xl bg-slate-800 text-indigo-300 border border-indigo-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
         }
         if (btnHist) {
             btnHist.className = 'py-3 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
+        }
+        if (btnAnalysis) {
+            btnAnalysis.className = 'py-3 rounded-xl bg-slate-800 text-amber-300 border border-amber-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
         }
         window.__fiaSalesHistoryFilter = window.__fiaSalesHistoryFilter || 'all';
         if (window.__fiaSalesHistoryFilter === 'customer' && typeof window.renderCustomerSalesHistory === 'function') {
@@ -678,12 +731,16 @@ export function openBillingSection(type) {
     }
 
     if (hist) hist.classList.add('hidden');
+    if (analysis) analysis.classList.add('hidden');
     if (std) std.classList.remove('hidden');
     if (btnNew) {
         btnNew.className = 'py-3 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
     }
     if (btnHist) {
         btnHist.className = 'py-3 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+    }
+    if (btnAnalysis) {
+        btnAnalysis.className = 'py-3 rounded-xl bg-slate-800 text-amber-300 border border-amber-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
     }
 
     updateBillingFormDisplays();

@@ -333,14 +333,16 @@ export function renderCustomerConsolidationReport() {
         if (!customerMap[key]) {
             customerMap[key] = { name: key, phone: c.phone || '', totalPurchase: 0, totalPaid: 0, totalPending: 0, billCount: 0 };
         }
-        let gTotal = Number(c.grandTotal || 0);
-        let paid = c.paidAmount !== undefined ? Number(c.paidAmount) : gTotal;
-        let pending = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, gTotal - paid);
+        if (!c.isCancelled && c.status !== 'cancelled') {
+            let gTotal = Number(c.grandTotal || 0);
+            let paid = c.paidAmount !== undefined ? Number(c.paidAmount) : gTotal;
+            let pending = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, gTotal - paid);
 
-        customerMap[key].totalPurchase += gTotal;
-        customerMap[key].totalPaid += paid;
-        customerMap[key].totalPending += pending;
-        if (c.billNo || (c.items && c.items.length > 0)) customerMap[key].billCount += 1;
+            customerMap[key].totalPurchase += gTotal;
+            customerMap[key].totalPaid += paid;
+            customerMap[key].totalPending += pending;
+            if (c.billNo || (c.items && c.items.length > 0)) customerMap[key].billCount += 1;
+        }
     });
 
     (state.cosSales || []).forEach(s => {
@@ -349,11 +351,13 @@ export function renderCustomerConsolidationReport() {
         if (!customerMap[key]) {
             customerMap[key] = { name: key, phone: s.phone || '', totalPurchase: 0, totalPaid: 0, totalPending: 0, billCount: 0 };
         }
-        const norm = normalizeCosSale(s);
-        customerMap[key].totalPurchase += Number(norm.grandTotal || 0);
-        customerMap[key].totalPaid += Number(norm.paidAmount || 0);
-        customerMap[key].totalPending += Number(norm.pendingAmount || 0);
-        customerMap[key].billCount += 1;
+        if (!s.isCancelled && s.status !== 'cancelled') {
+            const norm = normalizeCosSale(s);
+            customerMap[key].totalPurchase += Number(norm.grandTotal || 0);
+            customerMap[key].totalPaid += Number(norm.paidAmount || 0);
+            customerMap[key].totalPending += Number(norm.pendingAmount || 0);
+            customerMap[key].billCount += 1;
+        }
     });
 
     let entries = Object.values(customerMap);
@@ -537,7 +541,7 @@ export function openCustomerConsolidationCustomer(encodedName) {
 
     let purchaseCount = 0, total = 0, paid = 0, due = 0;
     (state.customers || []).forEach(c => {
-        if (!c || isCustItemDeleted(c) || String(c.name || '').trim().toUpperCase() !== name) return;
+        if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled' || String(c.name || '').trim().toUpperCase() !== name) return;
         const hasBill = Boolean(c.billNo || (Array.isArray(c.items) && c.items.length > 0) || Number(c.grandTotal || 0) > 0);
         if (!hasBill) return;
         const g = Number(c.grandTotal || 0);
@@ -546,7 +550,7 @@ export function openCustomerConsolidationCustomer(encodedName) {
         purchaseCount += 1; total += g; paid += p; due += d;
     });
     (state.cosSales || []).forEach(s => {
-        if (!s || isCustItemDeleted(s) || String(s.customer || '').trim().toUpperCase() !== name) return;
+        if (!s || isCustItemDeleted(s) || s.isCancelled || s.status === 'cancelled' || String(s.customer || '').trim().toUpperCase() !== name) return;
         const n = normalizeCosSale(s);
         purchaseCount += 1; total += Number(n.grandTotal || 0); paid += Number(n.paidAmount || 0); due += Number(n.pendingAmount || 0);
     });
@@ -583,7 +587,7 @@ export function shareSelectedCustomerConsolidatedDetail() {
     if (!name) return;
     let purchaseCount = 0, total = 0, paid = 0, due = 0;
     (state.customers || []).forEach(c => {
-        if (!c || isCustItemDeleted(c) || String(c.name || '').trim().toUpperCase() !== name) return;
+        if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled' || String(c.name || '').trim().toUpperCase() !== name) return;
         const hasBill = Boolean(c.billNo || (Array.isArray(c.items) && c.items.length > 0) || Number(c.grandTotal || 0) > 0);
         if (!hasBill) return;
         const g = Number(c.grandTotal || 0);
@@ -592,7 +596,7 @@ export function shareSelectedCustomerConsolidatedDetail() {
         purchaseCount += 1; total += g; paid += p; due += d;
     });
     (state.cosSales || []).forEach(s => {
-        if (!s || isCustItemDeleted(s) || String(s.customer || '').trim().toUpperCase() !== name) return;
+        if (!s || isCustItemDeleted(s) || s.isCancelled || s.status === 'cancelled' || String(s.customer || '').trim().toUpperCase() !== name) return;
         const n = normalizeCosSale(s);
         purchaseCount += 1; total += Number(n.grandTotal || 0); paid += Number(n.paidAmount || 0); due += Number(n.pendingAmount || 0);
     });
@@ -603,7 +607,7 @@ export function shareSelectedCustomerConsolidatedDetail() {
 
 export function viewCustomerProfile(name) {
     const upperTarget = String(name || '').trim().toUpperCase();
-    const custBills = (state.customers || []).filter(c => c && !isCustItemDeleted(c) && String(c.name || '').trim().toUpperCase() === upperTarget);
+    const custBills = (state.customers || []).filter(c => c && !isCustItemDeleted(c) && !c.isCancelled && c.status !== 'cancelled' && String(c.name || '').trim().toUpperCase() === upperTarget);
     const phone = custBills.find(c => c.phone)?.phone || 'No mobile';
     const totalPurchase = custBills.reduce((sum, c) => sum + Number(c.grandTotal || 0), 0);
     const totalPaid = custBills.reduce((sum, c) => sum + Number(c.paidAmount || (c.grandTotal || 0)), 0);

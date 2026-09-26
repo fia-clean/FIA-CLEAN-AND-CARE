@@ -1134,12 +1134,10 @@ export function deleteCurrentEditedBill() {
         return;
     }
     const bill = state.customers[idx];
-    if (confirm(`Are you sure you want to delete bill #${bill.billNo || 'selected'} (${bill.name || 'Customer'})?`)) {
-        if (typeof window.deleteCustomerBill === 'function') {
-            window.deleteCustomerBill(bill.billNo || bill.id || idx, false);
-        }
-        resetCustomerForm();
+    if (typeof window.deleteCustomerBill === 'function') {
+        window.deleteCustomerBill(bill.billNo || bill.id || idx, true);
     }
+    resetCustomerForm();
 }
 
 export function updateBillQuantityTypeDropdown() {

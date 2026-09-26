@@ -313,7 +313,7 @@ export function getAllMasterEntries() {
 
     // 1. Cleaning & Combined Customer Bills
     (state.customers || []).forEach((c, i) => {
-        if (!c || c._deleted || isCustItemDeleted(c)) return;
+        if (!c || c._deleted || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
         const safeItems = Array.isArray(c.items) ? c.items : (c.items && typeof c.items === 'object' ? Object.values(c.items) : []);
         const itemsSum = safeItems.reduce((s, it) => s + (Number(it?.total || (Number(it?.price || it?.rate || 0) * Number(it?.qty || 1))) || 0), 0);
         let incomeVal = Number(c.grandTotal !== undefined ? c.grandTotal : (c.netTotal !== undefined ? c.netTotal : (c.total !== undefined ? c.total : (c.paidAmount !== undefined ? c.paidAmount : itemsSum))));
@@ -340,7 +340,7 @@ export function getAllMasterEntries() {
 
     // 2. Cosmetics Sales Bills
     (state.cosSales || []).forEach((s, i) => {
-        if (!s || s._deleted || isItemDeleted(s, 'cosSale')) return;
+        if (!s || s._deleted || isItemDeleted(s, 'cosSale') || s.isCancelled || s.status === 'cancelled') return;
         const norm = normalizeCosSale(s) || {};
         let incomeVal = Number(norm.grandTotal !== undefined ? norm.grandTotal : (norm.paidAmount || 0));
         if ((!incomeVal || incomeVal <= 0) && Array.isArray(norm.items) && norm.items.length > 0) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-v50.9.9';
+const CACHE_NAME = 'fia-clean-care-v51.0.0';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [
@@ -27,6 +27,7 @@ const PRECACHE_ASSETS = [
   './modules/billing/invoice-preview.js',
   './modules/billing/billing-history.js',
   './modules/billing/billing.js',
+  './modules/billing/product-analysis.js',
   './modules/operations/stock.js',
   './modules/operations/purchases.js',
   './modules/operations/expenses.js',

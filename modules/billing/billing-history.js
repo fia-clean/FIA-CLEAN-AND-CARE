@@ -12,6 +12,7 @@ import {
     toTitleCase
 } from '../core/state.js';
 import { syncToFirebase, pullFromFirebase } from '../core/db.js';
+import { isAuthorizedPin } from '../core/auth.js';
 
 export function normalizeCosSale(s) {
     const safeItems = Array.isArray(s?.items) ? s.items : (s?.items && typeof s.items === 'object' ? Object.values(s.items) : []);
@@ -58,7 +59,10 @@ export function getSalesHistoryRows() {
                 due: Number(c.pendingAmount !== undefined ? c.pendingAmount : Math.max(0, Number(c.grandTotal || 0) - Number(c.paidAmount || 0))),
                 items: safeItems,
                 saleType: c.saleType || 'Retail',
-                paymentMode: c.paymentMode || 'Cash'
+                paymentMode: c.paymentMode || 'Cash',
+                isCancelled: Boolean(c.isCancelled || c.status === 'cancelled'),
+                cancelReason: c.cancelReason || '',
+                cancelledAt: c.cancelledAt || null
             });
         }
     });
@@ -81,7 +85,10 @@ export function getSalesHistoryRows() {
             due: Number(n.pendingAmount || 0),
             items: n.items || [],
             saleType: n.saleType || 'Retail',
-            paymentMode: n.paymentMode || 'Cash'
+            paymentMode: n.paymentMode || 'Cash',
+            isCancelled: Boolean(s.isCancelled || s.status === 'cancelled'),
+            cancelReason: s.cancelReason || '',
+            cancelledAt: s.cancelledAt || null
         });
     });
 
@@ -93,6 +100,61 @@ export function getSalesHistoryRows() {
         if (tB && tA && tB !== tA) return tB - tA;
         return b.index - a.index;
     });
+}
+
+export function renderSalesHistoryCard(r, label) {
+    const safeItems = Array.isArray(r.items) ? r.items : [];
+    const itemText = safeItems.map(i => i && (i.productName || i.item || 'Item')).join(', ');
+    const viewFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.previewBill('${r.billNo || r.id || r.index}')` : `window.previewCosSaleBill('${r.billNo || r.id || r.index}')`;
+    const editFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.editCustomerBill('${r.billNo || r.id || r.index}')` : `window.editCosSale('${r.billNo || r.id || r.index}')`;
+    const cancelFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.cancelCustomerBill('${r.billNo || r.id || r.index}')` : `window.cancelCosSale('${r.billNo || r.id || r.index}')`;
+    const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.deleteCustomerBill('${r.billNo || r.id || r.index}')` : `window.deleteCosSale('${r.billNo || r.id || r.index}')`;
+
+    const isWholesale = String(r.saleType || '').toLowerCase() === 'wholesale';
+    const typeBadge = isWholesale
+        ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-950/80 text-sky-300 border border-sky-700/60">🏷️ Wholesale</span>`
+        : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">🛍️ Retail</span>`;
+
+    const isCancelled = Boolean(r.isCancelled);
+    const statusBadge = isCancelled
+        ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-950 text-rose-300 border border-rose-700/80 animate-pulse">⛔ CANCELLED</span>`
+        : typeBadge;
+
+    const totalDisplay = isCancelled
+        ? `<span class="line-through text-slate-500 font-medium">Total: ₹${r.total.toFixed(2)}</span> <span class="text-rose-400 font-bold text-[11px] block sm:inline sm:ml-2">❌ ${r.cancelReason || 'Order Cancelled'}</span>`
+        : `<span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-400 font-semibold">Paid: ₹${r.paid.toFixed(2)}</span> · <span class="${r.due > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Due: ₹${r.due.toFixed(2)}</span>`;
+
+    const cardBg = isCancelled ? 'bg-rose-950/20 border-rose-900/60' : 'bg-slate-900/80 border-slate-800';
+
+    const actionButtons = isCancelled
+        ? `
+            <button type="button" onclick="${viewFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">View</button>
+            <button type="button" onclick="${deleteFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center transition" title="Delete record permanently">Delete</button>
+          `
+        : `
+            <button type="button" onclick="${viewFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">View</button>
+            <button type="button" onclick="${editFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">Edit</button>
+            <button type="button" onclick="${cancelFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-amber-950/60 text-amber-300 hover:text-amber-200 px-2.5 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-amber-800/60 text-center transition" title="Cancel bill & restore stock">Cancel</button>
+            <button type="button" onclick="${deleteFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-2.5 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center transition" title="Delete permanently with PIN">Delete</button>
+          `;
+
+    return `<div class="${cardBg} p-3.5 rounded-xl border text-xs">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5">
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-slate-100 text-sm block leading-snug break-words ${isCancelled ? 'line-through text-slate-400' : ''}">${label(r)} — #${r.billNo} ${toTitleCase(r.name)}</span>
+                    ${statusBadge}
+                </div>
+                <div class="text-slate-400 mt-1">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>
+                ${r.phone ? `<div class="text-slate-400 text-[11px] mt-0.5">📞 ${r.phone}</div>` : ''}
+                <div class="text-slate-300 mt-1">${itemText || 'No item details'}</div>
+                <div class="mt-1 font-medium">${totalDisplay}</div>
+            </div>
+            <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
+                ${actionButtons}
+            </div>
+        </div>
+    </div>`;
 }
 
 export function renderSalesHistory() {
@@ -124,36 +186,7 @@ export function renderSalesHistory() {
         return;
     }
 
-    container.innerHTML = rows.map(r => {
-        const safeItems = Array.isArray(r.items) ? r.items : [];
-        const itemText = safeItems.map(i => i && (i.productName || i.item || 'Item')).join(', ');
-        const viewFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.previewBill('${r.billNo || r.id || r.index}')` : `window.previewCosSaleBill('${r.billNo || r.id || r.index}')`;
-        const editFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.editCustomerBill('${r.billNo || r.id || r.index}')` : `window.editCosSale('${r.billNo || r.id || r.index}')`;
-        const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.deleteCustomerBill('${r.billNo || r.id || r.index}')` : `window.deleteCosSale('${r.billNo || r.id || r.index}')`;
-        const isWholesale = String(r.saleType || '').toLowerCase() === 'wholesale';
-        const badgeHtml = isWholesale
-            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-950/80 text-sky-300 border border-sky-700/60">🏷️ Wholesale</span>`
-            : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">🛍️ Retail</span>`;
-        return `<div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs">
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5">
-                <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${label(r)} — #${r.billNo} ${toTitleCase(r.name)}</span>
-                        ${badgeHtml}
-                    </div>
-                    <div class="text-slate-400 mt-1">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>
-                    ${r.phone ? `<div class="text-slate-400 text-[11px] mt-0.5">📞 ${r.phone}</div>` : ''}
-                    <div class="text-slate-300 mt-1">${itemText || 'No item details'}</div>
-                    <div class="mt-1 font-medium"><span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-400 font-semibold">Paid: ₹${r.paid.toFixed(2)}</span> · <span class="${r.due > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Due: ₹${r.due.toFixed(2)}</span></div>
-                </div>
-                <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
-                    <button type="button" onclick="${viewFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">View</button>
-                    <button type="button" onclick="${editFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">Edit</button>
-                    <button type="button" onclick="${deleteFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center transition">Delete</button>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
+    container.innerHTML = rows.map(r => renderSalesHistoryCard(r, label)).join('');
 }
 
 export function renderCustomerSalesHistory() {
@@ -167,36 +200,7 @@ export function renderCustomerSalesHistory() {
     const allRows = getSalesHistoryRows();
     const data = allRows.filter(r => String(r.name).toLowerCase().includes(q) || String(r.phone).toLowerCase().includes(q) || String(r.billNo).toLowerCase().includes(q));
     const label = r => r.type === 'cleaning' ? '🧹 Cleaning' : r.type === 'combined' ? '🧾 Combined' : '💄 Cosmetics';
-    box.innerHTML = data.length ? data.map(r => {
-        const safeItems = Array.isArray(r.items) ? r.items : [];
-        const itemText = safeItems.map(i => i && (i.productName || i.item || 'Item')).join(', ');
-        const viewFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.previewBill('${r.billNo || r.id || r.index}')` : `window.previewCosSaleBill('${r.billNo || r.id || r.index}')`;
-        const editFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.editCustomerBill('${r.billNo || r.id || r.index}')` : `window.editCosSale('${r.billNo || r.id || r.index}')`;
-        const deleteFn = (r.type === 'cleaning' || r.type === 'combined') ? `window.deleteCustomerBill('${r.billNo || r.id || r.index}')` : `window.deleteCosSale('${r.billNo || r.id || r.index}')`;
-        const isWholesale = String(r.saleType || '').toLowerCase() === 'wholesale';
-        const badgeHtml = isWholesale
-            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-950/80 text-sky-300 border border-sky-700/60">🏷️ Wholesale</span>`
-            : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">🛍️ Retail</span>`;
-        return `<div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs">
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5">
-                <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-slate-100 text-sm block leading-snug break-words">${label(r)} — #${r.billNo} ${toTitleCase(r.name)}</span>
-                        ${badgeHtml}
-                    </div>
-                    <div class="text-slate-400 mt-1">${formatDateDDMMYYYY(r.date)} | ${r.paymentMode}</div>
-                    ${r.phone ? `<div class="text-slate-400 text-[11px] mt-0.5">📞 ${r.phone}</div>` : ''}
-                    <div class="text-slate-300 mt-1">${itemText}</div>
-                    <div class="mt-1 font-medium">Total ₹${r.total.toFixed(2)} · <span class="text-emerald-400 font-semibold">Paid ₹${r.paid.toFixed(2)}</span> · <span class="${r.due > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Due ₹${r.due.toFixed(2)}</span></div>
-                </div>
-                <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
-                    <button type="button" onclick="${viewFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">View</button>
-                    <button type="button" onclick="${editFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 text-center transition">Edit</button>
-                    <button type="button" onclick="${deleteFn}" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-3 py-1.5 rounded-lg font-semibold border border-slate-700 hover:border-rose-800/60 text-center transition">Delete</button>
-                </div>
-            </div>
-        </div>`;
-    }).join('') : '<div class="text-center py-8 text-slate-500 text-xs">No sales found for this customer.</div>';
+    box.innerHTML = data.length ? data.map(r => renderSalesHistoryCard(r, label)).join('') : '<div class="text-center py-8 text-slate-500 text-xs">No sales found for this customer.</div>';
 }
 
 export function setSalesHistoryFilter(f) {
@@ -256,6 +260,111 @@ export function refreshSalesHistoryFromCloud() {
     });
 }
 
+export function cancelCustomerBill(billIdentifier, askConfirm = true) {
+    let index = -1;
+    if (typeof billIdentifier === 'number') {
+        index = billIdentifier;
+    } else if (billIdentifier !== undefined && billIdentifier !== null) {
+        const idStr = String(billIdentifier).trim().toLowerCase();
+        index = (state.customers || []).findIndex(c => c && (String(c.billNo || '').trim().toLowerCase() === idStr || String(c.id || '').trim().toLowerCase() === idStr));
+        if (index === -1 && /^\d+$/.test(idStr)) {
+            index = parseInt(idStr, 10);
+        }
+    }
+    if (index < 0 || !state.customers[index]) {
+        alert('Bill not found for cancellation.');
+        return;
+    }
+
+    const c = state.customers[index];
+    if (c.isCancelled || c.status === 'cancelled') {
+        alert(`Bill #${c.billNo || 'selected'} is already cancelled.`);
+        return;
+    }
+
+    if (askConfirm) {
+        const ok = confirm(`Are you sure you want to CANCEL Bill #${c.billNo || 'selected'} (${c.name || 'Customer'})?\n\n• The bill will remain in history marked as [CANCELLED].\n• Product stock will be safely restored back to inventory.\n• Day Book income and customer due will be reversed.`);
+        if (!ok) return;
+    }
+
+    const reason = prompt('Reason for cancellation (optional):', 'Customer returned goods') || 'Cancelled by user';
+
+    c.isCancelled = true;
+    c.status = 'cancelled';
+    c.cancelledAt = Date.now();
+    c.cancelReason = reason;
+    c.savedAt = Date.now();
+
+    // Safely restore stock once
+    if (!c.stockRestored && c.items && Array.isArray(c.items)) {
+        if (window.restorePackageStock) window.restorePackageStock(c.items);
+        c.items.forEach(oldItem => {
+            const rec = window.getStockProductRecord ? window.getStockProductRecord(oldItem) : null;
+            if (rec && rec.product) {
+                rec.product.stock = (parseFloat(rec.product.stock) || 0) + (parseFloat(oldItem.stockDeductionQty ?? oldItem.qty) || 0);
+                rec.product.savedAt = Date.now();
+            }
+        });
+        c.stockRestored = true;
+    }
+
+    saveLocalStateSafely();
+    syncToFirebase();
+    if (window.renderAll) window.renderAll();
+    if (typeof window.renderSalesHistory === 'function') window.renderSalesHistory();
+    if (typeof window.renderProductSalesAnalysis === 'function') window.renderProductSalesAnalysis();
+    alert(`Bill #${c.billNo || ''} has been cancelled successfully.\nStock has been restored and Day Book updated.`);
+}
+
+export function cancelCosSale(billIdentifier, askConfirm = true) {
+    let index = -1;
+    if (typeof billIdentifier === 'number') {
+        index = billIdentifier;
+    } else if (billIdentifier !== undefined && billIdentifier !== null) {
+        const idStr = String(billIdentifier).trim().toLowerCase();
+        index = (state.cosSales || []).findIndex(s => s && (String(s.billNo || '').trim().toLowerCase() === idStr || String(s.id || '').trim().toLowerCase() === idStr));
+        if (index === -1 && /^\d+$/.test(idStr)) {
+            index = parseInt(idStr, 10);
+        }
+    }
+    if (index < 0 || !state.cosSales[index]) {
+        alert('Cosmetics bill not found for cancellation.');
+        return;
+    }
+
+    const s = state.cosSales[index];
+    if (s.isCancelled || s.status === 'cancelled') {
+        alert(`Cosmetics Bill #${s.billNo || 'selected'} is already cancelled.`);
+        return;
+    }
+
+    if (askConfirm) {
+        const ok = confirm(`Are you sure you want to CANCEL Cosmetics Bill #${s.billNo || 'selected'} (${s.customer || 'Customer'})?\n\n• The bill will remain in history marked as [CANCELLED].\n• Cosmetics stock will be safely restored back to inventory.\n• Day Book income will be reversed.`);
+        if (!ok) return;
+    }
+
+    const reason = prompt('Reason for cancellation (optional):', 'Customer returned goods') || 'Cancelled by user';
+
+    s.isCancelled = true;
+    s.status = 'cancelled';
+    s.cancelledAt = Date.now();
+    s.cancelReason = reason;
+    s.savedAt = Date.now();
+
+    if (!s.stockRestored) {
+        if (window.restoreCosSaleStock) window.restoreCosSaleStock(s);
+        if (window.restorePackageStock) window.restorePackageStock(s.items || []);
+        s.stockRestored = true;
+    }
+
+    saveLocalStateSafely();
+    syncToFirebase();
+    if (window.renderAll) window.renderAll();
+    if (typeof window.renderSalesHistory === 'function') window.renderSalesHistory();
+    if (typeof window.renderProductSalesAnalysis === 'function') window.renderProductSalesAnalysis();
+    alert(`Cosmetics Bill #${s.billNo || ''} has been cancelled successfully.\nStock has been restored and Day Book updated.`);
+}
+
 export function deleteCustomerBill(billIdentifier, askConfirm = true) {
     let index = -1;
     if (typeof billIdentifier === 'number') {
@@ -271,9 +380,28 @@ export function deleteCustomerBill(billIdentifier, askConfirm = true) {
         console.warn('Bill not found for deletion:', billIdentifier);
         return;
     }
-    if (askConfirm && !confirm('Are you sure you want to delete this bill?')) return;
 
     const c = state.customers[index];
+
+    if (askConfirm) {
+        // App Security PIN verification to prevent accidental permanent deletion
+        const enteredPin = prompt(`🔒 Security PIN Required\n\nPermanently deleting Bill #${c.billNo || 'selected'} (${c.name || 'Customer'}) will erase it from records.\n\nPlease enter App PIN to confirm:`);
+        if (enteredPin === null) return; // User cancelled
+        const activePin = (state.appPin || localStorage.getItem('fia_app_pin') || '1234').trim();
+        if (!isAuthorizedPin(enteredPin, activePin)) {
+            alert('❌ Incorrect PIN! Deletion cancelled for security.');
+            return;
+        }
+
+        if (!confirm(`Are you absolutely sure you want to permanently delete bill #${c.billNo || 'selected'}?`)) return;
+    }
+
+    // Ask stock restoration choice if bill wasn't already cancelled
+    let shouldRestoreStock = false;
+    if (!c.stockRestored && !c.isCancelled && c.status !== 'cancelled') {
+        shouldRestoreStock = confirm(`Bill #${c.billNo || 'selected'} is being deleted.\n\nDo you want to RESTORE items back into product inventory stock?\n\n• Click [OK] = Restore Stock to Inventory\n• Click [Cancel] = Delete WITHOUT restoring stock`);
+    }
+
     c._deleted = true;
     // Tombstone only the specific unique record ID to prevent suppressing other bills
     if (c.id) {
@@ -286,7 +414,7 @@ export function deleteCustomerBill(billIdentifier, askConfirm = true) {
         state.clearedDayBookEntries = state.clearedDayBookEntries.filter(x => x !== c.billNo && x !== c.id && x !== ('cust_' + c.billNo) && x !== ('bill_' + c.billNo));
     }
 
-    if (c.items && Array.isArray(c.items)) {
+    if (shouldRestoreStock && !c.stockRestored && c.items && Array.isArray(c.items)) {
         if (window.restorePackageStock) window.restorePackageStock(c.items);
         c.items.forEach(oldItem => {
             const rec = window.getStockProductRecord ? window.getStockProductRecord(oldItem) : null;
@@ -295,6 +423,7 @@ export function deleteCustomerBill(billIdentifier, askConfirm = true) {
                 rec.product.savedAt = Date.now();
             }
         });
+        c.stockRestored = true;
     }
 
     state.customers.splice(index, 1);
@@ -302,6 +431,7 @@ export function deleteCustomerBill(billIdentifier, askConfirm = true) {
     syncToFirebase();
     if (window.renderAll) window.renderAll();
     if (typeof window.renderSalesHistory === 'function') window.renderSalesHistory();
+    if (typeof window.renderProductSalesAnalysis === 'function') window.renderProductSalesAnalysis();
     alert("Bill deleted successfully!");
 }
 
@@ -317,9 +447,25 @@ export function deleteCosSale(billIdentifier, askConfirm = true) {
         }
     }
     if (index < 0 || !state.cosSales[index]) return;
-    if (askConfirm && !confirm('Are you sure you want to delete this cosmetics bill?')) return;
 
     const s = state.cosSales[index];
+
+    if (askConfirm) {
+        const enteredPin = prompt(`🔒 Security PIN Required\n\nPermanently deleting Cosmetics Bill #${s.billNo || 'selected'} (${s.customer || 'Customer'}) will erase it from records.\n\nPlease enter App PIN to confirm:`);
+        if (enteredPin === null) return;
+        const activePin = (state.appPin || localStorage.getItem('fia_app_pin') || '1234').trim();
+        if (!isAuthorizedPin(enteredPin, activePin)) {
+            alert('❌ Incorrect PIN! Deletion cancelled for security.');
+            return;
+        }
+        if (!confirm(`Are you absolutely sure you want to permanently delete cosmetics bill #${s.billNo || 'selected'}?`)) return;
+    }
+
+    let shouldRestoreStock = false;
+    if (!s.stockRestored && !s.isCancelled && s.status !== 'cancelled') {
+        shouldRestoreStock = confirm(`Cosmetics Bill #${s.billNo || 'selected'} is being deleted.\n\nDo you want to RESTORE items back into cosmetics stock?\n\n• Click [OK] = Restore Stock to Inventory\n• Click [Cancel] = Delete WITHOUT restoring stock`);
+    }
+
     s._deleted = true;
     // Tombstone only the specific unique record ID
     if (s.id) {
@@ -329,14 +475,18 @@ export function deleteCosSale(billIdentifier, askConfirm = true) {
         markIdDeleted(s.id);
     }
 
-    if (window.restoreCosSaleStock) window.restoreCosSaleStock(s);
-    if (window.restorePackageStock) window.restorePackageStock(s.items || []);
+    if (shouldRestoreStock && !s.stockRestored) {
+        if (window.restoreCosSaleStock) window.restoreCosSaleStock(s);
+        if (window.restorePackageStock) window.restorePackageStock(s.items || []);
+        s.stockRestored = true;
+    }
 
     state.cosSales.splice(index, 1);
     saveLocalStateSafely();
     syncToFirebase();
     if (window.renderAll) window.renderAll();
     if (typeof window.renderSalesHistory === 'function') window.renderSalesHistory();
+    if (typeof window.renderProductSalesAnalysis === 'function') window.renderProductSalesAnalysis();
     alert("Cosmetics bill deleted successfully!");
 }
 
@@ -405,6 +555,8 @@ if (typeof window !== 'undefined') {
     window.renderCustomerSalesHistory = renderCustomerSalesHistory;
     window.setSalesHistoryFilter = setSalesHistoryFilter;
     window.refreshSalesHistoryFromCloud = refreshSalesHistoryFromCloud;
+    window.cancelCustomerBill = cancelCustomerBill;
+    window.cancelCosSale = cancelCosSale;
     window.deleteCustomerBill = deleteCustomerBill;
     window.deleteCosSale = deleteCosSale;
     window.normalizeCosSale = normalizeCosSale;
