@@ -525,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.0.3';
+                var CURRENT_APP_VERSION = '51.0.4';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -538,9 +538,12 @@
                         }
                         if ('serviceWorker' in navigator) {
                             navigator.serviceWorker.getRegistrations().then(function(regs) {
-                                regs.forEach(function(r) { r.update(); });
+                                regs.forEach(function(r) { r.unregister(); });
                             }).catch(function() {});
                         }
+                        setTimeout(function() {
+                            window.location.href = window.location.pathname + '?v=' + Date.now();
+                        }, 250);
                     } else if (!storedVer) {
                         localStorage.setItem('fia_app_version', CURRENT_APP_VERSION);
                     }
@@ -549,8 +552,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.0.3) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.0.4) immediately.")) {
                     try {
+                        localStorage.setItem('fia_app_version', '51.0.4');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -856,7 +860,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.0.3</span>
+                    <span>v51.0.4</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
