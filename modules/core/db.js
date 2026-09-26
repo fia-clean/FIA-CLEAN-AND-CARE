@@ -17,6 +17,8 @@ import {
     normalizeCustomerRecords
 } from './state.js';
 
+export let lastLocalCloudUpdatedAt = 0;
+
 export function ensureFirebaseAuth() {
     if (!window.FB_AUTH) return Promise.resolve(null);
     if (window.FB_AUTH.currentUser) return Promise.resolve(window.FB_AUTH.currentUser);
@@ -529,6 +531,9 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     if (isRealtimeEvent && data._meta && data._meta.clientId === myFiaClientId) {
         return;
     }
+    if (data._meta && data._meta.updatedAt) {
+        lastLocalCloudUpdatedAt = Math.max(lastLocalCloudUpdatedAt, Number(data._meta.updatedAt || 0));
+    }
 
     // Detect un-pushed local items or newer timestamps before updating local state
     const hadPendingFlag = localStorage.getItem('fia_has_pending_sync') === 'true';
@@ -654,6 +659,22 @@ export async function fetchDirectCloudData() {
     }
 }
 
+export async function fetchDirectCloudMeta() {
+    if (!navigator.onLine) return null;
+    try {
+        const user = await (ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null));
+        if (!user || typeof user.getIdToken !== 'function') return null;
+        const token = await user.getIdToken();
+        if (!token) return null;
+        const url = 'https://fia-clean-and-care-default-rtdb.firebaseio.com/fia_data/_meta.json?auth=' + encodeURIComponent(token);
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (e) {
+        return null;
+    }
+}
+
 export async function pushDirectCloudData(payload) {
     if (!navigator.onLine) return false;
     try {
@@ -707,8 +728,8 @@ export function syncToFirebase() {
             });
         }
         const writePromise = window.FB_DB.ref('fia_data').set(payload);
-        // Robust 25s timeout for mobile data / high latency networks
-        const writeTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase write timeout (network slow)')), 25000));
+        // Fast 8s timeout for mobile data / high latency networks before direct REST fallback
+        const writeTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase write timeout (network slow)')), 8000));
         return Promise.race([writePromise, writeTimeout]).catch(sdkErr => {
             console.warn('[Sync Engine] SDK write stalled or timed out. Falling back to direct HTTPS REST PUT...', sdkErr);
             return pushDirectCloudData(payload).then(ok => {
@@ -718,6 +739,7 @@ export function syncToFirebase() {
         });
     })
     .then(function() {
+        lastLocalCloudUpdatedAt = Date.now();
         localStorage.removeItem('fia_has_pending_sync');
         state.isFirebaseConnected = true;
         updateSyncStatus(true, 'Cloud Data Synchronized');
@@ -818,7 +840,41 @@ export function pullFromFirebase() {
 
 let realtimeListenerRef = null;
 let realtimeListenerCallback = null;
+let realtimeMetaListenerRef = null;
+let realtimeMetaListenerCallback = null;
 let realtimeRetryTimeout = null;
+
+let isCheckingRemoteMeta = false;
+export async function checkRemoteTimestampFast() {
+    if (!navigator.onLine || !window.FB_DB || isCheckingRemoteMeta) return;
+    isCheckingRemoteMeta = true;
+    try {
+        const snap = await window.FB_DB.ref('fia_data/_meta').once('value');
+        const meta = snap ? snap.val() : null;
+        if (meta && meta.clientId !== myFiaClientId) {
+            const remoteTime = Number(meta.updatedAt || 0);
+            if (remoteTime > lastLocalCloudUpdatedAt) {
+                console.log('[FastSync Heartbeat] Remote change detected via meta (' + remoteTime + ' > ' + lastLocalCloudUpdatedAt + '). Pulling...');
+                lastLocalCloudUpdatedAt = remoteTime;
+                await pullFromFirebase();
+            }
+        }
+    } catch (e) {
+        try {
+            const restMeta = await fetchDirectCloudMeta();
+            if (restMeta && restMeta.clientId !== myFiaClientId) {
+                const remoteTime = Number(restMeta.updatedAt || 0);
+                if (remoteTime > lastLocalCloudUpdatedAt) {
+                    console.log('[FastSync REST Heartbeat] Remote change detected (' + remoteTime + ' > ' + lastLocalCloudUpdatedAt + '). Pulling...');
+                    lastLocalCloudUpdatedAt = remoteTime;
+                    await pullFromFirebase();
+                }
+            }
+        } catch (restErr) {}
+    } finally {
+        isCheckingRemoteMeta = false;
+    }
+}
 
 export function attachRealtimeListener() {
     if (!window.FB_DB) return;
@@ -833,10 +889,35 @@ export function attachRealtimeListener() {
         realtimeListenerRef = null;
         realtimeListenerCallback = null;
     }
+    if (realtimeMetaListenerRef && realtimeMetaListenerCallback) {
+        try {
+            realtimeMetaListenerRef.off('value', realtimeMetaListenerCallback);
+        } catch(e) {}
+        realtimeMetaListenerRef = null;
+        realtimeMetaListenerCallback = null;
+    }
 
+    // 1. Ultra-fast lightweight _meta listener (sub-100ms response over WebSocket)
+    realtimeMetaListenerRef = window.FB_DB.ref('fia_data/_meta');
+    realtimeMetaListenerCallback = function(snapshot) {
+        const meta = snapshot ? snapshot.val() : null;
+        if (!meta) return;
+        if (meta.clientId === myFiaClientId) return;
+        const remoteTime = Number(meta.updatedAt || 0);
+        if (remoteTime > lastLocalCloudUpdatedAt) {
+            console.log('[FastSync Realtime] _meta changed remotely (' + remoteTime + ' > ' + lastLocalCloudUpdatedAt + '). Instant pull...');
+            lastLocalCloudUpdatedAt = remoteTime;
+            pullFromFirebase();
+        }
+    };
+    realtimeMetaListenerRef.on('value', realtimeMetaListenerCallback, function(err) {
+        console.warn('Realtime _meta listener notice:', err);
+    });
+
+    // 2. Full fia_data listener (for complete snapshot sync)
     realtimeListenerRef = window.FB_DB.ref('fia_data');
     realtimeListenerCallback = function(snapshot) {
-        const data = snapshot.val();
+        const data = snapshot ? snapshot.val() : null;
         if (data) {
             applyCloudData(data, true);
         }
@@ -971,7 +1052,7 @@ export function startRealtimeSync() {
                 try { window.FB_DB.goOnline(); } catch(e) {}
             }
             if (navigator.onLine) {
-                checkAndSync();
+                checkRemoteTimestampFast();
             }
         }
     });
@@ -980,23 +1061,24 @@ export function startRealtimeSync() {
         if (window.FB_DB) {
             try { window.FB_DB.goOnline(); } catch(e) {}
         }
-        if (navigator.onLine && !state.isFirebaseConnected) {
-            checkAndSync();
+        if (navigator.onLine) {
+            checkRemoteTimestampFast();
         }
     });
 
-    // Periodic Heartbeat Watchdog: ensure realtime listener is active and fetch any updates
+    // Fast Heartbeat Watchdog: runs every 5 seconds to catch dormant/throttled connections
     setInterval(() => {
         if (navigator.onLine && window.FB_DB) {
-            if (!realtimeListenerRef) {
+            if (!realtimeListenerRef || !realtimeMetaListenerRef) {
                 console.log('[Sync Engine Watchdog] Re-attaching dormant realtime listener...');
                 attachRealtimeListener();
             }
             if (!state.isFirebaseConnected) {
                 try { window.FB_DB.goOnline(); } catch(e) {}
             }
+            checkRemoteTimestampFast();
         }
-    }, 45000);
+    }, 5000);
 
     // Initial listener attachment and sync
     checkAndSync();
@@ -1139,6 +1221,8 @@ if (typeof window !== 'undefined') {
     window.attachRealtimeListener = attachRealtimeListener;
     window.updateBillingFormDisplays = updateBillingFormDisplays;
     window.fetchDirectCloudData = fetchDirectCloudData;
+    window.fetchDirectCloudMeta = fetchDirectCloudMeta;
     window.pushDirectCloudData = pushDirectCloudData;
+    window.checkRemoteTimestampFast = checkRemoteTimestampFast;
 }
 

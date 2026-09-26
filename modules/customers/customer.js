@@ -113,7 +113,11 @@ export function saveDirectCustomerProfile(e) {
     renderCustomers();
     updateCustomerDropdown();
     updateCosCustomerDropdown();
-    alert(`Customer "${name}" saved successfully!`);
+    if (typeof window.showAppToast === 'function') {
+        window.showAppToast(`Customer "${name}" saved & synced!`, 'success');
+    } else {
+        alert(`Customer "${name}" saved successfully!`);
+    }
 }
 
 export function editCustomerProfile(name, phone) {
@@ -153,7 +157,11 @@ export function deleteDirectCustomer(name) {
         syncToFirebase();
         if (window.renderAll) window.renderAll();
         renderCustomers();
-        alert(`Customer "${targetName}" deleted successfully!`);
+        if (typeof window.showAppToast === 'function') {
+            window.showAppToast(`Customer "${targetName}" deleted & synced!`, 'success');
+        } else {
+            alert(`Customer "${targetName}" deleted successfully!`);
+        }
     }
 }
 

@@ -30,7 +30,8 @@ import {
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup,
-    updateBillingFormDisplays
+    updateBillingFormDisplays,
+    checkRemoteTimestampFast
 } from './core/db.js';
 import {
     verifyLoginPin,
@@ -397,6 +398,8 @@ if (typeof window !== 'undefined') {
     window.toggleProductAnalysisFolder = toggleProductAnalysisFolder;
     window.shareProductAnalysisWhatsApp = shareProductAnalysisWhatsApp;
     window.refreshProductAnalysisFromCloud = refreshProductAnalysisFromCloud;
+    window.checkRemoteTimestampFast = checkRemoteTimestampFast;
+    window.showAppToast = showAppToast;
 }
 
 // ================= RECORD VIEW MODAL =================
@@ -412,6 +415,25 @@ export function showRecordView(title, html) {
 export function closeRecordView() {
     const modalEl = document.getElementById('recordViewModal');
     if (modalEl) modalEl.classList.add('hidden');
+}
+
+// ================= FAST IN-APP TOAST (NON-BLOCKING) =================
+export function showAppToast(message, type = 'success') {
+    const el = document.getElementById('appToastBanner');
+    if (!el) {
+        try { alert(message); } catch (e) {}
+        return;
+    }
+    const isSuccess = type === 'success';
+    el.className = `fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2 ${
+        isSuccess ? 'bg-emerald-600 text-white border border-emerald-400' : 'bg-rose-600 text-white border border-rose-400'
+    }`;
+    el.innerHTML = `<span>${isSuccess ? '✓' : '⚠️'}</span> <span>${message}</span>`;
+    el.classList.remove('hidden');
+    clearTimeout(window.__appToastTimer);
+    window.__appToastTimer = setTimeout(() => {
+        el.classList.add('hidden');
+    }, 2800);
 }
 
 // ================= BARCODE SCANNER ENGINE =================
@@ -635,7 +657,10 @@ export function switchTab(tabName, pushToHistory = true) {
     try { renderAll(); } catch (e) { console.warn('renderAll in switchTab warning:', e); }
     try { hideUnwantedStockMenus(); } catch (e) { console.warn('hideUnwantedStockMenus warning:', e); }
     if (['billing', 'customers', 'stock', 'operations', 'cosmetics', 'purchase', 'expenses', 'accounts', 'dno'].includes(tabName)) {
-        try { if (typeof pullFromFirebase === 'function') pullFromFirebase(); } catch (e) { console.warn('pullFromFirebase warning:', e); }
+        try {
+            if (typeof checkRemoteTimestampFast === 'function') checkRemoteTimestampFast();
+            else if (typeof pullFromFirebase === 'function') pullFromFirebase();
+        } catch (e) { console.warn('sync check warning:', e); }
     }
     if (tabName === 'accounts') {
         try { if (typeof renderAccounts === 'function') renderAccounts(); } catch (e) { console.warn('renderAccounts warning:', e); }
