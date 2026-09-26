@@ -105,6 +105,8 @@ import {
 import {
     renderSalesHistory,
     renderCustomerSalesHistory,
+    setSalesHistoryPeriod,
+    onSalesHistoryCustomDateChange,
     cancelCustomerBill,
     cancelCosSale,
     deleteCustomerBill,
@@ -378,6 +380,14 @@ if (typeof window !== 'undefined') {
     window.deleteCurrentEditedBill = deleteCurrentEditedBill;
     window.cancelCustomerBill = cancelCustomerBill;
     window.cancelCosSale = cancelCosSale;
+    window.renderSalesHistory = renderSalesHistory;
+    window.renderCustomerSalesHistory = renderCustomerSalesHistory;
+    window.setSalesHistoryPeriod = setSalesHistoryPeriod;
+    window.onSalesHistoryCustomDateChange = onSalesHistoryCustomDateChange;
+    window.deleteCustomerBill = deleteCustomerBill;
+    window.deleteCosSale = deleteCosSale;
+    window.adjustEditedPayment = adjustEditedPayment;
+    window.adjustCosmeticsSalePayment = adjustCosmeticsSalePayment;
     window.renderProductSalesAnalysis = renderProductSalesAnalysis;
     window.setProductAnalysisPeriod = setProductAnalysisPeriod;
     window.setProductAnalysisCategory = setProductAnalysisCategory;

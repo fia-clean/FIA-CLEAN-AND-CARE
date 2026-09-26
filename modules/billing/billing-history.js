@@ -8,11 +8,17 @@ import {
     markRecordDeleted,
     saveLocalStateSafely,
     formatDateDDMMYYYY,
+    normalizeToDateKey,
+    getTodayDateString,
     dateSortValue,
     toTitleCase
 } from '../core/state.js';
 import { syncToFirebase, pullFromFirebase } from '../core/db.js';
 import { isAuthorizedPin } from '../core/auth.js';
+
+export let salesHistoryPeriod = 'all'; // 'all', 'today', 'this_week', 'this_month', 'custom'
+export let salesHistoryStartDate = '';
+export let salesHistoryEndDate = '';
 
 export function normalizeCosSale(s) {
     const safeItems = Array.isArray(s?.items) ? s.items : (s?.items && typeof s.items === 'object' ? Object.values(s.items) : []);
@@ -157,29 +163,150 @@ export function renderSalesHistoryCard(r, label) {
     </div>`;
 }
 
+export function isDateInPeriod(dateStr, period, customStart, customEnd) {
+    if (!dateStr || period === 'all') return true;
+    const cleanDate = normalizeToDateKey(dateStr);
+    if (!cleanDate) return true;
+
+    const todayStr = getTodayDateString();
+    if (period === 'today') {
+        return cleanDate === todayStr;
+    }
+
+    const today = new Date();
+    if (period === 'this_week') {
+        const d = new Date(today);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+        d.setDate(diff);
+        const mondayStr = normalizeToDateKey(d);
+        return cleanDate >= mondayStr && cleanDate <= todayStr;
+    }
+
+    if (period === 'this_month') {
+        const monthStartStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+        return cleanDate >= monthStartStr && cleanDate <= todayStr;
+    }
+
+    if (period === 'custom') {
+        if (customStart && cleanDate < customStart) return false;
+        if (customEnd && cleanDate > customEnd) return false;
+        return true;
+    }
+
+    return true;
+}
+
+export function setSalesHistoryPeriod(period) {
+    salesHistoryPeriod = period;
+    const customBox = document.getElementById('shCustomDateRangeBox');
+    if (customBox) {
+        customBox.classList.toggle('hidden', period !== 'custom');
+    }
+    updateSalesHistoryPeriodButtonStyles();
+    const filter = (window.__fiaSalesHistoryFilter || 'all').toLowerCase();
+    if (filter === 'customer') {
+        renderCustomerSalesHistory();
+    } else {
+        renderSalesHistory();
+    }
+}
+
+export function onSalesHistoryCustomDateChange() {
+    salesHistoryStartDate = document.getElementById('shStartDate')?.value || '';
+    salesHistoryEndDate = document.getElementById('shEndDate')?.value || '';
+    const filter = (window.__fiaSalesHistoryFilter || 'all').toLowerCase();
+    if (filter === 'customer') {
+        renderCustomerSalesHistory();
+    } else {
+        renderSalesHistory();
+    }
+}
+
+export function updateSalesHistoryPeriodButtonStyles() {
+    ['all', 'today', 'this_week', 'this_month', 'custom'].forEach(p => {
+        const btn = document.getElementById('shPeriodBtn_' + p);
+        if (!btn) return;
+        if (p === salesHistoryPeriod) {
+            btn.className = 'px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-sm transition';
+        } else {
+            btn.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition';
+        }
+    });
+}
+
+export function renderSalesHistorySummary(rows) {
+    const summaryBox = document.getElementById('salesHistorySummaryStrip');
+    if (!summaryBox) return;
+
+    const nonCancelled = rows.filter(r => !r.isCancelled);
+    const totalBills = rows.length;
+    const totalAmount = nonCancelled.reduce((sum, r) => sum + Number(r.total || 0), 0);
+    const totalPaid = nonCancelled.reduce((sum, r) => sum + Number(r.paid || 0), 0);
+    const totalDue = nonCancelled.reduce((sum, r) => sum + Number(r.due || 0), 0);
+
+    summaryBox.innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs">
+            <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 shadow-xs">
+                <div class="text-[10px] text-slate-400 font-bold uppercase">Total Bills</div>
+                <div class="text-sm font-black text-slate-100 mt-0.5">${totalBills} Bills</div>
+            </div>
+            <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 shadow-xs">
+                <div class="text-[10px] text-slate-400 font-bold uppercase">Billed Amount</div>
+                <div class="text-sm font-black text-amber-300 mt-0.5">₹${totalAmount.toFixed(2)}</div>
+            </div>
+            <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 shadow-xs">
+                <div class="text-[10px] text-slate-400 font-bold uppercase">Collected / Paid</div>
+                <div class="text-sm font-black text-emerald-400 mt-0.5">₹${totalPaid.toFixed(2)}</div>
+            </div>
+            <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 shadow-xs">
+                <div class="text-[10px] text-slate-400 font-bold uppercase">Pending Due</div>
+                <div class="text-sm font-black text-rose-400 mt-0.5">₹${totalDue.toFixed(2)}</div>
+            </div>
+        </div>
+    `;
+}
+
 export function renderSalesHistory() {
     const container = document.getElementById('salesHistoryContainer');
     if (!container) return;
+    updateSalesHistoryPeriodButtonStyles();
+
     const allRows = getSalesHistoryRows();
     const filter = (window.__fiaSalesHistoryFilter || 'all').toLowerCase();
-    let rows = allRows;
+    
+    // 1. Filter by Period
+    let rows = allRows.filter(r => isDateInPeriod(r.date || r.savedAt, salesHistoryPeriod, salesHistoryStartDate, salesHistoryEndDate));
+
+    // 2. Filter by Sale Type
     if (filter === 'wholesale') {
-        rows = allRows.filter(r => String(r.saleType || '').toLowerCase() === 'wholesale');
+        rows = rows.filter(r => String(r.saleType || '').toLowerCase() === 'wholesale');
     } else if (filter === 'retail') {
-        rows = allRows.filter(r => String(r.saleType || '').toLowerCase() !== 'wholesale');
+        rows = rows.filter(r => String(r.saleType || '').toLowerCase() !== 'wholesale');
     } else if (filter === 'cleaning') {
-        rows = allRows.filter(r => r.type === 'cleaning');
+        rows = rows.filter(r => r.type === 'cleaning');
     } else if (filter === 'cosmetics') {
-        rows = allRows.filter(r => r.type === 'cosmetics');
+        rows = rows.filter(r => r.type === 'cosmetics');
     }
+
+    renderSalesHistorySummary(rows);
+
     const label = r => r.type === 'cleaning' ? '🧹 Cleaning' : r.type === 'combined' ? '🧾 Combined' : '💄 Cosmetics';
     
     if (!rows.length) {
+        const periodLabel = {
+            all: 'All Time',
+            today: 'Today',
+            this_week: 'This Week',
+            this_month: 'This Month',
+            custom: 'Custom Range'
+        }[salesHistoryPeriod] || salesHistoryPeriod;
+
         container.innerHTML = `
             <div class="text-center py-8 text-slate-500 text-xs space-y-3 bg-slate-900/40 rounded-xl border border-slate-800/80 p-4">
-                <p class="font-medium">No sales bills found for <span class="text-slate-300 font-bold uppercase">${filter}</span> filter.</p>
+                <p class="font-medium">No sales bills found for <span class="text-slate-300 font-bold uppercase">${filter}</span> (${periodLabel}).</p>
                 <div class="flex justify-center gap-2 pt-1">
-                    <button type="button" onclick="window.setSalesHistoryFilter('all')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-bold text-xs border border-slate-700 transition">Show All Bills</button>
+                    <button type="button" onclick="window.setSalesHistoryPeriod('all'); window.setSalesHistoryFilter('all');" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-bold text-xs border border-slate-700 transition">Show All Bills</button>
                     <button type="button" onclick="window.refreshSalesHistoryFromCloud()" class="bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 px-3 py-1.5 rounded-lg font-bold text-xs border border-emerald-700/60 transition">↻ Sync Cloud</button>
                 </div>
             </div>`;
@@ -192,13 +319,21 @@ export function renderSalesHistory() {
 export function renderCustomerSalesHistory() {
     const box = document.getElementById('salesHistoryContainer');
     if (!box) return;
+    updateSalesHistoryPeriodButtonStyles();
+
     const q = (document.getElementById('salesHistoryCustomerQuery')?.value || '').trim().toLowerCase();
     if (!q) {
         box.innerHTML = '<div class="text-center py-8 text-slate-500 text-xs">Search by customer name, phone number, or bill number.</div>';
+        const summaryBox = document.getElementById('salesHistorySummaryStrip');
+        if (summaryBox) summaryBox.innerHTML = '';
         return;
     }
     const allRows = getSalesHistoryRows();
-    const data = allRows.filter(r => String(r.name).toLowerCase().includes(q) || String(r.phone).toLowerCase().includes(q) || String(r.billNo).toLowerCase().includes(q));
+    let data = allRows.filter(r => isDateInPeriod(r.date || r.savedAt, salesHistoryPeriod, salesHistoryStartDate, salesHistoryEndDate));
+    data = data.filter(r => String(r.name).toLowerCase().includes(q) || String(r.phone).toLowerCase().includes(q) || String(r.billNo).toLowerCase().includes(q));
+
+    renderSalesHistorySummary(data);
+
     const label = r => r.type === 'cleaning' ? '🧹 Cleaning' : r.type === 'combined' ? '🧾 Combined' : '💄 Cosmetics';
     box.innerHTML = data.length ? data.map(r => renderSalesHistoryCard(r, label)).join('') : '<div class="text-center py-8 text-slate-500 text-xs">No sales found for this customer.</div>';
 }
@@ -554,6 +689,8 @@ if (typeof window !== 'undefined') {
     window.renderSalesHistory = renderSalesHistory;
     window.renderCustomerSalesHistory = renderCustomerSalesHistory;
     window.setSalesHistoryFilter = setSalesHistoryFilter;
+    window.setSalesHistoryPeriod = setSalesHistoryPeriod;
+    window.onSalesHistoryCustomDateChange = onSalesHistoryCustomDateChange;
     window.refreshSalesHistoryFromCloud = refreshSalesHistoryFromCloud;
     window.cancelCustomerBill = cancelCustomerBill;
     window.cancelCosSale = cancelCosSale;
