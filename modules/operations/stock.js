@@ -1193,12 +1193,19 @@ export function renderConsolidatedStockReport() {
     const totalValuation = allRows.reduce((sum, r) => sum + (r.valuation || 0), 0);
     const lowStockCount = allRows.filter(r => r.isLowStock).length;
 
+    const cleanInStock = cleaning.filter(p => (Number(p.stock) || 0) > 0).length;
+    const cleanOutOfStock = cleaning.length - cleanInStock;
+    const cosInStock = cosmetics.filter(p => (Number(p.stock) || 0) > 0).length;
+    const cosOutOfStock = cosmetics.length - cosInStock;
+    const pkgInStock = packages.filter(p => (Number(p.stock) || 0) > 0).length;
+    const pkgOutOfStock = packages.length - pkgInStock;
+
     const summaryCards = [
-        { label: 'Total Products & Items', value: allRows.length, sub: 'All Categories' },
-        { label: 'Cleaning Products', value: cleaning.length, sub: `${cleaning.reduce((s, p) => s + (Number(p.stock) || 0), 0).toFixed(0)} In Bulk Stock` },
-        { label: 'Cosmetic Products', value: cosmetics.length, sub: `${cosmetics.reduce((s, p) => s + (Number(p.stock) || 0), 0).toFixed(0)} In Bulk Stock` },
-        { label: 'Packaging Items', value: packages.length, sub: `${packages.reduce((s, p) => s + (Number(p.stock) || 0), 0).toFixed(0)} Containers & Caps` },
-        { label: 'Low Stock Alert', value: `${lowStockCount} Items`, sub: 'Stock ≤ 5', color: lowStockCount > 0 ? 'text-rose-400' : 'text-emerald-400' },
+        { label: 'Total Master Items', value: `${allRows.length} Items`, sub: 'All 3 Categories' },
+        { label: 'Cleaning Products', value: `${cleaning.length} Products`, sub: `${cleanInStock} In Stock • ${cleanOutOfStock} Out of Stock` },
+        { label: 'Cosmetic Products', value: `${cosmetics.length} Products`, sub: `${cosInStock} In Stock • ${cosOutOfStock} Out of Stock` },
+        { label: 'Packaging Items', value: `${packages.length} Items`, sub: `${pkgInStock} In Stock • ${pkgOutOfStock} Out of Stock` },
+        { label: 'Low Stock Alert', value: `${lowStockCount} Items`, sub: 'Stock ≤ 5 units', color: lowStockCount > 0 ? 'text-rose-400' : 'text-emerald-400' },
         { label: 'Estimated Stock Valuation', value: `₹${totalValuation.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sub: 'Based on W/R Rates', color: 'text-emerald-400' }
     ];
 
