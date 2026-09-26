@@ -1236,19 +1236,56 @@
                 <!-- Cleaning: CONSOLIDATED STOCK REPORT -->
                 <div id="cleanStockConsolidatedContent" class="hidden">
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-emerald-800/40 shadow-inner">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                            <div><h2 class="font-bold text-emerald-300 text-sm">📊 Consolidated Stock Report</h2><p class="text-[10px] text-slate-500">Cleaning + Cosmetics • All products in one list</p></div>
-                            <button type="button" onclick="renderConsolidatedStockReport()" class="bg-slate-800 text-emerald-300 border border-slate-700 px-3 py-2 rounded-lg text-[10px] font-bold">↻ Refresh Report</button>
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                            <div>
+                                <h2 class="font-bold text-emerald-300 text-sm">📊 Consolidated Stock Report</h2>
+                                <p class="text-[10px] text-slate-400">All inventory items (Cleaning, Cosmetics & Packaging) in one unified master view</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="shareConsolidatedStockWhatsApp()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow transition">
+                                    <span>📱</span> WhatsApp
+                                </button>
+                                <button type="button" onclick="renderConsolidatedStockReport()" class="bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition">
+                                    ↻ Refresh
+                                </button>
+                            </div>
                         </div>
-                        <div id="consolidatedStockSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3"></div>
+
+                        <!-- Filter Tabs & Search Bar -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                            <div id="cleanStockConsolidatedFilterPills" class="flex flex-wrap items-center gap-1.5">
+                                <button type="button" data-cat="all" onclick="setConsolidatedStockCategory('all')" class="px-3 py-1.5 rounded-xl bg-emerald-700 text-white font-bold text-xs shadow-sm transition">All Items</button>
+                                <button type="button" data-cat="cleaning" onclick="setConsolidatedStockCategory('cleaning')" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition">🧹 Cleaning</button>
+                                <button type="button" data-cat="cosmetics" onclick="setConsolidatedStockCategory('cosmetics')" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition">💄 Cosmetics</button>
+                                <button type="button" data-cat="package" onclick="setConsolidatedStockCategory('package')" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition">🧴 Packages</button>
+                            </div>
+                            <div class="relative w-full sm:w-64">
+                                <input type="text" id="consolidatedStockSearchInput" oninput="onConsolidatedStockSearch(this.value)" placeholder="Search product, barcode, variant..." class="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                                <span class="absolute left-2.5 top-2 text-xs text-slate-400">🔍</span>
+                            </div>
+                        </div>
+
+                        <div id="consolidatedStockSummary" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-3"></div>
+
                         <div class="w-full min-w-0 overflow-x-auto rounded-xl border border-slate-800 table-scroll-wrapper">
-                            <table class="w-full min-w-[560px] text-xs">
-                                <thead class="bg-slate-900"><tr><th class="text-left p-2 text-slate-400">#</th><th class="text-left p-2 text-slate-400">Category</th><th class="text-left p-2 text-slate-400">Product</th><th class="text-right p-2 text-slate-400">Stock</th><th class="text-left p-2 text-slate-400">Unit</th><th class="text-left p-2 text-slate-400">Barcode</th></tr></thead>
-                                <tbody id="consolidatedStockTableBody"></tbody>
+                            <table class="w-full min-w-[700px] text-xs">
+                                <thead class="bg-slate-900 text-slate-400 border-b border-slate-800">
+                                    <tr>
+                                        <th class="text-left p-2.5 font-semibold">#</th>
+                                        <th class="text-left p-2.5 font-semibold">Category</th>
+                                        <th class="text-left p-2.5 font-semibold">Product & Pack Details</th>
+                                        <th class="text-right p-2.5 font-semibold">Stock Qty</th>
+                                        <th class="text-left p-2.5 font-semibold">Unit</th>
+                                        <th class="text-left p-2.5 font-semibold">Pricing (W / R)</th>
+                                        <th class="text-left p-2.5 font-semibold">Barcode</th>
+                                        <th class="text-center p-2.5 font-semibold">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="consolidatedStockTableBody" class="divide-y divide-slate-800/60"></tbody>
                             </table>
                         </div>
                         <div class="text-[9px] text-slate-500 mt-1 sm:hidden">↔️ Swipe sideways to view all columns</div>
-                        <div id="consolidatedStockUnitTotals" class="mt-3 space-y-1"></div>
+                        <div id="consolidatedStockUnitTotals" class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
                     </div>
                 </div>
 
@@ -1316,19 +1353,56 @@
                 <!-- Cosmetics: CONSOLIDATED STOCK REPORT -->
                 <div id="cosStockConsolidatedContent" class="hidden">
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-pink-800/40 shadow-inner">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                            <div><h2 class="font-bold text-pink-300 text-sm">📊 Consolidated Stock Report</h2><p class="text-[10px] text-slate-500">Cleaning + Cosmetics • All products in one list</p></div>
-                            <button type="button" onclick="renderConsolidatedStockReport()" class="bg-slate-800 text-pink-300 border border-slate-700 px-3 py-2 rounded-lg text-[10px] font-bold">↻ Refresh Report</button>
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                            <div>
+                                <h2 class="font-bold text-pink-300 text-sm">📊 Consolidated Stock Report</h2>
+                                <p class="text-[10px] text-slate-400">All inventory items (Cleaning, Cosmetics & Packaging) in one unified master view</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="shareConsolidatedStockWhatsApp()" class="bg-pink-600 hover:bg-pink-500 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow transition">
+                                    <span>📱</span> WhatsApp
+                                </button>
+                                <button type="button" onclick="renderConsolidatedStockReport()" class="bg-slate-800 hover:bg-slate-700 text-pink-300 border border-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition">
+                                    ↻ Refresh
+                                </button>
+                            </div>
                         </div>
-                        <div id="consolidatedStockSummaryCos" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3"></div>
+
+                        <!-- Filter Tabs & Search Bar -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                            <div id="cosStockConsolidatedFilterPills" class="flex flex-wrap items-center gap-1.5">
+                                <button type="button" data-cat="all" onclick="setConsolidatedStockCategory('all')" class="px-3 py-1.5 rounded-xl bg-emerald-700 text-white font-bold text-xs shadow-sm transition">All Items</button>
+                                <button type="button" data-cat="cleaning" onclick="setConsolidatedStockCategory('cleaning')" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition">🧹 Cleaning</button>
+                                <button type="button" data-cat="cosmetics" onclick="setConsolidatedStockCategory('cosmetics')" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition">💄 Cosmetics</button>
+                                <button type="button" data-cat="package" onclick="setConsolidatedStockCategory('package')" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition">🧴 Packages</button>
+                            </div>
+                            <div class="relative w-full sm:w-64">
+                                <input type="text" id="consolidatedStockSearchInputCos" oninput="onConsolidatedStockSearch(this.value)" placeholder="Search product, barcode, variant..." class="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pink-500">
+                                <span class="absolute left-2.5 top-2 text-xs text-slate-400">🔍</span>
+                            </div>
+                        </div>
+
+                        <div id="consolidatedStockSummaryCos" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-3"></div>
+
                         <div class="w-full min-w-0 overflow-x-auto rounded-xl border border-slate-800 table-scroll-wrapper">
-                            <table class="w-full min-w-[560px] text-xs">
-                                <thead class="bg-slate-900"><tr><th class="text-left p-2 text-slate-400">#</th><th class="text-left p-2 text-slate-400">Category</th><th class="text-left p-2 text-slate-400">Product</th><th class="text-right p-2 text-slate-400">Stock</th><th class="text-left p-2 text-slate-400">Unit</th><th class="text-left p-2 text-slate-400">Barcode</th></tr></thead>
-                                <tbody id="consolidatedStockTableBodyCos"></tbody>
+                            <table class="w-full min-w-[700px] text-xs">
+                                <thead class="bg-slate-900 text-slate-400 border-b border-slate-800">
+                                    <tr>
+                                        <th class="text-left p-2.5 font-semibold">#</th>
+                                        <th class="text-left p-2.5 font-semibold">Category</th>
+                                        <th class="text-left p-2.5 font-semibold">Product & Pack Details</th>
+                                        <th class="text-right p-2.5 font-semibold">Stock Qty</th>
+                                        <th class="text-left p-2.5 font-semibold">Unit</th>
+                                        <th class="text-left p-2.5 font-semibold">Pricing (W / R)</th>
+                                        <th class="text-left p-2.5 font-semibold">Barcode</th>
+                                        <th class="text-center p-2.5 font-semibold">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="consolidatedStockTableBodyCos" class="divide-y divide-slate-800/60"></tbody>
                             </table>
                         </div>
                         <div class="text-[9px] text-slate-500 mt-1 sm:hidden">↔️ Swipe sideways to view all columns</div>
-                        <div id="consolidatedStockUnitTotalsCos" class="mt-3 space-y-1"></div>
+                        <div id="consolidatedStockUnitTotalsCos" class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
                     </div>
                 </div>
 
@@ -2893,7 +2967,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.0.3"></script>
+    <script type="module" src="./modules/app.js?v=51.0.4"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -2908,7 +2982,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.0.3) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.0.4) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2962,7 +3036,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.0.3')
+                navigator.serviceWorker.register('./sw.js?v=51.0.4')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

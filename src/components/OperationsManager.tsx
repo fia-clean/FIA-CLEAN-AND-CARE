@@ -80,6 +80,8 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
   }, [initialSubTab]);
   const [stockCategory, setStockCategory] = useState<'cleaning' | 'cosmetics'>('cleaning');
   const [stockActionTab, setStockActionTab] = useState<'add' | 'view' | 'return' | 'consolidated'>('add');
+  const [consolidatedCatFilter, setConsolidatedCatFilter] = useState<'all' | 'cleaning' | 'cosmetics'>('all');
+  const [consolidatedSearch, setConsolidatedSearch] = useState('');
   const [purchaseCategory, setPurchaseCategory] = useState<'cleaning' | 'cosmetics'>('cleaning');
   const [purchaseActionTab, setPurchaseActionTab] = useState<'add' | 'view' | 'return'>('add');
 
@@ -1488,9 +1490,64 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
           {/* CONSOLIDATED STOCK REPORT TAB */}
           {stockActionTab === 'consolidated' && (
             <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-xs space-y-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
-                📊 Consolidated Stock Report (Cleaning + Cosmetics)
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+                    📊 Consolidated Stock Report
+                  </h3>
+                  <p className="text-xs text-slate-500">All products and categories in one unified overview</p>
+                </div>
+              </div>
+
+              {/* Filter Tabs & Search Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setConsolidatedCatFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      consolidatedCatFilter === 'all'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+                    }`}
+                  >
+                    All Items
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConsolidatedCatFilter('cleaning')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      consolidatedCatFilter === 'cleaning'
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+                    }`}
+                  >
+                    🧹 Cleaning
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConsolidatedCatFilter('cosmetics')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      consolidatedCatFilter === 'cosmetics'
+                        ? 'bg-pink-600 text-white shadow-xs'
+                        : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+                    }`}
+                  >
+                    💄 Cosmetics
+                  </button>
+                </div>
+                <div className="relative w-full sm:w-64">
+                  <input
+                    type="text"
+                    value={consolidatedSearch}
+                    onChange={(e) => setConsolidatedSearch(e.target.value)}
+                    placeholder="Search product, barcode..."
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                </div>
+              </div>
+
               <div className="overflow-x-auto border border-slate-200 rounded-lg">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 uppercase font-semibold">
@@ -1506,9 +1563,23 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {[
-                      ...products.map((p) => ({ ...p, category: 'Cleaning' })),
-                      ...cosProducts.map((p) => ({ ...p, category: 'Cosmetics' })),
+                      ...products.map((p) => ({ ...p, category: 'Cleaning' as const })),
+                      ...cosProducts.map((p) => ({ ...p, category: 'Cosmetics' as const })),
                     ]
+                      .filter((p) => {
+                        if (consolidatedCatFilter === 'cleaning') return p.category === 'Cleaning';
+                        if (consolidatedCatFilter === 'cosmetics') return p.category === 'Cosmetics';
+                        return true;
+                      })
+                      .filter((p) => {
+                        if (!consolidatedSearch.trim()) return true;
+                        const q = consolidatedSearch.toLowerCase();
+                        return (
+                          (p.name || '').toLowerCase().includes(q) ||
+                          (p.barcode || '').toLowerCase().includes(q) ||
+                          (p.unit || '').toLowerCase().includes(q)
+                        );
+                      })
                       .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
                       .map((p, idx) => (
                         <tr key={p.id} className="hover:bg-slate-50">

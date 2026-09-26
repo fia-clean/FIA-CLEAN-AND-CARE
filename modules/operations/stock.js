@@ -330,6 +330,7 @@ export function savePackage(e) {
     if (typeof updateProductDropdown === 'function') updateProductDropdown();
     if (typeof updateCombinedProductSelect === 'function') updateCombinedProductSelect();
     switchPackageActionTab('view');
+    renderConsolidatedStockReport();
 }
 
 export function resetPackageForm() {
@@ -381,6 +382,7 @@ export function deletePackage(id) {
     if (typeof window.renderAll === 'function') window.renderAll();
     renderPackages();
     switchPackageActionTab('view');
+    renderConsolidatedStockReport();
 }
 
 export function addPackageStock(id, qty) {
@@ -391,6 +393,7 @@ export function addPackageStock(id, qty) {
     syncToFirebase();
     renderPackages();
     updatePackageSelectors();
+    renderConsolidatedStockReport();
 }
 
 export function renderPackages() {
@@ -603,6 +606,7 @@ export function saveProduct(e) {
     if (typeof updateCleaningAddStockDropdown === 'function') updateCleaningAddStockDropdown();
     if (typeof window.checkLowStockAlerts === 'function') window.checkLowStockAlerts();
     updateStockReturnDropdowns();
+    renderConsolidatedStockReport();
 }
 
 export function addCleaningStock() {
@@ -617,6 +621,7 @@ export function addCleaningStock() {
     if (typeof updateProductDropdown === 'function') updateProductDropdown();
     updateCleaningAddStockDropdown();
     updateStockReturnDropdowns();
+    renderConsolidatedStockReport();
 }
 
 export function updateCleaningAddStockDropdown() {
@@ -681,6 +686,7 @@ export function saveStockReturn(event, type) {
     if (typeof updateCleaningAddStockDropdown === 'function') updateCleaningAddStockDropdown();
     updateStockReturnDropdowns();
     renderStockReturnHistory();
+    renderConsolidatedStockReport();
 
     alert(condition === 'Usable'
         ? `${qty} ${product.unit} returned to usable stock successfully.`
@@ -798,6 +804,8 @@ export function deleteProduct(id) {
         state.products = state.products.filter(p => String(p.id) !== String(id));
         saveLocalStateSafely();
         syncToFirebase();
+        renderProducts();
+        renderConsolidatedStockReport();
         if (typeof window.renderAll === 'function') window.renderAll();
     }
 }
@@ -854,6 +862,7 @@ export function saveCosProduct(e) {
     updateCosProductDropdowns();
     if (typeof updateCleaningAddStockDropdown === 'function') updateCleaningAddStockDropdown();
     updateStockReturnDropdowns();
+    renderConsolidatedStockReport();
 }
 
 export function addCosmeticStock() {
@@ -872,6 +881,7 @@ export function addCosmeticStock() {
     renderCosProductStock();
     updateCosProductDropdowns();
     updateStockReturnDropdowns();
+    renderConsolidatedStockReport();
 }
 
 export function editCosProduct(id) {
@@ -908,6 +918,8 @@ export function deleteCosProduct(id) {
     state.cosProducts = state.cosProducts.filter(x => String(x.id) !== String(id));
     saveLocalStateSafely();
     syncToFirebase();
+    renderCosProductStock();
+    renderConsolidatedStockReport();
     if (typeof window.renderAll === 'function') window.renderAll();
 }
 
@@ -988,29 +1000,298 @@ export function updateCosProductDropdowns() {
     }
 }
 
+let currentConsolidatedCategory = 'all';
+let currentConsolidatedSearch = '';
+
+export function setConsolidatedStockCategory(cat) {
+    currentConsolidatedCategory = cat;
+    renderConsolidatedStockReport();
+}
+
+export function onConsolidatedStockSearch(val) {
+    currentConsolidatedSearch = (val || '').trim().toLowerCase();
+    const s1 = document.getElementById('consolidatedStockSearchInput');
+    const s2 = document.getElementById('consolidatedStockSearchInputCos');
+    if (s1 && s1.value !== val) s1.value = val;
+    if (s2 && s2.value !== val) s2.value = val;
+    renderConsolidatedStockReport();
+}
+
+export function shareConsolidatedStockWhatsApp() {
+    const cleaning = Array.isArray(state.products) ? state.products : [];
+    const cosmetics = Array.isArray(state.cosProducts) ? state.cosProducts : [];
+    const packages = Array.isArray(state.packages) ? state.packages : [];
+
+    let msg = `*FIA CLEAN & CARE - CONSOLIDATED STOCK REPORT*\n`;
+    msg += `📅 _Date: ${todayDDMMYYYY()}_\n\n`;
+
+    msg += `📊 *INVENTORY SUMMARY:*\n`;
+    msg += `• Total Products & Items: ${cleaning.length + cosmetics.length + packages.length}\n`;
+    msg += `• Cleaning Products: ${cleaning.length}\n`;
+    msg += `• Cosmetic Products: ${cosmetics.length}\n`;
+    msg += `• Packaging Items: ${packages.length}\n\n`;
+
+    if (cleaning.length > 0) {
+        msg += `🧹 *CLEANING PRODUCTS:*\n`;
+        sortByNameAsc(cleaning).forEach((p, idx) => {
+            const wPrice = getProductWholesalePrice(p);
+            const rPrice = getProductRetailPrice(p);
+            msg += `${idx + 1}. *${p.name}* - ${p.stock} ${p.unit} (W: ₹${wPrice} | R: ₹${rPrice})\n`;
+            if (p.packageName) msg += `   └ Container: ${p.packageName}\n`;
+            if (p.variants && p.variants.length > 0) {
+                const varText = p.variants.map(v => `${v.name}: ₹${v.retailPrice}`).join(', ');
+                msg += `   └ Packs: ${varText}\n`;
+            }
+        });
+        msg += `\n`;
+    }
+
+    if (cosmetics.length > 0) {
+        msg += `💄 *COSMETIC PRODUCTS:*\n`;
+        sortByNameAsc(cosmetics).forEach((p, idx) => {
+            const wPrice = getProductWholesalePrice(p);
+            const rPrice = getProductRetailPrice(p);
+            msg += `${idx + 1}. *${p.name}* - ${p.stock} ${p.unit} (W: ₹${wPrice} | R: ₹${rPrice})\n`;
+            if (p.packageName) msg += `   └ Container: ${p.packageName}\n`;
+            if (p.variants && p.variants.length > 0) {
+                const varText = p.variants.map(v => `${v.name}: ₹${v.retailPrice}`).join(', ');
+                msg += `   └ Packs: ${varText}\n`;
+            }
+        });
+        msg += `\n`;
+    }
+
+    if (packages.length > 0) {
+        msg += `🧴 *PACKAGING CONTAINERS & ITEMS:*\n`;
+        sortByNameAsc(packages).forEach((p, idx) => {
+            msg += `${idx + 1}. *${p.name}* (${p.size || '—'}) - ${p.stock} ${p.unit || 'Pcs'}\n`;
+        });
+        msg += `\n`;
+    }
+
+    const unitMap = {};
+    [...cleaning, ...cosmetics].forEach(p => {
+        const u = p.unit || 'No Unit';
+        unitMap[u] = (unitMap[u] || 0) + (Number(p.stock) || 0);
+    });
+    packages.forEach(p => {
+        const u = p.unit || 'Pcs';
+        unitMap[u] = (unitMap[u] || 0) + (Number(p.stock) || 0);
+    });
+
+    msg += `📦 *STOCK BY UNIT:*\n`;
+    Object.entries(unitMap).sort((a, b) => a[0].localeCompare(b[0])).forEach(([u, total]) => {
+        msg += `• Total ${u}: ${Number(total.toFixed(2))} ${u}\n`;
+    });
+
+    const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank');
+}
+
 export function renderConsolidatedStockReport() {
     const cleaning = Array.isArray(state.products) ? state.products : [];
     const cosmetics = Array.isArray(state.cosProducts) ? state.cosProducts : [];
-    const rows = [
-        ...cleaning.map(p => ({ category: 'Cleaning', name: p.name || '', stock: Number(p.stock) || 0, unit: p.unit || '', barcode: p.barcode || '' })),
-        ...cosmetics.map(p => ({ category: 'Cosmetics', name: p.name || '', stock: Number(p.stock) || 0, unit: p.unit || '', barcode: p.barcode || '' }))
-    ].sort((a, b) => String(a.category).localeCompare(String(b.category)) || String(a.name).localeCompare(String(b.name)));
+    const packages = Array.isArray(state.packages) ? state.packages : [];
 
-    const summaryHtml = [
-        ['Total Products', rows.length],
-        ['Cleaning', cleaning.length],
-        ['Cosmetics', cosmetics.length],
-        ['Units Used', new Set(rows.map(r => r.unit).filter(Boolean)).size]
-    ].map(([label, value]) => `<div class="bg-slate-900 rounded-lg p-3"><div class="text-[10px] text-slate-400">${label}</div><b class="text-sm text-white">${value}</b></div>`).join('');
-    ['consolidatedStockSummary', 'consolidatedStockSummaryCos'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = summaryHtml; });
+    const allRows = [
+        ...cleaning.map(p => {
+            const wPrice = getProductWholesalePrice(p);
+            const rPrice = getProductRetailPrice(p);
+            const stock = Number(p.stock) || 0;
+            return {
+                id: p.id,
+                category: 'Cleaning',
+                name: p.name || '',
+                stock: stock,
+                unit: p.unit || 'Ltr',
+                barcode: p.barcode || '',
+                wholesalePrice: wPrice,
+                retailPrice: rPrice,
+                packageName: p.packageName || '',
+                packageQty: Number(p.packageQty) || 1,
+                variants: Array.isArray(p.variants) ? p.variants : [],
+                valuation: stock * (wPrice > 0 ? wPrice : rPrice),
+                isLowStock: stock <= 5
+            };
+        }),
+        ...cosmetics.map(p => {
+            const wPrice = getProductWholesalePrice(p);
+            const rPrice = getProductRetailPrice(p);
+            const stock = Number(p.stock) || 0;
+            return {
+                id: p.id,
+                category: 'Cosmetics',
+                name: p.name || '',
+                stock: stock,
+                unit: p.unit || 'Pcs',
+                barcode: p.barcode || '',
+                wholesalePrice: wPrice,
+                retailPrice: rPrice,
+                packageName: p.packageName || '',
+                packageQty: Number(p.packageQty) || 1,
+                variants: Array.isArray(p.variants) ? p.variants : [],
+                valuation: stock * (wPrice > 0 ? wPrice : rPrice),
+                isLowStock: stock <= 5
+            };
+        }),
+        ...packages.map(p => {
+            const stock = Number(p.stock) || 0;
+            return {
+                id: p.id,
+                category: 'Package',
+                name: p.name || '',
+                stock: stock,
+                unit: p.unit || 'Pcs',
+                size: p.size || '',
+                barcode: p.barcode || '',
+                wholesalePrice: 0,
+                retailPrice: 0,
+                packageName: p.size ? `Size: ${p.size}` : '',
+                packageQty: 0,
+                variants: [],
+                valuation: 0,
+                isLowStock: stock <= 5
+            };
+        })
+    ];
 
-    const bodyHtml = rows.length ? rows.map((r, i) => `<tr class="border-t border-slate-800"><td class="p-2 text-slate-500">${i + 1}</td><td class="p-2 ${r.category === 'Cosmetics' ? 'text-pink-300' : 'text-emerald-300'} font-semibold">${r.category}</td><td class="p-2 text-slate-200 font-semibold">${r.name || '—'}</td><td class="p-2 text-right font-bold ${r.stock <= 5 ? 'text-rose-300' : 'text-white'}">${r.stock}</td><td class="p-2 text-slate-300">${r.unit || '—'}</td><td class="p-2 text-slate-500">${r.barcode || '—'}</td></tr>`).join('') : '<tr><td colspan="6" class="p-5 text-center text-slate-500">No products found.</td></tr>';
-    ['consolidatedStockTableBody', 'consolidatedStockTableBodyCos'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = bodyHtml; });
+    // Filter by Category
+    let filteredRows = allRows;
+    if (currentConsolidatedCategory === 'cleaning') {
+        filteredRows = allRows.filter(r => r.category === 'Cleaning');
+    } else if (currentConsolidatedCategory === 'cosmetics') {
+        filteredRows = allRows.filter(r => r.category === 'Cosmetics');
+    } else if (currentConsolidatedCategory === 'package' || currentConsolidatedCategory === 'packages') {
+        filteredRows = allRows.filter(r => r.category === 'Package');
+    }
+
+    // Filter by Search Query
+    if (currentConsolidatedSearch) {
+        const q = currentConsolidatedSearch.toLowerCase();
+        filteredRows = filteredRows.filter(r => {
+            const variantText = (r.variants || []).map(v => `${v.name || ''} ${v.size || ''} ${v.packageName || ''}`).join(' ').toLowerCase();
+            return (
+                (r.name || '').toLowerCase().includes(q) ||
+                (r.barcode || '').toLowerCase().includes(q) ||
+                (r.category || '').toLowerCase().includes(q) ||
+                (r.unit || '').toLowerCase().includes(q) ||
+                (r.packageName || '').toLowerCase().includes(q) ||
+                (r.size || '').toLowerCase().includes(q) ||
+                variantText.includes(q)
+            );
+        });
+    }
+
+    // Sort: Category first (Cleaning -> Cosmetics -> Package), then Name Ascending
+    filteredRows.sort((a, b) => {
+        const catOrder = { 'Cleaning': 1, 'Cosmetics': 2, 'Package': 3 };
+        const orderDiff = (catOrder[a.category] || 9) - (catOrder[b.category] || 9);
+        if (orderDiff !== 0) return orderDiff;
+        return String(a.name).localeCompare(String(b.name));
+    });
+
+    const totalValuation = allRows.reduce((sum, r) => sum + (r.valuation || 0), 0);
+    const lowStockCount = allRows.filter(r => r.isLowStock).length;
+
+    const summaryCards = [
+        { label: 'Total Products & Items', value: allRows.length, sub: 'All Categories' },
+        { label: 'Cleaning Products', value: cleaning.length, sub: `${cleaning.reduce((s, p) => s + (Number(p.stock) || 0), 0).toFixed(0)} In Bulk Stock` },
+        { label: 'Cosmetic Products', value: cosmetics.length, sub: `${cosmetics.reduce((s, p) => s + (Number(p.stock) || 0), 0).toFixed(0)} In Bulk Stock` },
+        { label: 'Packaging Items', value: packages.length, sub: `${packages.reduce((s, p) => s + (Number(p.stock) || 0), 0).toFixed(0)} Containers & Caps` },
+        { label: 'Low Stock Alert', value: `${lowStockCount} Items`, sub: 'Stock ≤ 5', color: lowStockCount > 0 ? 'text-rose-400' : 'text-emerald-400' },
+        { label: 'Estimated Stock Valuation', value: `₹${totalValuation.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, sub: 'Based on W/R Rates', color: 'text-emerald-400' }
+    ];
+
+    const summaryHtml = summaryCards.map(c => `
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xs">
+            <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">${c.label}</div>
+            <b class="text-sm sm:text-base ${c.color || 'text-white'} font-black block mt-0.5">${c.value}</b>
+            <span class="text-[10px] text-slate-500 block">${c.sub}</span>
+        </div>
+    `).join('');
+    ['consolidatedStockSummary', 'consolidatedStockSummaryCos'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = summaryHtml;
+    });
+
+    const bodyHtml = filteredRows.length ? filteredRows.map((r, i) => {
+        const catBadge = r.category === 'Cleaning'
+            ? '<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-2 py-0.5 rounded text-[10px] font-bold">🧹 Cleaning</span>'
+            : (r.category === 'Cosmetics'
+                ? '<span class="bg-pink-950/80 text-pink-300 border border-pink-800/60 px-2 py-0.5 rounded text-[10px] font-bold">💄 Cosmetics</span>'
+                : '<span class="bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 px-2 py-0.5 rounded text-[10px] font-bold">🧴 Package</span>');
+
+        const packageBadge = r.packageName
+            ? `<div class="mt-1"><span class="inline-flex items-center gap-1 text-[10px] text-cyan-300 bg-slate-900 border border-cyan-800/50 px-1.5 py-0.5 rounded font-medium">🧴 Container: ${r.packageName}${r.packageQty > 1 ? ' (' + r.packageQty + ' ' + (r.unit || '') + ')' : ''}</span></div>`
+            : '';
+
+        const variantsHtml = (r.variants && r.variants.length > 0)
+            ? `<div class="flex flex-wrap gap-1 mt-1.5">${r.variants.map(v => `<span class="bg-slate-900 border border-slate-700 text-[10px] px-2 py-0.5 rounded text-cyan-200 font-semibold">📦 ${v.name}${v.size ? ' (' + v.size + ' ' + (v.unit || '') + ')' : ''}: W ₹${v.wholesalePrice || '—'} / R ₹${v.retailPrice || '—'}${v.packageName ? ' • ' + v.packageName : ''}</span>`).join('')}</div>`
+            : '';
+
+        const pricingDisplay = r.category === 'Package'
+            ? `<span class="text-slate-400 text-[11px]">${r.packageName || 'Packaging Item'}</span>`
+            : `<div class="text-[11px] space-y-0.5"><span class="text-sky-300 font-semibold block">W: ₹${r.wholesalePrice.toFixed(2)}</span><span class="text-emerald-400 font-semibold block">R: ₹${r.retailPrice.toFixed(2)}</span></div>`;
+
+        const stockClass = r.isLowStock ? 'text-rose-400 font-black' : 'text-slate-100 font-bold';
+        const statusBadge = r.isLowStock
+            ? '<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase">⚠️ Low</span>'
+            : '<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase">✓ OK</span>';
+
+        return `
+            <tr class="border-t border-slate-800 hover:bg-slate-900/50 transition">
+                <td class="p-2.5 text-slate-500 font-mono text-xs">${i + 1}</td>
+                <td class="p-2.5">${catBadge}</td>
+                <td class="p-2.5 min-w-[200px]">
+                    <div class="font-bold text-slate-100 text-xs">${r.name || '—'}</div>
+                    ${packageBadge}
+                    ${variantsHtml}
+                </td>
+                <td class="p-2.5 text-right ${stockClass} text-xs font-mono font-bold">${r.stock}</td>
+                <td class="p-2.5 text-slate-300 text-xs font-semibold">${r.unit || '—'}</td>
+                <td class="p-2.5">${pricingDisplay}</td>
+                <td class="p-2.5 text-slate-400 font-mono text-[11px]">${r.barcode || '—'}</td>
+                <td class="p-2.5 text-center">${statusBadge}</td>
+            </tr>
+        `;
+    }).join('') : `<tr><td colspan="8" class="p-6 text-center text-slate-500 text-xs">No products or packaging items match the selected filter.</td></tr>`;
+
+    ['consolidatedStockTableBody', 'consolidatedStockTableBodyCos'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = bodyHtml;
+    });
 
     const unitMap = {};
-    rows.forEach(r => { const u = r.unit || 'No Unit'; unitMap[u] = (unitMap[u] || 0) + r.stock; });
-    const unitHtml = Object.entries(unitMap).sort((a, b) => a[0].localeCompare(b[0])).map(([u, total]) => `<div class="flex justify-between bg-slate-900/70 border border-slate-800 rounded-lg px-3 py-2 text-[11px]"><span class="text-slate-400">Total ${u}</span><b class="text-slate-200">${total}</b></div>`).join('') || '<div class="text-[10px] text-slate-500">No stock data.</div>';
-    ['consolidatedStockUnitTotals', 'consolidatedStockUnitTotalsCos'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = unitHtml; });
+    filteredRows.forEach(r => {
+        const u = r.unit || 'No Unit';
+        unitMap[u] = (unitMap[u] || 0) + r.stock;
+    });
+    const unitHtml = Object.entries(unitMap).sort((a, b) => a[0].localeCompare(b[0])).map(([u, total]) => `
+        <div class="flex justify-between items-center bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-xs">
+            <span class="text-slate-400 font-medium">Total ${u}</span>
+            <b class="text-slate-100 font-bold font-mono">${Number(total.toFixed(2))} ${u}</b>
+        </div>
+    `).join('') || '<div class="text-[10px] text-slate-500">No stock data available.</div>';
+
+    ['consolidatedStockUnitTotals', 'consolidatedStockUnitTotalsCos'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = unitHtml;
+    });
+
+    // Update Category Pill Button Active Styles
+    ['clean', 'cos'].forEach(prefix => {
+        const container = document.getElementById(prefix === 'cos' ? 'cosStockConsolidatedFilterPills' : 'cleanStockConsolidatedFilterPills');
+        if (container) {
+            container.querySelectorAll('button[data-cat]').forEach(btn => {
+                const btnCat = btn.getAttribute('data-cat');
+                if (btnCat === currentConsolidatedCategory) {
+                    btn.className = 'px-3 py-1.5 rounded-xl bg-emerald-700 text-white font-bold text-xs shadow-sm transition';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition';
+                }
+            });
+        }
+    });
 }
 
 export function viewProduct(id) {
@@ -1091,6 +1372,9 @@ if (typeof window !== 'undefined') {
     window.updateCosProductDropdowns = updateCosProductDropdowns;
     window.updateCleaningAddStockDropdown = updateCleaningAddStockDropdown;
     window.renderConsolidatedStockReport = renderConsolidatedStockReport;
+    window.setConsolidatedStockCategory = setConsolidatedStockCategory;
+    window.onConsolidatedStockSearch = onConsolidatedStockSearch;
+    window.shareConsolidatedStockWhatsApp = shareConsolidatedStockWhatsApp;
     window.switchStockTopTab = switchStockTopTab;
     window.switchStockSubTab = switchStockSubTab;
     window.switchStockActionTab = switchStockActionTab;

@@ -232,6 +232,9 @@ import {
     showCosmeticStockList,
     updateCosProductDropdowns,
     renderConsolidatedStockReport,
+    setConsolidatedStockCategory,
+    onConsolidatedStockSearch,
+    shareConsolidatedStockWhatsApp,
     viewProduct,
     viewCosProduct,
     viewPackage
@@ -356,6 +359,9 @@ if (typeof window !== 'undefined') {
     window.renderCustomerConsolidationReport = renderCustomerConsolidationReport;
     window.renderCustomerConsolidationView = renderCustomerConsolidationView;
     window.renderConsolidatedStockReport = renderConsolidatedStockReport;
+    window.setConsolidatedStockCategory = setConsolidatedStockCategory;
+    window.onConsolidatedStockSearch = onConsolidatedStockSearch;
+    window.shareConsolidatedStockWhatsApp = shareConsolidatedStockWhatsApp;
     window.updatePurchaseReturnLiveCalc = updatePurchaseReturnLiveCalc;
     window.openPurchaseReturn = openPurchaseReturn;
     window.deletePurchaseReturn = deletePurchaseReturn;
@@ -844,6 +850,7 @@ export function renderAll() {
     safeRun(updateBillingFormDisplays);
     safeRun(renderPurchaseConsolidationView);
     safeRun(renderPurchaseConsolidationReport);
+    safeRun(renderConsolidatedStockReport);
     safeRun(updateDnoBadge);
     if (document.getElementById('sectionDno') && !document.getElementById('sectionDno').classList.contains('hidden')) {
         safeRun(renderDno);
