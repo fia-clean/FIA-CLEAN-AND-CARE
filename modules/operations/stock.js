@@ -1062,10 +1062,6 @@ export function shareConsolidatedStockWhatsApp() {
             const stock = Number(p.stock) || 0;
             const val = stock * (wPrice > 0 ? wPrice : rPrice);
             msg += `${idx + 1}. *${p.name}* - ${stock} ${p.unit} (W: ₹${wPrice} | R: ₹${rPrice}) • *Value: ₹${val.toFixed(2)}*\n`;
-            if (p.variants && p.variants.length > 0) {
-                const varText = p.variants.map(v => `${v.name}: ₹${v.retailPrice}`).join(', ');
-                msg += `   └ Packs: ${varText}\n`;
-            }
         });
         msg += `\n`;
     }
@@ -1078,10 +1074,6 @@ export function shareConsolidatedStockWhatsApp() {
             const stock = Number(p.stock) || 0;
             const val = stock * (wPrice > 0 ? wPrice : rPrice);
             msg += `${idx + 1}. *${p.name}* - ${stock} ${p.unit} (W: ₹${wPrice} | R: ₹${rPrice}) • *Value: ₹${val.toFixed(2)}*\n`;
-            if (p.variants && p.variants.length > 0) {
-                const varText = p.variants.map(v => `${v.name}: ₹${v.retailPrice}`).join(', ');
-                msg += `   └ Packs: ${varText}\n`;
-            }
         });
         msg += `\n`;
     }
@@ -1232,10 +1224,6 @@ export function renderConsolidatedStockReport() {
             ? '<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-2 py-0.5 rounded text-[10px] font-bold">🧹 Cleaning</span>'
             : '<span class="bg-pink-950/80 text-pink-300 border border-pink-800/60 px-2 py-0.5 rounded text-[10px] font-bold">💄 Cosmetics</span>';
 
-        const variantsHtml = (r.variants && r.variants.length > 0)
-            ? `<div class="flex flex-wrap gap-1 mt-1.5">${r.variants.map(v => `<span class="bg-slate-900 border border-slate-700 text-[10px] px-2 py-0.5 rounded text-cyan-200 font-semibold">📦 ${v.name}${v.size ? ' (' + v.size + ' ' + (v.unit || '') + ')' : ''}: W ₹${v.wholesalePrice || '—'} / R ₹${v.retailPrice || '—'}</span>`).join('')}</div>`
-            : '';
-
         const pricingDisplay = `<div class="text-[11px] space-y-0.5"><span class="text-sky-300 font-semibold block">W: ₹${r.wholesalePrice.toFixed(2)}</span><span class="text-emerald-400 font-semibold block">R: ₹${r.retailPrice.toFixed(2)}</span></div>`;
 
         const stockValuationDisplay = `<span class="font-mono font-bold text-xs text-emerald-400">₹${r.wholesaleValuation.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
@@ -1249,9 +1237,8 @@ export function renderConsolidatedStockReport() {
             <tr class="border-t border-slate-800 hover:bg-slate-900/50 transition">
                 <td class="p-2.5 text-slate-500 font-mono text-xs">${i + 1}</td>
                 <td class="p-2.5">${catBadge}</td>
-                <td class="p-2.5 min-w-[200px]">
-                    <div class="font-bold text-slate-100 text-xs">${r.name || '—'}</div>
-                    ${variantsHtml}
+                <td class="p-2.5 min-w-[180px]">
+                    <span class="font-bold text-slate-100 text-xs">${r.name || '—'}</span>
                 </td>
                 <td class="p-2.5 text-right ${stockClass} text-xs font-mono font-bold">${r.stock}</td>
                 <td class="p-2.5 text-slate-300 text-xs font-semibold">${r.unit || '—'}</td>
