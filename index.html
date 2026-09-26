@@ -525,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.0.0';
+                var CURRENT_APP_VERSION = '51.0.1';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -549,7 +549,7 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.0.0) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.0.1) immediately.")) {
                     try {
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
@@ -856,7 +856,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.0.0</span>
+                    <span>v51.0.1</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -1532,10 +1532,10 @@
                     <div class="space-y-1.5 pt-1">
                         <div class="text-[10px] text-slate-400 font-bold uppercase">Time Period:</div>
                         <div class="flex items-center gap-1 flex-wrap">
-                            <button type="button" id="paPeriodBtn_all" onclick="setProductAnalysisPeriod('all')" class="px-3 py-1.5 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-sm transition">All Time</button>
-                            <button type="button" id="paPeriodBtn_today" onclick="setProductAnalysisPeriod('today')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">Today</button>
+                            <button type="button" id="paPeriodBtn_today" onclick="setProductAnalysisPeriod('today')" class="px-3 py-1.5 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-sm transition">Today</button>
                             <button type="button" id="paPeriodBtn_this_week" onclick="setProductAnalysisPeriod('this_week')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">This Week</button>
                             <button type="button" id="paPeriodBtn_this_month" onclick="setProductAnalysisPeriod('this_month')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">This Month</button>
+                            <button type="button" id="paPeriodBtn_all" onclick="setProductAnalysisPeriod('all')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">All Time</button>
                             <button type="button" id="paPeriodBtn_custom" onclick="setProductAnalysisPeriod('custom')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">Custom Range</button>
                         </div>
                     </div>
@@ -1552,27 +1552,55 @@
                         </div>
                     </div>
 
-                    <!-- Category & Sale Type Filters Bar -->
-                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
-                        <div class="flex items-center gap-1 flex-wrap">
-                            <button type="button" id="paCatBtn_all" onclick="setProductAnalysisCategory('all')" class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold text-[11px] shadow-sm transition">All Products</button>
-                            <button type="button" id="paCatBtn_cleaning" onclick="setProductAnalysisCategory('cleaning')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">🧹 Cleaning</button>
-                            <button type="button" id="paCatBtn_cosmetics" onclick="setProductAnalysisCategory('cosmetics')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">💄 Cosmetics</button>
+                    <!-- ================= PRODUCT SALES BREAKDOWN FOLDER (Collapsible) ================= -->
+                    <div id="productAnalysisFolderCard" class="bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-xs transition-all mt-2">
+                        <!-- Folder Header / Accordion Bar -->
+                        <div onclick="window.toggleProductAnalysisFolder()" role="button" tabindex="0" class="p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-800/80 transition select-none">
+                            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                                <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-base shrink-0 shadow-xs">
+                                    <span id="paFolderIcon">📁</span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <h3 class="font-extrabold text-slate-100 text-xs tracking-tight">Product Sales Breakdown (ഫോൾഡർ വ്യൂ)</h3>
+                                        <span id="paFolderCountBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">0 Products</span>
+                                    </div>
+                                    <p id="paFolderStatusText" class="text-[10px] text-slate-400 truncate">Tap to view / hide detailed product ranking list</p>
+                                </div>
+                            </div>
+                            <div class="shrink-0 flex items-center gap-1.5">
+                                <button type="button" id="paFolderToggleBtn" onclick="event.stopPropagation(); window.toggleProductAnalysisFolder();" class="bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1.5 rounded-xl border border-amber-500 text-xs font-bold shadow-md transition flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                                    <span id="paFolderBtnIcon">👁️</span> <span id="paFolderBtnText">View</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-1 flex-wrap">
-                            <button type="button" id="paSaleTypeBtn_all" onclick="setProductAnalysisSaleType('all')" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] shadow-sm transition">All Types</button>
-                            <button type="button" id="paSaleTypeBtn_retail" onclick="setProductAnalysisSaleType('retail')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">🛍️ Retail</button>
-                            <button type="button" id="paSaleTypeBtn_wholesale" onclick="setProductAnalysisSaleType('wholesale')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">🏷️ Wholesale</button>
+
+                        <!-- Collapsible Folder Content -->
+                        <div id="productAnalysisFolderContent" class="space-y-3 p-3 border-t border-slate-800/80 bg-slate-950/60 hidden">
+                            <!-- Category & Sale Type Filters Bar -->
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <button type="button" id="paCatBtn_all" onclick="setProductAnalysisCategory('all')" class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold text-[11px] shadow-sm transition">All Products</button>
+                                    <button type="button" id="paCatBtn_cleaning" onclick="setProductAnalysisCategory('cleaning')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">🧹 Cleaning</button>
+                                    <button type="button" id="paCatBtn_cosmetics" onclick="setProductAnalysisCategory('cosmetics')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">💄 Cosmetics</button>
+                                </div>
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <button type="button" id="paSaleTypeBtn_all" onclick="setProductAnalysisSaleType('all')" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] shadow-sm transition">All Types</button>
+                                    <button type="button" id="paSaleTypeBtn_retail" onclick="setProductAnalysisSaleType('retail')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">🛍️ Retail</button>
+                                    <button type="button" id="paSaleTypeBtn_wholesale" onclick="setProductAnalysisSaleType('wholesale')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[11px] hover:bg-slate-800 transition">🏷️ Wholesale</button>
+                                </div>
+                            </div>
+
+                            <!-- Live Search Input -->
+                            <div class="flex items-center gap-1.5">
+                                <input type="search" id="paSearchInput" oninput="onProductAnalysisSearch(this.value)" placeholder="🔍 Search product name..." class="flex-1 p-2 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-amber-500">
+                                <button type="button" onclick="window.toggleProductAnalysisFolder(false)" class="text-[11px] font-bold text-slate-400 hover:text-slate-200 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700 transition cursor-pointer shrink-0 whitespace-nowrap">📁 Fold</button>
+                            </div>
+
+                            <!-- Scrollable Product Analysis Container (max-h-[60vh]) -->
+                            <div id="productAnalysisContainer" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1"></div>
                         </div>
                     </div>
-
-                    <!-- Live Search Input -->
-                    <div>
-                        <input type="search" id="paSearchInput" oninput="onProductAnalysisSearch(this.value)" placeholder="🔍 Search product name..." class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-amber-500">
-                    </div>
-
-                    <!-- Product Analysis Container -->
-                    <div id="productAnalysisContainer" class="space-y-2 pt-1"></div>
                 </div>
             </div>
 
@@ -2833,7 +2861,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.0.0"></script>
+    <script type="module" src="./modules/app.js?v=51.0.1"></script>
 
     <!-- Minimalist Bottom Offline Indicator -->
     <div id="offlinePwaBanner" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-sky-300 border border-sky-700/60 px-4 py-1.5 rounded-full text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none">
@@ -2845,7 +2873,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.0.0) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.0.1) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -2899,7 +2927,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.0.0')
+                navigator.serviceWorker.register('./sw.js?v=51.0.1')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

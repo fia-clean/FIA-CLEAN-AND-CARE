@@ -7,8 +7,9 @@
 import { state, normalizeToDateKey, getTodayDateString, isCustItemDeleted, isItemDeleted } from '../core/state.js';
 import { pullFromFirebase } from '../core/db.js';
 import { normalizeCosSale } from './billing-history.js';
+import { getBillingUnitFactor } from './billing.js';
 
-export let productAnalysisPeriod = 'all'; // 'all', 'today', 'this_week', 'this_month', 'custom'
+export let productAnalysisPeriod = 'today'; // Defaults to 'today' (can toggle 'this_week', 'this_month', 'all', 'custom')
 export let productAnalysisCategory = 'all'; // 'all', 'cleaning', 'cosmetics'
 export let productAnalysisSaleType = 'all'; // 'all', 'wholesale', 'retail'
 export let productAnalysisSearchQuery = '';
@@ -170,22 +171,34 @@ export function getProductSalesAnalysisData() {
 
             if (productAnalysisCategory !== 'all' && productAnalysisCategory !== category.toLowerCase()) return;
 
+            const stockInfo = findStockInfo(name, category);
+            const baseUnit = stockInfo.unit || item.unit || item.unitType || (category === 'Cosmetics' ? 'Pcs' : 'Ltr');
+            const unitsCount = parseFloat(item.numberOfUnits || item.units || 1) || 1;
+
+            let qty = 0;
+            if (typeof item.stockDeductionQty === 'number' && !isNaN(item.stockDeductionQty) && item.stockDeductionQty > 0) {
+                qty = item.stockDeductionQty;
+            } else {
+                const rawQ = parseFloat(item.qty || item.quantity || 0) || 0;
+                const factor = getBillingUnitFactor(item.unitType || item.unit || baseUnit, baseUnit);
+                qty = rawQ > 0 ? (rawQ * factor * unitsCount) : unitsCount;
+            }
+
             const mapKey = `${category}_${name.toLowerCase()}`;
-            const qty = parseFloat(item.qty || item.quantity || 0) || 0;
             const rate = parseFloat(item.rate || item.price || 0) || 0;
             const total = parseFloat(item.total || (qty * rate) || 0) || 0;
-            const unit = item.unit || '';
+            const unit = baseUnit;
 
             if (!productMap[mapKey]) {
-                const stockInfo = findStockInfo(name, category);
                 productMap[mapKey] = {
                     name,
                     category,
                     qtySold: 0,
+                    unitsSold: 0,
                     totalRevenue: 0,
                     billCount: 0,
                     billNos: new Set(),
-                    unit: unit || stockInfo.unit,
+                    unit: unit,
                     currentStock: stockInfo.stock,
                     retailQty: 0,
                     wholesaleQty: 0
@@ -193,6 +206,7 @@ export function getProductSalesAnalysisData() {
             }
 
             productMap[mapKey].qtySold += qty;
+            productMap[mapKey].unitsSold += unitsCount;
             productMap[mapKey].totalRevenue += total;
             if (c.billNo) productMap[mapKey].billNos.add(String(c.billNo));
             if (billSaleType === 'wholesale') {
@@ -226,21 +240,33 @@ export function getProductSalesAnalysisData() {
 
             const name = String(rawName).trim();
             const mapKey = `${category}_${name.toLowerCase()}`;
-            const qty = parseFloat(item.qty || item.quantity || 0) || 0;
+            const stockInfo = findStockInfo(name, category);
+            const baseUnit = stockInfo.unit || item.unit || item.unitType || 'Pcs';
+            const unitsCount = parseFloat(item.numberOfUnits || item.units || 1) || 1;
+
+            let qty = 0;
+            if (typeof item.stockDeductionQty === 'number' && !isNaN(item.stockDeductionQty) && item.stockDeductionQty > 0) {
+                qty = item.stockDeductionQty;
+            } else {
+                const rawQ = parseFloat(item.qty || item.quantity || 0) || 0;
+                const factor = getBillingUnitFactor(item.unitType || item.unit || baseUnit, baseUnit);
+                qty = rawQ > 0 ? (rawQ * factor * unitsCount) : unitsCount;
+            }
+
             const rate = parseFloat(item.rate || item.price || 0) || 0;
             const total = parseFloat(item.total || (qty * rate) || 0) || 0;
-            const unit = item.unit || 'Pcs';
+            const unit = baseUnit;
 
             if (!productMap[mapKey]) {
-                const stockInfo = findStockInfo(name, category);
                 productMap[mapKey] = {
                     name,
                     category,
                     qtySold: 0,
+                    unitsSold: 0,
                     totalRevenue: 0,
                     billCount: 0,
                     billNos: new Set(),
-                    unit: unit || stockInfo.unit,
+                    unit: unit,
                     currentStock: stockInfo.stock,
                     retailQty: 0,
                     wholesaleQty: 0
@@ -248,6 +274,7 @@ export function getProductSalesAnalysisData() {
             }
 
             productMap[mapKey].qtySold += qty;
+            productMap[mapKey].unitsSold += unitsCount;
             productMap[mapKey].totalRevenue += total;
             const billNo = s.billNo || norm.billNo;
             if (billNo) productMap[mapKey].billNos.add(String(billNo));
@@ -311,7 +338,46 @@ export function renderProductSalesAnalysis() {
     if (kpiTotalRev) kpiTotalRev.textContent = '₹' + totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     if (kpiCount) kpiCount.textContent = allData.length + ' Products';
 
+    const folderBadge = document.getElementById('paFolderCountBadge');
+    if (folderBadge) folderBadge.textContent = allData.length + ' Products';
+
     renderProductSalesAnalysisListOnly(allData);
+}
+
+/**
+ * Toggle Collapsible Product Analysis Folder Card
+ */
+export function toggleProductAnalysisFolder(forceState) {
+    const content = document.getElementById('productAnalysisFolderContent');
+    const toggleBtn = document.getElementById('paFolderToggleBtn');
+    const btnIcon = document.getElementById('paFolderBtnIcon');
+    const btnText = document.getElementById('paFolderBtnText');
+    const statusText = document.getElementById('paFolderStatusText');
+    if (!content) return;
+
+    const isCurrentlyHidden = content.classList.contains('hidden');
+    const willOpen = (typeof forceState === 'boolean') ? forceState : isCurrentlyHidden;
+
+    if (willOpen) {
+        content.classList.remove('hidden');
+        if (btnIcon) btnIcon.textContent = '📁';
+        if (btnText) btnText.textContent = 'Close';
+        if (statusText) statusText.textContent = 'Showing product breakdown • Tap to fold';
+        if (toggleBtn) {
+            toggleBtn.className = 'bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-xl border border-slate-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer whitespace-nowrap';
+        }
+        setTimeout(() => {
+            document.getElementById('paSearchInput')?.focus();
+        }, 80);
+    } else {
+        content.classList.add('hidden');
+        if (btnIcon) btnIcon.textContent = '👁️';
+        if (btnText) btnText.textContent = 'View';
+        if (statusText) statusText.textContent = 'Tap to view / hide detailed product ranking list';
+        if (toggleBtn) {
+            toggleBtn.className = 'bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1.5 rounded-xl border border-amber-500 text-xs font-bold shadow-md transition flex items-center gap-1 cursor-pointer whitespace-nowrap';
+        }
+    }
 }
 
 /**
@@ -328,9 +394,16 @@ export function renderProductSalesAnalysisListOnly(providedData = null) {
         displayList = data.filter(p => p.name.toLowerCase().includes(productAnalysisSearchQuery) || p.category.toLowerCase().includes(productAnalysisSearchQuery));
     }
 
+    const folderBadge = document.getElementById('paFolderCountBadge');
+    if (folderBadge) {
+        folderBadge.textContent = productAnalysisSearchQuery 
+            ? `${displayList.length} of ${data.length} Products` 
+            : `${data.length} Products`;
+    }
+
     if (!displayList.length) {
         container.innerHTML = `
-            <div class="text-center py-10 bg-slate-900/40 rounded-2xl border border-slate-800 p-6 space-y-3">
+            <div class="text-center py-8 bg-slate-900/40 rounded-2xl border border-slate-800 p-6 space-y-3">
                 <span class="text-3xl">📦</span>
                 <p class="text-slate-400 font-bold text-xs">No product sales found for this period and filter selection.</p>
                 <button type="button" onclick="window.setProductAnalysisPeriod('all');window.setProductAnalysisCategory('all');window.setProductAnalysisSaleType('all');" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition">
@@ -365,6 +438,10 @@ export function renderProductSalesAnalysisListOnly(providedData = null) {
             </span>`;
         }
 
+        const unitsSoldNote = (p.unitsSold > 0 && p.unit !== 'Pcs' && p.unitsSold !== p.qtySold)
+            ? `<div class="text-[10px] text-slate-400 font-medium">(${p.unitsSold} units/bottles)</div>`
+            : '';
+
         return `
             <div class="bg-slate-900/80 hover:bg-slate-900 border border-slate-800 p-3.5 rounded-2xl transition space-y-2.5 shadow-sm">
                 <div class="flex items-start justify-between gap-3">
@@ -383,6 +460,7 @@ export function renderProductSalesAnalysisListOnly(providedData = null) {
                     </div>
                     <div class="text-right shrink-0">
                         <div class="text-base sm:text-lg font-black text-amber-300">${formatQty(p.qtySold)} <span class="text-xs font-semibold text-slate-400">${p.unit}</span></div>
+                        ${unitsSoldNote}
                         <div class="text-xs font-bold text-emerald-400 mt-0.5">₹${p.totalRevenue.toFixed(2)}</div>
                     </div>
                 </div>
@@ -482,6 +560,7 @@ if (typeof window !== 'undefined') {
     window.onProductAnalysisCustomDateChange = onProductAnalysisCustomDateChange;
     window.renderProductSalesAnalysis = renderProductSalesAnalysis;
     window.renderProductSalesAnalysisListOnly = renderProductSalesAnalysisListOnly;
+    window.toggleProductAnalysisFolder = toggleProductAnalysisFolder;
     window.shareProductAnalysisWhatsApp = shareProductAnalysisWhatsApp;
     window.refreshProductAnalysisFromCloud = refreshProductAnalysisFromCloud;
 }

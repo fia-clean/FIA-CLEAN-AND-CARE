@@ -120,6 +120,7 @@ import {
     setProductAnalysisSaleType,
     onProductAnalysisSearch,
     onProductAnalysisCustomDateChange,
+    toggleProductAnalysisFolder,
     shareProductAnalysisWhatsApp,
     refreshProductAnalysisFromCloud
 } from './billing/product-analysis.js';
@@ -383,6 +384,7 @@ if (typeof window !== 'undefined') {
     window.setProductAnalysisSaleType = setProductAnalysisSaleType;
     window.onProductAnalysisSearch = onProductAnalysisSearch;
     window.onProductAnalysisCustomDateChange = onProductAnalysisCustomDateChange;
+    window.toggleProductAnalysisFolder = toggleProductAnalysisFolder;
     window.shareProductAnalysisWhatsApp = shareProductAnalysisWhatsApp;
     window.refreshProductAnalysisFromCloud = refreshProductAnalysisFromCloud;
 }
