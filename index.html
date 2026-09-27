@@ -525,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.0.9';
+                var CURRENT_APP_VERSION = '51.1.0';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -552,9 +552,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.0.9) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.1.0) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.0.9');
+                        localStorage.setItem('fia_app_version', '51.1.0');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -860,7 +860,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.0.9</span>
+                    <span>v51.1.0</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -1642,7 +1642,7 @@
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-1.5 flex-wrap">
-                                        <h3 class="font-extrabold text-slate-100 text-xs tracking-tight">Product Sales Breakdown (ഫോൾഡർ വ്യൂ)</h3>
+                                        <h3 class="font-extrabold text-slate-100 text-xs tracking-tight">Product Sales Breakdown</h3>
                                         <span id="paFolderCountBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">0 Products</span>
                                     </div>
                                     <p id="paFolderStatusText" class="text-[10px] text-slate-400 truncate">Tap to view / hide detailed product ranking list</p>
@@ -1758,8 +1758,7 @@
                     <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 shadow-md space-y-2">
                         <div class="flex items-center justify-between">
                             <label class="text-xs text-slate-200 font-extrabold uppercase tracking-wide flex items-center gap-1.5">
-                                <span>⚡ Billing Pricing Mode</span>
-                                <span class="text-[10px] font-normal text-slate-400">(ബില്ലിംഗ് തരം)</span>
+                                <span>⚡ Pricing Mode</span>
                             </label>
                             <span id="billTypeBadge" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1 shadow-sm">🛍️ Retail Mode Active</span>
                         </div>
@@ -1770,20 +1769,18 @@
                         </div>
                         <!-- Large touch-friendly segmented cards for Counter Staff -->
                         <div class="grid grid-cols-2 gap-2">
-                            <button type="button" id="billSaleTypeRetailCard" onclick="selectBillSaleType('Retail')" class="relative flex flex-col items-center justify-center p-2.5 rounded-xl border-2 transition-all cursor-pointer bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-lg shadow-emerald-950/60 ring-1 ring-emerald-400/40">
+                            <button type="button" id="billSaleTypeRetailCard" onclick="selectBillSaleType('Retail')" class="relative flex items-center justify-center py-2.5 px-3 rounded-xl border-2 transition-all cursor-pointer bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-lg shadow-emerald-950/60 ring-1 ring-emerald-400/40">
                                 <div class="flex items-center gap-1.5 font-black text-sm">
                                     <span class="text-base">🛍️</span>
                                     <span>RETAIL</span>
                                 </div>
-                                <span class="text-[10px] font-semibold text-emerald-300/80">റീട്ടെയിൽ നിരക്ക്</span>
                                 <span id="billSaleTypeRetailCheck" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400"></span>
                             </button>
-                            <button type="button" id="billSaleTypeWholesaleCard" onclick="selectBillSaleType('Wholesale')" class="relative flex flex-col items-center justify-center p-2.5 rounded-xl border-2 transition-all cursor-pointer bg-slate-950/60 border-slate-800 text-slate-400 hover:border-amber-500/50 hover:text-amber-200">
+                            <button type="button" id="billSaleTypeWholesaleCard" onclick="selectBillSaleType('Wholesale')" class="relative flex items-center justify-center py-2.5 px-3 rounded-xl border-2 transition-all cursor-pointer bg-slate-950/60 border-slate-800 text-slate-400 hover:border-amber-500/50 hover:text-amber-200">
                                 <div class="flex items-center gap-1.5 font-black text-sm">
                                     <span class="text-base">🏷️</span>
                                     <span>WHOLESALE</span>
                                 </div>
-                                <span class="text-[10px] font-semibold text-slate-400">ഹോൾസെയിൽ നിരക്ക്</span>
                                 <span id="billSaleTypeWholesaleCheck" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400 shadow-sm shadow-amber-400"></span>
                             </button>
                         </div>
@@ -2992,7 +2989,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.0.9"></script>
+    <script type="module" src="./modules/app.js?v=51.1.0"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3007,7 +3004,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.0.9) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.1.0) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3061,7 +3058,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.0.9')
+                navigator.serviceWorker.register('./sw.js?v=51.1.0')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

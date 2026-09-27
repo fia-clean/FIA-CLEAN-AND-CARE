@@ -222,13 +222,13 @@ export function updateBillSaleTypeUI(saleType) {
 
     if (retailCard && wholesaleCard) {
         if (isWholesale) {
-            retailCard.className = 'relative flex flex-col items-center justify-center p-2.5 rounded-xl border-2 transition-all cursor-pointer bg-slate-950/60 border-slate-800 text-slate-400 hover:border-emerald-500/50 hover:text-emerald-200';
-            wholesaleCard.className = 'relative flex flex-col items-center justify-center p-2.5 rounded-xl border-2 transition-all cursor-pointer bg-amber-950/70 border-amber-500 text-amber-200 shadow-lg shadow-amber-950/60 ring-1 ring-amber-400/40';
+            retailCard.className = 'relative flex items-center justify-center py-2.5 px-3 rounded-xl border-2 transition-all cursor-pointer bg-slate-950/60 border-slate-800 text-slate-400 hover:border-emerald-500/50 hover:text-emerald-200';
+            wholesaleCard.className = 'relative flex items-center justify-center py-2.5 px-3 rounded-xl border-2 transition-all cursor-pointer bg-amber-950/70 border-amber-500 text-amber-200 shadow-lg shadow-amber-950/60 ring-1 ring-amber-400/40';
             if (retailCheck) retailCheck.classList.add('hidden');
             if (wholesaleCheck) wholesaleCheck.classList.remove('hidden');
         } else {
-            retailCard.className = 'relative flex flex-col items-center justify-center p-2.5 rounded-xl border-2 transition-all cursor-pointer bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-lg shadow-emerald-950/60 ring-1 ring-emerald-400/40';
-            wholesaleCard.className = 'relative flex flex-col items-center justify-center p-2.5 rounded-xl border-2 transition-all cursor-pointer bg-slate-950/60 border-slate-800 text-slate-400 hover:border-amber-500/50 hover:text-amber-200';
+            retailCard.className = 'relative flex items-center justify-center py-2.5 px-3 rounded-xl border-2 transition-all cursor-pointer bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-lg shadow-emerald-950/60 ring-1 ring-emerald-400/40';
+            wholesaleCard.className = 'relative flex items-center justify-center py-2.5 px-3 rounded-xl border-2 transition-all cursor-pointer bg-slate-950/60 border-slate-800 text-slate-400 hover:border-amber-500/50 hover:text-amber-200';
             if (retailCheck) retailCheck.classList.remove('hidden');
             if (wholesaleCheck) wholesaleCheck.classList.add('hidden');
         }
