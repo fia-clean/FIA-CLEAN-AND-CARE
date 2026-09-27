@@ -525,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.1.1';
+                var CURRENT_APP_VERSION = '51.1.0';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -552,9 +552,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.1.1) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.1.0) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.1.1');
+                        localStorage.setItem('fia_app_version', '51.1.0');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -860,7 +860,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.1.1</span>
+                    <span>v51.1.0</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -1193,8 +1193,8 @@
                                 <div><label class="text-[10px] text-slate-400 block mb-1">Package Qty:</label><input type="number" id="prodPackageQty" value="1" min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"></div>
                             </div>
                             <div class="grid grid-cols-2 gap-2">
-                                <div><label class="text-[10px] text-slate-400 block mb-1">Wholesale (₹):</label><input type="number" id="prodWholesalePrice" placeholder="Wholesale" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div>
-                                <div><label class="text-[10px] text-slate-400 block mb-1">Retail (₹):</label><input type="number" id="prodRetailPrice" placeholder="Retail" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div>
+                                <div><label class="text-[10px] text-slate-400 block mb-1">Wholesale Price (₹):</label><input type="number" id="prodWholesalePrice" placeholder="Wholesale Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div>
+                                <div><label class="text-[10px] text-slate-400 block mb-1">Retail Price (₹):</label><input type="number" id="prodRetailPrice" placeholder="Retail Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div>
                             </div>
                             <!-- Multi-Variant Pack Sizes & Custom Rates -->
                             <div class="p-3 bg-slate-900/90 border border-emerald-500/40 rounded-xl space-y-2.5">
@@ -1322,7 +1322,7 @@
                 <div id="cosStockAddContent">
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-pink-800/40 shadow-inner">
                         <div class="flex justify-between items-center mb-3"><h2 id="cosStockFormTitle" class="font-bold text-pink-400 text-sm">Add Cosmetic Product</h2><button type="button" onclick="openBarcodeScannerForCosmeticStock()" class="bg-slate-800 text-pink-300 border border-slate-700 px-2.5 py-1 rounded-lg text-[11px] font-bold">📷 Scan Barcode</button></div>
-                        <form id="cosProductForm" class="space-y-3" onsubmit="saveCosProduct(event)"><input type="hidden" id="cosProdId" value=""><input type="text" id="cosProdName" placeholder="Product Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><input type="text" id="cosProdBarcode" placeholder="Barcode / QR Number (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><div class="flex gap-2"><input type="number" id="cosProdStock" placeholder="Stock Qty" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"><select id="cosProdUnit" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">Select Unit</option><option value="Ltr">Litre (Ltr)</option><option value="Kg">Kilogram (Kg)</option><option value="Gram">Gram (g)</option><option value="ml">Millilitre (ml)</option><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option></select></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Package Used per Selling Unit:</label><select id="cosProdPackageId" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">No Package Mapping</option></select></div><div><label class="text-[10px] text-slate-400 block mb-1">Package Qty:</label><input type="number" id="cosProdPackageQty" value="1" min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"></div></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Wholesale (₹):</label><input type="number" id="cosProdCostPrice" placeholder="Wholesale" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div><div><label class="text-[10px] text-slate-400 block mb-1">Retail (₹):</label><input type="number" id="cosProdSalePrice" placeholder="Retail" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div></div>
+                        <form id="cosProductForm" class="space-y-3" onsubmit="saveCosProduct(event)"><input type="hidden" id="cosProdId" value=""><input type="text" id="cosProdName" placeholder="Product Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><input type="text" id="cosProdBarcode" placeholder="Barcode / QR Number (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><div class="flex gap-2"><input type="number" id="cosProdStock" placeholder="Stock Qty" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"><select id="cosProdUnit" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">Select Unit</option><option value="Ltr">Litre (Ltr)</option><option value="Kg">Kilogram (Kg)</option><option value="Gram">Gram (g)</option><option value="ml">Millilitre (ml)</option><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option></select></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Package Used per Selling Unit:</label><select id="cosProdPackageId" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">No Package Mapping</option></select></div><div><label class="text-[10px] text-slate-400 block mb-1">Package Qty:</label><input type="number" id="cosProdPackageQty" value="1" min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"></div></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Wholesale Price (₹):</label><input type="number" id="cosProdCostPrice" placeholder="Wholesale Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div><div><label class="text-[10px] text-slate-400 block mb-1">Retail Price (₹):</label><input type="number" id="cosProdSalePrice" placeholder="Retail Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div></div>
 <!-- Multi-Variant Pack Sizes & Custom Rates for Cosmetics -->
 <div class="p-3 bg-slate-900/90 border border-pink-500/40 rounded-xl space-y-2.5">
     <div class="flex items-center justify-between gap-2">
@@ -2989,7 +2989,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.1.1"></script>
+    <script type="module" src="./modules/app.js?v=51.1.0"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3004,7 +3004,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.1.1) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.1.0) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3058,7 +3058,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.1.1')
+                navigator.serviceWorker.register('./sw.js?v=51.1.0')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

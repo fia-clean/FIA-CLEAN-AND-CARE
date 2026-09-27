@@ -417,7 +417,7 @@ export const CosmeticsBilling: React.FC<CosmeticsBillingProps> = ({
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  Retail
+                  Retail Sale Price
                 </button>
                 <button
                   type="button"
@@ -428,7 +428,7 @@ export const CosmeticsBilling: React.FC<CosmeticsBillingProps> = ({
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  Wholesale
+                  Wholesale Price
                 </button>
               </div>
             </div>
