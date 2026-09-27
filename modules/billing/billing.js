@@ -281,7 +281,7 @@ export function saveCurrentEnteredRateAsDefault() {
         const targetName = variantObj ? `${product?.name || opt.value} (${variantObj.name || variantObj.size})` : (product?.name || opt.value);
         notice.innerHTML = `
             <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-emerald-950/70 border border-emerald-500/60 text-emerald-300 font-bold text-[11px]">
-                <span>✅ Saved ₹${enteredRate.toFixed(2)} as default wholesale rate for "${targetName}"!</span>
+                <span>✅ Saved ₹${enteredRate.toFixed(2)} as default wholesale for "${targetName}"!</span>
             </div>
         `;
         setTimeout(() => {
@@ -308,8 +308,8 @@ export function quickSaveProductRate(productName, targetSaleType = 'Wholesale', 
     if (enteredRate === null || enteredRate === undefined || isNaN(Number(enteredRate))) {
         const defaultVal = isWholesale ? (currentWholesale > 0 ? currentWholesale : currentRetail) : currentRetail;
         const promptMsg = isWholesale 
-            ? `Set Wholesale Price for "${product.name}" (Current Retail is ₹${currentRetail.toFixed(2)}):`
-            : `Set Retail Price for "${product.name}":`;
+            ? `Set Wholesale for "${product.name}" (Current Retail is ₹${currentRetail.toFixed(2)}):`
+            : `Set Retail for "${product.name}":`;
         const input = prompt(promptMsg, defaultVal > 0 ? String(defaultVal) : '');
         if (input === null) return;
         enteredRate = parseFloat(input);
@@ -463,11 +463,11 @@ export function updateBillRateNotice(saleType, product, baseRate, variantObj = n
                             <span class="text-slate-400 text-[10px] font-normal">(Using Retail ₹${rPrice.toFixed(2)})</span>
                         </div>
                         <div class="flex items-center gap-1">
-                            <button type="button" onclick="saveCurrentEnteredRateAsDefault()" class="px-2 py-0.5 rounded-md bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-extrabold text-[10px] shadow transition flex items-center gap-1 cursor-pointer" title="Save price entered in box as permanent default wholesale rate">
+                            <button type="button" onclick="saveCurrentEnteredRateAsDefault()" class="px-2 py-0.5 rounded-md bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-extrabold text-[10px] shadow transition flex items-center gap-1 cursor-pointer" title="Save price entered in box as permanent default wholesale">
                                 💾 Save as Default
                             </button>
-                            <button type="button" onclick="quickSaveProductRate('${safeName}', 'Wholesale')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-bold text-[10px] transition cursor-pointer" title="Set default wholesale rate via prompt">
-                                ⚙️ Set Rate
+                            <button type="button" onclick="quickSaveProductRate('${safeName}', 'Wholesale')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-bold text-[10px] transition cursor-pointer" title="Set default wholesale via prompt">
+                                ⚙️ Set Wholesale
                             </button>
                         </div>
                     </div>`;
@@ -479,10 +479,10 @@ export function updateBillRateNotice(saleType, product, baseRate, variantObj = n
                             <span class="text-slate-400 text-[10px] font-normal">(Retail: ₹${rPrice.toFixed(2)})</span>
                         </div>
                         <div class="flex items-center gap-1">
-                            <button type="button" onclick="saveCurrentEnteredRateAsDefault()" class="px-2 py-0.5 rounded-md bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-extrabold text-[10px] shadow transition flex items-center gap-1 cursor-pointer" title="Save price entered in box as new default wholesale rate">
+                            <button type="button" onclick="saveCurrentEnteredRateAsDefault()" class="px-2 py-0.5 rounded-md bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-extrabold text-[10px] shadow transition flex items-center gap-1 cursor-pointer" title="Save price entered in box as new default wholesale">
                                 💾 Save as Default
                             </button>
-                            <button type="button" onclick="quickSaveProductRate('${safeName}', 'Wholesale')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-bold text-[10px] transition cursor-pointer" title="Change default wholesale rate via prompt">
+                            <button type="button" onclick="quickSaveProductRate('${safeName}', 'Wholesale')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-bold text-[10px] transition cursor-pointer" title="Change default wholesale via prompt">
                                 ✏️ Change
                             </button>
                         </div>
@@ -491,7 +491,7 @@ export function updateBillRateNotice(saleType, product, baseRate, variantObj = n
         } else {
             notice.innerHTML = `
                 <div class="flex flex-wrap items-center justify-between gap-1 text-[11px] px-0.5">
-                    <span class="text-emerald-300 font-bold">🛍️ Retail Rate Applied: ₹${Number(baseRate||0).toFixed(2)} <span class="text-slate-400 text-[10px] font-normal">(Wholesale: ₹${wPrice.toFixed(2)})</span></span>
+                    <span class="text-emerald-300 font-bold">🛍️ Retail: ₹${Number(baseRate||0).toFixed(2)} <span class="text-slate-400 text-[10px] font-normal">(Wholesale: ₹${wPrice.toFixed(2)})</span></span>
                 </div>`;
         }
     }

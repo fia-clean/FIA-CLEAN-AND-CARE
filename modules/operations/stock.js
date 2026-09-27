@@ -91,12 +91,12 @@ export function addProductVariantRow(target = 'cleaning', data = null) {
         </div>
         <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
             <div>
-                <label class="text-[10px] text-emerald-400 block mb-0.5 font-extrabold">Retail Price (₹):</label>
-                <input type="number" class="var-retail w-full p-2 bg-slate-900 border border-emerald-600/70 rounded-xl text-xs text-emerald-300 font-black focus:outline-none focus:border-emerald-400" placeholder="Enter Retail Price" value="${v.retailPrice !== undefined && v.retailPrice !== '' ? v.retailPrice : ''}" min="0" step="any">
+                <label class="text-[10px] text-emerald-400 block mb-0.5 font-extrabold">Retail (₹):</label>
+                <input type="number" class="var-retail w-full p-2 bg-slate-900 border border-emerald-600/70 rounded-xl text-xs text-emerald-300 font-black focus:outline-none focus:border-emerald-400" placeholder="Retail" value="${v.retailPrice !== undefined && v.retailPrice !== '' ? v.retailPrice : ''}" min="0" step="any">
             </div>
             <div>
-                <label class="text-[10px] text-amber-400 block mb-0.5 font-extrabold">Wholesale Price (₹):</label>
-                <input type="number" class="var-wholesale w-full p-2 bg-slate-900 border border-amber-600/70 rounded-xl text-xs text-amber-300 font-black focus:outline-none focus:border-amber-400" placeholder="Enter Wholesale Price" value="${v.wholesalePrice !== undefined && v.wholesalePrice !== '' ? v.wholesalePrice : ''}" min="0" step="any">
+                <label class="text-[10px] text-amber-400 block mb-0.5 font-extrabold">Wholesale (₹):</label>
+                <input type="number" class="var-wholesale w-full p-2 bg-slate-900 border border-amber-600/70 rounded-xl text-xs text-amber-300 font-black focus:outline-none focus:border-amber-400" placeholder="Wholesale" value="${v.wholesalePrice !== undefined && v.wholesalePrice !== '' ? v.wholesalePrice : ''}" min="0" step="any">
             </div>
         </div>`;
     container.appendChild(row);
@@ -750,7 +750,7 @@ export function renderProducts() {
         const hasCustomWholesale = (p.wholesalePrice !== undefined && p.wholesalePrice !== null && p.wholesalePrice !== '' && !isNaN(Number(p.wholesalePrice)));
         const wBadge = hasCustomWholesale
             ? `<span class="text-sky-300 font-semibold">W: ₹${Number(p.wholesalePrice).toFixed(2)}</span>`
-            : `<span class="text-slate-400 italic text-[10px]" title="Wholesale rate not explicitly set, defaulting to Retail rate">W: ₹${wPrice.toFixed(2)}</span>`;
+            : `<span class="text-slate-400 italic text-[10px]" title="Wholesale not explicitly set, defaulting to Retail">W: ₹${wPrice.toFixed(2)}</span>`;
         const rBadge = `<span class="text-emerald-400 font-semibold">R: ₹${rPrice.toFixed(2)}</span>`;
         container.innerHTML += `
             <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 text-xs">

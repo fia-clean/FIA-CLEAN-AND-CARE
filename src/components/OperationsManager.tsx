@@ -906,7 +906,7 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">Wholesale Rate (₹)</label>
+                        <label className="text-xs font-bold text-slate-700">Wholesale (₹)</label>
                         <input
                           type="number"
                           value={cleanWholesale || ''}
@@ -917,7 +917,7 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">Retail Rate (₹)</label>
+                        <label className="text-xs font-bold text-slate-700">Retail (₹)</label>
                         <input
                           type="number"
                           value={cleanRetail || ''}
@@ -2711,7 +2711,7 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700">
-                    {editingStockItem.type === 'cleaning' ? 'Wholesale Price (₹)' : 'Cost Price (₹)'}
+                    {editingStockItem.type === 'cleaning' ? 'Wholesale (₹)' : 'Cost Price (₹)'}
                   </label>
                   <input
                     type="number"
@@ -2730,7 +2730,7 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700">
-                    {editingStockItem.type === 'cleaning' ? 'Retail Price (₹)' : 'Sale Price (₹)'}
+                    {editingStockItem.type === 'cleaning' ? 'Retail (₹)' : 'Sale Price (₹)'}
                   </label>
                   <input
                     type="number"
@@ -3194,13 +3194,13 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
               <div className="grid grid-cols-2 gap-3 p-3 bg-indigo-50/40 border border-indigo-100 rounded-lg font-mono">
                 <div>
                   <span className="text-[10px] text-slate-500 font-bold uppercase block">
-                    {viewingStockItem.type === 'cleaning' ? 'Wholesale Rate' : 'Cost Price'}
+                    {viewingStockItem.type === 'cleaning' ? 'Wholesale' : 'Cost Price'}
                   </span>
                   <span className="text-sm font-bold text-slate-800">{formatCurrency(viewingStockItem.price1)}</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 font-bold uppercase block">
-                    {viewingStockItem.type === 'cleaning' ? 'Retail Rate' : 'Sale Price'}
+                    {viewingStockItem.type === 'cleaning' ? 'Retail' : 'Sale Price'}
                   </span>
                   <span className="text-sm font-bold text-indigo-700">{formatCurrency(viewingStockItem.price2)}</span>
                 </div>
