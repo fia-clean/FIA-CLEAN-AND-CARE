@@ -61,6 +61,7 @@ import {
     openDueAmountList,
     closeDueAmountList,
     renderDueAmountList,
+    getDueCustomerName,
     deleteDueBillFromList,
     openLowStockList,
     closeLowStockList,

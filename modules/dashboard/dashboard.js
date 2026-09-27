@@ -137,6 +137,60 @@ export function closeDueAmountList(skipHistory = false) {
     if (!skipHistory && history.state && history.state.modal === 'dueAmount') history.back();
 }
 
+export function getDueCustomerName(c) {
+    if (!c) return 'Customer';
+    const isGeneric = (str) => !str || ['customer', 'walk-in', 'walk in', 'walk-in customer', 'cosmetics'].includes(String(str).trim().toLowerCase());
+
+    // 1. Direct name from record
+    if (!isGeneric(c.name)) {
+        return String(c.name).trim().toUpperCase();
+    }
+    // 2. Alternate field names (customer, customerName, clientName)
+    const alt = c.customer || c.customerName || c.clientName;
+    if (!isGeneric(alt)) {
+        return String(alt).trim().toUpperCase();
+    }
+    // 3. Lookup by phone in customer profiles / bills
+    const cleanPhone = String(c.phone || '').replace(/\D/g, '');
+    if (cleanPhone && Array.isArray(state.customers)) {
+        const matched = state.customers.find(p => {
+            if (!p) return false;
+            const pPhone = String(p.phone || '').replace(/\D/g, '');
+            if (pPhone !== cleanPhone) return false;
+            const pName = p.name || p.customer || p.customerName;
+            return !isGeneric(pName);
+        });
+        if (matched) {
+            return String(matched.name || matched.customer || matched.customerName).trim().toUpperCase();
+        }
+    }
+    // 4. Lookup by phone in cosSales
+    if (cleanPhone && Array.isArray(state.cosSales)) {
+        const matchedCos = state.cosSales.find(s => {
+            if (!s) return false;
+            const sPhone = String(s.phone || '').replace(/\D/g, '');
+            if (sPhone !== cleanPhone) return false;
+            const sName = s.customer || s.name;
+            return !isGeneric(sName);
+        });
+        if (matchedCos) {
+            return String(matchedCos.customer || matchedCos.name).trim().toUpperCase();
+        }
+    }
+    // 5. Lookup by billNo if available
+    if (c.billNo && Array.isArray(state.customers)) {
+        const matchedBill = state.customers.find(p => {
+            if (!p || p.billNo !== c.billNo) return false;
+            const pName = p.name || p.customer;
+            return !isGeneric(pName);
+        });
+        if (matchedBill) {
+            return String(matchedBill.name || matchedBill.customer).trim().toUpperCase();
+        }
+    }
+    return String(c.name || c.customer || 'Customer').trim().toUpperCase() || 'Customer';
+}
+
 export function renderDueAmountList() {
     const container = document.getElementById('dueAmountListContainer');
     const totalEl = document.getElementById('dueAmountListTotal');
@@ -156,12 +210,22 @@ export function renderDueAmountList() {
         container.innerHTML = '<div class="text-center text-slate-500 text-xs py-8">No pending due amounts.</div>';
         return;
     }
-    container.innerHTML = dueRows.map(({ c, index, due }) => `
+    container.innerHTML = dueRows.map(({ c, index, due }) => {
+        const custName = getDueCustomerName(c);
+        const phoneText = c.phone && String(c.phone).trim() ? String(c.phone).trim() : 'No mobile';
+        const dateText = formatDateDDMMYYYY(c.date) || 'No date';
+
+        return `
         <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
             <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0">
-                    <p class="font-bold text-white text-sm truncate">${c.name || 'Customer'}</p>
-                    <p class="text-[10px] text-slate-400 mt-0.5">${c.phone || 'No mobile'} • ${formatDateDDMMYYYY(c.date)}</p>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <p class="font-bold text-white text-sm truncate">${custName}</p>
+                        ${c.billNo ? `<span class="text-[10px] font-mono text-sky-400 bg-sky-950/80 px-1.5 py-0.5 rounded border border-sky-800/60">#${c.billNo}</span>` : ''}
+                    </div>
+                    <p class="text-[11px] text-slate-300 mt-1 leading-snug break-words">
+                        <span class="font-bold text-slate-100">${custName}</span> • <span class="text-slate-300 font-mono">📞 ${phoneText}</span> • <span class="text-slate-400 font-mono">📅 ${dateText}</span>
+                    </p>
                 </div>
                 <div class="text-right shrink-0">
                     <p class="font-extrabold text-rose-300 text-sm">${money(due)}</p>
@@ -173,7 +237,8 @@ export function renderDueAmountList() {
                 <button type="button" onclick="window.closeDueAmountList(true); if(history.state) history.replaceState({ loggedIn: true, tab: 'billing' }, '', '#billing'); window.editCustomerBill('${c.billNo || c.id || index}');" class="bg-slate-800 text-emerald-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Edit</button>
                 <button type="button" onclick="window.deleteDueBillFromList('${c.billNo || c.id || index}')" class="bg-slate-800 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Delete</button>
             </div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 
 export function deleteDueBillFromList(identifier) {
@@ -348,4 +413,5 @@ if (typeof window !== 'undefined') {
     window.closeLowStockList = closeLowStockList;
     window.goToAddStockFromLowStock = goToAddStockFromLowStock;
     window.checkLowStockAlerts = checkLowStockAlerts;
+    window.getDueCustomerName = getDueCustomerName;
 }
