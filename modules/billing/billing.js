@@ -8,7 +8,8 @@ import {
     isCustItemDeleted,
     getTodayDateString,
     toTitleCase,
-    generateUniqueRecordId
+    generateUniqueRecordId,
+    saveLocalStateSafely
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
 import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName, formatInvoiceItemQty } from './invoice-preview.js';
@@ -27,11 +28,21 @@ export function getProductWholesalePrice(p) {
     const p1 = parseFloat(p.price1 || p.purchasePrice);
     if (Number.isFinite(p1) && p1 > 0) return p1;
     if (Array.isArray(p.variants) && p.variants.length > 0) {
-        const vW = p.variants.find(v => {
+        const pUnit = String(p.unit || '').toLowerCase().trim();
+        for (const v of p.variants) {
             const val = parseFloat(v.wholesalePrice || v.costPrice);
-            return Number.isFinite(val) && val > 0;
-        });
-        if (vW) return parseFloat(vW.wholesalePrice || vW.costPrice);
+            if (Number.isFinite(val) && val > 0) {
+                const vUnit = String(v.unit || '').toLowerCase().trim();
+                const vSize = parseFloat(v.size) || 0;
+                if (['l', 'ltr', 'litre'].includes(pUnit) && ['ml', 'millilitre'].includes(vUnit) && vSize > 0) {
+                    return Math.round((val * (1000 / vSize)) * 100) / 100;
+                }
+                if (['kg', 'kilogram'].includes(pUnit) && ['g', 'gm', 'gram'].includes(vUnit) && vSize > 0) {
+                    return Math.round((val * (1000 / vSize)) * 100) / 100;
+                }
+                if (p.variants.length === 1) return val;
+            }
+        }
     }
     // Look up last wholesale bill in history for this product
     try {
@@ -47,7 +58,10 @@ export function getProductWholesalePrice(p) {
             const matchedItem = items.find(it => it && (it.productName === p.name || it.name === p.name) && Number(it.rate || it.price) > 0);
             if (matchedItem) {
                 const histRate = parseFloat(matchedItem.rate || matchedItem.price);
-                if (Number.isFinite(histRate) && histRate > 0) return histRate;
+                const retRate = getProductRetailPrice(p);
+                if (Number.isFinite(histRate) && histRate > 0 && (retRate <= 0 || histRate < retRate)) {
+                    return histRate;
+                }
             }
         }
     } catch (e) {}
@@ -64,8 +78,21 @@ export function getProductRetailPrice(p) {
     const p2 = parseFloat(p.price2 || p.sellingPrice || p.price);
     if (Number.isFinite(p2) && p2 > 0) return p2;
     if (Array.isArray(p.variants) && p.variants.length > 0) {
-        const vR = parseFloat(p.variants[0].retailPrice || p.variants[0].salePrice);
-        if (Number.isFinite(vR) && vR > 0) return vR;
+        const pUnit = String(p.unit || '').toLowerCase().trim();
+        for (const v of p.variants) {
+            const vR = parseFloat(v.retailPrice || v.salePrice);
+            if (Number.isFinite(vR) && vR > 0) {
+                const vUnit = String(v.unit || '').toLowerCase().trim();
+                const vSize = parseFloat(v.size) || 0;
+                if (['l', 'ltr', 'litre'].includes(pUnit) && ['ml', 'millilitre'].includes(vUnit) && vSize > 0) {
+                    return Math.round((vR * (1000 / vSize)) * 100) / 100;
+                }
+                if (['kg', 'kilogram'].includes(pUnit) && ['g', 'gm', 'gram'].includes(vUnit) && vSize > 0) {
+                    return Math.round((vR * (1000 / vSize)) * 100) / 100;
+                }
+                if (p.variants.length === 1) return vR;
+            }
+        }
     }
     const w = parseFloat(p.wholesalePrice || p.costPrice);
     if (Number.isFinite(w) && w > 0) return w;
@@ -79,27 +106,29 @@ export function getVariantWholesalePrice(v, product) {
     const c = parseFloat(v.costPrice);
     if (Number.isFinite(c) && c > 0) return c;
     if (product) {
-        const baseWholesale = getProductWholesalePrice(product);
+        const baseWholesale = parseFloat(product.wholesalePrice) || getProductWholesalePrice(product);
         const baseRetail = getProductRetailPrice(product);
         const vRetail = getVariantRetailPrice(v, null);
         const pUnit = String(product.unit || '').toLowerCase().trim();
         const vUnit = String(v.unit || '').toLowerCase().trim();
         const vSize = parseFloat(v.size) || 0;
 
-        if (baseWholesale > 0 && vSize > 0) {
-            if (['l', 'ltr', 'litre', 'liter'].includes(pUnit)) {
-                if (['ml', 'millilitre'].includes(vUnit)) return Math.round((baseWholesale * (vSize / 1000)) * 100) / 100;
-                if (['l', 'ltr', 'litre', 'liter'].includes(vUnit)) return Math.round((baseWholesale * vSize) * 100) / 100;
+        if (Number.isFinite(baseWholesale) && baseWholesale > 0) {
+            if (vSize > 0) {
+                if (['l', 'ltr', 'litre', 'liter'].includes(pUnit)) {
+                    if (['ml', 'millilitre'].includes(vUnit)) return Math.round((baseWholesale * (vSize / 1000)) * 100) / 100;
+                    if (['l', 'ltr', 'litre', 'liter'].includes(vUnit)) return Math.round((baseWholesale * vSize) * 100) / 100;
+                }
+                if (['kg', 'kilogram'].includes(pUnit)) {
+                    if (['g', 'gm', 'gram'].includes(vUnit)) return Math.round((baseWholesale * (vSize / 1000)) * 100) / 100;
+                    if (['kg', 'kilogram'].includes(vUnit)) return Math.round((baseWholesale * vSize) * 100) / 100;
+                }
             }
-            if (['kg', 'kilogram'].includes(pUnit)) {
-                if (['g', 'gm', 'gram'].includes(vUnit)) return Math.round((baseWholesale * (vSize / 1000)) * 100) / 100;
-                if (['kg', 'kilogram'].includes(vUnit)) return Math.round((baseWholesale * vSize) * 100) / 100;
+            if (baseRetail > 0 && baseWholesale < baseRetail && vRetail > 0) {
+                return Math.round((vRetail * (baseWholesale / baseRetail)) * 100) / 100;
             }
+            return baseWholesale;
         }
-        if (baseRetail > 0 && baseWholesale > 0 && baseWholesale < baseRetail && vRetail > 0) {
-            return Math.round((vRetail * (baseWholesale / baseRetail)) * 100) / 100;
-        }
-        if (baseWholesale > 0) return baseWholesale;
     }
     return getVariantRetailPrice(v, product);
 }
@@ -108,10 +137,23 @@ export function getVariantRetailPrice(v, product) {
     if (!v) return 0;
     const r = parseFloat(v.retailPrice);
     if (Number.isFinite(r) && r > 0) return r;
-    const s = parseFloat(v.salePrice);
+    const s = parseFloat(v.salePrice || v.price);
     if (Number.isFinite(s) && s > 0) return s;
     if (product) {
         const baseRetail = getProductRetailPrice(product);
+        const pUnit = String(product.unit || '').toLowerCase().trim();
+        const vUnit = String(v.unit || '').toLowerCase().trim();
+        const vSize = parseFloat(v.size) || 0;
+        if (Number.isFinite(baseRetail) && baseRetail > 0 && vSize > 0) {
+            if (['l', 'ltr', 'litre', 'liter'].includes(pUnit)) {
+                if (['ml', 'millilitre'].includes(vUnit)) return Math.round((baseRetail * (vSize / 1000)) * 100) / 100;
+                if (['l', 'ltr', 'litre', 'liter'].includes(vUnit)) return Math.round((baseRetail * vSize) * 100) / 100;
+            }
+            if (['kg', 'kilogram'].includes(pUnit)) {
+                if (['g', 'gm', 'gram'].includes(vUnit)) return Math.round((baseRetail * (vSize / 1000)) * 100) / 100;
+                if (['kg', 'kilogram'].includes(vUnit)) return Math.round((baseRetail * vSize) * 100) / 100;
+            }
+        }
         if (baseRetail > 0) return baseRetail;
     }
     return 0;
@@ -155,17 +197,57 @@ export function findUnifiedProduct(productName) {
     return null;
 }
 
+export function selectBillSaleType(saleType) {
+    const isWholesale = String(saleType || '').toLowerCase() === 'wholesale';
+    const chosenType = isWholesale ? 'Wholesale' : 'Retail';
+    const retailRadio = document.getElementById('billSaleTypeRetail');
+    const wholesaleRadio = document.getElementById('billSaleTypeWholesale');
+    if (isWholesale) {
+        if (wholesaleRadio) wholesaleRadio.checked = true;
+        if (retailRadio) retailRadio.checked = false;
+    } else {
+        if (retailRadio) retailRadio.checked = true;
+        if (wholesaleRadio) wholesaleRadio.checked = false;
+    }
+    updateBillTypeBadge(chosenType);
+    onSaleTypeChange(chosenType);
+}
+
+export function updateBillSaleTypeUI(saleType) {
+    const isWholesale = String(saleType || '').toLowerCase() === 'wholesale';
+    const retailCard = document.getElementById('billSaleTypeRetailCard');
+    const wholesaleCard = document.getElementById('billSaleTypeWholesaleCard');
+    const retailCheck = document.getElementById('billSaleTypeRetailCheck');
+    const wholesaleCheck = document.getElementById('billSaleTypeWholesaleCheck');
+
+    if (retailCard && wholesaleCard) {
+        if (isWholesale) {
+            retailCard.className = 'relative flex flex-col items-center justify-center p-2.5 rounded-xl border-2 transition-all cursor-pointer bg-slate-950/60 border-slate-800 text-slate-400 hover:border-emerald-500/50 hover:text-emerald-200';
+            wholesaleCard.className = 'relative flex flex-col items-center justify-center p-2.5 rounded-xl border-2 transition-all cursor-pointer bg-amber-950/70 border-amber-500 text-amber-200 shadow-lg shadow-amber-950/60 ring-1 ring-amber-400/40';
+            if (retailCheck) retailCheck.classList.add('hidden');
+            if (wholesaleCheck) wholesaleCheck.classList.remove('hidden');
+        } else {
+            retailCard.className = 'relative flex flex-col items-center justify-center p-2.5 rounded-xl border-2 transition-all cursor-pointer bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-lg shadow-emerald-950/60 ring-1 ring-emerald-400/40';
+            wholesaleCard.className = 'relative flex flex-col items-center justify-center p-2.5 rounded-xl border-2 transition-all cursor-pointer bg-slate-950/60 border-slate-800 text-slate-400 hover:border-amber-500/50 hover:text-amber-200';
+            if (retailCheck) retailCheck.classList.remove('hidden');
+            if (wholesaleCheck) wholesaleCheck.classList.add('hidden');
+        }
+    }
+}
+
 export function updateBillTypeBadge(saleType) {
     const badge = document.getElementById('billTypeBadge');
-    if (!badge) return;
     const isWholesale = String(saleType || '').toLowerCase() === 'wholesale';
-    if (isWholesale) {
-        badge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1';
-        badge.innerHTML = '🏷️ Wholesale Mode Active';
-    } else {
-        badge.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1';
-        badge.innerHTML = '🛍️ Retail Mode Active';
+    if (badge) {
+        if (isWholesale) {
+            badge.className = 'text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1 shadow-sm';
+            badge.innerHTML = '🏷️ Wholesale Mode Active';
+        } else {
+            badge.className = 'text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1 shadow-sm';
+            badge.innerHTML = '🛍️ Retail Mode Active';
+        }
     }
+    updateBillSaleTypeUI(isWholesale ? 'Wholesale' : 'Retail');
 }
 
 export function saveCurrentEnteredRateAsDefault() {
@@ -259,16 +341,57 @@ export function quickSaveProductRate(productName, targetSaleType = 'Wholesale', 
                 }
                 variantFound = true;
                 targetVariant = variant;
+
+                // Also calculate & update parent item's wholesalePrice if applicable
+                const pUnit = String(item.unit || '').toLowerCase().trim();
+                const vUnit = String(variant.unit || '').toLowerCase().trim();
+                const vSize = parseFloat(variant.size) || 0;
+                if (isWholesale) {
+                    if (['l', 'ltr', 'litre'].includes(pUnit) && ['ml', 'millilitre'].includes(vUnit) && vSize > 0) {
+                        item.wholesalePrice = Math.round((enteredRate * (1000 / vSize)) * 100) / 100;
+                    } else if (['kg', 'kilogram'].includes(pUnit) && ['g', 'gm', 'gram'].includes(vUnit) && vSize > 0) {
+                        item.wholesalePrice = Math.round((enteredRate * (1000 / vSize)) * 100) / 100;
+                    } else if (item.variants.length === 1) {
+                        item.wholesalePrice = enteredRate;
+                    }
+                }
             }
         }
         if (!variantFound) {
             if (isWholesale) {
                 item.wholesalePrice = enteredRate;
                 if (item.category === 'Cosmetics') item.costPrice = enteredRate;
+                // Propagate to variants proportionally
+                if (Array.isArray(item.variants)) {
+                    const pUnit = String(item.unit || '').toLowerCase().trim();
+                    const bRetail = parseFloat(item.retailPrice) || 0;
+                    item.variants.forEach(v => {
+                        const vSize = parseFloat(v.size) || 0;
+                        const vUnit = String(v.unit || '').toLowerCase().trim();
+                        const vRetail = parseFloat(v.retailPrice || v.salePrice) || 0;
+                        if (vSize > 0 && ['l', 'ltr', 'litre'].includes(pUnit) && ['ml', 'millilitre'].includes(vUnit)) {
+                            v.wholesalePrice = Math.round((enteredRate * (vSize / 1000)) * 100) / 100;
+                            v.costPrice = v.wholesalePrice;
+                        } else if (vSize > 0 && ['kg', 'kilogram'].includes(pUnit) && ['g', 'gm', 'gram'].includes(vUnit)) {
+                            v.wholesalePrice = Math.round((enteredRate * (vSize / 1000)) * 100) / 100;
+                            v.costPrice = v.wholesalePrice;
+                        } else if (bRetail > 0 && vRetail > 0 && enteredRate < bRetail) {
+                            v.wholesalePrice = Math.round((vRetail * (enteredRate / bRetail)) * 100) / 100;
+                            v.costPrice = v.wholesalePrice;
+                        } else if (item.variants.length === 1) {
+                            v.wholesalePrice = enteredRate;
+                            v.costPrice = enteredRate;
+                        }
+                    });
+                }
             } else {
                 item.retailPrice = enteredRate;
                 if (item.category === 'Cosmetics') item.salePrice = enteredRate;
                 item.price = enteredRate;
+                if (Array.isArray(item.variants) && item.variants.length === 1) {
+                    item.variants[0].retailPrice = enteredRate;
+                    item.variants[0].salePrice = enteredRate;
+                }
             }
         }
         item.savedAt = Date.now();
@@ -283,9 +406,8 @@ export function quickSaveProductRate(productName, targetSaleType = 'Wholesale', 
     });
 
     if (updated) {
-        try {
-            if (typeof window.saveLocalStateSafely === 'function') window.saveLocalStateSafely();
-        } catch (e) {}
+        saveLocalStateSafely();
+        if (typeof window.saveLocalStateSafely === 'function') window.saveLocalStateSafely();
         syncToFirebase();
         if (window.renderProducts) window.renderProducts();
         if (window.renderCosProductStock) window.renderCosProductStock();
@@ -430,8 +552,14 @@ export function parsePackageVolume(sizeStr, nameStr) {
     return null;
 }
 
-export function onSaleTypeChange() {
-    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+export function onSaleTypeChange(forcedType = null) {
+    let saleType = forcedType;
+    if (!saleType) {
+        saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+    } else {
+        const radio = document.querySelector(`input[name="saleType"][value="${saleType}"]`);
+        if (radio) radio.checked = true;
+    }
     updateBillTypeBadge(saleType);
 
     const prodSelect = document.getElementById('billProductSelect');
@@ -739,6 +867,16 @@ export function addToBillItems() {
     }
 
     const total = numberOfUnits * rate;
+
+    // Smart Computerized Memory: If in Wholesale mode, automatically remember custom entered rates
+    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+    const isWholesale = String(saleType).toLowerCase() === 'wholesale';
+    if (isWholesale && Number.isFinite(rate) && rate > 0) {
+        const curWholesale = variant ? getVariantWholesalePrice(variant, product) : getProductWholesalePrice(product);
+        if (Math.abs(curWholesale - rate) > 0.001) {
+            quickSaveProductRate(productName, 'Wholesale', rate);
+        }
+    }
 
     state.currentBillItems.push({
         productName,
@@ -1565,7 +1703,7 @@ export function fillCombinedProductPrice() {
             const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
             variantSelect.innerHTML = '<option value="">-- Select Pack Size (' + product.variants.length + ' options) --</option>' +
                 product.variants.map(v => {
-                    const rate = saleType === 'Wholesale' ? v.wholesalePrice : v.retailPrice;
+                    const rate = saleType === 'Wholesale' ? getVariantWholesalePrice(v, product) : getVariantRetailPrice(v, product);
                     return `<option value="${v.id}">${v.name} (${v.size} ${v.unit}) — ₹${Number(rate || 0).toFixed(2)}${v.packageName ? ' [' + v.packageName + ']' : ''}</option>`;
                 }).join('');
 
@@ -1653,7 +1791,7 @@ export function onCombinedPackVariantSelected() {
         if (!mappedPkg && product.packageName) mappedPkg = (state.packages || []).find(p => String(p.name).toLowerCase() === String(product.packageName).toLowerCase());
 
         const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
-        const rate = Number(saleType === 'Wholesale' ? (product.wholesalePrice || product.costPrice) : (product.retailPrice || product.salePrice)) || 0;
+        const rate = Number(saleType === 'Wholesale' ? getProductWholesalePrice(product) : getProductRetailPrice(product)) || 0;
         const rateEl = document.getElementById('combinedRate');
         if (rateEl) {
             rateEl.value = rate ? rate.toFixed(2) : '0';
@@ -1689,7 +1827,7 @@ export function onCombinedPackVariantSelected() {
     }
 
     const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
-    const rate = Number(saleType === 'Wholesale' ? variant.wholesalePrice : variant.retailPrice) || 0;
+    const rate = Number(saleType === 'Wholesale' ? getVariantWholesalePrice(variant, product) : getVariantRetailPrice(variant, product)) || 0;
     const rateEl = document.getElementById('combinedRate');
     if (rateEl) {
         rateEl.value = rate ? rate.toFixed(2) : '0';
@@ -1721,7 +1859,7 @@ export function onCombinedSaleTypeChange() {
         const variant = product?.variants?.find(v => String(v.id) === String(variantSelect.value));
         if (variant) {
             const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
-            const rate = Number(saleType === 'Wholesale' ? variant.wholesalePrice : variant.retailPrice) || 0;
+            const rate = Number(saleType === 'Wholesale' ? getVariantWholesalePrice(variant, product) : getVariantRetailPrice(variant, product)) || 0;
             const rateEl = document.getElementById('combinedRate');
             if (rateEl) {
                 rateEl.value = rate ? rate.toFixed(2) : '0';
@@ -2170,6 +2308,7 @@ export function editCombinedSavedBill(index) {
     if (phoneEl) phoneEl.value = c.phone || '';
     const radio = document.querySelector(`input[name="saleType"][value="${c.saleType || 'Retail'}"]`);
     if (radio) radio.checked = true;
+    updateBillSaleTypeUI(c.saleType || 'Retail');
     const discountEl = document.getElementById('billDiscountAmt');
     if (discountEl) discountEl.value = (c.discount !== undefined && Number(c.discount) > 0) ? Number(c.discount) : '';
     const paidEl = document.getElementById('billPaidAmt');
@@ -2194,6 +2333,8 @@ if (typeof window !== 'undefined') {
     window.getProductWholesalePrice = getProductWholesalePrice;
     window.getProductRetailPrice = getProductRetailPrice;
     window.findUnifiedProduct = findUnifiedProduct;
+    window.selectBillSaleType = selectBillSaleType;
+    window.updateBillSaleTypeUI = updateBillSaleTypeUI;
     window.updateBillTypeBadge = updateBillTypeBadge;
     window.quickSaveProductRate = quickSaveProductRate;
     window.saveCurrentEnteredRateAsDefault = saveCurrentEnteredRateAsDefault;

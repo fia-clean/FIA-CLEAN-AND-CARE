@@ -345,6 +345,68 @@ export function normalizeLoadedProducts() {
         const c = parseFloat(p.costPrice || p.price1);
         if (!Number.isFinite(w) && Number.isFinite(c)) p.wholesalePrice = c;
 
+        // Variant & Base Wholesale Price Synchronization
+        if (Array.isArray(p.variants) && p.variants.length > 0) {
+            const pUnit = String(p.unit || '').toLowerCase().trim();
+            let baseW = parseFloat(p.wholesalePrice);
+            const baseR = parseFloat(p.retailPrice);
+
+            // Step 1: If base wholesalePrice is missing, derive from variant if possible
+            if (!Number.isFinite(baseW) || baseW <= 0) {
+                for (const v of p.variants) {
+                    const vW = parseFloat(v.wholesalePrice);
+                    if (Number.isFinite(vW) && vW > 0) {
+                        const vUnit = String(v.unit || '').toLowerCase().trim();
+                        const vSize = parseFloat(v.size) || 0;
+                        if (['l', 'ltr', 'litre'].includes(pUnit) && ['ml', 'millilitre'].includes(vUnit) && vSize > 0) {
+                            p.wholesalePrice = Math.round((vW * (1000 / vSize)) * 100) / 100;
+                            sanitizedNegativeStock = true;
+                            break;
+                        } else if (['kg', 'kilogram'].includes(pUnit) && ['g', 'gm', 'gram'].includes(vUnit) && vSize > 0) {
+                            p.wholesalePrice = Math.round((vW * (1000 / vSize)) * 100) / 100;
+                            sanitizedNegativeStock = true;
+                            break;
+                        } else if (p.variants.length === 1) {
+                            p.wholesalePrice = vW;
+                            sanitizedNegativeStock = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Step 2: If base wholesalePrice is present, ensure variants have appropriate wholesalePrice
+            baseW = parseFloat(p.wholesalePrice);
+            if (Number.isFinite(baseW) && baseW > 0) {
+                p.variants.forEach(v => {
+                    if (!v) return;
+                    const vW = parseFloat(v.wholesalePrice);
+                    if (!Number.isFinite(vW) || vW <= 0) {
+                        const vUnit = String(v.unit || '').toLowerCase().trim();
+                        const vSize = parseFloat(v.size) || 0;
+                        const vR = parseFloat(v.retailPrice || v.salePrice);
+                        if (vSize > 0 && ['l', 'ltr', 'litre'].includes(pUnit) && ['ml', 'millilitre'].includes(vUnit)) {
+                            v.wholesalePrice = Math.round((baseW * (vSize / 1000)) * 100) / 100;
+                            v.costPrice = v.wholesalePrice;
+                            sanitizedNegativeStock = true;
+                        } else if (vSize > 0 && ['kg', 'kilogram'].includes(pUnit) && ['g', 'gm', 'gram'].includes(vUnit)) {
+                            v.wholesalePrice = Math.round((baseW * (vSize / 1000)) * 100) / 100;
+                            v.costPrice = v.wholesalePrice;
+                            sanitizedNegativeStock = true;
+                        } else if (baseR > 0 && vR > 0 && baseW < baseR) {
+                            v.wholesalePrice = Math.round((vR * (baseW / baseR)) * 100) / 100;
+                            v.costPrice = v.wholesalePrice;
+                            sanitizedNegativeStock = true;
+                        } else if (p.variants.length === 1) {
+                            v.wholesalePrice = baseW;
+                            v.costPrice = baseW;
+                            sanitizedNegativeStock = true;
+                        }
+                    }
+                });
+            }
+        }
+
         // Stock hygiene: fix negative stock caused by unit factor bug
         const st = parseFloat(p.stock);
         if (Number.isFinite(st) && st < 0) {
@@ -839,5 +901,7 @@ if (typeof window !== 'undefined') {
     window.isRecordDeleted = isRecordDeleted;
     window.generateUniqueRecordId = generateUniqueRecordId;
     window.isBareBillNo = isBareBillNo;
+    window.saveLocalStateSafely = saveLocalStateSafely;
+    window.notifyStateChange = notifyStateChange;
 }
 

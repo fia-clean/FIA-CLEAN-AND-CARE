@@ -134,6 +134,81 @@ export function ensureStableTransactionIds() {
     });
 }
 
+function mergeProductRecords(base, incoming) {
+    if (!base) return incoming;
+    if (!incoming) return base;
+    const baseTime = Number(base.savedAt || base.updatedAt || base.createdAt || 0);
+    const incTime = Number(incoming.savedAt || incoming.updatedAt || incoming.createdAt || 0);
+    const primary = incTime >= baseTime ? incoming : base;
+    const secondary = incTime >= baseTime ? base : incoming;
+
+    const merged = { ...secondary, ...primary };
+    merged.id = primary.id || secondary.id;
+
+    // Wholesale Price preservation: Never allow a valid positive wholesalePrice to be wiped by 0, null, or undefined
+    const pW = parseFloat(primary.wholesalePrice);
+    const sW = parseFloat(secondary.wholesalePrice);
+    if ((!Number.isFinite(pW) || pW <= 0) && Number.isFinite(sW) && sW > 0) {
+        merged.wholesalePrice = sW;
+    }
+
+    // Retail Price preservation
+    const pR = parseFloat(primary.retailPrice || primary.salePrice);
+    const sR = parseFloat(secondary.retailPrice || secondary.salePrice);
+    if ((!Number.isFinite(pR) || pR <= 0) && Number.isFinite(sR) && sR > 0) {
+        merged.retailPrice = sR;
+    }
+
+    // Cost Price preservation
+    const pC = parseFloat(primary.costPrice || primary.price1);
+    const sC = parseFloat(secondary.costPrice || secondary.price1);
+    if ((!Number.isFinite(pC) || pC <= 0) && Number.isFinite(sC) && sC > 0) {
+        merged.costPrice = sC;
+    }
+
+    // Variants merging: preserve wholesale and retail prices on each variant
+    if (Array.isArray(primary.variants) || Array.isArray(secondary.variants)) {
+        const primVars = Array.isArray(primary.variants) ? primary.variants : [];
+        const secVars = Array.isArray(secondary.variants) ? secondary.variants : [];
+        const varMap = new Map();
+
+        secVars.forEach(v => {
+            if (!v) return;
+            const vk = String(v.id || v.name || '').trim();
+            if (vk) varMap.set(vk, { ...v });
+        });
+
+        primVars.forEach(v => {
+            if (!v) return;
+            const vk = String(v.id || v.name || '').trim();
+            if (!vk) return;
+            const existingVar = varMap.get(vk);
+            if (!existingVar) {
+                varMap.set(vk, { ...v });
+            } else {
+                const mergedVar = { ...existingVar, ...v };
+                const vW = parseFloat(v.wholesalePrice || v.costPrice);
+                const eVW = parseFloat(existingVar.wholesalePrice || existingVar.costPrice);
+                if ((!Number.isFinite(vW) || vW <= 0) && Number.isFinite(eVW) && eVW > 0) {
+                    mergedVar.wholesalePrice = eVW;
+                    mergedVar.costPrice = eVW;
+                }
+                const vR = parseFloat(v.retailPrice || v.salePrice);
+                const eVR = parseFloat(existingVar.retailPrice || existingVar.salePrice);
+                if ((!Number.isFinite(vR) || vR <= 0) && Number.isFinite(eVR) && eVR > 0) {
+                    mergedVar.retailPrice = eVR;
+                    mergedVar.salePrice = eVR;
+                }
+                varMap.set(vk, mergedVar);
+            }
+        });
+
+        merged.variants = Array.from(varMap.values());
+    }
+
+    return merged;
+}
+
 export function mergeInventoryProducts(localList, cloudList) {
     const map = new Map();
     const nameToId = new Map();
@@ -174,13 +249,8 @@ export function mergeInventoryProducts(localList, cloudList) {
                 if (nameKey) nameToId.set(nameKey, key);
             }
         } else {
-            const localTime = Number(item.savedAt || item.updatedAt || item.createdAt || 0);
-            const cloudTime = Number(existing.savedAt || existing.updatedAt || existing.createdAt || 0);
-            // Local overrides or equals cloud if modified explicitly after or at same time as cloud
-            if (localTime >= cloudTime) {
-                const stableId = existing.id || item.id;
-                map.set(targetKey, { ...existing, ...item, id: stableId });
-            }
+            const merged = mergeProductRecords(existing, item);
+            map.set(targetKey, merged);
         }
     });
 
