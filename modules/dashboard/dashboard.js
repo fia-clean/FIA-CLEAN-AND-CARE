@@ -267,8 +267,38 @@ export function renderDueAmountList() {
             const safeName = String(cg.name).replace(/'/g, "\\'");
             const phoneText = cg.phone && String(cg.phone).trim() ? String(cg.phone).trim() : 'No mobile';
             const dateText = formatDateDDMMYYYY(cg.lastDate) || 'No date';
+
+            const billsHtml = (cg.bills || []).map(b => {
+                const bCustName = getDueCustomerName(b.c);
+                const bPhone = b.c.phone && String(b.c.phone).trim() ? String(b.c.phone).trim() : phoneText;
+                const bDate = formatDateDDMMYYYY(b.c.date) || 'No date';
+                const bTarget = b.c.billNo || b.c.id || b.index;
+                return `
+                <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2 flex items-start justify-between gap-2 text-xs">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="font-bold text-white text-xs truncate">${bCustName}</span>
+                            ${b.c.billNo ? `<span class="text-[10px] font-mono text-sky-400 bg-sky-950/80 px-1.5 py-0.5 rounded border border-sky-800/60">#${b.c.billNo}</span>` : ''}
+                        </div>
+                        <p class="text-[10.5px] text-slate-300 mt-0.5 leading-snug break-words">
+                            <span class="font-bold text-slate-100">${bCustName}</span> • <span class="text-slate-300 font-mono">📞 ${bPhone}</span> • <span class="text-slate-400 font-mono">📅 ${bDate}</span>
+                        </p>
+                    </div>
+                    <div class="text-right shrink-0 flex flex-col items-end gap-1">
+                        <div>
+                            <span class="font-bold text-rose-300 text-xs">${money(b.due)}</span>
+                            <span class="text-[8px] text-slate-500 block">Due</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="window.closeDueAmountList(true); window.previewBill('${bTarget}');" class="bg-blue-900 hover:bg-blue-800 text-blue-200 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-800 cursor-pointer">View</button>
+                            <button type="button" onclick="window.closeDueAmountList(true); if(history.state) history.replaceState({ loggedIn: true, tab: 'billing' }, '', '#billing'); window.editCustomerBill('${bTarget}');" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700 cursor-pointer">Edit</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
             return `
-            <div class="bg-slate-950/70 border border-slate-800 hover:border-slate-700 rounded-xl p-3 transition space-y-2">
+            <div class="bg-slate-950/70 border border-slate-800 hover:border-slate-700 rounded-xl p-3 transition space-y-2.5">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1.5 flex-wrap">
@@ -276,7 +306,7 @@ export function renderDueAmountList() {
                             <span class="text-[10px] font-bold text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800/60">${cg.billCount} Bill${cg.billCount > 1 ? 's' : ''}</span>
                         </div>
                         <p class="text-[11px] text-slate-300 mt-1 leading-snug break-words">
-                            <span class="text-slate-300 font-mono">📞 ${phoneText}</span> • <span class="text-slate-400 font-mono">📅 Last: ${dateText}</span>
+                            <span class="font-bold text-slate-100">${cg.name}</span> • <span class="text-slate-300 font-mono">📞 ${phoneText}</span> • <span class="text-slate-400 font-mono">📅 Last: ${dateText}</span>
                         </p>
                     </div>
                     <div class="text-right shrink-0">
@@ -284,9 +314,15 @@ export function renderDueAmountList() {
                         <p class="text-[9px] text-slate-400">Total Due</p>
                     </div>
                 </div>
+
+                <!-- Customer's Individual Bills List with Customer Name -->
+                <div class="space-y-1.5 pt-0.5">
+                    ${billsHtml}
+                </div>
+
                 <div class="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800/80">
                     <button type="button" onclick="window.closeDueAmountList(true); window.openCustomerConsolidationCustomer('${encodeURIComponent(cg.name)}');" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer">
-                        👁️ View Statement & Bills (${cg.billCount})
+                        👁️ Full Statement & History
                     </button>
                     ${cg.phone && cg.phone !== 'No mobile' ? `
                     <button type="button" onclick="window.shareCustomerDueWhatsApp('${safeName}', '${cg.phone}', ${cg.totalDue}, ${cg.billCount})" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer">

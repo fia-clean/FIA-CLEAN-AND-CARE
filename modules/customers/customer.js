@@ -564,8 +564,8 @@ export function renderCustomerConsolidationView() {
                     if (r.ret > 0) detailParts.push(`Return ₹${r.ret.toFixed(2)}`);
                     return `<div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:justify-between gap-2.5 sm:items-center">
                         <div class="min-w-0 flex-1">
-                            <div class="font-bold text-slate-100">#${ri + 1} • ${detailParts[0]} ${r.cosmetics ? '<span class="text-[10px] text-pink-300 font-semibold ml-1">💄 Cosmetics</span>' : ''}</div>
-                            <div class="text-[10px] text-slate-400 mt-1">${detailParts.slice(1).join(' | ')}</div>
+                            <div class="font-bold text-slate-100">#${ri + 1} • ${e.name.toUpperCase()} • ${detailParts[0]} ${r.cosmetics ? '<span class="text-[10px] text-pink-300 font-semibold ml-1">💄 Cosmetics</span>' : ''}</div>
+                            <div class="text-[10px] text-slate-400 mt-1"><span class="font-bold text-slate-200">${e.name.toUpperCase()}</span> • ${detailParts.slice(1).join(' | ')}</div>
                             <div class="text-[10px] text-slate-500 mt-0.5">${r.saleType} • ${r.paymentMode}</div>
                         </div>
                         <div class="flex items-center gap-1.5 justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80 w-full sm:w-auto">
@@ -672,10 +672,14 @@ export function openCustomerConsolidationCustomer(encodedName) {
                         <div class="bg-slate-900/90 border ${isPending ? 'border-rose-900/60' : 'border-slate-800'} rounded-xl p-2.5 flex justify-between items-center text-xs">
                             <div class="min-w-0 flex-1 pr-2">
                                 <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="font-bold text-white text-xs">${name}</span>
                                     <span class="font-bold text-sky-400 font-mono">#${b.billNo}</span>
                                     <span class="text-slate-400 text-[10px]">📅 ${formatDateDDMMYYYY(b.date)}</span>
                                     ${b.isCosmetics ? '<span class="text-[9px] bg-pink-950 text-pink-300 px-1 py-0.5 rounded border border-pink-800 font-semibold">Cosmetics</span>' : ''}
                                 </div>
+                                <p class="text-[10.5px] text-slate-300 mt-0.5 leading-snug break-words">
+                                    <span class="font-bold text-slate-100">${name}</span> • <span class="text-slate-300 font-mono">📞 ${phone || 'No mobile'}</span> • <span class="text-slate-400 font-mono">📅 ${formatDateDDMMYYYY(b.date)}</span>
+                                </p>
                                 <div class="text-[11px] text-slate-300 mt-1">
                                     Total: <b class="text-white">₹${b.grandTotal.toFixed(2)}</b> • Paid: <b class="text-emerald-400">₹${b.paidAmount.toFixed(2)}</b>
                                     ${isPending ? ` • <span class="text-rose-400 font-bold bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-800/60">Due: ₹${b.pendingAmount.toFixed(2)}</span>` : ' • <span class="text-emerald-400">Paid</span>'}
