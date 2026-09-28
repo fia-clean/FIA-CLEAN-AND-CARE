@@ -191,6 +191,31 @@ export function getDueCustomerName(c) {
     return String(c.name || c.customer || 'Customer').trim().toUpperCase() || 'Customer';
 }
 
+let dueListViewMode = 'customer';
+
+export function switchDueListViewMode(mode) {
+    dueListViewMode = mode;
+    const btnCust = document.getElementById('btnDueModeCustomer');
+    const btnBill = document.getElementById('btnDueModeBill');
+    if (btnCust && btnBill) {
+        if (mode === 'customer') {
+            btnCust.className = "flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-rose-600 text-white shadow transition cursor-pointer";
+            btnBill.className = "flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 transition cursor-pointer";
+        } else {
+            btnBill.className = "flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-rose-600 text-white shadow transition cursor-pointer";
+            btnCust.className = "flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 transition cursor-pointer";
+        }
+    }
+    renderDueAmountList();
+}
+
+export function shareCustomerDueWhatsApp(name, phone, totalDue, billCount) {
+    const cleanPhone = String(phone || '').replace(/\D/g, '');
+    const msg = `*FIA CLEAN & CARE*\n*EDATHANATTUKARA • MOB: 8086452106*\n\nDear *${name}*,\nThis is a friendly reminder that you have a pending balance due of *₹${Number(totalDue).toFixed(2)}* (${billCount} unpaid bill${billCount > 1 ? 's' : ''}).\n\nPlease arrange for the payment at your earliest convenience.\n\n_Thank you for your business!_`;
+    const url = cleanPhone ? `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(msg)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+}
+
 export function renderDueAmountList() {
     const container = document.getElementById('dueAmountListContainer');
     const totalEl = document.getElementById('dueAmountListTotal');
@@ -210,35 +235,97 @@ export function renderDueAmountList() {
         container.innerHTML = '<div class="text-center text-slate-500 text-xs py-8">No pending due amounts.</div>';
         return;
     }
-    container.innerHTML = dueRows.map(({ c, index, due }) => {
-        const custName = getDueCustomerName(c);
-        const phoneText = c.phone && String(c.phone).trim() ? String(c.phone).trim() : 'No mobile';
-        const dateText = formatDateDDMMYYYY(c.date) || 'No date';
 
-        return `
-        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
-            <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <p class="font-bold text-white text-sm truncate">${custName}</p>
-                        ${c.billNo ? `<span class="text-[10px] font-mono text-sky-400 bg-sky-950/80 px-1.5 py-0.5 rounded border border-sky-800/60">#${c.billNo}</span>` : ''}
+    if (dueListViewMode === 'customer') {
+        const custGroups = new Map();
+        dueRows.forEach(({ c, index, due }) => {
+            const rawName = getDueCustomerName(c);
+            const key = rawName.toUpperCase();
+            if (!custGroups.has(key)) {
+                custGroups.set(key, {
+                    name: rawName,
+                    phone: c.phone || '',
+                    totalDue: 0,
+                    billCount: 0,
+                    bills: [],
+                    lastDate: c.date
+                });
+            }
+            const group = custGroups.get(key);
+            group.totalDue += due;
+            group.billCount += 1;
+            group.bills.push({ c, index, due });
+            if (dateSortValue(c.date) > dateSortValue(group.lastDate)) {
+                group.lastDate = c.date;
+            }
+            if (!group.phone && c.phone) group.phone = c.phone;
+        });
+
+        const sortedCusts = Array.from(custGroups.values()).sort((a, b) => b.totalDue - a.totalDue);
+        
+        container.innerHTML = sortedCusts.map(cg => {
+            const safeName = String(cg.name).replace(/'/g, "\\'");
+            const phoneText = cg.phone && String(cg.phone).trim() ? String(cg.phone).trim() : 'No mobile';
+            const dateText = formatDateDDMMYYYY(cg.lastDate) || 'No date';
+            return `
+            <div class="bg-slate-950/70 border border-slate-800 hover:border-slate-700 rounded-xl p-3 transition space-y-2">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <p class="font-bold text-white text-sm truncate">${cg.name}</p>
+                            <span class="text-[10px] font-bold text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800/60">${cg.billCount} Bill${cg.billCount > 1 ? 's' : ''}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-300 mt-1 leading-snug break-words">
+                            <span class="text-slate-300 font-mono">📞 ${phoneText}</span> • <span class="text-slate-400 font-mono">📅 Last: ${dateText}</span>
+                        </p>
                     </div>
-                    <p class="text-[11px] text-slate-300 mt-1 leading-snug break-words">
-                        <span class="font-bold text-slate-100">${custName}</span> • <span class="text-slate-300 font-mono">📞 ${phoneText}</span> • <span class="text-slate-400 font-mono">📅 ${dateText}</span>
-                    </p>
+                    <div class="text-right shrink-0">
+                        <p class="font-black text-rose-400 text-base">${money(cg.totalDue)}</p>
+                        <p class="text-[9px] text-slate-400">Total Due</p>
+                    </div>
                 </div>
-                <div class="text-right shrink-0">
-                    <p class="font-extrabold text-rose-300 text-sm">${money(due)}</p>
-                    <p class="text-[9px] text-slate-500">Pending</p>
+                <div class="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800/80">
+                    <button type="button" onclick="window.closeDueAmountList(true); window.openCustomerConsolidationCustomer('${encodeURIComponent(cg.name)}');" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer">
+                        👁️ View Statement & Bills (${cg.billCount})
+                    </button>
+                    ${cg.phone && cg.phone !== 'No mobile' ? `
+                    <button type="button" onclick="window.shareCustomerDueWhatsApp('${safeName}', '${cg.phone}', ${cg.totalDue}, ${cg.billCount})" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer">
+                        💬 WhatsApp
+                    </button>` : ''}
                 </div>
-            </div>
-            <div class="flex flex-wrap gap-1.5 mt-2.5">
-                <button type="button" onclick="window.closeDueAmountList(true); window.previewBill('${c.billNo || c.id || index}');" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 text-[10px] font-bold">View</button>
-                <button type="button" onclick="window.closeDueAmountList(true); if(history.state) history.replaceState({ loggedIn: true, tab: 'billing' }, '', '#billing'); window.editCustomerBill('${c.billNo || c.id || index}');" class="bg-slate-800 text-emerald-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Edit</button>
-                <button type="button" onclick="window.deleteDueBillFromList('${c.billNo || c.id || index}')" class="bg-slate-800 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Delete</button>
-            </div>
-        </div>`;
-    }).join('');
+            </div>`;
+        }).join('');
+    } else {
+        container.innerHTML = dueRows.map(({ c, index, due }) => {
+            const custName = getDueCustomerName(c);
+            const phoneText = c.phone && String(c.phone).trim() ? String(c.phone).trim() : 'No mobile';
+            const dateText = formatDateDDMMYYYY(c.date) || 'No date';
+
+            return `
+            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <p class="font-bold text-white text-sm truncate">${custName}</p>
+                            ${c.billNo ? `<span class="text-[10px] font-mono text-sky-400 bg-sky-950/80 px-1.5 py-0.5 rounded border border-sky-800/60">#${c.billNo}</span>` : ''}
+                        </div>
+                        <p class="text-[11px] text-slate-300 mt-1 leading-snug break-words">
+                            <span class="font-bold text-slate-100">${custName}</span> • <span class="text-slate-300 font-mono">📞 ${phoneText}</span> • <span class="text-slate-400 font-mono">📅 ${dateText}</span>
+                        </p>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <p class="font-extrabold text-rose-300 text-sm">${money(due)}</p>
+                        <p class="text-[9px] text-slate-500">Pending</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-1.5 mt-2.5">
+                    <button type="button" onclick="window.closeDueAmountList(true); window.previewBill('${c.billNo || c.id || index}');" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 text-[10px] font-bold">View</button>
+                    <button type="button" onclick="window.closeDueAmountList(true); if(history.state) history.replaceState({ loggedIn: true, tab: 'billing' }, '', '#billing'); window.editCustomerBill('${c.billNo || c.id || index}');" class="bg-slate-800 text-emerald-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Edit</button>
+                    <button type="button" onclick="window.deleteDueBillFromList('${c.billNo || c.id || index}')" class="bg-slate-800 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Delete</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
 }
 
 export function deleteDueBillFromList(identifier) {

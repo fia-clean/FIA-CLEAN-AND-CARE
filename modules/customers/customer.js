@@ -245,6 +245,42 @@ export function updateCustomerDropdown() {
     if (current && uniqueCusts.has(current)) select.value = current;
 }
 
+export function getCustomerTotalPendingDue(custName, excludeBillId = null) {
+    if (!custName) return { totalPending: 0, billCount: 0, bills: [] };
+    const cleanName = String(custName).trim().toUpperCase();
+    let totalPending = 0;
+    const unpaidBills = [];
+
+    (state.customers || []).forEach((c, idx) => {
+        if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
+        if (excludeBillId !== null && excludeBillId !== undefined) {
+            if (String(c.id) === String(excludeBillId) || String(c.billNo) === String(excludeBillId) || idx === excludeBillId) return;
+        }
+        if (String(c.name || '').trim().toUpperCase() !== cleanName) return;
+        const g = Number(c.grandTotal || 0);
+        const p = c.paidAmount !== undefined ? Number(c.paidAmount) : g;
+        const pending = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, g - p);
+        if (pending > 0.001) {
+            totalPending += pending;
+            unpaidBills.push({
+                billNo: c.billNo || 'Bill',
+                date: c.date,
+                grandTotal: g,
+                paidAmount: p,
+                pendingAmount: pending,
+                id: c.id,
+                index: idx
+            });
+        }
+    });
+
+    return {
+        totalPending: Math.round(totalPending * 100) / 100,
+        billCount: unpaidBills.length,
+        bills: unpaidBills
+    };
+}
+
 export function fillExistingCustomer() {
     const select = document.getElementById('existingCustomerSelect');
     const name = select ? select.value : '';
@@ -265,9 +301,16 @@ export function fillExistingCustomer() {
                 }
             }
         } catch (e) {}
+
+        if (typeof window.checkCustomerDueInBilling === 'function') {
+            window.checkCustomerDueInBilling(name);
+        }
     } else {
         document.getElementById('custName').value = '';
         document.getElementById('custPhone').value = '';
+        if (typeof window.checkCustomerDueInBilling === 'function') {
+            window.checkCustomerDueInBilling('');
+        }
     }
 }
 
@@ -548,6 +591,8 @@ export function openCustomerConsolidationCustomer(encodedName) {
     if (title) title.textContent = name + ' - Consolidated Report';
 
     let purchaseCount = 0, total = 0, paid = 0, due = 0;
+    const customerBills = [];
+
     (state.customers || []).forEach(c => {
         if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled' || String(c.name || '').trim().toUpperCase() !== name) return;
         const hasBill = Boolean(c.billNo || (Array.isArray(c.items) && c.items.length > 0) || Number(c.grandTotal || 0) > 0);
@@ -556,32 +601,91 @@ export function openCustomerConsolidationCustomer(encodedName) {
         const p = c.paidAmount !== undefined ? Number(c.paidAmount) : g;
         const d = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, g - p);
         purchaseCount += 1; total += g; paid += p; due += d;
+        customerBills.push({
+            billNo: c.billNo || '—',
+            date: c.date,
+            grandTotal: g,
+            paidAmount: p,
+            pendingAmount: d,
+            items: c.items || [],
+            id: c.id,
+            isCosmetics: false
+        });
     });
     (state.cosSales || []).forEach(s => {
         if (!s || isCustItemDeleted(s) || s.isCancelled || s.status === 'cancelled' || String(s.customer || '').trim().toUpperCase() !== name) return;
         const n = normalizeCosSale(s);
-        purchaseCount += 1; total += Number(n.grandTotal || 0); paid += Number(n.paidAmount || 0); due += Number(n.pendingAmount || 0);
+        const g = Number(n.grandTotal || 0);
+        const p = Number(n.paidAmount || 0);
+        const d = Number(n.pendingAmount || 0);
+        purchaseCount += 1; total += g; paid += p; due += d;
+        customerBills.push({
+            billNo: s.billNo || '—',
+            date: s.date,
+            grandTotal: g,
+            paidAmount: p,
+            pendingAmount: d,
+            items: s.items || [],
+            id: s.id,
+            isCosmetics: true
+        });
     });
+
+    customerBills.sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date));
 
     const phone = ((state.customers || []).find(c => c && !isCustItemDeleted(c) && String(c.name || '').trim().toUpperCase() === name && c.phone)?.phone) ||
         ((state.cosSales || []).find(s => s && !isCustItemDeleted(s) && String(s.customer || '').trim().toUpperCase() === name && s.phone)?.phone || '');
 
     content.innerHTML = `
         <div class="space-y-3">
-            <div class="bg-slate-950/70 rounded-xl p-3 border border-slate-800">
-                <div class="font-bold text-slate-100 text-sm">${name}</div>
-                <div class="text-slate-400 mt-1">Phone: ${phone || 'No Phone'}</div>
-            </div>
-            <div class="bg-slate-950/70 rounded-xl p-3 border border-slate-800">
-                <div class="text-center text-slate-200 text-xs font-bold mb-3 tracking-wider">CUSTOMER CONSOLIDATED SUMMARY</div>
-                <div class="grid grid-cols-2 gap-2 text-center">
-                    <div class="bg-slate-900 rounded-lg p-3"><div class="text-slate-400 text-[10px]">Total Purchases</div><b class="text-white text-base">${purchaseCount}</b></div>
-                    <div class="bg-slate-900 rounded-lg p-3"><div class="text-slate-400 text-[10px]">Total Purchase Amount</div><b class="text-white text-sm">₹${total.toFixed(2)}</b></div>
-                    <div class="bg-slate-900 rounded-lg p-3"><div class="text-slate-400 text-[10px]">Total Paid</div><b class="text-emerald-400 text-sm">₹${paid.toFixed(2)}</b></div>
-                    <div class="bg-slate-900 rounded-lg p-3"><div class="text-slate-400 text-[10px]">Balance Due</div><b class="text-rose-400 text-sm">₹${due.toFixed(2)}</b></div>
+            <div class="bg-slate-950/70 rounded-xl p-3 border border-slate-800 flex justify-between items-center">
+                <div>
+                    <div class="font-bold text-slate-100 text-sm">${name}</div>
+                    <div class="text-slate-400 text-xs mt-0.5">📞 ${phone || 'No Phone'}</div>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] text-slate-400 uppercase font-semibold">Net Balance Due</span>
+                    <p class="text-base font-black ${due > 0 ? 'text-rose-400' : 'text-emerald-400'}">₹${due.toFixed(2)}</p>
                 </div>
             </div>
-            <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800 text-[11px] text-slate-400 text-center">This is the customer's consolidated statement. Detailed bill-wise history remains available separately in the View section.</div>
+            <div class="bg-slate-950/70 rounded-xl p-3 border border-slate-800">
+                <div class="text-center text-slate-200 text-xs font-bold mb-3 tracking-wider uppercase">Customer Financial Summary</div>
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="bg-slate-900 rounded-lg p-2.5"><div class="text-slate-400 text-[10px]">Total Purchases</div><b class="text-white text-base">${purchaseCount}</b></div>
+                    <div class="bg-slate-900 rounded-lg p-2.5"><div class="text-slate-400 text-[10px]">Total Amount</div><b class="text-white text-sm">₹${total.toFixed(2)}</b></div>
+                    <div class="bg-slate-900 rounded-lg p-2.5"><div class="text-slate-400 text-[10px]">Total Paid</div><b class="text-emerald-400 text-sm">₹${paid.toFixed(2)}</b></div>
+                    <div class="bg-slate-900 rounded-lg p-2.5"><div class="text-slate-400 text-[10px]">Pending Due</div><b class="${due > 0 ? 'text-rose-400 font-bold' : 'text-slate-300'} text-sm">₹${due.toFixed(2)}</b></div>
+                </div>
+            </div>
+
+            <div class="space-y-2 pt-1">
+                <div class="flex justify-between items-center px-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">All Invoices & Dues (${customerBills.length})</span>
+                    <span class="text-[10px] ${due > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400'}">${due > 0 ? `⚠️ Unpaid: ₹${due.toFixed(2)}` : '✅ All Settled'}</span>
+                </div>
+                <div class="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
+                    ${customerBills.map(b => {
+                        const billTarget = (b.billNo && b.billNo !== '—') ? b.billNo : b.id;
+                        const viewFn = b.isCosmetics ? `window.previewCosSaleBill('${billTarget}')` : `window.previewBill('${billTarget}')`;
+                        const isPending = b.pendingAmount > 0.001;
+                        return `
+                        <div class="bg-slate-900/90 border ${isPending ? 'border-rose-900/60' : 'border-slate-800'} rounded-xl p-2.5 flex justify-between items-center text-xs">
+                            <div class="min-w-0 flex-1 pr-2">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="font-bold text-sky-400 font-mono">#${b.billNo}</span>
+                                    <span class="text-slate-400 text-[10px]">📅 ${formatDateDDMMYYYY(b.date)}</span>
+                                    ${b.isCosmetics ? '<span class="text-[9px] bg-pink-950 text-pink-300 px-1 py-0.5 rounded border border-pink-800 font-semibold">Cosmetics</span>' : ''}
+                                </div>
+                                <div class="text-[11px] text-slate-300 mt-1">
+                                    Total: <b class="text-white">₹${b.grandTotal.toFixed(2)}</b> • Paid: <b class="text-emerald-400">₹${b.paidAmount.toFixed(2)}</b>
+                                    ${isPending ? ` • <span class="text-rose-400 font-bold bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-800/60">Due: ₹${b.pendingAmount.toFixed(2)}</span>` : ' • <span class="text-emerald-400">Paid</span>'}
+                                </div>
+                            </div>
+                            <button type="button" onclick="${viewFn}" class="shrink-0 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">View</button>
+                        </div>`;
+                    }).join('') || '<div class="text-center text-slate-500 py-3 text-xs">No bills found for this customer.</div>'}
+                </div>
+            </div>
         </div>`;
     document.getElementById('customerConsolidatedDetailModal')?.classList.remove('hidden');
 }

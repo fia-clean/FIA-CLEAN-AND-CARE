@@ -66,7 +66,9 @@ import {
     openLowStockList,
     closeLowStockList,
     goToAddStockFromLowStock,
-    pushDashboardModalState
+    pushDashboardModalState,
+    switchDueListViewMode,
+    shareCustomerDueWhatsApp
 } from './dashboard/dashboard.js';
 
 import {
@@ -86,7 +88,8 @@ import {
     closeCustomerConsolidatedDetail,
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
-    shareCustomerConsolidationReport
+    shareCustomerConsolidationReport,
+    getCustomerTotalPendingDue
 } from './customers/customer.js';
 
 import {
@@ -185,7 +188,10 @@ import {
     saveCosSales,
     renderCosSales,
     resetCosSalesForm,
-    renderCosmeticsSummary
+    renderCosmeticsSummary,
+    checkCustomerDueInBilling,
+    checkCustomerDueOnNameChange,
+    viewCustomerDuesFromBilling
 } from './billing/billing.js';
 
 import {
@@ -407,6 +413,12 @@ if (typeof window !== 'undefined') {
     window.refreshProductAnalysisFromCloud = refreshProductAnalysisFromCloud;
     window.checkRemoteTimestampFast = checkRemoteTimestampFast;
     window.showAppToast = showAppToast;
+    window.switchDueListViewMode = switchDueListViewMode;
+    window.shareCustomerDueWhatsApp = shareCustomerDueWhatsApp;
+    window.getCustomerTotalPendingDue = getCustomerTotalPendingDue;
+    window.checkCustomerDueInBilling = checkCustomerDueInBilling;
+    window.checkCustomerDueOnNameChange = checkCustomerDueOnNameChange;
+    window.viewCustomerDuesFromBilling = viewCustomerDuesFromBilling;
 }
 
 // ================= RECORD VIEW MODAL =================

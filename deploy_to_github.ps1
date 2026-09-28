@@ -11,7 +11,7 @@ Write-Host "Adding modified files..." -ForegroundColor Yellow
 git add index.html dev.html sw.js manifest.json icon-192.png icon-512.png icon.svg apple-touch-icon.png favicon.png lib/ modules/ public/ src/ deploy_to_github.bat deploy_to_github.ps1
 
 Write-Host "Committing changes..." -ForegroundColor Yellow
-git commit -m "feat(dues): v51.1.2 - show customer name, mobile number and purchase date in due list"
+git commit -m "feat(dues): v51.2.0 - live previous due in billing, consolidated customer due statement and customer-grouped due list"
 
 Write-Host "Pushing to GitHub origin main..." -ForegroundColor Yellow
 git push origin main

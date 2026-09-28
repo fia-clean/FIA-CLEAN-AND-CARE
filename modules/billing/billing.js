@@ -14,7 +14,7 @@ import {
 import { syncToFirebase } from '../core/db.js';
 import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName, formatInvoiceItemQty } from './invoice-preview.js';
 import { normalizeCosSale } from './billing-history.js';
-import { renderCustomers, renderCustomerConsolidationReport } from '../customers/customer.js';
+import { renderCustomers, renderCustomerConsolidationReport, getCustomerTotalPendingDue } from '../customers/customer.js';
 
 export { renderCustomers };
 export { sortBillItemsAlphabetically, formatInvoiceItemQty };
@@ -1010,6 +1010,54 @@ export function removeBillItem(index) {
     calculateBalance();
 }
 
+export function checkCustomerDueInBilling(name) {
+    const custIndex = parseInt(document.getElementById('custIndex')?.value || "-1", 10);
+    const editingBill = custIndex >= 0 ? state.customers[custIndex] : null;
+    const excludeId = editingBill ? (editingBill.id || editingBill.billNo || custIndex) : null;
+    
+    const banner = document.getElementById('custDueAlertBanner');
+    const amtEl = document.getElementById('custDueAlertAmount');
+    const countEl = document.getElementById('custDueAlertCount');
+    const prevDueInput = document.getElementById('billPreviousDue');
+    const prevDueRow = document.getElementById('billPreviousDueRow');
+
+    if (!name || !name.trim()) {
+        if (banner) banner.classList.add('hidden');
+        if (prevDueRow) prevDueRow.classList.add('hidden');
+        if (prevDueInput) prevDueInput.value = '0.00';
+        calculateBalance();
+        return;
+    }
+
+    const { totalPending, billCount } = getCustomerTotalPendingDue(name, excludeId);
+
+    if (totalPending > 0.001) {
+        if (banner) banner.classList.remove('hidden');
+        if (amtEl) amtEl.textContent = '₹' + totalPending.toFixed(2);
+        if (countEl) countEl.textContent = `(${billCount} bill${billCount > 1 ? 's' : ''} unpaid)`;
+        if (prevDueRow) prevDueRow.classList.remove('hidden');
+        if (prevDueInput) prevDueInput.value = totalPending.toFixed(2);
+    } else {
+        if (banner) banner.classList.add('hidden');
+        if (prevDueRow) prevDueRow.classList.add('hidden');
+        if (prevDueInput) prevDueInput.value = '0.00';
+    }
+
+    calculateBalance();
+}
+
+export function checkCustomerDueOnNameChange() {
+    const name = (document.getElementById('custName')?.value || '').trim();
+    checkCustomerDueInBilling(name);
+}
+
+export function viewCustomerDuesFromBilling() {
+    const name = (document.getElementById('custName')?.value || '').trim().toUpperCase();
+    if (name && typeof window.openCustomerConsolidationCustomer === 'function') {
+        window.openCustomerConsolidationCustomer(name);
+    }
+}
+
 export function calculateBalance() {
     const subTotal = (state.currentBillItems || []).reduce((sum, i) => sum + Number(i.total || 0), 0);
     const discountRaw = parseFloat(document.getElementById('billDiscountAmt')?.value);
@@ -1021,11 +1069,26 @@ export function calculateBalance() {
         netPayableEl.value = netPayable.toFixed(2);
     }
 
+    const includePrev = document.getElementById('billIncludePrevDue')?.checked ?? true;
+    const prevDueVal = includePrev ? (parseFloat(document.getElementById('billPreviousDue')?.value) || 0) : 0;
+    const totalWithDue = Math.max(0, netPayable + prevDueVal);
+
+    const totalWithDueEl = document.getElementById('billTotalWithDue');
+    if (totalWithDueEl) {
+        totalWithDueEl.value = totalWithDue.toFixed(2);
+    }
+
     const paidInputRaw = document.getElementById('billPaidAmt')?.value;
     const paidInput = parseFloat(paidInputRaw);
     const isPaidEmpty = paidInputRaw === '' || paidInputRaw === undefined;
-    const effectivePaid = isPaidEmpty ? netPayable : (Number.isFinite(paidInput) ? paidInput : 0);
-    const balance = netPayable - effectivePaid;
+    const effectivePaid = isPaidEmpty ? (prevDueVal > 0 ? 0 : netPayable) : (Number.isFinite(paidInput) ? paidInput : 0);
+    
+    const paidEl = document.getElementById('billPaidAmt');
+    if (paidEl && isPaidEmpty) {
+        paidEl.placeholder = prevDueVal > 0 ? "0.00" : netPayable.toFixed(2);
+    }
+
+    const balance = totalWithDue - effectivePaid;
     const due = Math.max(0, balance);
     const excess = Math.max(0, -balance);
     const field = document.getElementById('billPendingAmt');
@@ -1033,7 +1096,7 @@ export function calculateBalance() {
     if (field) field.value = due.toFixed(2);
     if (status) {
         if (balance > 0.001) {
-            status.textContent = 'BALANCE DUE: ₹' + due.toFixed(2);
+            status.textContent = (prevDueVal > 0 ? 'NET BALANCE DUE: ₹' : 'BALANCE DUE: ₹') + due.toFixed(2);
             status.className = 'text-xs font-black mt-1 text-right text-rose-400 animate-pulse';
         } else if (balance < -0.001) {
             status.textContent = 'BALANCE RETURN / CHANGE: ₹' + excess.toFixed(2);
@@ -1153,14 +1216,45 @@ export function saveCustomer(e) {
     const discount = Number.isFinite(discountRaw) && discountRaw > 0 ? Math.min(subTotal, discountRaw) : 0;
     const grandTotal = Math.max(0, subTotal - discount);
 
-    const paidAmount = parseFloat(document.getElementById('billPaidAmt')?.value);
-    const safePaidAmount = Number.isFinite(paidAmount) ? Math.max(0, paidAmount) : grandTotal;
-    const pendingAmount = Math.max(0, grandTotal - safePaidAmount);
-    const excessAmount = Math.max(0, safePaidAmount - grandTotal);
-    const paymentMode = document.getElementById('billPaymentMode')?.value || 'Cash';
-    
     let billNo = (index >= 0 && state.customers[index]?.billNo) || getNextBillNumber();
     const billId = (index >= 0 && state.customers[index]?.id) || generateUniqueRecordId('bill');
+
+    const includePrev = document.getElementById('billIncludePrevDue')?.checked ?? true;
+    const previousDue = includePrev ? (parseFloat(document.getElementById('billPreviousDue')?.value) || 0) : 0;
+    const totalWithDue = Math.max(0, grandTotal + previousDue);
+
+    const paidAmount = parseFloat(document.getElementById('billPaidAmt')?.value);
+    const isPaidEmpty = document.getElementById('billPaidAmt')?.value === '' || document.getElementById('billPaidAmt')?.value === undefined;
+    const safePaidAmount = isPaidEmpty ? (previousDue > 0 ? 0 : grandTotal) : (Number.isFinite(paidAmount) ? Math.max(0, paidAmount) : 0);
+    
+    // Allocate payment:
+    const currentBillPaid = Math.min(grandTotal, safePaidAmount);
+    const pendingAmount = Math.max(0, grandTotal - currentBillPaid);
+    const excessTowardsPrev = Math.max(0, safePaidAmount - grandTotal);
+    const excessAmount = Math.max(0, safePaidAmount - totalWithDue);
+
+    // If customer paid extra beyond current bill, apply to previous unpaid bills (oldest first):
+    if (excessTowardsPrev > 0 && previousDue > 0) {
+        let remainingPaid = excessTowardsPrev;
+        const cleanCustName = name.toLowerCase();
+        (state.customers || []).forEach(c => {
+            if (remainingPaid <= 0.001) return;
+            if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
+            if (String(c.name || '').trim().toLowerCase() !== cleanCustName) return;
+            if (index >= 0 && (c.id === billId || c.billNo === billNo)) return;
+            const cDue = Number(c.pendingAmount || 0);
+            if (cDue > 0.001) {
+                const payPortion = Math.min(cDue, remainingPaid);
+                c.pendingAmount = Math.max(0, cDue - payPortion);
+                c.paidAmount = (Number(c.paidAmount || 0)) + payPortion;
+                c.savedAt = Date.now();
+                remainingPaid -= payPortion;
+            }
+        });
+    }
+
+    const paymentMode = document.getElementById('billPaymentMode')?.value || 'Cash';
+    
     unmarkIdDeleted(billId);
     unmarkIdDeleted('custname_' + name.toLowerCase());
 
@@ -1184,6 +1278,8 @@ export function saveCustomer(e) {
         subTotal,
         discount,
         grandTotal,
+        previousDue,
+        totalWithDue,
         paidAmount: safePaidAmount,
         pendingAmount,
         excessAmount,
@@ -1217,6 +1313,16 @@ export function resetCustomerForm() {
     if (existingSel) existingSel.value = '';
     const notice = document.getElementById('billRateNotice');
     if (notice) notice.innerHTML = '';
+    const prevBanner = document.getElementById('custDueAlertBanner');
+    if (prevBanner) prevBanner.classList.add('hidden');
+    const prevDueRow = document.getElementById('billPreviousDueRow');
+    if (prevDueRow) prevDueRow.classList.add('hidden');
+    const prevDueInput = document.getElementById('billPreviousDue');
+    if (prevDueInput) prevDueInput.value = '0.00';
+    const totalWithDueEl = document.getElementById('billTotalWithDue');
+    if (totalWithDueEl) totalWithDueEl.value = '';
+    const incBox = document.getElementById('billIncludePrevDue');
+    if (incBox) incBox.checked = true;
     const btn = document.getElementById('custSubmitBtn');
     if (btn) btn.textContent = 'Save Bill & Folder';
     const delBtn = document.getElementById('custDeleteBtn');
@@ -1256,6 +1362,15 @@ export function editCustomerBill(identifier) {
     document.getElementById('billPaidAmt').value = c.paidAmount !== undefined ? Number(c.paidAmount) : Number(c.grandTotal || 0);
     const paymentModeEl = document.getElementById('billPaymentMode');
     if (paymentModeEl) paymentModeEl.value = c.paymentMode || 'Cash';
+    
+    const prevDueInput = document.getElementById('billPreviousDue');
+    if (prevDueInput) prevDueInput.value = Number(c.previousDue || 0).toFixed(2);
+    const prevDueRow = document.getElementById('billPreviousDueRow');
+    if (prevDueRow) {
+        if (Number(c.previousDue || 0) > 0) prevDueRow.classList.remove('hidden');
+        else prevDueRow.classList.add('hidden');
+    }
+
     calculateBalance();
     const btn = document.getElementById('custSubmitBtn');
     if (btn) btn.textContent = 'Update Bill & Payment';

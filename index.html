@@ -525,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.1.0';
+                var CURRENT_APP_VERSION = '51.2.0';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -552,9 +552,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.1.0) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.0) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.1.0');
+                        localStorage.setItem('fia_app_version', '51.2.0');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -860,7 +860,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.1.0</span>
+                    <span>v51.2.0</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -1751,8 +1751,27 @@
 
                     <div class="grid grid-cols-1 gap-2 bg-slate-900/70 p-3 rounded-xl border border-slate-800">
                         <label class="text-[11px] text-slate-200 font-bold">Customer Details (Manual Entry)</label>
-                        <input type="text" id="custName" placeholder="Customer Name" required onblur="this.value = this.value.toUpperCase().trim()" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-indigo-500 uppercase">
+                        <input type="text" id="custName" placeholder="Customer Name" required onblur="this.value = this.value.toUpperCase().trim(); if(window.checkCustomerDueOnNameChange) window.checkCustomerDueOnNameChange();" oninput="if(window.checkCustomerDueOnNameChange) window.checkCustomerDueOnNameChange();" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-indigo-500 uppercase">
                         <input type="text" id="custPhone" placeholder="Mobile Number" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-indigo-500">
+                    </div>
+
+                    <!-- Live Customer Previous Due Alert Banner -->
+                    <div id="custDueAlertBanner" class="hidden bg-rose-950/70 border border-rose-600/70 rounded-xl p-3 text-xs space-y-1.5 shadow-lg shadow-rose-950/40">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="text-rose-400 text-base shrink-0">⚠️</span>
+                                <div class="min-w-0">
+                                    <span class="text-rose-200 font-bold block text-xs">Customer has Previous Due (പഴയ ബാക്കി):</span>
+                                    <div class="flex items-baseline gap-1 mt-0.5">
+                                        <span id="custDueAlertAmount" class="text-rose-400 font-black text-sm">₹0.00</span>
+                                        <span id="custDueAlertCount" class="text-[10px] text-slate-300">(0 bills)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" id="custDueAlertBtn" onclick="if(window.viewCustomerDuesFromBilling) window.viewCustomerDuesFromBilling()" class="shrink-0 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg transition shadow flex items-center gap-1 cursor-pointer">
+                                👁️ View History
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 shadow-md space-y-2">
@@ -1853,13 +1872,36 @@
                             </div>
                         </div>
 
+                        <!-- Customer Previous Due Addition Row (Visible when customer has previous due) -->
+                        <div id="billPreviousDueRow" class="hidden bg-amber-950/40 border border-amber-800/60 rounded-xl p-2.5 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[11px] font-bold text-amber-300 flex items-center gap-1">
+                                    <span>⚠️</span> Previous Due (പഴയ ബാക്കി):
+                                </label>
+                                <label class="text-[10px] text-slate-300 flex items-center gap-1 cursor-pointer select-none">
+                                    <input type="checkbox" id="billIncludePrevDue" checked onchange="calculateBalance()" class="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500">
+                                    <span>Include in Bill</span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <span class="text-[9px] text-slate-400 block mb-0.5">Old Due (₹):</span>
+                                    <input type="number" id="billPreviousDue" value="0.00" oninput="calculateBalance()" class="w-full p-2 border border-amber-700/60 rounded-lg text-xs bg-slate-950 text-amber-300 font-bold focus:outline-none min-w-0" step="any">
+                                </div>
+                                <div>
+                                    <span class="text-[9px] text-slate-400 block mb-0.5">Total with Old Due (₹):</span>
+                                    <input type="number" id="billTotalWithDue" placeholder="0.00" readonly class="w-full p-2 border border-slate-700 rounded-lg text-xs bg-slate-900 text-white font-extrabold cursor-not-allowed min-w-0">
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="text-[10px] text-slate-400 font-bold block mb-1">Total Amount (₹):</label>
+                                <label class="text-[10px] text-slate-400 font-bold block mb-1">Current Bill (₹):</label>
                                 <input type="number" id="billNetPayable" placeholder="0.00" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-emerald-400 font-extrabold cursor-not-allowed min-w-0">
                             </div>
                             <div>
-                                <label id="billBalanceLabel" class="text-[10px] text-slate-400 font-bold block mb-1">Balance / Due (₹):</label>
+                                <label id="billBalanceLabel" class="text-[10px] text-slate-400 font-bold block mb-1">Net Balance / Due (₹):</label>
                                 <input type="number" id="billPendingAmt" placeholder="Balance" readonly class="w-full p-2.5 border border-slate-800 rounded-xl text-xs bg-slate-900 text-slate-300 font-bold cursor-not-allowed min-w-0">
                             </div>
                         </div>
@@ -2478,6 +2520,14 @@
                 </div>
                 <button type="button" onclick="closeDueAmountList()" class="text-slate-400 hover:text-white font-bold text-sm">✕ Close</button>
             </div>
+            <div class="px-3 pt-2 pb-1 border-b border-slate-800 bg-slate-950/40 flex gap-2">
+                <button type="button" id="btnDueModeCustomer" onclick="switchDueListViewMode('customer')" class="flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-rose-600 text-white shadow transition cursor-pointer">
+                    👥 By Customer
+                </button>
+                <button type="button" id="btnDueModeBill" onclick="switchDueListViewMode('bill')" class="flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 transition cursor-pointer">
+                    📄 By Individual Bill
+                </button>
+            </div>
             <div id="dueAmountListContainer" class="p-3 overflow-y-auto max-h-[75vh] space-y-2.5"></div>
         </div>
     </div>
@@ -2989,7 +3039,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.1.2"></script>
+    <script type="module" src="./modules/app.js?v=51.2.0"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3004,7 +3054,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.1.0) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.0) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3058,7 +3108,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.1.2')
+                navigator.serviceWorker.register('./sw.js?v=51.2.0')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

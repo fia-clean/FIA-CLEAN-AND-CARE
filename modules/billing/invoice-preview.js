@@ -106,9 +106,11 @@ export function previewBill(identifier) {
     const grandVal = Number(c.grandTotal || 0);
     const discountVal = Number(c.discount || 0);
     const subTotalVal = Number(c.subTotal || (grandVal + discountVal));
+    const prevDueVal = Number(c.previousDue || 0);
+    const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
     const paidVal = c.paidAmount !== undefined ? Number(c.paidAmount) : grandVal;
-    const pendingVal = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, grandVal - paidVal);
-    const excessVal = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paidVal - grandVal);
+    const finalPending = Math.max(0, totalWithDueVal - paidVal);
+    const excessVal = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paidVal - totalWithDueVal);
 
     const billHTML = `
         <div id="fiaInvoiceCaptureCard" style="font-family: Arial, Helvetica, sans-serif; color: #000000 !important; background-color: #ffffff !important; padding: 16px 14px; width: 380px; max-width: 100%; min-height: 520px; display: flex; flex-direction: column; justify-content: space-between; margin: 0 auto; box-sizing: border-box; border-radius: 12px; border: 2px solid ${themeColor};">
@@ -173,18 +175,33 @@ export function previewBill(identifier) {
                         <span>Discount:</span>
                         <span>-₹${discountVal.toFixed(2)}</span>
                     </div>` : ''}
+                    
+                    ${prevDueVal > 0 ? `
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #374151 !important; font-weight: 700;">
+                        <span>Current Bill:</span>
+                        <span>₹${grandVal.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #b45309 !important; font-weight: 700; margin-bottom: 3px;">
+                        <span>Previous Due (പഴയ ബാക്കി):</span>
+                        <span>₹${prevDueVal.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; margin-bottom: 3px; border-top: 1px dashed #e5e7eb; padding-top: 3px;">
+                        <span style="font-size: 11.5px; font-weight: 800; color: #111827 !important;">Total Amount Due:</span>
+                        <span style="font-size: 13px; font-weight: 900; color: ${themeColor} !important;">₹${totalWithDueVal.toFixed(2)}</span>
+                    </div>` : `
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; margin-bottom: 3px; ${discountVal > 0 ? 'border-top: 1px dashed #e5e7eb; padding-top: 3px;' : ''}">
                         <span style="font-size: 11.5px; font-weight: 800; color: #111827 !important;">Grand Total:</span>
                         <span style="font-size: 13px; font-weight: 900; color: ${themeColor} !important;">₹${grandVal.toFixed(2)}</span>
-                    </div>
+                    </div>`}
+
                     <div style="display: flex; justify-content: space-between; align-items: center; color: #047857 !important; font-weight: 700;">
                         <span>Paid:</span>
                         <span>₹${paidVal.toFixed(2)}</span>
                     </div>
-                    ${pendingVal > 0 ? `
+                    ${finalPending > 0 ? `
                     <div style="display: flex; justify-content: space-between; align-items: center; color: #b91c1c !important; font-weight: 800; margin-top: 2px; padding: 2px 4px; background: #fef2f2; border-radius: 4px;">
-                        <span>⚠️ Balance Due:</span>
-                        <span>₹${pendingVal.toFixed(2)}</span>
+                        <span>⚠️ ${prevDueVal > 0 ? 'Net Balance Due:' : 'Balance Due:'}</span>
+                        <span>₹${finalPending.toFixed(2)}</span>
                     </div>` : ''}
                     ${excessVal > 0 ? `
                     <div style="display: flex; justify-content: space-between; align-items: center; color: #b45309 !important; font-weight: 800; margin-top: 2px; padding: 2px 4px; background: #fffbeb; border-radius: 4px;">
@@ -411,6 +428,10 @@ function getA4ItemRowHtml(item, idx) {
 function getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal) {
     const discountVal = Number(c.discount || 0);
     const subTotalVal = Number(c.subTotal || (grandVal + discountVal));
+    const prevDueVal = Number(c.previousDue || 0);
+    const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
+    const finalPending = Math.max(0, totalWithDueVal - paidVal);
+
     return `
         <div class="totals-container" style="page-break-inside: avoid !important; break-inside: avoid !important; margin-top: 14px;">
             <div style="background: #f9fafb; border: 1.5px solid #d1d5db; border-radius: 8px; padding: 10px 14px; font-size: 11.5px; line-height: 1.5; color: #111827; width: 320px; max-width: 100%; margin-left: auto; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
@@ -423,18 +444,33 @@ function getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal
                     <span>Discount:</span>
                     <span>-₹${discountVal.toFixed(2)}</span>
                 </div>` : ''}
+                
+                ${prevDueVal > 0 ? `
+                <div style="display: flex; justify-content: space-between; align-items: center; color: #374151; font-weight: 700;">
+                    <span>Current Bill:</span>
+                    <span>₹${grandVal.toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; color: #b45309; font-weight: 700; margin-bottom: 4px;">
+                    <span>Previous Due (പഴയ ബാക്കി):</span>
+                    <span>₹${prevDueVal.toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 5px; border-top: 1px dashed #e5e7eb; padding-top: 4px;">
+                    <span style="font-size: 12.5px; font-weight: 800; color: #111827;">Total Amount Due:</span>
+                    <span style="font-size: 14.5px; font-weight: 900; color: ${themeColor};">₹${totalWithDueVal.toFixed(2)}</span>
+                </div>` : `
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 5px; ${discountVal > 0 ? 'border-top: 1px dashed #e5e7eb; padding-top: 4px;' : ''}">
                     <span style="font-size: 12.5px; font-weight: 800; color: #111827;">Grand Total:</span>
                     <span style="font-size: 14.5px; font-weight: 900; color: ${themeColor};">₹${grandVal.toFixed(2)}</span>
-                </div>
+                </div>`}
+
                 <div style="display: flex; justify-content: space-between; align-items: center; color: #047857; font-weight: 700;">
                     <span>Paid Amount:</span>
                     <span>₹${paidVal.toFixed(2)}</span>
                 </div>
-                ${pendingVal > 0 ? `
+                ${finalPending > 0 ? `
                 <div style="display: flex; justify-content: space-between; align-items: center; color: #b91c1c; font-weight: 800; margin-top: 4px; padding: 3px 6px; background: #fef2f2; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-                    <span>⚠️ Balance Due:</span>
-                    <span>₹${pendingVal.toFixed(2)}</span>
+                    <span>⚠️ ${prevDueVal > 0 ? 'Net Balance Due:' : 'Balance Due:'}</span>
+                    <span>₹${finalPending.toFixed(2)}</span>
                 </div>` : ''}
                 ${excessVal > 0 ? `
                 <div style="display: flex; justify-content: space-between; align-items: center; color: #b45309; font-weight: 800; margin-top: 4px; padding: 3px 6px; background: #fffbeb; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
@@ -893,15 +929,24 @@ export function sendBillViaWhatsApp() {
         return `${idx + 1}. *${cleanName}* | ${qtyDisplay} | ₹${rate} | ₹${total}`;
     }).join('\n');
     const paidVal = c.paidAmount !== undefined ? c.paidAmount : c.grandTotal;
-    const pendingVal = c.pendingAmount !== undefined ? c.pendingAmount : 0;
-    
+    const prevDueVal = Number(c.previousDue || 0);
+    const totalWithDueVal = Number(c.totalWithDue || (Number(c.grandTotal || 0) + prevDueVal));
+    const finalPendingVal = Math.max(0, totalWithDueVal - Number(paidVal));
     const excessVal = Number(c.excessAmount || 0);
-    const dueLine = Number(pendingVal) > 0 ? `*Balance Due:* ₹${Number(pendingVal).toFixed(2)}\n` : '';
+    
+    let totalsBlock = '';
+    if (prevDueVal > 0) {
+        totalsBlock = `*Current Bill:* ₹${Number(c.grandTotal || 0).toFixed(2)}\n*Previous Due (പഴയ ബാക്കി):* ₹${prevDueVal.toFixed(2)}\n*Total Amount Due:* *₹${totalWithDueVal.toFixed(2)}*\n*Paid Today:* ₹${Number(paidVal).toFixed(2)}\n${finalPendingVal > 0 ? `*⚠️ Net Balance Due:* *₹${finalPendingVal.toFixed(2)}*\n` : ''}`;
+    } else {
+        const dueLine = Number(c.pendingAmount || 0) > 0 ? `*Balance Due:* ₹${Number(c.pendingAmount || 0).toFixed(2)}\n` : '';
+        totalsBlock = `*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}`;
+    }
+
     const returnLine = excessVal > 0 ? `*Balance Return:* ₹${excessVal.toFixed(2)}\n` : '';
     const discountVal = Number(c.discount || 0);
     const subTotalVal = Number(c.subTotal || (Number(c.grandTotal || 0) + discountVal));
     const discountLine = discountVal > 0 ? `*Subtotal:* ₹${subTotalVal.toFixed(2)}\n*Discount:* -₹${discountVal.toFixed(2)}\n` : '';
-    let msg = `*FIA CLEAN AND CARE*\n*EDATHANATTUKARA*\n*MOB: 8086452106*\n*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${String(c.name || 'Walk-in').toUpperCase()}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n${discountLine}*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}${returnLine}\n_Thank you for your business!_`;
+    let msg = `*FIA CLEAN AND CARE*\n*EDATHANATTUKARA*\n*MOB: 8086452106*\n*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${String(c.name || 'Walk-in').toUpperCase()}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n${discountLine}${totalsBlock}${returnLine}\n_Thank you for your business!_`;
     
     if (window.history && window.history.pushState) {
         window.history.pushState({ loggedIn: true, tab: 'billing' }, "", "#billing");
