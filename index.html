@@ -525,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.1';
+                var CURRENT_APP_VERSION = '51.2.2';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -552,9 +552,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.1) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.2) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.1');
+                        localStorage.setItem('fia_app_version', '51.2.2');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -860,7 +860,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.1</span>
+                    <span>v51.2.2</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -2350,15 +2350,15 @@
                     </div>
                     
                     <div class="flex flex-col sm:flex-row items-center gap-3">
-                        <!-- Compact SVG Donut Ring -->
-                        <div class="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                        <!-- Compact SVG Donut Ring (Tap to toggle Margin / Markup) -->
+                        <div class="relative w-16 h-16 shrink-0 flex items-center justify-center cursor-pointer select-none group" onclick="if(window.toggleProfitViewMode) window.toggleProfitViewMode();" title="Tap to switch between Margin (Sales %) and Markup (Cost %)">
                             <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 80 80">
                                 <circle cx="40" cy="40" r="32" stroke="#e2e8f0" stroke-width="8" fill="transparent" />
                                 <circle id="profitRingCircle" cx="40" cy="40" r="32" stroke="#059669" stroke-width="8" stroke-dasharray="201.06" stroke-dashoffset="50" stroke-linecap="round" fill="transparent" class="transition-all duration-700 ease-out" />
                             </svg>
                             <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-1">
                                 <span id="profitMarginPercentText" class="text-[11px] font-black text-emerald-700 leading-none">0%</span>
-                                <span class="text-[7px] text-slate-500 uppercase font-bold leading-none mt-0.5">Margin</span>
+                                <span id="profitRingLabel" class="text-[7px] text-slate-500 uppercase font-bold leading-none mt-0.5 group-hover:text-indigo-600 transition">Margin</span>
                             </div>
                         </div>
 
@@ -2376,6 +2376,26 @@
                                 <span class="text-[9px] text-slate-600 block font-semibold">Net Profit</span>
                                 <b id="dbNetProfitText" class="text-[11px] sm:text-xs font-black text-slate-900 mt-0.5 break-all leading-tight">₹0.00</b>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Dual Profit Breakdown: Margin on Sales vs Markup on Cost -->
+                    <div class="grid grid-cols-2 gap-2 text-center pt-1 border-t border-slate-200/80">
+                        <div id="dbCardMargin" onclick="if(window.setProfitMode) window.setProfitMode('margin');" class="bg-white/90 p-2 rounded-xl border border-emerald-200/90 flex flex-col justify-center shadow-2xs cursor-pointer hover:bg-emerald-50/50 transition">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                                <span class="text-[10px] font-extrabold text-emerald-950 uppercase tracking-wide">Profit Margin</span>
+                            </div>
+                            <b id="dbProfitMarginDetailText" class="text-xs sm:text-sm font-black text-emerald-700 mt-0.5">0.0%</b>
+                            <span class="text-[8px] text-slate-500 font-medium leading-tight">വിൽപ്പനയിൽ നിന്നുള്ള ലാഭം (Sales)</span>
+                        </div>
+                        <div id="dbCardMarkup" onclick="if(window.setProfitMode) window.setProfitMode('markup');" class="bg-white/90 p-2 rounded-xl border border-indigo-200/90 flex flex-col justify-center shadow-2xs cursor-pointer hover:bg-indigo-50/50 transition">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
+                                <span class="text-[10px] font-extrabold text-indigo-950 uppercase tracking-wide">Markup / ROI</span>
+                            </div>
+                            <b id="dbProfitMarkupDetailText" class="text-xs sm:text-sm font-black text-indigo-700 mt-0.5">0.0%</b>
+                            <span class="text-[8px] text-slate-500 font-medium leading-tight">മുടക്കുമുതലിലെ ലാഭം (Cost)</span>
                         </div>
                     </div>
 
@@ -3039,7 +3059,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.1"></script>
+    <script type="module" src="./modules/app.js?v=51.2.2"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3054,7 +3074,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.1) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.2) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3108,7 +3128,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.1')
+                navigator.serviceWorker.register('./sw.js?v=51.2.2')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

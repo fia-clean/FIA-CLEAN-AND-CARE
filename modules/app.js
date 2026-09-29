@@ -333,12 +333,16 @@ import {
     onFolderSpecificDateChange,
     onFolderDateRangeChange,
     syncFolderDateInputs,
-    getYesterdayDateString
+    getYesterdayDateString,
+    toggleProfitViewMode,
+    setProfitMode
 } from './daybook/daybook.js';
 
 // ================= GLOBAL WINDOW BINDINGS (ATTACHED FIRST) =================
 // Guarantees all inline HTML onclick handlers (switchTab, modals, etc.) are available immediately
 if (typeof window !== 'undefined') {
+    window.toggleProfitViewMode = toggleProfitViewMode;
+    window.setProfitMode = setProfitMode;
     window.showRecordView = showRecordView;
     window.closeRecordView = closeRecordView;
     window.openBarcodeScanner = openBarcodeScanner;

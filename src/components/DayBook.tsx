@@ -133,6 +133,11 @@ export const DayBook: React.FC<DayBookProps> = ({
     .reduce((sum, e) => sum + e.amount, 0);
 
   const netBalance = totalIncome - totalExpense;
+  const rawMarginPct = totalIncome > 0 ? (netBalance / totalIncome) * 100 : 0;
+  const marginPct = Math.abs(rawMarginPct).toFixed(1);
+  const rawMarkupPct = totalExpense > 0 ? (netBalance / totalExpense) * 100 : 0;
+  const markupPct = Math.abs(rawMarkupPct).toFixed(1);
+  const isProfit = netBalance >= 0;
 
   const handleExportCSV = () => {
     const headers = ['Type', 'Category', 'Description', 'Amount (INR)', 'Date'];
@@ -384,6 +389,49 @@ export const DayBook: React.FC<DayBookProps> = ({
               }`}
             >
               {netBalance >= 0 ? '+ PROFIT' : '- DEFICIT'}
+            </span>
+          </div>
+        </div>
+
+        {/* Dual Profit Margin & Markup Analysis Strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+          <div className="p-3 rounded-lg border border-emerald-200 bg-white shadow-2xs flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <span className="text-[10px] uppercase font-bold text-slate-600">
+                  Profit Margin (Sales)
+                </span>
+              </div>
+              <div className={`text-lg font-bold font-mono mt-1 ${isProfit ? 'text-emerald-700' : 'text-rose-700'}`}>
+                {isProfit ? '' : '-'}{marginPct}%
+              </div>
+              <span className="text-[10px] text-slate-400">
+                വിൽപ്പനയിൽ നിന്നുള്ള ലാഭം (on Sales)
+              </span>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Sales Margin
+            </span>
+          </div>
+
+          <div className="p-3 rounded-lg border border-indigo-200 bg-white shadow-2xs flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
+                <span className="text-[10px] uppercase font-bold text-slate-600">
+                  Markup / ROI (Cost)
+                </span>
+              </div>
+              <div className={`text-lg font-bold font-mono mt-1 ${isProfit ? 'text-indigo-700' : 'text-rose-700'}`}>
+                {isProfit ? '' : '-'}{markupPct}%
+              </div>
+              <span className="text-[10px] text-slate-400">
+                മുടക്കുമുതലിലെ ലാഭം (on Cost)
+              </span>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+              Cost Markup
             </span>
           </div>
         </div>

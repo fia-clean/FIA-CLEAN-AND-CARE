@@ -554,13 +554,22 @@ export function renderAccounts() {
     const totalTurnover = currentIncome + currentExpense;
     const incPct = totalTurnover > 0 ? Math.round((currentIncome / totalTurnover) * 100) : 50;
     const expPct = totalTurnover > 0 ? (100 - incPct) : 50;
+
+    // 1. Profit Margin on Sales (വിൽപ്പനയിൽ നിന്നുള്ള ലാഭശതമാനം)
     const rawMarginPct = currentIncome > 0 ? (netBalance / currentIncome) * 100 : 0;
     const marginPct = Math.abs(rawMarginPct).toFixed(1);
+
+    // 2. Markup on Cost / Purchases (മുടക്കുമുതലിൽ നിന്നുള്ള ലാഭശതമാനം / ROI)
+    const rawMarkupPct = currentExpense > 0 ? (netBalance / currentExpense) * 100 : 0;
+    const markupPct = Math.abs(rawMarkupPct).toFixed(1);
+
     const isProfit = netBalance >= 0;
 
     // SVG Donut Ring & Graphical Widget
     const circle = document.getElementById('profitRingCircle');
     const marginText = document.getElementById('profitMarginPercentText');
+    const marginDetailText = document.getElementById('dbProfitMarginDetailText');
+    const markupDetailText = document.getElementById('dbProfitMarkupDetailText');
     const incomeText = document.getElementById('dbIncomeText');
     const expenseText = document.getElementById('dbExpenseText');
     const profitText = document.getElementById('dbNetProfitText');
@@ -607,17 +616,54 @@ export function renderAccounts() {
         profitText.className = 'text-xs font-black ' + (isProfit ? 'text-emerald-400' : 'text-rose-400');
     }
 
+    state.dayBookProfitMode = state.dayBookProfitMode || 'margin';
+    const isMarkup = state.dayBookProfitMode === 'markup';
+    const activePct = isMarkup ? markupPct : marginPct;
+    const ringLabel = document.getElementById('profitRingLabel');
+
+    if (ringLabel) {
+        ringLabel.textContent = isMarkup ? 'Markup' : 'Margin';
+    }
+
     const circumference = 201.06; // 2 * PI * 32
     if (circle) {
-        const effectivePct = Math.min(100, Math.max(0, isProfit ? Number(marginPct) : Math.min(100, currentExpense > 0 ? (Math.abs(netBalance) / currentExpense) * 100 : 0)));
-        const offset = circumference * (1 - (effectivePct / 100));
+        const ringDisplayVal = Math.min(100, Math.max(0, Number(activePct)));
+        const offset = circumference * (1 - (ringDisplayVal / 100));
         circle.style.strokeDashoffset = offset;
-        circle.setAttribute('stroke', isProfit ? '#10b981' : '#f43f5e');
+        circle.setAttribute('stroke', isProfit ? (isMarkup ? '#6366f1' : '#10b981') : '#f43f5e');
     }
 
     if (marginText) {
-        marginText.textContent = (isProfit ? '' : '-') + marginPct + '%';
-        marginText.className = 'text-xs font-black ' + (isProfit ? 'text-emerald-400' : 'text-rose-400');
+        marginText.textContent = (isProfit ? '' : '-') + activePct + '%';
+        marginText.className = 'text-xs font-black ' + (isProfit ? (isMarkup ? 'text-indigo-700' : 'text-emerald-700') : 'text-rose-600');
+    }
+
+    if (marginDetailText) {
+        marginDetailText.textContent = (isProfit ? '' : '-') + marginPct + '%';
+        marginDetailText.className = 'text-xs sm:text-sm font-black ' + (isProfit ? 'text-emerald-700' : 'text-rose-600');
+    }
+
+    if (markupDetailText) {
+        markupDetailText.textContent = (isProfit ? '' : '-') + markupPct + '%';
+        markupDetailText.className = 'text-xs sm:text-sm font-black ' + (isProfit ? 'text-indigo-700' : 'text-rose-600');
+    }
+
+    // Visual indicator on the two cards
+    const cardMargin = document.getElementById('dbCardMargin');
+    const cardMarkup = document.getElementById('dbCardMarkup');
+    if (cardMargin) {
+        if (!isMarkup) {
+            cardMargin.className = 'bg-emerald-50/70 p-2 rounded-xl border-2 border-emerald-500 flex flex-col justify-center shadow-xs cursor-pointer transition';
+        } else {
+            cardMargin.className = 'bg-white/90 p-2 rounded-xl border border-slate-200 flex flex-col justify-center shadow-2xs cursor-pointer hover:bg-slate-50 transition opacity-80';
+        }
+    }
+    if (cardMarkup) {
+        if (isMarkup) {
+            cardMarkup.className = 'bg-indigo-50/70 p-2 rounded-xl border-2 border-indigo-500 flex flex-col justify-center shadow-xs cursor-pointer transition';
+        } else {
+            cardMarkup.className = 'bg-white/90 p-2 rounded-xl border border-slate-200 flex flex-col justify-center shadow-2xs cursor-pointer hover:bg-slate-50 transition opacity-80';
+        }
     }
 
     if (statusBadge) {
@@ -834,6 +880,18 @@ export function exportDayBookToCSV() {
     URL.revokeObjectURL(url);
 }
 
+export function toggleProfitViewMode() {
+    state.dayBookProfitMode = (state.dayBookProfitMode === 'markup') ? 'margin' : 'markup';
+    renderAccounts();
+}
+
+export function setProfitMode(mode) {
+    if (mode === 'margin' || mode === 'markup') {
+        state.dayBookProfitMode = mode;
+        renderAccounts();
+    }
+}
+
 // Global window bindings for HTML inline onclick attributes
 if (typeof window !== 'undefined') {
     window.dashboardDateKey = dashboardDateKey;
@@ -856,4 +914,6 @@ if (typeof window !== 'undefined') {
     window.onFolderDateRangeChange = onFolderDateRangeChange;
     window.syncFolderDateInputs = syncFolderDateInputs;
     window.getYesterdayDateString = getYesterdayDateString;
+    window.toggleProfitViewMode = toggleProfitViewMode;
+    window.setProfitMode = setProfitMode;
 }
