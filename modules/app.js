@@ -97,7 +97,9 @@ import {
     selectBillingCustomer,
     clearBillingCustomerInput,
     handleBillingCustomerKeyDown,
-    renderBillingCustomerDropdown
+    renderBillingCustomerDropdown,
+    activateManualCustomerEntry,
+    onManualCustNameChange
 } from './customers/customer.js';
 
 import {

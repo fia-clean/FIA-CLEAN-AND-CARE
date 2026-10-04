@@ -203,21 +203,34 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
             Customer Name <span className="text-rose-500">*</span>
           </span>
         </label>
-        {matchedExistingCustomer ? (
-          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-            Directory Customer
-          </span>
-        ) : customerName.trim() ? (
-          <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded flex items-center gap-1">
-            <UserPlus className="w-3 h-3 text-sky-600" />
-            New Customer
-          </span>
-        ) : (
-          <span className="text-[10px] text-slate-400">
-            {customers.length} in directory
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (onClearCustomer) onClearCustomer();
+              else onChangeName('');
+              inputRef.current?.focus();
+            }}
+            className="text-[10.5px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded transition cursor-pointer"
+          >
+            ➕ Add Customer Manually
+          </button>
+          {matchedExistingCustomer ? (
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              Directory Customer
+            </span>
+          ) : customerName.trim() ? (
+            <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <UserPlus className="w-3 h-3 text-sky-600" />
+              New Customer
+            </span>
+          ) : (
+            <span className="text-[10px] text-slate-400">
+              {customers.length} in directory
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Input Box with live search and clear/dropdown buttons */}
@@ -290,6 +303,21 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
             ref={listRef}
             className="max-h-60 overflow-y-auto divide-y divide-slate-100 text-xs"
           >
+            <li
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setIsOpen(false);
+                inputRef.current?.focus();
+              }}
+              className="px-3 py-2 cursor-pointer flex items-center justify-between bg-indigo-50/70 hover:bg-indigo-100 text-indigo-950 font-bold transition select-none"
+            >
+              <div className="flex items-center gap-1.5">
+                <UserPlus className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Add Customer Manually (Manual Entry)</span>
+              </div>
+              <span className="text-[10px] bg-indigo-200/80 text-indigo-800 px-1.5 py-0.5 rounded font-semibold">Enter ↵</span>
+            </li>
+
             {filteredCustomers.length === 0 ? (
               <li className="p-4 text-center text-slate-400 space-y-1">
                 <p className="font-semibold text-slate-600">

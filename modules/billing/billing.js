@@ -1308,7 +1308,8 @@ export function resetCustomerForm() {
     renderBillPreviewInput();
     const rRadio = document.getElementById('billSaleTypeRetail');
     if (rRadio) rRadio.checked = true;
-    updateBillTypeBadge('Retail');
+    const searchInput = document.getElementById('billingCustomerSearchInput');
+    if (searchInput) searchInput.value = '';
     const existingSel = document.getElementById('existingCustomerSelect');
     if (existingSel) existingSel.value = '';
     const badgeEl = document.getElementById('billingCustTypeBadge');
@@ -1357,6 +1358,9 @@ export function editCustomerBill(identifier) {
     if (billNoEl) billNoEl.textContent = c.billNo || 'OLD BILL';
     document.getElementById('custName').value = c.name ? String(c.name).toUpperCase() : '';
     document.getElementById('custPhone').value = c.phone || '';
+    const searchInput = document.getElementById('billingCustomerSearchInput');
+    if (searchInput) searchInput.value = c.name ? String(c.name).toUpperCase() : '';
+    if (typeof window.onManualCustNameChange === 'function') window.onManualCustNameChange(c.name || '');
     const saleRadio = document.querySelector(`input[name="saleType"][value="${c.saleType || 'Retail'}"]`);
     if (saleRadio) saleRadio.checked = true;
     updateBillTypeBadge(c.saleType || 'Retail');

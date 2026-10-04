@@ -1742,23 +1742,24 @@
                     <input type="hidden" id="custIndex" value="-1">
                     <div class="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800"><div class="flex justify-between items-center"><span class="text-[10px] text-slate-400">AUTOMATIC BILL NUMBER</span><span id="billNumberDisplay" class="text-sm font-extrabold text-sky-300">NEW</span></div></div>
                     
-                    <!-- Searchable Customer Autocomplete & Selection -->
+                    <!-- 1. Searchable Directory Customer Selection (Search by Letter A-Z) -->
                     <div class="space-y-1.5 relative" id="billingCustomerSearchContainer">
                         <div class="flex items-center justify-between">
                             <label class="text-[11px] text-slate-400 font-bold flex items-center gap-1.5">
-                                <span>👥 Customer Name (Type to search or enter new):</span>
+                                <span>👥 Select Customer from Directory (A-Z / Search):</span>
                             </label>
-                            <span id="billingCustTypeBadge" class="text-[10px] text-slate-400"></span>
+                            <button type="button" onclick="if(window.activateManualCustomerEntry) window.activateManualCustomerEntry()" class="text-[10px] font-bold bg-indigo-600/90 hover:bg-indigo-600 text-white px-2.5 py-1 rounded-lg border border-indigo-500 transition cursor-pointer flex items-center gap-1 shadow-sm">
+                                <span>➕ Add Customer Manually</span>
+                            </button>
                         </div>
                         
                         <div class="relative flex items-center">
                             <input 
                                 type="text" 
-                                id="custName" 
-                                placeholder="🔍 Type letters to search (e.g. POO for POOLA MANU, S) or enter new name..." 
-                                required 
+                                id="billingCustomerSearchInput" 
+                                placeholder="🔍 Type letters to search (e.g. POO for POOLA MANU, S) or click ▼..." 
                                 autocomplete="off"
-                                oninput="if(window.onBillingCustomerSearchInput) window.onBillingCustomerSearchInput(this.value); if(window.checkCustomerDueOnNameChange) window.checkCustomerDueOnNameChange();" 
+                                oninput="if(window.onBillingCustomerSearchInput) window.onBillingCustomerSearchInput(this.value)" 
                                 onfocus="if(window.openBillingCustomerDropdown) window.openBillingCustomerDropdown()"
                                 onkeydown="if(window.handleBillingCustomerKeyDown) window.handleBillingCustomerKeyDown(event)"
                                 class="w-full p-3 pr-16 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-indigo-500 uppercase font-semibold"
@@ -1775,12 +1776,35 @@
                         </div>
 
                         <!-- Hidden select for full backwards compatibility -->
-                        <select id="existingCustomerSelect" onchange="fillExistingCustomer()" class="hidden"></select>
+                        <select id="existingCustomerSelect" onchange="fillExistingCustomer()" class="hidden">
+                            <option value="">-- Select Customer / Enter Manually Below --</option>
+                        </select>
                     </div>
 
-                    <div class="space-y-1 bg-slate-900/70 p-3 rounded-xl border border-slate-800">
-                        <label class="text-[11px] text-slate-200 font-bold">Mobile / WhatsApp Number</label>
-                        <input type="text" id="custPhone" placeholder="Mobile Number (e.g. 9876543210)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-indigo-500">
+                    <!-- 2. Customer Details (Manual Entry) -->
+                    <div class="grid grid-cols-1 gap-2 bg-slate-900/70 p-3 rounded-xl border border-slate-800" id="billingManualCustomerSection">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] text-slate-200 font-bold flex items-center gap-1.5">
+                                <span>✍️ Customer Details (Manual Entry)</span>
+                            </label>
+                            <span id="billingCustTypeBadge" class="text-[10px] text-slate-400"></span>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="custName" 
+                            placeholder="Customer Name" 
+                            required 
+                            autocomplete="off"
+                            onblur="this.value = this.value.toUpperCase().trim(); if(window.checkCustomerDueOnNameChange) window.checkCustomerDueOnNameChange();" 
+                            oninput="if(window.onManualCustNameChange) window.onManualCustNameChange(this.value); if(window.checkCustomerDueOnNameChange) window.checkCustomerDueOnNameChange();" 
+                            class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-indigo-500 uppercase font-semibold"
+                        >
+                        <input 
+                            type="text" 
+                            id="custPhone" 
+                            placeholder="Mobile / WhatsApp Number" 
+                            class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-indigo-500"
+                        >
                     </div>
 
                     <!-- Live Customer Previous Due Alert Banner -->
