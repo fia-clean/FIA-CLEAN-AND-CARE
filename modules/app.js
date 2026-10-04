@@ -89,7 +89,15 @@ import {
     shareSelectedCustomerConsolidatedDetail,
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport,
-    getCustomerTotalPendingDue
+    getCustomerTotalPendingDue,
+    onBillingCustomerSearchInput,
+    openBillingCustomerDropdown,
+    closeBillingCustomerDropdown,
+    toggleBillingCustomerDropdown,
+    selectBillingCustomer,
+    clearBillingCustomerInput,
+    handleBillingCustomerKeyDown,
+    renderBillingCustomerDropdown
 } from './customers/customer.js';
 
 import {

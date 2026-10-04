@@ -1311,6 +1311,11 @@ export function resetCustomerForm() {
     updateBillTypeBadge('Retail');
     const existingSel = document.getElementById('existingCustomerSelect');
     if (existingSel) existingSel.value = '';
+    const badgeEl = document.getElementById('billingCustTypeBadge');
+    if (badgeEl) badgeEl.textContent = '';
+    const clearBtn = document.getElementById('billingCustClearBtn');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    if (typeof window.closeBillingCustomerDropdown === 'function') window.closeBillingCustomerDropdown();
     const notice = document.getElementById('billRateNotice');
     if (notice) notice.innerHTML = '';
     const prevBanner = document.getElementById('custDueAlertBanner');

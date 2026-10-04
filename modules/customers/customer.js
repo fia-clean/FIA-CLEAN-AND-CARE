@@ -243,6 +243,211 @@ export function updateCustomerDropdown() {
         select.innerHTML += `<option value="${name}" data-phone="${uniqueCusts.get(name)}">${name}</option>`;
     });
     if (current && uniqueCusts.has(current)) select.value = current;
+
+    if (typeof renderBillingCustomerDropdown === 'function') {
+        renderBillingCustomerDropdown(current || '');
+    }
+}
+
+export function getAllUniqueCustomers() {
+    const uniqueCusts = new Map();
+    (state.customers || []).forEach(c => {
+        if (!c || isCustItemDeleted(c)) return;
+        const name = String(c.name || '').trim().toUpperCase();
+        if (!name) return;
+        if (!uniqueCusts.has(name)) {
+            uniqueCusts.set(name, c.phone || '');
+        } else if (c.phone && !uniqueCusts.get(name)) {
+            uniqueCusts.set(name, c.phone);
+        }
+    });
+    return Array.from(uniqueCusts.entries()).map(([name, phone]) => ({ name, phone }));
+}
+
+export function renderBillingCustomerDropdown(query = '') {
+    const dropdown = document.getElementById('billingCustomerDropdown');
+    const listEl = document.getElementById('billingCustomerDropdownList');
+    const clearBtn = document.getElementById('billingCustClearBtn');
+    const badgeEl = document.getElementById('billingCustTypeBadge');
+    if (!dropdown || !listEl) return;
+
+    const all = getAllUniqueCustomers();
+    const q = String(query || '').trim().toLowerCase();
+
+    if (clearBtn) {
+        if (q.length > 0) clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
+    }
+
+    let matches = [];
+    if (!q) {
+        matches = all.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
+    } else {
+        const prefix = [];
+        const contains = [];
+        const phoneMatches = [];
+        all.forEach(c => {
+            const nLower = c.name.toLowerCase();
+            const pLower = (c.phone || '').toLowerCase();
+            if (nLower.startsWith(q)) {
+                prefix.push(c);
+            } else if (nLower.includes(q)) {
+                contains.push(c);
+            } else if (pLower && pLower.includes(q)) {
+                phoneMatches.push(c);
+            }
+        });
+        const sortFn = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true });
+        prefix.sort(sortFn);
+        contains.sort(sortFn);
+        phoneMatches.sort(sortFn);
+        matches = [...prefix, ...contains, ...phoneMatches];
+    }
+
+    const exactMatch = all.find(c => c.name.toLowerCase() === q);
+    if (badgeEl) {
+        if (exactMatch) {
+            badgeEl.innerHTML = '<span class="text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-700/60">✓ Directory Customer</span>';
+        } else if (q.length > 0) {
+            badgeEl.innerHTML = '<span class="text-sky-400 font-bold bg-sky-950/60 px-1.5 py-0.5 rounded border border-sky-700/60">➕ New Customer</span>';
+        } else {
+            badgeEl.textContent = `${all.length} in directory`;
+        }
+    }
+
+    if (matches.length === 0) {
+        listEl.innerHTML = `
+            <div class="p-3 text-center text-slate-400">
+                <p class="font-bold text-slate-300">No customer found matching "${query}"</p>
+                <p class="text-[10px] text-slate-500 mt-0.5">Press Tab or continue typing to save as a new customer.</p>
+            </div>
+        `;
+    } else {
+        const headerHtml = `
+            <div class="px-3 py-1.5 bg-slate-950/90 border-b border-slate-800 text-[10px] font-bold text-slate-400 flex justify-between items-center">
+                <span>${q ? `Matching Customers (${matches.length})` : `All Directory Customers (${matches.length})`}</span>
+                <span class="text-slate-500">Click to select</span>
+            </div>
+        `;
+
+        const itemsHtml = matches.map((c) => {
+            let highlightedName = c.name;
+            if (q) {
+                const i = c.name.toLowerCase().indexOf(q);
+                if (i !== -1) {
+                    highlightedName = c.name.substring(0, i) +
+                        `<span class="text-indigo-400 font-black underline bg-indigo-950/80 px-0.5 rounded">${c.name.substring(i, i + q.length)}</span>` +
+                        c.name.substring(i + q.length);
+                }
+            }
+
+            const phoneDisplay = c.phone ? `<span class="text-[11px] font-mono text-slate-400">📞 ${c.phone}</span>` : `<span class="text-[10px] text-slate-600 italic">No phone</span>`;
+
+            return `
+                <div class="p-2.5 hover:bg-slate-800/90 active:bg-indigo-950 cursor-pointer transition flex items-center justify-between gap-2 select-none"
+                     onmousedown="event.preventDefault(); selectBillingCustomer('${c.name.replace(/'/g, "\\'")}', '${(c.phone || '').replace(/'/g, "\\'")}')">
+                    <div class="min-w-0">
+                        <div class="font-bold text-slate-100 text-xs truncate">${highlightedName}</div>
+                        <div class="mt-0.5">${phoneDisplay}</div>
+                    </div>
+                    <span class="text-[10px] bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded font-semibold shrink-0">Select ↵</span>
+                </div>
+            `;
+        }).join('');
+
+        listEl.innerHTML = headerHtml + itemsHtml;
+    }
+}
+
+export function openBillingCustomerDropdown() {
+    const dropdown = document.getElementById('billingCustomerDropdown');
+    if (!dropdown) return;
+    const input = document.getElementById('custName');
+    renderBillingCustomerDropdown(input ? input.value : '');
+    dropdown.classList.remove('hidden');
+}
+
+export function closeBillingCustomerDropdown() {
+    const dropdown = document.getElementById('billingCustomerDropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+}
+
+export function toggleBillingCustomerDropdown() {
+    const dropdown = document.getElementById('billingCustomerDropdown');
+    if (!dropdown) return;
+    if (dropdown.classList.contains('hidden')) {
+        const input = document.getElementById('custName');
+        renderBillingCustomerDropdown(input ? input.value : '');
+        dropdown.classList.remove('hidden');
+        input?.focus();
+    } else {
+        dropdown.classList.add('hidden');
+    }
+}
+
+export function selectBillingCustomer(name, phone) {
+    const nameInput = document.getElementById('custName');
+    const phoneInput = document.getElementById('custPhone');
+    const existingSel = document.getElementById('existingCustomerSelect');
+
+    if (nameInput) nameInput.value = name.toUpperCase();
+    if (phoneInput && phone) phoneInput.value = phone;
+    if (existingSel) existingSel.value = name.toUpperCase();
+
+    closeBillingCustomerDropdown();
+
+    try {
+        const upperName = name.toUpperCase();
+        const lastBill = (state.customers || []).slice().reverse().find(c => c && !isCustItemDeleted(c) && String(c.name || '').trim().toUpperCase() === upperName);
+        if (lastBill && String(lastBill.saleType || '').toLowerCase() === 'wholesale') {
+            const wholesaleRadio = document.getElementById('billSaleTypeWholesale');
+            if (wholesaleRadio && !wholesaleRadio.checked) {
+                wholesaleRadio.checked = true;
+                if (typeof window.onSaleTypeChange === 'function') window.onSaleTypeChange();
+            }
+        }
+    } catch (e) {}
+
+    if (typeof window.checkCustomerDueInBilling === 'function') {
+        window.checkCustomerDueInBilling(name);
+    }
+
+    const badgeEl = document.getElementById('billingCustTypeBadge');
+    if (badgeEl) {
+        badgeEl.innerHTML = '<span class="text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-700/60">✓ Directory Customer</span>';
+    }
+    const clearBtn = document.getElementById('billingCustClearBtn');
+    if (clearBtn) clearBtn.classList.remove('hidden');
+}
+
+export function clearBillingCustomerInput() {
+    const nameInput = document.getElementById('custName');
+    const phoneInput = document.getElementById('custPhone');
+    const existingSel = document.getElementById('existingCustomerSelect');
+    if (nameInput) nameInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    if (existingSel) existingSel.value = '';
+    if (typeof window.checkCustomerDueInBilling === 'function') {
+        window.checkCustomerDueInBilling('');
+    }
+    const badgeEl = document.getElementById('billingCustTypeBadge');
+    if (badgeEl) badgeEl.textContent = '';
+    const clearBtn = document.getElementById('billingCustClearBtn');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    openBillingCustomerDropdown();
+    nameInput?.focus();
+}
+
+export function onBillingCustomerSearchInput(val) {
+    renderBillingCustomerDropdown(val);
+    const dropdown = document.getElementById('billingCustomerDropdown');
+    if (dropdown) dropdown.classList.remove('hidden');
+}
+
+export function handleBillingCustomerKeyDown(event) {
+    if (event.key === 'Escape') {
+        closeBillingCustomerDropdown();
+    }
 }
 
 export function getCustomerTotalPendingDue(custName, excludeBillId = null) {
@@ -830,6 +1035,25 @@ if (typeof window !== 'undefined') {
     window.shareSelectedCustomerConsolidatedDetail = shareSelectedCustomerConsolidatedDetail;
     window.viewCustomerProfile = viewCustomerProfile;
     window.renderCustomers = renderCustomers;
+    window.onBillingCustomerSearchInput = onBillingCustomerSearchInput;
+    window.openBillingCustomerDropdown = openBillingCustomerDropdown;
+    window.closeBillingCustomerDropdown = closeBillingCustomerDropdown;
+    window.toggleBillingCustomerDropdown = toggleBillingCustomerDropdown;
+    window.selectBillingCustomer = selectBillingCustomer;
+    window.clearBillingCustomerInput = clearBillingCustomerInput;
+    window.handleBillingCustomerKeyDown = handleBillingCustomerKeyDown;
+    window.renderBillingCustomerDropdown = renderBillingCustomerDropdown;
+}
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('click', (e) => {
+        const container = document.getElementById('billingCustomerSearchContainer');
+        if (container && !container.contains(e.target)) {
+            if (typeof closeBillingCustomerDropdown === 'function') {
+                closeBillingCustomerDropdown();
+            }
+        }
+    });
 }
 
 
