@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { CosmeticProduct, CustomerProfile, BillItem, SaleRecord } from '../types';
+import { CustomerAutocomplete } from './CustomerAutocomplete';
 import {
   formatCurrency,
   generateNextBillNo,
@@ -128,10 +129,14 @@ export const CosmeticsBilling: React.FC<CosmeticsBillingProps> = ({
     }
   }, [grandTotal, editingSaleId]);
 
-  const handleSelectCustomer = (name: string) => {
+  const handleSelectCustomer = (name: string, phone?: string) => {
     setCustomerName(name);
-    const found = customers.find((c) => c.name === name);
-    if (found) setCustomerPhone(found.phone || '');
+    if (phone !== undefined && phone !== '') {
+      setCustomerPhone(phone);
+    } else {
+      const found = customers.find((c) => c.name === name);
+      if (found) setCustomerPhone(found.phone || '');
+    }
   };
 
   const handleSetMaxAvailable = () => {
@@ -360,39 +365,20 @@ export const CosmeticsBilling: React.FC<CosmeticsBillingProps> = ({
         <form onSubmit={handleSaveBill} className="space-y-6">
           {/* Customer Selection */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/90 p-4 sm:p-5 rounded-lg border border-slate-200">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                Select Customer from Directory
-              </label>
-              <select
-                value={customerName}
-                onChange={(e) => handleSelectCustomer(e.target.value)}
-                className="w-full border-2 border-slate-200 bg-white p-2.5 rounded-md text-xs font-medium focus:border-pink-500 outline-none"
-              >
-                <option value="">-- Choose Existing Customer --</option>
-                {[...customers]
-                  .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
-                  .map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name} {c.phone ? `(${c.phone})` : ''}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                Or Type New Customer Name <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Anjali / Beauty Parlour"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value.toUpperCase())}
-                className="w-full border-2 border-slate-200 bg-white p-2.5 rounded-md text-xs font-semibold focus:border-pink-500 outline-none"
-                required
-              />
-            </div>
+            <CustomerAutocomplete
+              customers={customers}
+              customerName={customerName}
+              customerPhone={customerPhone}
+              onSelectCustomer={handleSelectCustomer}
+              onChangeName={(name) => setCustomerName(name)}
+              onClearCustomer={() => {
+                setCustomerName('');
+                setCustomerPhone('');
+              }}
+              accentColor="pink"
+              required
+              placeholder="Type name (e.g. POO for POOLA MANU)..."
+            />
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700">Mobile / WhatsApp Number</label>
@@ -405,7 +391,7 @@ export const CosmeticsBilling: React.FC<CosmeticsBillingProps> = ({
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 sm:col-span-2">
               <label className="text-xs font-bold text-slate-700">Pricing Tier</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
