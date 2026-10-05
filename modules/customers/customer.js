@@ -308,34 +308,34 @@ export function renderBillingCustomerDropdown(query = '') {
 
     // Top action: Always offer "Add Customer Manually"
     const manualActionHtml = `
-        <div class="p-2.5 bg-indigo-950/60 hover:bg-indigo-900/80 cursor-pointer text-indigo-300 font-bold border-b border-slate-800 flex items-center justify-between transition select-none"
+        <div class="p-2.5 bg-indigo-50 hover:bg-indigo-100 cursor-pointer text-indigo-900 font-bold border-b border-indigo-100 flex items-center justify-between transition select-none"
              onmousedown="event.preventDefault(); activateManualCustomerEntry()">
             <div class="flex items-center gap-2 min-w-0">
                 <span class="text-sm">➕</span>
                 <div class="truncate">
-                    <span class="text-xs text-indigo-200 font-bold">Add Customer Manually</span>
-                    <span class="text-[10px] text-indigo-400 block font-normal">താഴെ പേരും നമ്പറും നേരിട്ട് ടൈപ്പ് ചെയ്യുക</span>
+                    <span class="text-xs text-indigo-900 font-bold">Add Customer Manually</span>
+                    <span class="text-[10px] text-indigo-600 block font-normal">താഴെ പേരും നമ്പറും നേരിട്ട് ടൈപ്പ് ചെയ്യുക</span>
                 </div>
             </div>
-            <span class="text-[10px] bg-indigo-800/90 text-indigo-100 border border-indigo-600 px-2 py-0.5 rounded font-semibold shrink-0">Enter ↵</span>
+            <span class="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded font-semibold shrink-0">Enter ↵</span>
         </div>
     `;
 
     if (matches.length === 0) {
         const safeQ = q.toUpperCase().replace(/'/g, "\\'");
         listEl.innerHTML = manualActionHtml + `
-            <div class="p-4 text-center text-slate-400 space-y-2.5">
-                <p class="font-bold text-slate-300 text-xs">No directory customer found matching "${query}"</p>
-                <button type="button" onmousedown="event.preventDefault(); activateManualCustomerEntry('${safeQ}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition cursor-pointer">
+            <div class="p-4 text-center text-slate-500 space-y-2.5 bg-white">
+                <p class="font-bold text-slate-800 text-xs">No directory customer found matching "${query}"</p>
+                <button type="button" onmousedown="event.preventDefault(); activateManualCustomerEntry('${safeQ}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition cursor-pointer">
                     ➕ Add "${query}" as New Customer Manually
                 </button>
             </div>
         `;
     } else {
         const headerHtml = `
-            <div class="px-3 py-1.5 bg-slate-950/90 border-b border-slate-800 text-[10px] font-bold text-slate-400 flex justify-between items-center">
-                <span>${q ? `Matching Customers (${matches.length})` : `All Directory Customers (${matches.length})`}</span>
-                <span class="text-slate-500">Click to select</span>
+            <div class="px-3 py-1.5 bg-slate-100/95 border-b border-slate-200 text-[10px] font-bold text-slate-600 flex justify-between items-center select-none sticky top-0 z-10">
+                <span class="text-slate-800 font-extrabold">${q ? `Matching Customers (${matches.length})` : `All Directory Customers (${matches.length})`}</span>
+                <span class="text-slate-400 font-normal">Click to select</span>
             </div>
         `;
 
@@ -345,21 +345,21 @@ export function renderBillingCustomerDropdown(query = '') {
                 const i = c.name.toLowerCase().indexOf(q);
                 if (i !== -1) {
                     highlightedName = c.name.substring(0, i) +
-                        `<span class="text-indigo-400 font-black underline bg-indigo-950/80 px-0.5 rounded">${c.name.substring(i, i + q.length)}</span>` +
+                        `<span class="text-indigo-800 font-black underline bg-yellow-100 px-0.5 rounded">${c.name.substring(i, i + q.length)}</span>` +
                         c.name.substring(i + q.length);
                 }
             }
 
-            const phoneDisplay = c.phone ? `<span class="text-[11px] font-mono text-slate-400">📞 ${c.phone}</span>` : `<span class="text-[10px] text-slate-600 italic">No phone</span>`;
+            const phoneDisplay = c.phone ? `<span class="text-[11px] font-mono text-slate-500">📞 ${c.phone}</span>` : `<span class="text-[10px] text-slate-400 italic">No phone</span>`;
 
             return `
-                <div class="p-2.5 hover:bg-slate-800/90 active:bg-indigo-950 cursor-pointer transition flex items-center justify-between gap-2 select-none"
+                <div class="p-2.5 bg-white hover:bg-indigo-50/80 active:bg-indigo-100 cursor-pointer transition flex items-center justify-between gap-2 select-none border-b border-slate-100"
                      onmousedown="event.preventDefault(); selectBillingCustomer('${c.name.replace(/'/g, "\\'")}', '${(c.phone || '').replace(/'/g, "\\'")}')">
                     <div class="min-w-0">
-                        <div class="font-bold text-slate-100 text-xs truncate">${highlightedName}</div>
+                        <div class="font-bold text-slate-900 text-xs truncate">${highlightedName}</div>
                         <div class="mt-0.5">${phoneDisplay}</div>
                     </div>
-                    <span class="text-[10px] bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded font-semibold shrink-0">Select ↵</span>
+                    <span class="text-[10px] bg-slate-100 hover:bg-indigo-100 text-slate-700 hover:text-indigo-800 border border-slate-300 px-2 py-0.5 rounded font-semibold shrink-0">Select ↵</span>
                 </div>
             `;
         }).join('');

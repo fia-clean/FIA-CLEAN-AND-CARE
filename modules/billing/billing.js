@@ -645,18 +645,18 @@ export function renderBillingProductDropdown(query = '') {
 
     if (matches.length === 0) {
         listEl.innerHTML = `
-            <div class="p-4 text-center text-slate-400 space-y-1">
-                <p class="font-bold text-slate-300 text-xs">No product found matching "${currentQuery}"</p>
-                <p class="text-[10px] text-slate-500">Check spelling or create product in Stock section</p>
+            <div class="p-4 text-center text-slate-500 space-y-1 bg-white">
+                <p class="font-bold text-slate-800 text-xs">No product found matching "${currentQuery}"</p>
+                <p class="text-[10px] text-slate-400">Check spelling or create product in Stock section</p>
             </div>
         `;
         return;
     }
 
     const headerHtml = `
-        <div class="px-3 py-1.5 bg-slate-950/90 border-b border-slate-800 text-[10px] font-bold text-slate-400 flex justify-between items-center select-none sticky top-0 z-10">
-            <span>${q ? `Matching Products (${matches.length})` : `All Stock Products (${matches.length})`}</span>
-            <span class="text-slate-500">Click or press Enter to select</span>
+        <div class="px-3 py-2 bg-slate-100/95 border-b border-slate-200 text-[10px] font-bold text-slate-600 flex justify-between items-center select-none sticky top-0 z-10 backdrop-blur-xs">
+            <span class="text-slate-800 font-extrabold">${q ? `Matching Products (${matches.length})` : `All Stock Products (${matches.length})`}</span>
+            <span class="text-slate-400 font-normal">Click or press Enter to select</span>
         </div>
     `;
 
@@ -666,7 +666,7 @@ export function renderBillingProductDropdown(query = '') {
             const i = p.name.toLowerCase().indexOf(q);
             if (i !== -1) {
                 highlightedName = p.name.substring(0, i) +
-                    `<span class="text-cyan-300 font-black underline bg-cyan-950/90 px-0.5 rounded">${p.name.substring(i, i + q.length)}</span>` +
+                    `<span class="text-indigo-800 font-black underline bg-yellow-100 px-0.5 rounded">${p.name.substring(i, i + q.length)}</span>` +
                     p.name.substring(i + q.length);
             }
         }
@@ -674,45 +674,45 @@ export function renderBillingProductDropdown(query = '') {
         const isLow = p.stock <= 5 && p.stock > 0;
         const isOut = p.stock <= 0;
         const stockBadge = isOut
-            ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-1.5 py-0.5 rounded text-[9.5px] font-bold whitespace-nowrap">⚠️ Out of Stock</span>`
+            ? `<span class="bg-rose-100 text-rose-700 border border-rose-300 px-1.5 py-0.5 rounded text-[9.5px] font-bold whitespace-nowrap">⚠️ Out of Stock</span>`
             : isLow
-                ? `<span class="bg-amber-950/80 text-amber-300 border border-amber-800/60 px-1.5 py-0.5 rounded text-[9.5px] font-bold whitespace-nowrap font-mono">⚠️ Low: ${p.stock} ${p.unit}</span>`
-                : `<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-1.5 py-0.5 rounded text-[9.5px] font-bold whitespace-nowrap font-mono">✓ ${p.stock} ${p.unit}</span>`;
+                ? `<span class="bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded text-[9.5px] font-bold whitespace-nowrap font-mono">⚠️ Low: ${p.stock} ${p.unit}</span>`
+                : `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded text-[9.5px] font-bold whitespace-nowrap font-mono">✓ ${p.stock} ${p.unit}</span>`;
 
         const isCosmetics = p.category === 'Cosmetics';
         const catBadge = isCosmetics
-            ? `<span class="bg-pink-950/70 text-pink-300 border border-pink-800/50 px-1.5 py-0.2 rounded text-[9px] font-bold">💄 Cosmetics</span>`
-            : `<span class="bg-cyan-950/70 text-cyan-300 border border-cyan-800/50 px-1.5 py-0.2 rounded text-[9px] font-bold">🧹 Cleaning</span>`;
+            ? `<span class="bg-pink-100 text-pink-700 border border-pink-300 px-1.5 py-0.2 rounded text-[9px] font-bold">💄 Cosmetics</span>`
+            : `<span class="bg-teal-100 text-teal-800 border border-teal-300 px-1.5 py-0.2 rounded text-[9px] font-bold">🧹 Cleaning</span>`;
 
         const activeRate = saleType === 'Wholesale' ? p.wholesalePrice : p.retailPrice;
         const rateDisplay = saleType === 'Wholesale'
-            ? `<span class="text-sky-300 font-bold font-mono text-xs">₹${activeRate.toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(R: ₹${p.retailPrice.toFixed(2)})</span>`
-            : `<span class="text-emerald-400 font-bold font-mono text-xs">₹${activeRate.toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(W: ₹${p.wholesalePrice.toFixed(2)})</span>`;
+            ? `<span class="text-blue-700 font-bold font-mono text-xs">₹${activeRate.toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(R: ₹${p.retailPrice.toFixed(2)})</span>`
+            : `<span class="text-emerald-700 font-bold font-mono text-xs">₹${activeRate.toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(W: ₹${p.wholesalePrice.toFixed(2)})</span>`;
 
         const variantsText = (p.variants && p.variants.length > 0)
-            ? `<span class="text-[9.5px] text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-1 py-0.2 rounded ml-1">📦 ${p.variants.length} pack sizes</span>`
+            ? `<span class="text-[9.5px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded font-semibold ml-1">📦 ${p.variants.length} pack sizes</span>`
             : '';
 
         const isSelected = idx === activeBillingProductIndex;
 
         return `
             <div id="billingProdItem_${idx}" 
-                 class="p-2.5 hover:bg-slate-800/90 active:bg-cyan-950 cursor-pointer transition flex items-center justify-between gap-2.5 select-none ${isSelected ? 'bg-slate-800/80 ring-1 ring-cyan-500/50' : ''}"
+                 class="p-2.5 bg-white hover:bg-sky-50 active:bg-sky-100 cursor-pointer transition flex items-center justify-between gap-2.5 select-none border-b border-slate-100 ${isSelected ? 'bg-sky-50/90 ring-1 ring-sky-400' : ''}"
                  onmousedown="event.preventDefault(); selectBillingProductByIndex(${idx})">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="font-bold text-slate-100 text-xs">${highlightedName}</span>
+                        <span class="font-bold text-slate-900 text-xs">${highlightedName}</span>
                         ${catBadge}
                         ${variantsText}
                     </div>
-                    <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                    <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
                         ${stockBadge}
-                        <span class="text-slate-600">•</span>
+                        <span class="text-slate-300">•</span>
                         <span>Rate: ${rateDisplay}</span>
                     </div>
                 </div>
                 <div class="shrink-0 text-right">
-                    <span class="text-[10px] bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 px-2 py-1 rounded-lg font-semibold block transition">Select ↵</span>
+                    <span class="text-[10px] bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800 border border-slate-300 px-2 py-1 rounded-lg font-bold block transition">Select ↵</span>
                 </div>
             </div>
         `;
@@ -856,10 +856,10 @@ function updateActiveProductHighlight() {
     if (!listEl) return;
     listEl.querySelectorAll('[id^="billingProdItem_"]').forEach((el, idx) => {
         if (idx === activeBillingProductIndex) {
-            el.classList.add('bg-slate-800/80', 'ring-1', 'ring-cyan-500/50');
+            el.classList.add('bg-sky-50', 'ring-1', 'ring-sky-400');
             el.scrollIntoView({ block: 'nearest' });
         } else {
-            el.classList.remove('bg-slate-800/80', 'ring-1', 'ring-cyan-500/50');
+            el.classList.remove('bg-sky-50', 'ring-1', 'ring-sky-400');
         }
     });
 }
@@ -945,6 +945,8 @@ export function fillProductPrice() {
     if (product.packageId) mappedPkg = (state.packages || []).find(p => String(p.id) === String(product.packageId));
     if (!mappedPkg && product.packageName) mappedPkg = (state.packages || []).find(p => String(p.name).toLowerCase() === String(product.packageName).toLowerCase());
 
+    const isPieceTracked = isProductPieceTracked(product, product?.category);
+
     if (mappedPkg) {
         if (variantWrapper && variantSelect) {
             variantWrapper.classList.remove('hidden');
@@ -954,7 +956,18 @@ export function fillProductPrice() {
         }
 
         const parsed = parsePackageVolume(mappedPkg.size, mappedPkg.name);
-        if (parsed) {
+        if (isPieceTracked) {
+            // For cosmetic products and piece-tracked items, 1 selling unit is 1 Piece/Bottle of that packaged product
+            document.getElementById('billQty').value = '1';
+            const unitEl = document.getElementById('billUnitType');
+            if (unitEl) {
+                const u = product?.unit || 'Pcs';
+                if (![...unitEl.options].some(x => x.value.toLowerCase() === u.toLowerCase())) {
+                    unitEl.add(new Option(u, u));
+                }
+                unitEl.value = u;
+            }
+        } else if (parsed) {
             document.getElementById('billQty').value = parsed.size;
             const unitEl = document.getElementById('billUnitType');
             if (unitEl) unitEl.value = parsed.unit;
@@ -1012,9 +1025,22 @@ export function onPackVariantSelected() {
     const variant = product.variants?.find(v => String(v.id) === String(vId));
     if (!variant) return;
 
-    document.getElementById('billQty').value = variant.size;
-    const unitEl = document.getElementById('billUnitType');
-    if (unitEl) unitEl.value = variant.unit;
+    const isPieceTracked = isProductPieceTracked(product, product?.category);
+    if (isPieceTracked) {
+        document.getElementById('billQty').value = '1';
+        const unitEl = document.getElementById('billUnitType');
+        if (unitEl) {
+            const u = variant.unit || product.unit || 'Pcs';
+            if (![...unitEl.options].some(x => x.value.toLowerCase() === u.toLowerCase())) {
+                unitEl.add(new Option(u, u));
+            }
+            unitEl.value = u;
+        }
+    } else {
+        document.getElementById('billQty').value = variant.size;
+        const unitEl = document.getElementById('billUnitType');
+        if (unitEl) unitEl.value = variant.unit;
+    }
 
     const rate = Number(saleType === 'Wholesale' ? getVariantWholesalePrice(variant, product) : getVariantRetailPrice(variant, product)) || 0;
     const rateEl = document.getElementById('billRate');
@@ -1061,6 +1087,17 @@ export function getBillingUnitFactor(selectedUnit, baseUnit) {
     if (s === 'g' && b === 'kg') return 0.001;
     if (s === 'kg' && b === 'g') return 1000;
     return 1;
+}
+
+export function isProductPieceTracked(product, category = null) {
+    if (!product) return false;
+    const cat = category || product.category;
+    if (cat === 'Cosmetics') return true;
+    if (Array.isArray(state.cosProducts) && state.cosProducts.some(cp => cp && (String(cp.id) === String(product.id) || String(cp.name).toLowerCase() === String(product.name).toLowerCase()))) {
+        return true;
+    }
+    const norm = normalizeUnitCategory(product.unit);
+    return ['pcs', 'unit', 'bottle', 'box', 'pack'].includes(norm);
 }
 
 export function calculateItemTotal() {
@@ -1146,6 +1183,7 @@ export function addToBillItems() {
     const unitType = (rawUnitType && rawUnitType !== 'Standard' && rawUnitType !== 'General') ? rawUnitType : (product?.unit || 'Ltr');
     const variantId = document.getElementById('billPackVariantSelect')?.value || document.getElementById('billRate')?.dataset.variantId || '';
     const variant = product?.variants?.find(v => String(v.id) === String(variantId));
+    const isPieceTracked = isProductPieceTracked(product, product?.category);
 
     let stockDeductionQty = 0;
     let packageInfo = null;
@@ -1153,15 +1191,23 @@ export function addToBillItems() {
 
     if (variant) {
         variantName = variant.name;
-        const factor = getBillingUnitFactor(variant.unit, product?.unit);
-        stockDeductionQty = variant.size * factor * numberOfUnits;
+        if (isPieceTracked) {
+            stockDeductionQty = numberOfUnits;
+        } else {
+            const factor = getBillingUnitFactor(variant.unit, product?.unit);
+            stockDeductionQty = variant.size * factor * numberOfUnits;
+        }
         if (variant.packageId) {
             const pkg = (state.packages || []).find(p => String(p.id) === String(variant.packageId));
             if (pkg) packageInfo = { id: pkg.id, qty: 1, pkg, name: pkg.name };
         }
     } else {
-        const factor = getBillingUnitFactor(unitType, product?.unit);
-        stockDeductionQty = (qty > 0 ? qty : 1) * factor * numberOfUnits;
+        if (isPieceTracked) {
+            stockDeductionQty = numberOfUnits;
+        } else {
+            const factor = getBillingUnitFactor(unitType, product?.unit);
+            stockDeductionQty = (qty > 0 ? qty : 1) * factor * numberOfUnits;
+        }
         packageInfo = getProductPackageInfo(product);
     }
 
@@ -1174,7 +1220,8 @@ export function addToBillItems() {
         const totalNeeded = Number((alreadyAdded + stockDeductionQty).toFixed(3));
         if (totalNeeded > currentStock) {
             const avail = Math.max(0, currentStock - alreadyAdded);
-            alert(`⚠️ Insufficient Stock!\n\nProduct: ${product.name}\nAvailable Stock: ${currentStock.toFixed(2)} ${product.unit || ''}\nAlready in bill: ${alreadyAdded.toFixed(2)} ${product.unit || ''}\nRequested Qty: ${stockDeductionQty.toFixed(2)} ${product.unit || ''}\nRemaining available: ${avail.toFixed(2)} ${product.unit || ''}`);
+            const unitLabel = isPieceTracked ? (product.unit || 'Pcs') : (product.unit || '');
+            alert(`⚠️ Insufficient Stock!\n\nProduct: ${product.name}\nAvailable Stock: ${currentStock.toFixed(2)} ${unitLabel}\nAlready in bill: ${alreadyAdded.toFixed(2)} ${unitLabel}\nRequested Qty: ${stockDeductionQty.toFixed(2)} ${unitLabel}\nRemaining available: ${avail.toFixed(2)} ${unitLabel}`);
             return;
         }
     }
@@ -1253,11 +1300,12 @@ export function editBillItem(index) {
     const newRate = parseFloat(newRateRaw);
     if (!Number.isFinite(newRate) || newRate < 0) { alert('Please enter a valid rate.'); return; }
     
+    const product = findUnifiedProduct(item.productName);
+    const isPieceTracked = isProductPieceTracked(product, item.combinedCategory);
     const perUnitBulk = (Number(item.stockDeductionQty) || 0) / (Number(item.numberOfUnits) || 1);
-    const newStockDeduction = perUnitBulk * newUnits;
+    const newStockDeduction = isPieceTracked ? newUnits : (perUnitBulk * newUnits);
 
     // Check product stock limit
-    const product = findUnifiedProduct(item.productName);
     if (product) {
         const currentStock = Number(product.stock || 0);
         const otherItemsStock = state.currentBillItems
@@ -1265,7 +1313,8 @@ export function editBillItem(index) {
             .filter(i => (i.stockId && product.id && String(i.stockId) === String(product.id)) || i.productName === product.name)
             .reduce((sum, i) => sum + Number(i.stockDeductionQty || 0), 0);
         if (otherItemsStock + newStockDeduction > currentStock) {
-            alert(`⚠️ Insufficient Stock!\n\nAvailable Stock: ${currentStock} ${product.unit || ''}\nRequired: ${(otherItemsStock + newStockDeduction).toFixed(2)} ${product.unit || ''}`);
+            const unitDisplay = isPieceTracked ? (product.unit || 'Pcs') : (product.unit || '');
+            alert(`⚠️ Insufficient Stock!\n\nAvailable Stock: ${currentStock} ${unitDisplay}\nRequired: ${(otherItemsStock + newStockDeduction).toFixed(2)} ${unitDisplay}`);
             return;
         }
     }
@@ -1477,7 +1526,11 @@ export function saveCustomer(e) {
         (oldBill.items || []).forEach(oldItem => {
             const rec = getStockProductRecord(oldItem);
             if (rec && rec.product) {
-                rec.product.stock = (parseFloat(rec.product.stock) || 0) + (parseFloat(oldItem.stockDeductionQty || oldItem.qty) || 0);
+                const isPcs = isProductPieceTracked(rec.product, rec.category);
+                const deduction = isPcs 
+                    ? Number(oldItem.numberOfUnits || 1) 
+                    : (parseFloat(oldItem.stockDeductionQty != null ? oldItem.stockDeductionQty : oldItem.qty) || 0);
+                rec.product.stock = (parseFloat(rec.product.stock) || 0) + deduction;
                 rec.product.savedAt = Date.now();
             }
         });
@@ -1529,7 +1582,11 @@ export function saveCustomer(e) {
             (oldBill.items || []).forEach(oldItem => {
                 const rec = getStockProductRecord(oldItem);
                 if (rec && rec.product) {
-                    rec.product.stock = Math.max(0, (parseFloat(rec.product.stock) || 0) - (parseFloat(oldItem.stockDeductionQty || oldItem.qty) || 0));
+                    const isPcs = isProductPieceTracked(rec.product, rec.category);
+                    const deduction = isPcs 
+                        ? Number(oldItem.numberOfUnits || 1) 
+                        : (parseFloat(oldItem.stockDeductionQty != null ? oldItem.stockDeductionQty : oldItem.qty) || 0);
+                    rec.product.stock = Math.max(0, (parseFloat(rec.product.stock) || 0) - deduction);
                     rec.product.savedAt = Date.now();
                 }
             });
@@ -2191,6 +2248,8 @@ export function fillCombinedProductPrice() {
     const type = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
     const baseRate = Number(type === 'Wholesale' ? o.dataset.wholesale : o.dataset.retail || 0);
 
+    const isPieceTracked = isProductPieceTracked(product, selected?.category || o.dataset.category);
+
     if (mappedPkg) {
         if (variantWrapper && variantSelect) {
             variantWrapper.classList.remove('hidden');
@@ -2201,14 +2260,25 @@ export function fillCombinedProductPrice() {
 
         const parsed = parsePackageVolume(mappedPkg.size, mappedPkg.name);
         const qtyEl = document.getElementById('combinedQty');
-        if (qtyEl) qtyEl.value = parsed ? parsed.size : 1;
         const unitEl = document.getElementById('combinedUnitType');
-        if (unitEl) {
-            const u = parsed ? parsed.unit : (o.dataset.unit || product?.unit || 'Bottle');
-            if (![...unitEl.options].some(x => x.value.toLowerCase() === u.toLowerCase())) {
-                unitEl.add(new Option(u, u));
+        if (isPieceTracked) {
+            if (qtyEl) qtyEl.value = '1';
+            if (unitEl) {
+                const u = o.dataset.unit || product?.unit || 'Pcs';
+                if (![...unitEl.options].some(x => x.value.toLowerCase() === u.toLowerCase())) {
+                    unitEl.add(new Option(u, u));
+                }
+                unitEl.value = u;
             }
-            unitEl.value = u;
+        } else {
+            if (qtyEl) qtyEl.value = parsed ? parsed.size : 1;
+            if (unitEl) {
+                const u = parsed ? parsed.unit : (o.dataset.unit || product?.unit || 'Bottle');
+                if (![...unitEl.options].some(x => x.value.toLowerCase() === u.toLowerCase())) {
+                    unitEl.add(new Option(u, u));
+                }
+                unitEl.value = u;
+            }
         }
 
         const rateEl = document.getElementById('combinedRate');
@@ -2265,11 +2335,17 @@ export function onCombinedPackVariantSelected() {
             delete rateEl.dataset.variantId;
         }
 
+        const isPieceTracked = isProductPieceTracked(product, selected?.category);
         const parsed = parsePackageVolume(mappedPkg?.size, mappedPkg?.name);
         const qtyEl = document.getElementById('combinedQty');
-        if (qtyEl) qtyEl.value = parsed ? parsed.size : 1;
         const unitEl = document.getElementById('combinedUnitType');
-        if (unitEl && parsed) unitEl.value = parsed.unit;
+        if (isPieceTracked) {
+            if (qtyEl) qtyEl.value = '1';
+            if (unitEl) unitEl.value = product?.unit || 'Pcs';
+        } else {
+            if (qtyEl) qtyEl.value = parsed ? parsed.size : 1;
+            if (unitEl && parsed) unitEl.value = parsed.unit;
+        }
         if (mappedPkg && badgeEl) {
             badgeEl.innerHTML = `📦 ${mappedPkg.name} (<span class="${Number(mappedPkg.stock) <= 5 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}">Stock: ${mappedPkg.stock}</span>)`;
         }
@@ -2280,15 +2356,17 @@ export function onCombinedPackVariantSelected() {
     const variant = product.variants?.find(v => String(v.id) === String(vId));
     if (!variant) return;
 
+    const isPieceTracked = isProductPieceTracked(product, selected?.category);
     const qtyEl = document.getElementById('combinedQty');
-    if (qtyEl) qtyEl.value = variant.size;
+    if (qtyEl) qtyEl.value = isPieceTracked ? '1' : variant.size;
 
     const unitEl = document.getElementById('combinedUnitType');
     if (unitEl) {
-        if (![...unitEl.options].some(o => o.value.toLowerCase() === variant.unit.toLowerCase())) {
-            unitEl.add(new Option(variant.unit, variant.unit));
+        const u = isPieceTracked ? (variant.unit || product.unit || 'Pcs') : variant.unit;
+        if (![...unitEl.options].some(o => o.value.toLowerCase() === u.toLowerCase())) {
+            unitEl.add(new Option(u, u));
         }
-        unitEl.value = variant.unit;
+        unitEl.value = u;
     }
 
     const saleType = document.querySelector('input[name="combinedSaleType"]:checked')?.value || 'Retail';
@@ -2419,6 +2497,7 @@ export function addToCombinedBill() {
     const variantId = document.getElementById('combinedPackVariantSelect')?.value || document.getElementById('combinedRate')?.dataset.variantId || '';
     const variant = product?.variants?.find(v => String(v.id) === String(variantId));
     const unitType = (rawUnitType && rawUnitType !== 'Standard' && rawUnitType !== 'General') ? rawUnitType : (variant?.unit || product?.unit || 'Pcs');
+    const isPieceTracked = isProductPieceTracked(product, selected?.category);
 
     let stockDeductionQty = 0;
     let packageInfo = null;
@@ -2426,8 +2505,12 @@ export function addToCombinedBill() {
 
     if (variant) {
         variantName = variant.name;
-        const factor = getBillingUnitFactor(variant.unit, product?.unit);
-        stockDeductionQty = variant.size * factor * numberOfUnits;
+        if (isPieceTracked) {
+            stockDeductionQty = numberOfUnits;
+        } else {
+            const factor = getBillingUnitFactor(variant.unit, product?.unit);
+            stockDeductionQty = variant.size * factor * numberOfUnits;
+        }
 
         if (variant.packageId) {
             const pkg = (state.packages || []).find(p => String(p.id) === String(variant.packageId));
@@ -2439,8 +2522,12 @@ export function addToCombinedBill() {
             else packageInfo = { id: '', qty: 1, pkg: null, name: variant.packageName };
         }
     } else {
-        const factor = getBillingUnitFactor(unitType, product?.unit);
-        stockDeductionQty = (qty > 0 ? qty : 1) * factor * numberOfUnits;
+        if (isPieceTracked) {
+            stockDeductionQty = numberOfUnits;
+        } else {
+            const factor = getBillingUnitFactor(unitType, product?.unit);
+            stockDeductionQty = (qty > 0 ? qty : 1) * factor * numberOfUnits;
+        }
         packageInfo = getProductPackageInfo(product);
         if (packageInfo && packageInfo.name) {
             variantName = packageInfo.name;
@@ -2453,7 +2540,8 @@ export function addToCombinedBill() {
     if (product) {
         const already = state.currentBillItems.filter(i => i.productName === selected.name && i.combinedCategory === selected.category && !i.isPackage).reduce((s, i) => s + Number(i.stockDeductionQty || 0), 0);
         if (stockDeductionQty + already > Number(product.stock || 0)) {
-            alert(`Insufficient bulk stock for "${product.name}".\nAvailable: ${product.stock} ${product.unit}\nNeeded: ${(stockDeductionQty + already).toFixed(2)} ${product.unit}`);
+            const unitDisplay = isPieceTracked ? (product.unit || 'Pcs') : (product.unit || '');
+            alert(`Insufficient bulk stock for "${product.name}".\nAvailable: ${product.stock} ${unitDisplay}\nNeeded: ${(stockDeductionQty + already).toFixed(2)} ${unitDisplay}`);
             return;
         }
     }
@@ -2871,6 +2959,7 @@ if (typeof window !== 'undefined') {
     window.clearBillingProductInput = clearBillingProductInput;
     window.onBillingProductSearchInput = onBillingProductSearchInput;
     window.handleBillingProductKeyDown = handleBillingProductKeyDown;
+    window.isProductPieceTracked = isProductPieceTracked;
 }
 
 if (typeof document !== 'undefined') {

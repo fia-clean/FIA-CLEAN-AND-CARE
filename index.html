@@ -525,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.4';
+                var CURRENT_APP_VERSION = '51.2.5';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -552,9 +552,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.4) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.5) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.4');
+                        localStorage.setItem('fia_app_version', '51.2.5');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -860,7 +860,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.4</span>
+                    <span>v51.2.5</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -1760,19 +1760,20 @@
                                 placeholder="🔍 Type letters to search (e.g. POO for POOLA MANU, S) or click ▼..." 
                                 autocomplete="off"
                                 oninput="if(window.onBillingCustomerSearchInput) window.onBillingCustomerSearchInput(this.value)" 
-                                onfocus="if(window.openBillingCustomerDropdown) window.openBillingCustomerDropdown()"
+                                onfocus="this.select(); if(window.openBillingCustomerDropdown) window.openBillingCustomerDropdown()"
+                                onclick="this.select()"
                                 onkeydown="if(window.handleBillingCustomerKeyDown) window.handleBillingCustomerKeyDown(event)"
-                                class="w-full p-3 pr-16 border border-slate-700 rounded-xl text-sm bg-slate-950 text-slate-100 focus:outline-none focus:border-indigo-500 uppercase font-semibold"
+                                class="w-full p-3 pr-16 border border-slate-300 rounded-xl text-sm bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 uppercase font-bold shadow-xs"
                             >
                             <div class="absolute right-2 flex items-center gap-1">
-                                <button type="button" id="billingCustClearBtn" onclick="if(window.clearBillingCustomerInput) window.clearBillingCustomerInput()" class="hidden p-1 text-slate-400 hover:text-white rounded-full transition cursor-pointer" title="Clear customer">✕</button>
-                                <button type="button" id="billingCustToggleBtn" onclick="if(window.toggleBillingCustomerDropdown) window.toggleBillingCustomerDropdown()" class="p-1.5 text-slate-400 hover:text-slate-200 transition cursor-pointer" title="Browse all customers">▼</button>
+                                <button type="button" id="billingCustClearBtn" onclick="if(window.clearBillingCustomerInput) window.clearBillingCustomerInput()" class="hidden p-1 text-slate-400 hover:text-slate-700 rounded-full transition cursor-pointer" title="Clear customer">✕</button>
+                                <button type="button" id="billingCustToggleBtn" onclick="if(window.toggleBillingCustomerDropdown) window.toggleBillingCustomerDropdown()" class="p-1.5 text-slate-400 hover:text-slate-700 transition cursor-pointer" title="Browse all customers">▼</button>
                             </div>
                         </div>
 
                         <!-- Dropdown panel for live search suggestions -->
-                        <div id="billingCustomerDropdown" class="hidden absolute left-0 right-0 top-full mt-1 z-50 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
-                            <div id="billingCustomerDropdownList" class="divide-y divide-slate-800 text-xs"></div>
+                        <div id="billingCustomerDropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-slate-300 rounded-2xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto ring-1 ring-black/10">
+                            <div id="billingCustomerDropdownList" class="divide-y divide-slate-100 text-xs"></div>
                         </div>
 
                         <!-- Hidden select for full backwards compatibility -->
@@ -1877,19 +1878,20 @@
                                     placeholder="🔍 Type first letter / product name (e.g. D, T)..." 
                                     autocomplete="off"
                                     oninput="if(window.onBillingProductSearchInput) window.onBillingProductSearchInput(this.value)" 
-                                    onfocus="if(window.openBillingProductDropdown) window.openBillingProductDropdown()"
+                                    onfocus="this.select(); if(window.openBillingProductDropdown) window.openBillingProductDropdown()"
+                                    onclick="this.select()"
                                     onkeydown="if(window.handleBillingProductKeyDown) window.handleBillingProductKeyDown(event)"
-                                    class="w-full p-2.5 pr-16 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-semibold"
+                                    class="w-full p-2.5 pr-16 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold shadow-xs"
                                 >
                                 <div class="absolute right-2 flex items-center gap-1">
-                                    <button type="button" id="billingProdClearBtn" onclick="if(window.clearBillingProductInput) window.clearBillingProductInput()" class="hidden p-1 text-slate-400 hover:text-white rounded-full transition cursor-pointer" title="Clear product">✕</button>
-                                    <button type="button" id="billingProdToggleBtn" onclick="if(window.toggleBillingProductDropdown) window.toggleBillingProductDropdown()" class="p-1 text-slate-400 hover:text-slate-200 transition cursor-pointer" title="Browse all products">▼</button>
+                                    <button type="button" id="billingProdClearBtn" onclick="if(window.clearBillingProductInput) window.clearBillingProductInput()" class="hidden p-1 text-slate-400 hover:text-slate-700 rounded-full transition cursor-pointer text-xs" title="Clear product">✕</button>
+                                    <button type="button" id="billingProdToggleBtn" onclick="if(window.toggleBillingProductDropdown) window.toggleBillingProductDropdown()" class="p-1 text-slate-400 hover:text-slate-700 transition cursor-pointer text-xs" title="Browse all products">▼</button>
                                 </div>
                             </div>
 
                             <!-- Dropdown panel for live search suggestions -->
-                            <div id="billingProductDropdown" class="hidden absolute left-0 right-0 top-full mt-1 z-50 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
-                                <div id="billingProductDropdownList" class="divide-y divide-slate-800 text-xs"></div>
+                            <div id="billingProductDropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-slate-300 rounded-2xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto ring-1 ring-black/10">
+                                <div id="billingProductDropdownList" class="divide-y divide-slate-100 text-xs"></div>
                             </div>
 
                             <!-- Hidden select for full backwards compatibility -->
@@ -3152,7 +3154,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.4"></script>
+    <script type="module" src="./modules/app.js?v=51.2.5"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3167,7 +3169,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.4) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.5) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3221,7 +3223,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.4')
+                navigator.serviceWorker.register('./sw.js?v=51.2.5')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
