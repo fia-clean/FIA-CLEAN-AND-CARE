@@ -399,11 +399,19 @@ export function addPackageStock(id, qty) {
 export function renderPackages() {
     const c = document.getElementById('packageListContainer');
     if (!c) return;
-    c.innerHTML = sortByNameAsc(state.packages).map(x => `
+    c.innerHTML = sortByNameAsc(state.packages).map(x => {
+        const isLow = (Number(x.stock) || 0) <= 5;
+        const statusBadge = isLow
+            ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap">⚠️ LOW STOCK: ${x.stock ?? 0} ${x.unit || 'Pcs'}</span>`
+            : `<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap font-mono">✓ ${x.stock ?? 0} ${x.unit || 'Pcs'}</span>`;
+        return `
         <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
             <div class="min-w-0 flex-1 pr-2 break-words">
-                <p class="font-bold text-cyan-300 text-sm">${x.name}</p>
-                <p class="text-slate-400 mt-1">Size: <span class="text-slate-200">${x.size || '—'}</span> | Unit: <span class="text-slate-200">${x.unit || 'Pcs'}</span> | Stock: <span class="${(Number(x.stock) || 0) <= 5 ? 'text-rose-400 font-bold' : 'text-emerald-300 font-bold'}">${x.stock ?? 0}</span></p>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <p class="font-bold text-cyan-300 text-sm">${x.name}</p>
+                    ${statusBadge}
+                </div>
+                <p class="text-slate-400 mt-1">Size: <span class="text-slate-200">${x.size || '—'}</span> | Unit: <span class="text-slate-200">${x.unit || 'Pcs'}</span> | Available Stock: <span class="${isLow ? 'text-rose-400 font-bold' : 'text-emerald-300 font-bold'} font-mono">${x.stock ?? 0} ${x.unit || 'Pcs'}</span></p>
             </div>
             <div class="flex flex-wrap gap-1.5 items-center justify-end shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
                 <div class="flex items-center gap-1 mr-1">
@@ -414,7 +422,8 @@ export function renderPackages() {
                 <button type="button" onclick="editPackage('${x.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-lg border border-slate-700 font-semibold text-xs transition">✏️ Edit</button>
                 <button type="button" onclick="deletePackage('${x.id}')" class="bg-slate-800 hover:bg-rose-950/60 text-rose-300 hover:text-rose-200 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-rose-800/60 font-semibold text-xs transition">🗑️ Delete</button>
             </div>
-        </div>`).join('') || '<p class="text-xs text-slate-500 text-center py-6">No package items added yet.</p>';
+        </div>`;
+    }).join('') || '<p class="text-xs text-slate-500 text-center py-6">No package items added yet.</p>';
     renderPackageConsolidationReport();
     if (typeof window.checkLowStockAlerts === 'function') window.checkLowStockAlerts();
     if (typeof window.updateDashboard === 'function') window.updateDashboard();
@@ -434,11 +443,24 @@ export function renderPackageConsolidationReport() {
     const sh = document.getElementById('packageReportSummary');
     if (sh) sh.innerHTML = summary.map(([l, v]) => `<div class="bg-slate-900 rounded-lg p-3"><div class="text-[10px] text-slate-400">${l}</div><b class="text-sm text-white">${v}</b></div>`).join('');
     const tb = document.getElementById('packageReportTableBody');
-    if (tb) tb.innerHTML = rows.length ? rows.map((r, i) => `<tr class="border-t border-slate-800"><td class="p-2 text-slate-500">${i + 1}</td><td class="p-2 text-cyan-300 font-semibold">${r.name || '—'}</td><td class="p-2 text-slate-400">${r.size || '—'}</td><td class="p-2 text-right font-bold ${r.stock <= 5 ? 'text-rose-300' : 'text-white'}">${r.stock}</td><td class="p-2 text-slate-300">${r.unit}</td><td class="p-2 ${r.stock <= 5 ? 'text-rose-300' : 'text-emerald-300'}">${r.stock <= 5 ? 'LOW STOCK' : 'OK'}</td></tr>`).join('') : '<tr><td colspan="6" class="p-5 text-center text-slate-500">No package items found.</td></tr>';
+    if (tb) tb.innerHTML = rows.length ? rows.map((r, i) => {
+        const isLow = r.stock <= 5;
+        const statusBadge = isLow
+            ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap">⚠️ LOW STOCK (${r.stock} ${r.unit})</span>`
+            : `<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap">✓ ${r.stock} ${r.unit}</span>`;
+        return `<tr class="border-t border-slate-800 hover:bg-slate-900/50 transition">
+            <td class="p-2 text-slate-500 font-mono">${i + 1}</td>
+            <td class="p-2 text-cyan-300 font-semibold">${r.name || '—'}</td>
+            <td class="p-2 text-slate-400">${r.size || '—'}</td>
+            <td class="p-2 text-right font-bold font-mono ${isLow ? 'text-rose-300' : 'text-white'}">${r.stock}</td>
+            <td class="p-2 text-slate-300">${r.unit}</td>
+            <td class="p-2 text-left">${statusBadge}</td>
+        </tr>`;
+    }).join('') : '<tr><td colspan="6" class="p-5 text-center text-slate-500">No package items found.</td></tr>';
     const um = {};
     rows.forEach(r => um[r.unit] = (um[r.unit] || 0) + r.stock);
     const uh = document.getElementById('packageReportUnitTotals');
-    if (uh) uh.innerHTML = Object.entries(um).sort((a, b) => a[0].localeCompare(b[0])).map(([u, t]) => `<div class="flex justify-between bg-slate-900/70 border border-slate-800 rounded-lg px-3 py-2 text-[11px]"><span class="text-slate-400">Total ${u}</span><b class="text-slate-200">${t}</b></div>`).join('') || '<div class="text-[10px] text-slate-500">No stock data.</div>';
+    if (uh) uh.innerHTML = Object.entries(um).sort((a, b) => a[0].localeCompare(b[0])).map(([u, t]) => `<div class="flex justify-between bg-slate-900/70 border border-slate-800 rounded-lg px-3 py-2 text-[11px]"><span class="text-slate-400">Total ${u}</span><b class="text-slate-200 font-mono font-bold">${t} ${u}</b></div>`).join('') || '<div class="text-[10px] text-slate-500">No stock data.</div>';
 }
 
 export function getProductPackageInfo(product) {
@@ -1230,8 +1252,8 @@ export function renderConsolidatedStockReport() {
 
         const stockClass = r.isLowStock ? 'text-rose-400 font-black' : 'text-slate-100 font-bold';
         const statusBadge = r.isLowStock
-            ? '<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase">⚠️ Low</span>'
-            : '<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase">✓ OK</span>';
+            ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase whitespace-nowrap">⚠️ Low Stock (${r.stock} ${r.unit})</span>`
+            : `<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase whitespace-nowrap">✓ ${r.stock} ${r.unit}</span>`;
 
         return `
             <tr class="border-t border-slate-800 hover:bg-slate-900/50 transition">
@@ -1356,8 +1378,12 @@ export function viewCosProduct(id) {
 export function viewPackage(id) {
     const x = state.packages.find(p => String(p.id) === String(id));
     if (!x) return;
+    const isLow = (Number(x.stock) || 0) <= 5;
+    const statusBadge = isLow
+        ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap">⚠️ LOW STOCK: ${x.stock ?? 0} ${x.unit || 'Pcs'}</span>`
+        : `<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap font-mono">✓ ${x.stock ?? 0} ${x.unit || 'Pcs'}</span>`;
     if (typeof window.showRecordView === 'function') {
-        window.showRecordView('Package Item Details', `<div class="space-y-2"><p><b>Package Name:</b> ${x.name}</p><p><b>Size / Volume:</b> ${x.size || '—'}</p><p><b>Unit:</b> ${x.unit || 'Pcs'}</p><p><b>Available Stock:</b> <span class="${(Number(x.stock) || 0) <= 5 ? 'text-rose-400 font-bold' : 'text-emerald-300 font-bold'}">${x.stock ?? 0}</span></p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editPackage('${x.id}');" class="bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-semibold text-xs">Edit</button><button type="button" onclick="closeRecordView(); deletePackage('${x.id}');" class="bg-slate-800 text-rose-300 hover:bg-rose-950/60 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-rose-800/60 font-semibold text-xs">Delete</button></div>`);
+        window.showRecordView('Package Item Details', `<div class="space-y-2"><p><b>Package Name:</b> ${x.name}</p><p><b>Size / Volume:</b> ${x.size || '—'}</p><p><b>Unit:</b> ${x.unit || 'Pcs'}</p><p><b>Available Stock:</b> <span class="${isLow ? 'text-rose-400 font-bold' : 'text-emerald-300 font-bold'} font-mono">${x.stock ?? 0} ${x.unit || 'Pcs'}</span></p><p><b>Status:</b> ${statusBadge}</p></div><div class="flex gap-2 pt-4 border-t border-slate-800 mt-4 justify-end"><button type="button" onclick="closeRecordView(); editPackage('${x.id}');" class="bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-700 font-semibold text-xs">Edit</button><button type="button" onclick="closeRecordView(); deletePackage('${x.id}');" class="bg-slate-800 text-rose-300 hover:bg-rose-950/60 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-rose-800/60 font-semibold text-xs">Delete</button></div>`);
     }
 }
 

@@ -4,7 +4,7 @@ color 0A
 
 echo ========================================================
 echo    FIA CLEAN & CARE - GITHUB AUTO PUSH & DEPLOY
-echo    Version: v51.2.2 (Day Book Profit Margin & Markup)
+echo    Version: v51.2.3 (Package & Product Stock Qty in Consolidation)
 echo ========================================================
 echo.
 
@@ -15,7 +15,7 @@ git add .
 
 echo.
 echo [2/3] Committing changes...
-git commit -m "feat(daybook): v51.2.2 - dual profit margin (sales) and markup (cost/ROI) analysis with interactive ring"
+git commit -m "feat(stock): v51.2.3 - show exact stock count and unit in package list and consolidated reports"
 
 echo.
 echo [3/3] Pushing to GitHub (main branch)...

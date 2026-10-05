@@ -1557,6 +1557,7 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                       <th className="p-2.5">Product Name</th>
                       <th className="p-2.5 text-right">Available Stock</th>
                       <th className="p-2.5">Unit</th>
+                      <th className="p-2.5 text-center">Status</th>
                       <th className="p-2.5">Barcode</th>
                       <th className="p-2.5 text-center">Actions</th>
                     </tr>
@@ -1604,6 +1605,17 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                             {p.stock}
                           </td>
                           <td className="p-2.5 font-mono text-slate-500">{p.unit}</td>
+                          <td className="p-2.5 text-center">
+                            {p.stock <= 5 ? (
+                              <span className="bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase inline-block whitespace-nowrap">
+                                ⚠️ LOW STOCK ({p.stock} {p.unit})
+                              </span>
+                            ) : (
+                              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase inline-block whitespace-nowrap">
+                                ✓ {p.stock} {p.unit}
+                              </span>
+                            )}
+                          </td>
                           <td className="p-2.5 font-mono text-slate-400">{p.barcode || '—'}</td>
                           <td className="p-2.5 text-center">
                             <div className="flex items-center justify-center gap-1">
