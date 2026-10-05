@@ -4,7 +4,7 @@ color 0A
 
 echo ========================================================
 echo    FIA CLEAN & CARE - GITHUB AUTO PUSH & DEPLOY
-echo    Version: v51.2.5 (Clean Light Search & Cosmetic Stock Fix)
+echo    Version: v51.2.6 (Fix Customer Letter Search & Product Add to Bill)
 echo ========================================================
 echo.
 
@@ -15,7 +15,7 @@ git add .
 
 echo.
 echo [2/3] Committing changes...
-git commit -m "fix(billing): v51.2.5 - fix cosmetic stock deduction and change product search dropdown to clean light background"
+git commit -m "fix(billing): v51.2.6 - fix customer live letter search disappearing and resolve product variant add to bill validation"
 
 echo.
 echo [3/3] Pushing to GitHub (main branch)...
@@ -25,7 +25,7 @@ echo.
 if %ERRORLEVEL% EQU 0 (
     echo ========================================================
     echo    SUCCESS! Updates pushed to GitHub successfully.
-    echo    Version v51.2.5 is now LIVE on GitHub!
+    echo    Version v51.2.6 is now LIVE on GitHub!
     echo ========================================================
 ) else (
     echo ========================================================

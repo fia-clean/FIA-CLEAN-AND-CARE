@@ -188,11 +188,12 @@ export function updateCurrentBillItemsSaleType(saleType) {
 
 export function findUnifiedProduct(productName) {
     if (!productName) return null;
-    const p = (state.products || []).find(x => x && x.name === productName);
+    const clean = String(productName).trim().toLowerCase();
+    const p = (state.products || []).find(x => x && String(x.name || '').trim().toLowerCase() === clean);
     if (p) return { ...p, category: 'Cleaning' };
-    const cp = (state.cosProducts || []).find(x => x && x.name === productName);
+    const cp = (state.cosProducts || []).find(x => x && String(x.name || '').trim().toLowerCase() === clean);
     if (cp) return { ...cp, category: 'Cosmetics' };
-    const pkg = (state.packages || []).find(x => x && x.name === productName);
+    const pkg = (state.packages || []).find(x => x && String(x.name || '').trim().toLowerCase() === clean);
     if (pkg) return { ...pkg, category: 'Package' };
     return null;
 }
@@ -542,9 +543,10 @@ export function updateProductDropdown() {
         countBadge.textContent = `${cleanList.length + cosList.length} items`;
     }
 
-    // Refresh searchable dropdown list if currently active
-    if (typeof renderBillingProductDropdown === 'function') {
-        const sInput = document.getElementById('billProductSearchInput');
+    // Refresh searchable dropdown list if currently active, but don't wipe active typing
+    const sInput = document.getElementById('billProductSearchInput');
+    const isActivelyTypingProd = document.activeElement === sInput;
+    if (!isActivelyTypingProd && typeof renderBillingProductDropdown === 'function') {
         renderBillingProductDropdown(sInput ? sInput.value : '');
     }
 }
@@ -698,7 +700,7 @@ export function renderBillingProductDropdown(query = '') {
         return `
             <div id="billingProdItem_${idx}" 
                  class="p-2.5 bg-white hover:bg-sky-50 active:bg-sky-100 cursor-pointer transition flex items-center justify-between gap-2.5 select-none border-b border-slate-100 ${isSelected ? 'bg-sky-50/90 ring-1 ring-sky-400' : ''}"
-                 onmousedown="event.preventDefault(); selectBillingProductByIndex(${idx})">
+                 onclick="selectBillingProductByIndex(${idx})">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-1.5 flex-wrap">
                         <span class="font-bold text-slate-900 text-xs">${highlightedName}</span>
@@ -759,10 +761,19 @@ export function selectBillingProduct(name) {
     const clearBtn = document.getElementById('billingProdClearBtn');
 
     if (select) {
-        if (![...select.options].some(o => o.value === name)) {
-            select.add(new Option(name, name));
+        let found = false;
+        for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].value.toLowerCase() === String(name).toLowerCase()) {
+                select.selectedIndex = i;
+                select.value = select.options[i].value;
+                found = true;
+                break;
+            }
         }
-        select.value = name;
+        if (!found) {
+            select.add(new Option(name, name));
+            select.value = name;
+        }
     }
 
     if (searchInput) {
@@ -778,11 +789,6 @@ export function selectBillingProduct(name) {
     if (typeof fillProductPrice === 'function') {
         fillProductPrice();
     }
-
-    setTimeout(() => {
-        const qtyInput = document.getElementById('billQty');
-        if (qtyInput) qtyInput.focus();
-    }, 50);
 }
 
 export function clearBillingProductInput() {
@@ -804,6 +810,23 @@ export function onBillingProductSearchInput(val) {
     renderBillingProductDropdown(val);
     const dropdown = document.getElementById('billingProductDropdown');
     if (dropdown) dropdown.classList.remove('hidden');
+
+    const trimmed = String(val || '').trim();
+    if (trimmed) {
+        const product = findUnifiedProduct(trimmed);
+        if (product) {
+            const select = document.getElementById('billProductSelect');
+            if (select) {
+                if (![...select.options].some(o => o.value.toLowerCase() === product.name.toLowerCase())) {
+                    select.add(new Option(product.name, product.name));
+                }
+                select.value = product.name;
+            }
+            if (typeof fillProductPrice === 'function') {
+                fillProductPrice();
+            }
+        }
+    }
 }
 
 export function handleBillingProductKeyDown(event) {
@@ -901,12 +924,14 @@ export function onSaleTypeChange(forcedType = null) {
 export function fillProductPrice() {
     const select = document.getElementById('billProductSelect');
     const opt = select ? select.options[select.selectedIndex] : null;
+    const searchInput = document.getElementById('billProductSearchInput');
+    const rawName = (opt && opt.value) ? opt.value : (searchInput ? searchInput.value.trim() : '');
     const variantWrapper = document.getElementById('billPackVariantWrapper');
     const variantSelect = document.getElementById('billPackVariantSelect');
     const badgeEl = document.getElementById('billPackVariantBadge');
     const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
 
-    if (!opt || !opt.value) {
+    if (!rawName) {
         if (variantWrapper) variantWrapper.classList.add('hidden');
         if (badgeEl) badgeEl.textContent = '';
         document.getElementById('billRate').value = '';
@@ -915,7 +940,7 @@ export function fillProductPrice() {
         return;
     }
 
-    const product = findUnifiedProduct(opt.value);
+    const product = findUnifiedProduct(rawName);
     if (!product) return;
 
     const baseRate = saleType === 'Wholesale' ? getProductWholesalePrice(product) : getProductRetailPrice(product);
@@ -1007,7 +1032,9 @@ export function fillProductPrice() {
 
 export function onPackVariantSelected() {
     const prodSelect = document.getElementById('billProductSelect');
-    const product = findUnifiedProduct(prodSelect?.value);
+    const searchInput = document.getElementById('billProductSearchInput');
+    const rawName = (prodSelect && prodSelect.value) ? prodSelect.value : (searchInput ? searchInput.value.trim() : '');
+    const product = findUnifiedProduct(rawName);
     const variantSelect = document.getElementById('billPackVariantSelect');
     const vId = variantSelect?.value;
     const badgeEl = document.getElementById('billPackVariantBadge');
@@ -1171,19 +1198,45 @@ export function getStockProductRecord(itemOrName) {
 
 export function addToBillItems() {
     const select = document.getElementById('billProductSelect');
-    const productName = select ? select.value : '';
-    const qty = parseFloat(document.getElementById('billQty').value);
-    const rate = parseFloat(document.getElementById('billRate').value);
+    const searchInput = document.getElementById('billProductSearchInput');
+    let productName = (select && select.value) ? select.value : (searchInput ? searchInput.value.trim() : '');
+    if (select && productName && !select.value) {
+        select.value = productName;
+    }
+
+    const product = findUnifiedProduct(productName);
+    if (!productName || !product) {
+        alert("⚠️ Please select a product first.");
+        return;
+    }
+
     const rawUnitType = document.getElementById('billUnitType')?.value || '';
     const quantityType = document.getElementById('billQuantityType')?.value || 'Bottle';
     const numberOfUnits = Math.max(1, parseInt(document.getElementById('billNumberOfUnits')?.value, 10) || 1);
-    if (!productName || isNaN(qty) || qty <= 0 || isNaN(rate)) { alert("Please select product, quantity, and rate."); return; }
-
-    const product = findUnifiedProduct(productName);
-    const unitType = (rawUnitType && rawUnitType !== 'Standard' && rawUnitType !== 'General') ? rawUnitType : (product?.unit || 'Ltr');
     const variantId = document.getElementById('billPackVariantSelect')?.value || document.getElementById('billRate')?.dataset.variantId || '';
     const variant = product?.variants?.find(v => String(v.id) === String(variantId));
     const isPieceTracked = isProductPieceTracked(product, product?.category);
+    const unitType = (rawUnitType && rawUnitType !== 'Standard' && rawUnitType !== 'General') ? rawUnitType : (variant?.unit || product?.unit || 'Pcs');
+
+    let qty = parseFloat(document.getElementById('billQty')?.value);
+    if (isNaN(qty) || qty <= 0) {
+        if (isPieceTracked) qty = 1;
+        else if (variant && Number(variant.size) > 0) qty = Number(variant.size);
+        else qty = 1;
+        const qEl = document.getElementById('billQty');
+        if (qEl) qEl.value = qty;
+    }
+
+    let rate = parseFloat(document.getElementById('billRate')?.value);
+    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+    if (isNaN(rate) || rate < 0) {
+        const autoRate = variant 
+            ? (saleType === 'Wholesale' ? getVariantWholesalePrice(variant, product) : getVariantRetailPrice(variant, product))
+            : (saleType === 'Wholesale' ? getProductWholesalePrice(product) : getProductRetailPrice(product));
+        rate = Number(autoRate || 0);
+        const rEl = document.getElementById('billRate');
+        if (rEl) rEl.value = rate.toFixed(2);
+    }
 
     let stockDeductionQty = 0;
     let packageInfo = null;
@@ -1281,12 +1334,12 @@ export function addToBillItems() {
     if (pClearBtn) pClearBtn.classList.add('hidden');
     if (typeof closeBillingProductDropdown === 'function') closeBillingProductDropdown();
     document.getElementById('billNumberOfUnits').value = '1';
+    const vWrapper = document.getElementById('billPackVariantWrapper');
+    if (vWrapper) vWrapper.classList.add('hidden');
+    const badgeEl = document.getElementById('billPackVariantBadge');
+    if (badgeEl) badgeEl.textContent = '';
     renderBillPreviewInput();
     calculateBalance();
-    setTimeout(() => {
-        const nextInput = document.getElementById('billProductSearchInput');
-        if (nextInput) nextInput.focus();
-    }, 50);
 }
 
 export function editBillItem(index) {

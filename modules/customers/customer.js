@@ -244,8 +244,12 @@ export function updateCustomerDropdown() {
     });
     if (current && uniqueCusts.has(current)) select.value = current;
 
-    if (typeof renderBillingCustomerDropdown === 'function') {
-        renderBillingCustomerDropdown(current || '');
+    // Do NOT overwrite user search query if actively typing in customer search input!
+    const searchInput = document.getElementById('billingCustomerSearchInput');
+    const isActivelyTyping = document.activeElement === searchInput;
+    if (!isActivelyTyping && typeof renderBillingCustomerDropdown === 'function') {
+        const queryToUse = (searchInput && searchInput.value.trim()) ? searchInput.value.trim() : (current || '');
+        renderBillingCustomerDropdown(queryToUse);
     }
 }
 
@@ -309,7 +313,7 @@ export function renderBillingCustomerDropdown(query = '') {
     // Top action: Always offer "Add Customer Manually"
     const manualActionHtml = `
         <div class="p-2.5 bg-indigo-50 hover:bg-indigo-100 cursor-pointer text-indigo-900 font-bold border-b border-indigo-100 flex items-center justify-between transition select-none"
-             onmousedown="event.preventDefault(); activateManualCustomerEntry()">
+             onclick="activateManualCustomerEntry()">
             <div class="flex items-center gap-2 min-w-0">
                 <span class="text-sm">➕</span>
                 <div class="truncate">
@@ -326,7 +330,7 @@ export function renderBillingCustomerDropdown(query = '') {
         listEl.innerHTML = manualActionHtml + `
             <div class="p-4 text-center text-slate-500 space-y-2.5 bg-white">
                 <p class="font-bold text-slate-800 text-xs">No directory customer found matching "${query}"</p>
-                <button type="button" onmousedown="event.preventDefault(); activateManualCustomerEntry('${safeQ}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition cursor-pointer">
+                <button type="button" onclick="activateManualCustomerEntry('${safeQ}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition cursor-pointer">
                     ➕ Add "${query}" as New Customer Manually
                 </button>
             </div>
@@ -354,7 +358,7 @@ export function renderBillingCustomerDropdown(query = '') {
 
             return `
                 <div class="p-2.5 bg-white hover:bg-indigo-50/80 active:bg-indigo-100 cursor-pointer transition flex items-center justify-between gap-2 select-none border-b border-slate-100"
-                     onmousedown="event.preventDefault(); selectBillingCustomer('${c.name.replace(/'/g, "\\'")}', '${(c.phone || '').replace(/'/g, "\\'")}')">
+                     onclick="selectBillingCustomer('${c.name.replace(/'/g, "\\'")}', '${(c.phone || '').replace(/'/g, "\\'")}')">
                     <div class="min-w-0">
                         <div class="font-bold text-slate-900 text-xs truncate">${highlightedName}</div>
                         <div class="mt-0.5">${phoneDisplay}</div>
