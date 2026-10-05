@@ -189,12 +189,32 @@ export function updateCurrentBillItemsSaleType(saleType) {
 export function findUnifiedProduct(productName) {
     if (!productName) return null;
     const clean = String(productName).trim().toLowerCase();
-    const p = (state.products || []).find(x => x && String(x.name || '').trim().toLowerCase() === clean);
+    // 1. Exact match (case insensitive)
+    let p = (state.products || []).find(x => x && String(x.name || '').trim().toLowerCase() === clean);
     if (p) return { ...p, category: 'Cleaning' };
-    const cp = (state.cosProducts || []).find(x => x && String(x.name || '').trim().toLowerCase() === clean);
+    let cp = (state.cosProducts || []).find(x => x && String(x.name || '').trim().toLowerCase() === clean);
     if (cp) return { ...cp, category: 'Cosmetics' };
-    const pkg = (state.packages || []).find(x => x && String(x.name || '').trim().toLowerCase() === clean);
+    let pkg = (state.packages || []).find(x => x && String(x.name || '').trim().toLowerCase() === clean);
     if (pkg) return { ...pkg, category: 'Package' };
+
+    // 2. Barcode match
+    p = (state.products || []).find(x => x && String(x.barcode || '').trim().toLowerCase() === clean);
+    if (p) return { ...p, category: 'Cleaning' };
+    cp = (state.cosProducts || []).find(x => x && String(x.barcode || '').trim().toLowerCase() === clean);
+    if (cp) return { ...cp, category: 'Cosmetics' };
+
+    // 3. ID match
+    p = (state.products || []).find(x => x && String(x.id || '').trim().toLowerCase() === clean);
+    if (p) return { ...p, category: 'Cleaning' };
+    cp = (state.cosProducts || []).find(x => x && String(x.id || '').trim().toLowerCase() === clean);
+    if (cp) return { ...cp, category: 'Cosmetics' };
+
+    // 4. Starts-with prefix match
+    p = (state.products || []).find(x => x && String(x.name || '').trim().toLowerCase().startsWith(clean));
+    if (p) return { ...p, category: 'Cleaning' };
+    cp = (state.cosProducts || []).find(x => x && String(x.name || '').trim().toLowerCase().startsWith(clean));
+    if (cp) return { ...cp, category: 'Cosmetics' };
+
     return null;
 }
 
@@ -545,9 +565,12 @@ export function updateProductDropdown() {
 
     // Refresh searchable dropdown list if currently active, but don't wipe active typing
     const sInput = document.getElementById('billProductSearchInput');
-    const isActivelyTypingProd = document.activeElement === sInput;
-    if (!isActivelyTypingProd && typeof renderBillingProductDropdown === 'function') {
-        renderBillingProductDropdown(sInput ? sInput.value : '');
+    const pDropdown = document.getElementById('billingProductDropdown');
+    const isPDropdownOpen = pDropdown && !pDropdown.classList.contains('hidden');
+    if (sInput && sInput.value.trim()) {
+        renderBillingProductDropdown(sInput.value.trim());
+    } else if (!isPDropdownOpen && typeof renderBillingProductDropdown === 'function') {
+        renderBillingProductDropdown('');
     }
 }
 
@@ -597,7 +620,7 @@ export function getAllUnifiedBillingProducts() {
     return list;
 }
 
-export function renderBillingProductDropdown(query = '') {
+export function renderBillingProductDropdown(query = null) {
     const dropdown = document.getElementById('billingProductDropdown');
     const listEl = document.getElementById('billingProductDropdownList');
     const clearBtn = document.getElementById('billingProdClearBtn');
@@ -605,7 +628,7 @@ export function renderBillingProductDropdown(query = '') {
 
     const all = getAllUnifiedBillingProducts();
     const searchInput = document.getElementById('billProductSearchInput');
-    const currentQuery = query !== undefined && query !== null ? query : (searchInput ? searchInput.value : '');
+    const currentQuery = (query !== null && query !== undefined) ? query : (searchInput ? searchInput.value : '');
     const q = String(currentQuery || '').trim().toLowerCase();
 
     if (clearBtn) {
@@ -727,7 +750,7 @@ export function openBillingProductDropdown() {
     const dropdown = document.getElementById('billingProductDropdown');
     if (!dropdown) return;
     const input = document.getElementById('billProductSearchInput');
-    renderBillingProductDropdown(input ? input.value : '');
+    renderBillingProductDropdown(input ? input.value : null);
     dropdown.classList.remove('hidden');
 }
 
@@ -741,7 +764,7 @@ export function toggleBillingProductDropdown() {
     if (!dropdown) return;
     if (dropdown.classList.contains('hidden')) {
         const input = document.getElementById('billProductSearchInput');
-        renderBillingProductDropdown(input ? input.value : '');
+        renderBillingProductDropdown(input ? input.value : null);
         dropdown.classList.remove('hidden');
         input?.focus();
     } else {
@@ -1200,15 +1223,14 @@ export function addToBillItems() {
     const select = document.getElementById('billProductSelect');
     const searchInput = document.getElementById('billProductSearchInput');
     let productName = (select && select.value) ? select.value : (searchInput ? searchInput.value.trim() : '');
-    if (select && productName && !select.value) {
-        select.value = productName;
-    }
-
     const product = findUnifiedProduct(productName);
     if (!productName || !product) {
         alert("⚠️ Please select a product first.");
         return;
     }
+    productName = product.name;
+    if (select) select.value = product.name;
+    if (searchInput) searchInput.value = product.name;
 
     const rawUnitType = document.getElementById('billUnitType')?.value || '';
     const quantityType = document.getElementById('billQuantityType')?.value || 'Bottle';
@@ -1296,7 +1318,6 @@ export function addToBillItems() {
     const total = numberOfUnits * rate;
 
     // Smart Computerized Memory: If in Wholesale mode, automatically remember custom entered rates
-    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
     const isWholesale = String(saleType).toLowerCase() === 'wholesale';
     if (isWholesale && Number.isFinite(rate) && rate > 0) {
         const curWholesale = variant ? getVariantWholesalePrice(variant, product) : getProductWholesalePrice(product);

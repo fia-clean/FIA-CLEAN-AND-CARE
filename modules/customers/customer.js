@@ -244,12 +244,14 @@ export function updateCustomerDropdown() {
     });
     if (current && uniqueCusts.has(current)) select.value = current;
 
-    // Do NOT overwrite user search query if actively typing in customer search input!
+    // Do NOT overwrite user search query if actively typing or dropdown is open!
     const searchInput = document.getElementById('billingCustomerSearchInput');
-    const isActivelyTyping = document.activeElement === searchInput;
-    if (!isActivelyTyping && typeof renderBillingCustomerDropdown === 'function') {
-        const queryToUse = (searchInput && searchInput.value.trim()) ? searchInput.value.trim() : (current || '');
-        renderBillingCustomerDropdown(queryToUse);
+    const dropdown = document.getElementById('billingCustomerDropdown');
+    const isDropdownOpen = dropdown && !dropdown.classList.contains('hidden');
+    if (searchInput && searchInput.value.trim()) {
+        renderBillingCustomerDropdown(searchInput.value.trim());
+    } else if (!isDropdownOpen && typeof renderBillingCustomerDropdown === 'function') {
+        renderBillingCustomerDropdown(current || null);
     }
 }
 
@@ -268,7 +270,7 @@ export function getAllUniqueCustomers() {
     return Array.from(uniqueCusts.entries()).map(([name, phone]) => ({ name, phone }));
 }
 
-export function renderBillingCustomerDropdown(query = '') {
+export function renderBillingCustomerDropdown(query = null) {
     const dropdown = document.getElementById('billingCustomerDropdown');
     const listEl = document.getElementById('billingCustomerDropdownList');
     const clearBtn = document.getElementById('billingCustClearBtn');
@@ -277,7 +279,7 @@ export function renderBillingCustomerDropdown(query = '') {
 
     const all = getAllUniqueCustomers();
     const searchInput = document.getElementById('billingCustomerSearchInput');
-    const currentQuery = query !== undefined && query !== null ? query : (searchInput ? searchInput.value : '');
+    const currentQuery = (query !== null && query !== undefined) ? query : (searchInput ? searchInput.value : '');
     const q = String(currentQuery || '').trim().toLowerCase();
 
     if (clearBtn) {
@@ -376,7 +378,7 @@ export function openBillingCustomerDropdown() {
     const dropdown = document.getElementById('billingCustomerDropdown');
     if (!dropdown) return;
     const input = document.getElementById('billingCustomerSearchInput');
-    renderBillingCustomerDropdown(input ? input.value : '');
+    renderBillingCustomerDropdown(input ? input.value : null);
     dropdown.classList.remove('hidden');
 }
 
@@ -390,7 +392,7 @@ export function toggleBillingCustomerDropdown() {
     if (!dropdown) return;
     if (dropdown.classList.contains('hidden')) {
         const input = document.getElementById('billingCustomerSearchInput');
-        renderBillingCustomerDropdown(input ? input.value : '');
+        renderBillingCustomerDropdown(input ? input.value : null);
         dropdown.classList.remove('hidden');
         input?.focus();
     } else {

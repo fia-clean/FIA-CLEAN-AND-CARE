@@ -39,11 +39,15 @@ export function updateSyncStatus(connected, customText) {
     const syncBadge = document.getElementById('dashboardSyncBadge');
     const bottomBanner = document.getElementById('offlinePwaBanner');
 
+    const isAuthReq = (customText || '').includes('Auth') || (customText || '').includes('Security');
+
     if (bottomBanner) {
-        if (connected) {
+        if (connected === true || (connected === false && navigator.onLine && isAuthReq)) {
             bottomBanner.classList.add('hidden');
-        } else {
+        } else if (!connected && !navigator.onLine) {
             bottomBanner.classList.remove('hidden');
+        } else {
+            bottomBanner.classList.add('hidden');
         }
     }
 
@@ -51,16 +55,21 @@ export function updateSyncStatus(connected, customText) {
         if (connected === true) {
             const text = customText || 'Cloud Data Synchronized';
             el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span> ${text}`;
-            el.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300 shadow-xs whitespace-nowrap min-w-0 transition-colors';
+            el.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300 shadow-xs whitespace-nowrap min-w-0 transition-colors cursor-pointer hover:bg-emerald-100';
+            el.title = 'Cloud Synced. Tap to re-sync immediately.';
         } else if (connected === false) {
             const text = customText || 'Working under offline mode';
-            el.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500 shrink-0 animate-pulse"></span> ${text}`;
-            el.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold text-rose-800 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-300 shadow-xs whitespace-nowrap min-w-0 transition-colors';
+            const dotColor = isAuthReq ? 'bg-amber-500' : 'bg-rose-500';
+            const textColor = isAuthReq ? 'text-amber-800 bg-amber-50 border-amber-300 hover:bg-amber-100' : 'text-rose-800 bg-rose-50 border-rose-300 hover:bg-rose-100';
+            el.innerHTML = `<span class="w-2 h-2 rounded-full ${dotColor} shrink-0 animate-pulse"></span> ${text}`;
+            el.className = `inline-flex items-center gap-1.5 text-[11px] font-bold ${textColor} px-2.5 py-1 rounded-full border shadow-xs whitespace-nowrap min-w-0 transition-colors cursor-pointer`;
+            el.title = isAuthReq ? 'Authentication required. Tap to open Settings.' : 'Offline mode. Tap to retry connection.';
         } else {
             // connecting / syncing
             const text = customText || 'Connecting to Cloud Database...';
             el.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 shrink-0 animate-pulse"></span> ${text}`;
-            el.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300 shadow-xs whitespace-nowrap min-w-0 transition-colors';
+            el.className = 'inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300 shadow-xs whitespace-nowrap min-w-0 transition-colors cursor-pointer hover:bg-amber-100';
+            el.title = 'Connecting. Tap to re-sync.';
         }
     }
 
@@ -69,8 +78,13 @@ export function updateSyncStatus(connected, customText) {
             syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Direct Sync Active';
             syncBadge.className = 'mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1.5 rounded-full';
         } else if (connected === false) {
-            syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Offline Mode';
-            syncBadge.className = 'mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-rose-300 bg-rose-950/40 border border-rose-800/50 px-2.5 py-1.5 rounded-full';
+            if (isAuthReq) {
+                syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> Auth Required';
+                syncBadge.className = 'mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-300 bg-amber-950/50 border border-amber-800/60 px-2.5 py-1.5 rounded-full cursor-pointer';
+            } else {
+                syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Offline Mode';
+                syncBadge.className = 'mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-rose-300 bg-rose-950/40 border border-rose-800/50 px-2.5 py-1.5 rounded-full';
+            }
         } else {
             syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> Connecting...';
             syncBadge.className = 'mt-1 inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-300 bg-amber-950/40 border border-amber-800/50 px-2.5 py-1.5 rounded-full';
@@ -712,18 +726,27 @@ let queuedSync = false;
 export async function fetchDirectCloudData() {
     if (!navigator.onLine) return null;
     try {
-        const user = await (ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null));
-        if (!user || typeof user.getIdToken !== 'function') return null;
-        const token = await user.getIdToken();
-        if (!token) return null;
-        const url = 'https://fia-clean-and-care-default-rtdb.firebaseio.com/fia_data.json?auth=' + encodeURIComponent(token);
+        let token = null;
+        try {
+            const user = await (ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null));
+            if (user && typeof user.getIdToken === 'function') {
+                token = await user.getIdToken();
+            }
+        } catch (authErr) {}
+
+        const baseUrl = 'https://fia-clean-and-care-default-rtdb.firebaseio.com/fia_data.json';
+        const url = token ? `${baseUrl}?auth=${encodeURIComponent(token)}` : baseUrl;
         const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) {
             console.warn('[Sync Engine] Direct REST fetch status:', res.status);
+            if (res.status === 401 || res.status === 403) {
+                throw new Error('PERMISSION_DENIED');
+            }
             return null;
         }
         return await res.json();
     } catch (e) {
+        if (String(e?.message).includes('PERMISSION')) throw e;
         console.warn('[Sync Engine] Direct REST pull notice:', e);
         return null;
     }
@@ -732,15 +755,24 @@ export async function fetchDirectCloudData() {
 export async function fetchDirectCloudMeta() {
     if (!navigator.onLine) return null;
     try {
-        const user = await (ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null));
-        if (!user || typeof user.getIdToken !== 'function') return null;
-        const token = await user.getIdToken();
-        if (!token) return null;
-        const url = 'https://fia-clean-and-care-default-rtdb.firebaseio.com/fia_data/_meta.json?auth=' + encodeURIComponent(token);
+        let token = null;
+        try {
+            const user = await (ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null));
+            if (user && typeof user.getIdToken === 'function') {
+                token = await user.getIdToken();
+            }
+        } catch (authErr) {}
+
+        const baseUrl = 'https://fia-clean-and-care-default-rtdb.firebaseio.com/fia_data/_meta.json';
+        const url = token ? `${baseUrl}?auth=${encodeURIComponent(token)}` : baseUrl;
         const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) return null;
+        if (!res.ok) {
+            if (res.status === 401 || res.status === 403) throw new Error('PERMISSION_DENIED');
+            return null;
+        }
         return await res.json();
     } catch (e) {
+        if (String(e?.message).includes('PERMISSION')) throw e;
         return null;
     }
 }
@@ -748,18 +780,31 @@ export async function fetchDirectCloudMeta() {
 export async function pushDirectCloudData(payload) {
     if (!navigator.onLine) return false;
     try {
-        const user = await (ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null));
-        if (!user || typeof user.getIdToken !== 'function') return false;
-        const token = await user.getIdToken();
-        if (!token) return false;
-        const url = 'https://fia-clean-and-care-default-rtdb.firebaseio.com/fia_data.json?auth=' + encodeURIComponent(token);
+        let token = null;
+        try {
+            const user = await (ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null));
+            if (user && typeof user.getIdToken === 'function') {
+                token = await user.getIdToken();
+            }
+        } catch (authErr) {}
+
+        const baseUrl = 'https://fia-clean-and-care-default-rtdb.firebaseio.com/fia_data.json';
+        const url = token ? `${baseUrl}?auth=${encodeURIComponent(token)}` : baseUrl;
         const res = await fetch(url, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        return res.ok;
+        if (!res.ok) {
+            console.warn('[Sync Engine] Direct REST push status:', res.status);
+            if (res.status === 401 || res.status === 403) {
+                throw new Error('PERMISSION_DENIED');
+            }
+            return false;
+        }
+        return true;
     } catch (e) {
+        if (String(e?.message).includes('PERMISSION')) throw e;
         console.warn('[Sync Engine] Direct REST push notice:', e);
         return false;
     }
@@ -821,9 +866,21 @@ export function syncToFirebase() {
         const errStr = String(err?.message || err?.code || err || '').toUpperCase();
         if (errStr.includes('PERMISSION') || errStr.includes('AUTH')) {
             console.warn('Firebase Write PERMISSION_DENIED. Attempting auto-auth...');
-            if (ensureFirebaseAuth) ensureFirebaseAuth();
-            updateSyncStatus(null, 'Connecting to Cloud Security...');
             state.isFirebaseConnected = false;
+            updateSyncStatus(null, 'Connecting to Cloud Security...');
+            if (ensureFirebaseAuth) {
+                ensureFirebaseAuth().then(u => {
+                    if (u) {
+                        syncToFirebase();
+                    } else {
+                        updateSyncStatus(false, 'Cloud Auth Required • Tap Settings');
+                    }
+                }).catch(() => {
+                    updateSyncStatus(false, 'Cloud Auth Required • Tap Settings');
+                });
+            } else {
+                updateSyncStatus(false, 'Cloud Auth Required • Tap Settings');
+            }
         } else if (!navigator.onLine) {
             state.isFirebaseConnected = false;
             updateSyncStatus(false, 'Working under offline mode');
@@ -862,12 +919,16 @@ export function pullFromFirebase() {
         }
         throw new Error('REST pull returned empty, fallback to SDK');
     }).catch(err => {
+        const errStr = String(err?.message || err?.code || err || '').toUpperCase();
+        if (errStr.includes('PERMISSION') || errStr.includes('AUTH')) {
+            throw err;
+        }
         if (!window.FB_DB) return false;
         const authReady = ensureFirebaseAuth ? ensureFirebaseAuth().catch(() => null) : Promise.resolve(null);
         return authReady.then(() => {
             const pullPromise = window.FB_DB.ref('fia_data').once('value');
-            // Robust 25s timeout for mobile data / high latency networks
-            const pullTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase pull timeout (network slow)')), 25000));
+            // Robust 20s timeout for mobile data / high latency networks
+            const pullTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase pull timeout (network slow)')), 20000));
             return Promise.race([pullPromise, pullTimeout]);
         }).then(function(snapshot) {
             const data = snapshot ? snapshot.val() : null;
@@ -889,22 +950,30 @@ export function pullFromFirebase() {
             state.isFirebaseConnected = false;
             updateSyncStatus(null, 'Connecting to Cloud Security...');
             if (ensureFirebaseAuth) {
-                ensureFirebaseAuth().then(u => {
-                    if (u) setTimeout(pullFromFirebase, 1200);
+                return ensureFirebaseAuth().then(u => {
+                    if (u) {
+                        return pullFromFirebase();
+                    } else {
+                        updateSyncStatus(false, 'Cloud Auth Required • Tap Settings');
+                        return false;
+                    }
+                }).catch(() => {
+                    updateSyncStatus(false, 'Cloud Auth Required • Tap Settings');
+                    return false;
                 });
+            } else {
+                updateSyncStatus(false, 'Cloud Auth Required • Tap Settings');
+                return false;
             }
         } else if (!navigator.onLine) {
             state.isFirebaseConnected = false;
             updateSyncStatus(false, 'Working under offline mode');
+            return false;
         } else {
-            // Online but slow pull - do not falsely scream offline mode
-            console.log('[Sync Engine] Pull latency. Retrying cloud pull...');
-            setTimeout(() => {
-                if (navigator.onLine) pullFromFirebase();
-            }, 3000);
+            console.log('[Sync Engine] Pull latency or network notice:', error);
+            updateSyncStatus(null, 'Connecting to Cloud Database...');
+            return false;
         }
-        if (window.renderAll) window.renderAll();
-        return false;
     });
 }
 
@@ -1006,8 +1075,14 @@ export function attachRealtimeListener() {
                 ensureFirebaseAuth().then(user => {
                     if (user) {
                         setTimeout(attachRealtimeListener, 1500);
+                    } else {
+                        updateSyncStatus(false, 'Cloud Auth Required • Tap Settings');
                     }
+                }).catch(() => {
+                    updateSyncStatus(false, 'Cloud Auth Required • Tap Settings');
                 });
+            } else {
+                updateSyncStatus(false, 'Cloud Auth Required • Tap Settings');
             }
         } else if (!navigator.onLine) {
             state.isFirebaseConnected = false;
@@ -1154,30 +1229,72 @@ export function startRealtimeSync() {
     checkAndSync();
 }
 
-export function manualCloudSync() {
+export async function manualCloudSync() {
     updateSyncStatus(null, 'Syncing with Cloud...');
-    // Bidirectional sync: Pull first to merge all cloud records into local state, then push
-    return pullFromFirebase().then(() => {
-        return syncToFirebase();
-    }).then(ok => {
-        if (window.renderAll) window.renderAll();
-        if (window.__fiaSalesHistoryFilter === 'customer') {
-            if (typeof window.renderCustomerSalesHistory === 'function') window.renderCustomerSalesHistory();
-        } else {
-            if (typeof window.renderSalesHistory === 'function') window.renderSalesHistory();
+
+    if (!navigator.onLine) {
+        updateSyncStatus(false, 'Working under offline mode');
+        alert('⚠️ Device is offline. Offline records are safely stored locally and will sync once connected.');
+        return false;
+    }
+
+    let user = null;
+    if (ensureFirebaseAuth) {
+        try {
+            user = await ensureFirebaseAuth();
+        } catch (e) {
+            console.warn('Manual sync auth notice:', e);
         }
-        updateBillingFormDisplays();
-        alert('✓ Cloud sync completed successfully!\nAll bills and data are up to date across all devices.');
-        return true;
-    }).catch(err => {
-        console.warn('Manual sync fallback notice:', err);
-        return syncToFirebase().then(() => {
+    }
+
+    try {
+        const pullOk = await pullFromFirebase();
+        const syncOk = await syncToFirebase();
+
+        if (pullOk || syncOk) {
             if (window.renderAll) window.renderAll();
+            if (window.__fiaSalesHistoryFilter === 'customer') {
+                if (typeof window.renderCustomerSalesHistory === 'function') window.renderCustomerSalesHistory();
+            } else {
+                if (typeof window.renderSalesHistory === 'function') window.renderSalesHistory();
+            }
             updateBillingFormDisplays();
-            alert('Cloud sync completed.');
+            alert('✓ Cloud sync completed successfully!\nAll bills and data are up to date across all devices.');
             return true;
-        });
-    });
+        } else {
+            if (!user && (!window.FB_AUTH || !window.FB_AUTH.currentUser)) {
+                updateSyncStatus(false, 'Cloud Auth Required • Tap Settings');
+                alert('⚠️ Cloud Database Security Notice:\n\nDevice is not authorized to access the cloud database.\n\nPlease open Settings (⚙️) and enter your Firebase Admin Email & Password to authorize this device.');
+                if (typeof window.openSettingsModal === 'function') window.openSettingsModal();
+            } else {
+                alert('⚠️ Cloud sync could not complete. Please check your internet connection and retry.');
+            }
+            return false;
+        }
+    } catch (err) {
+        console.warn('Manual sync error:', err);
+        const errStr = String(err?.message || err || '').toUpperCase();
+        if (errStr.includes('PERMISSION') || errStr.includes('AUTH')) {
+            updateSyncStatus(false, 'Cloud Auth Required • Tap Settings');
+            alert('⚠️ Permission Denied by Cloud Database:\n\nPlease open Settings (⚙️) and enter your Firebase Admin Email & Password to authorize this device.');
+            if (typeof window.openSettingsModal === 'function') window.openSettingsModal();
+        } else {
+            alert('⚠️ Cloud sync error: ' + (err.message || 'Please retry.'));
+        }
+        return false;
+    }
+}
+
+export function handleSyncStatusClick() {
+    const el = document.getElementById('syncStatus');
+    const text = el ? (el.textContent || '') : '';
+    if (text.includes('Auth') || text.includes('Security')) {
+        if (typeof window.openSettingsModal === 'function') {
+            window.openSettingsModal();
+        }
+    } else {
+        manualCloudSync();
+    }
 }
 
 export function downloadFullBackup() {
@@ -1294,5 +1411,6 @@ if (typeof window !== 'undefined') {
     window.fetchDirectCloudMeta = fetchDirectCloudMeta;
     window.pushDirectCloudData = pushDirectCloudData;
     window.checkRemoteTimestampFast = checkRemoteTimestampFast;
+    window.handleSyncStatusClick = handleSyncStatusClick;
 }
 

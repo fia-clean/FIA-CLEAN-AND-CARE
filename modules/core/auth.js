@@ -273,7 +273,7 @@ export function updateCloudAuthUI(user) {
         if (userEmailEl) userEmailEl.textContent = 'Device Authenticated (Cloud Synced)';
     } else {
         if (badge) {
-            badge.textContent = 'Connecting...';
+            badge.textContent = 'Admin Authorization Required';
             badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800';
         }
         if (inputContainer) inputContainer.classList.remove('hidden');
@@ -283,6 +283,8 @@ export function updateCloudAuthUI(user) {
 }
 
 let inFlightAuthPromise = null;
+let isAutoSigningIn = false;
+
 export function autoSignInFirebase() {
     if (!window.FB_AUTH) return Promise.resolve(null);
     if (window.FB_AUTH.currentUser) return Promise.resolve(window.FB_AUTH.currentUser);
@@ -302,7 +304,8 @@ export function autoSignInFirebase() {
                 return user;
             })
             .catch(err => {
-                console.warn('Firebase Anonymous Auto-Auth notice:', err);
+                console.warn('Firebase Anonymous Auto-Auth notice:', err?.code || err);
+                updateCloudAuthUI(null);
                 return null;
             });
     }).finally(() => {

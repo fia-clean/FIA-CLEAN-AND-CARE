@@ -27,6 +27,7 @@ import {
     pullFromFirebase,
     syncToFirebase,
     manualCloudSync,
+    handleSyncStatusClick,
     downloadFullBackup,
     openBackupFilePicker,
     restoreFullBackup,
@@ -1015,6 +1016,7 @@ if (typeof window !== 'undefined') {
     }
 
     window.bootstrapApp = bootstrapApp;
+    window.handleSyncStatusClick = handleSyncStatusClick;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', bootstrapApp);
@@ -1029,6 +1031,7 @@ if (typeof window !== 'undefined') {
             const el = e.target;
             if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return;
             if (el.type === 'password' || el.type === 'number' || el.type === 'tel' || el.type === 'email' || el.type === 'date' || el.type === 'search') return;
+            if (el.id === 'billingCustomerSearchInput' || el.id === 'billProductSearchInput') return;
             const pos = el.selectionStart;
             const upper = el.value.toUpperCase();
             if (el.value !== upper) { el.value = upper; try { el.setSelectionRange(pos, pos); } catch(err) {} }
