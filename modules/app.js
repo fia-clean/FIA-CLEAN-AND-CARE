@@ -543,13 +543,18 @@ export async function startScannerEngine() {
                         const el = document.getElementById('cosProdBarcode');
                         if (el) el.value = scannedCode;
                     } else if (scannerTargetMode === 'billing') {
-                        const matchedProd = state.products.find(p => p.barcode === scannedCode || String(p.name || '').toLowerCase() === scannedCode.toLowerCase());
+                        const matchedProd = state.products.find(p => p.barcode === scannedCode || String(p.name || '').toLowerCase() === scannedCode.toLowerCase()) ||
+                            state.cosProducts.find(p => p.barcode === scannedCode || String(p.name || '').toLowerCase() === scannedCode.toLowerCase());
                         if (matchedProd) {
-                            const pSel = document.getElementById('billProductSelect');
-                            if (pSel) pSel.value = matchedProd.name;
-                            fillProductPrice();
+                            if (typeof window.selectBillingProduct === 'function') {
+                                window.selectBillingProduct(matchedProd.name);
+                            } else {
+                                const pSel = document.getElementById('billProductSelect');
+                                if (pSel) pSel.value = matchedProd.name;
+                                fillProductPrice();
+                            }
                         } else {
-                            alert('Scanned Code (' + scannedCode + ') not found in cleaning products!');
+                            alert('Scanned Code (' + scannedCode + ') not found in stock products!');
                         }
                     } else if (scannerTargetMode === 'cleaning-purchase') {
                         const matchedProd = state.products.find(p => p.barcode === scannedCode || String(p.name || '').toLowerCase() === scannedCode.toLowerCase());

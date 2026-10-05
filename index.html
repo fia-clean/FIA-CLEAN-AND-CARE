@@ -525,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.3';
+                var CURRENT_APP_VERSION = '51.2.4';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -552,9 +552,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.3) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.4) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.3');
+                        localStorage.setItem('fia_app_version', '51.2.4');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -860,7 +860,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.3</span>
+                    <span>v51.2.4</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -1859,14 +1859,44 @@
 
                     <div class="p-3.5 bg-slate-900 rounded-xl border border-slate-800 space-y-2.5">
                         <div class="flex items-center justify-between gap-2">
-                            <label class="font-bold text-xs text-slate-200">Select Product:</label>
-                            <div class="flex gap-1">
+                            <label class="font-bold text-xs text-slate-200 flex items-center gap-1.5">
+                                <span>📦 Select Product (Type letter to search):</span>
+                            </label>
+                            <div class="flex items-center gap-1.5">
+                                <span id="billingProdCountBadge" class="text-[10px] text-slate-400 font-mono"></span>
                                 <button type="button" onclick="openBarcodeScannerForBilling()" class="text-[10px] bg-slate-800 text-sky-300 border border-slate-700 px-2 py-0.5 rounded font-bold">📷 Scan</button>
                             </div>
                         </div>
-                        <select id="billProductSelect" onchange="fillProductPrice()" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-200 focus:outline-none focus:border-indigo-500">
-                            <option value="">-- Select Product --</option>
-                        </select>
+
+                        <!-- Searchable Product Autocomplete & Selection -->
+                        <div class="space-y-1 relative" id="billingProductSearchContainer">
+                            <div class="relative flex items-center">
+                                <input 
+                                    type="text" 
+                                    id="billProductSearchInput" 
+                                    placeholder="🔍 Type first letter / product name (e.g. D, T)..." 
+                                    autocomplete="off"
+                                    oninput="if(window.onBillingProductSearchInput) window.onBillingProductSearchInput(this.value)" 
+                                    onfocus="if(window.openBillingProductDropdown) window.openBillingProductDropdown()"
+                                    onkeydown="if(window.handleBillingProductKeyDown) window.handleBillingProductKeyDown(event)"
+                                    class="w-full p-2.5 pr-16 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-semibold"
+                                >
+                                <div class="absolute right-2 flex items-center gap-1">
+                                    <button type="button" id="billingProdClearBtn" onclick="if(window.clearBillingProductInput) window.clearBillingProductInput()" class="hidden p-1 text-slate-400 hover:text-white rounded-full transition cursor-pointer" title="Clear product">✕</button>
+                                    <button type="button" id="billingProdToggleBtn" onclick="if(window.toggleBillingProductDropdown) window.toggleBillingProductDropdown()" class="p-1 text-slate-400 hover:text-slate-200 transition cursor-pointer" title="Browse all products">▼</button>
+                                </div>
+                            </div>
+
+                            <!-- Dropdown panel for live search suggestions -->
+                            <div id="billingProductDropdown" class="hidden absolute left-0 right-0 top-full mt-1 z-50 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
+                                <div id="billingProductDropdownList" class="divide-y divide-slate-800 text-xs"></div>
+                            </div>
+
+                            <!-- Hidden select for full backwards compatibility -->
+                            <select id="billProductSelect" onchange="fillProductPrice()" class="hidden">
+                                <option value="">-- Select Product --</option>
+                            </select>
+                        </div>
                         <!-- Dynamic Pack Size / Variant Selector -->
                         <div id="billPackVariantWrapper" class="hidden space-y-1 bg-slate-950/90 p-2.5 rounded-xl border border-indigo-800/60 shadow-inner">
                             <div class="flex justify-between items-center">
@@ -3122,7 +3152,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.3"></script>
+    <script type="module" src="./modules/app.js?v=51.2.4"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3137,7 +3167,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.3) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.4) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3191,7 +3221,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.3')
+                navigator.serviceWorker.register('./sw.js?v=51.2.4')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

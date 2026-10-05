@@ -536,7 +536,334 @@ export function updateProductDropdown() {
     if (currentVal && [...select.options].some(o => o.value === currentVal)) {
         select.value = currentVal;
     }
+
+    const countBadge = document.getElementById('billingProdCountBadge');
+    if (countBadge) {
+        countBadge.textContent = `${cleanList.length + cosList.length} items`;
+    }
+
+    // Refresh searchable dropdown list if currently active
+    if (typeof renderBillingProductDropdown === 'function') {
+        const sInput = document.getElementById('billProductSearchInput');
+        renderBillingProductDropdown(sInput ? sInput.value : '');
+    }
 }
+
+let currentRenderedProductMatches = [];
+let activeBillingProductIndex = -1;
+
+export function getAllUnifiedBillingProducts() {
+    const list = [];
+    const sortFn = arr => [...(arr || [])].sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), undefined, { sensitivity: 'base', numeric: true }));
+
+    (sortFn(state.products) || []).forEach(p => {
+        if (!p || !p.name) return;
+        list.push({
+            id: p.id,
+            name: p.name,
+            category: 'Cleaning',
+            unit: p.unit || 'Ltr',
+            stock: Number(p.stock) || 0,
+            wholesalePrice: getProductWholesalePrice(p),
+            retailPrice: getProductRetailPrice(p),
+            barcode: p.barcode || '',
+            variants: Array.isArray(p.variants) ? p.variants : [],
+            packageId: p.packageId || '',
+            packageName: p.packageName || '',
+            packageQty: p.packageQty || 1
+        });
+    });
+
+    (sortFn(state.cosProducts) || []).forEach(p => {
+        if (!p || !p.name) return;
+        list.push({
+            id: p.id,
+            name: p.name,
+            category: 'Cosmetics',
+            unit: p.unit || 'Units',
+            stock: Number(p.stock) || 0,
+            wholesalePrice: getProductWholesalePrice(p),
+            retailPrice: getProductRetailPrice(p),
+            barcode: p.barcode || '',
+            variants: Array.isArray(p.variants) ? p.variants : [],
+            packageId: p.packageId || '',
+            packageName: p.packageName || '',
+            packageQty: p.packageQty || 1
+        });
+    });
+
+    return list;
+}
+
+export function renderBillingProductDropdown(query = '') {
+    const dropdown = document.getElementById('billingProductDropdown');
+    const listEl = document.getElementById('billingProductDropdownList');
+    const clearBtn = document.getElementById('billingProdClearBtn');
+    if (!dropdown || !listEl) return;
+
+    const all = getAllUnifiedBillingProducts();
+    const searchInput = document.getElementById('billProductSearchInput');
+    const currentQuery = query !== undefined && query !== null ? query : (searchInput ? searchInput.value : '');
+    const q = String(currentQuery || '').trim().toLowerCase();
+
+    if (clearBtn) {
+        if (q.length > 0) clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
+    }
+
+    const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
+
+    let matches = [];
+    if (!q) {
+        matches = all;
+    } else {
+        const prefix = [];
+        const contains = [];
+        const barcodeMatches = [];
+
+        all.forEach(p => {
+            const nLower = p.name.toLowerCase();
+            const bLower = (p.barcode || '').toLowerCase();
+            if (nLower.startsWith(q)) {
+                prefix.push(p);
+            } else if (nLower.includes(q)) {
+                contains.push(p);
+            } else if (bLower && bLower.includes(q)) {
+                barcodeMatches.push(p);
+            }
+        });
+
+        const sortFn = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true });
+        prefix.sort(sortFn);
+        contains.sort(sortFn);
+        barcodeMatches.sort(sortFn);
+        matches = [...prefix, ...contains, ...barcodeMatches];
+    }
+
+    currentRenderedProductMatches = matches;
+    activeBillingProductIndex = matches.length > 0 ? 0 : -1;
+
+    if (matches.length === 0) {
+        listEl.innerHTML = `
+            <div class="p-4 text-center text-slate-400 space-y-1">
+                <p class="font-bold text-slate-300 text-xs">No product found matching "${currentQuery}"</p>
+                <p class="text-[10px] text-slate-500">Check spelling or create product in Stock section</p>
+            </div>
+        `;
+        return;
+    }
+
+    const headerHtml = `
+        <div class="px-3 py-1.5 bg-slate-950/90 border-b border-slate-800 text-[10px] font-bold text-slate-400 flex justify-between items-center select-none sticky top-0 z-10">
+            <span>${q ? `Matching Products (${matches.length})` : `All Stock Products (${matches.length})`}</span>
+            <span class="text-slate-500">Click or press Enter to select</span>
+        </div>
+    `;
+
+    const itemsHtml = matches.map((p, idx) => {
+        let highlightedName = p.name;
+        if (q) {
+            const i = p.name.toLowerCase().indexOf(q);
+            if (i !== -1) {
+                highlightedName = p.name.substring(0, i) +
+                    `<span class="text-cyan-300 font-black underline bg-cyan-950/90 px-0.5 rounded">${p.name.substring(i, i + q.length)}</span>` +
+                    p.name.substring(i + q.length);
+            }
+        }
+
+        const isLow = p.stock <= 5 && p.stock > 0;
+        const isOut = p.stock <= 0;
+        const stockBadge = isOut
+            ? `<span class="bg-rose-950/80 text-rose-300 border border-rose-800/60 px-1.5 py-0.5 rounded text-[9.5px] font-bold whitespace-nowrap">⚠️ Out of Stock</span>`
+            : isLow
+                ? `<span class="bg-amber-950/80 text-amber-300 border border-amber-800/60 px-1.5 py-0.5 rounded text-[9.5px] font-bold whitespace-nowrap font-mono">⚠️ Low: ${p.stock} ${p.unit}</span>`
+                : `<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-1.5 py-0.5 rounded text-[9.5px] font-bold whitespace-nowrap font-mono">✓ ${p.stock} ${p.unit}</span>`;
+
+        const isCosmetics = p.category === 'Cosmetics';
+        const catBadge = isCosmetics
+            ? `<span class="bg-pink-950/70 text-pink-300 border border-pink-800/50 px-1.5 py-0.2 rounded text-[9px] font-bold">💄 Cosmetics</span>`
+            : `<span class="bg-cyan-950/70 text-cyan-300 border border-cyan-800/50 px-1.5 py-0.2 rounded text-[9px] font-bold">🧹 Cleaning</span>`;
+
+        const activeRate = saleType === 'Wholesale' ? p.wholesalePrice : p.retailPrice;
+        const rateDisplay = saleType === 'Wholesale'
+            ? `<span class="text-sky-300 font-bold font-mono text-xs">₹${activeRate.toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(R: ₹${p.retailPrice.toFixed(2)})</span>`
+            : `<span class="text-emerald-400 font-bold font-mono text-xs">₹${activeRate.toFixed(2)}</span> <span class="text-slate-400 text-[10px]">(W: ₹${p.wholesalePrice.toFixed(2)})</span>`;
+
+        const variantsText = (p.variants && p.variants.length > 0)
+            ? `<span class="text-[9.5px] text-indigo-300 bg-indigo-950/60 border border-indigo-800/50 px-1 py-0.2 rounded ml-1">📦 ${p.variants.length} pack sizes</span>`
+            : '';
+
+        const isSelected = idx === activeBillingProductIndex;
+
+        return `
+            <div id="billingProdItem_${idx}" 
+                 class="p-2.5 hover:bg-slate-800/90 active:bg-cyan-950 cursor-pointer transition flex items-center justify-between gap-2.5 select-none ${isSelected ? 'bg-slate-800/80 ring-1 ring-cyan-500/50' : ''}"
+                 onmousedown="event.preventDefault(); selectBillingProductByIndex(${idx})">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="font-bold text-slate-100 text-xs">${highlightedName}</span>
+                        ${catBadge}
+                        ${variantsText}
+                    </div>
+                    <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                        ${stockBadge}
+                        <span class="text-slate-600">•</span>
+                        <span>Rate: ${rateDisplay}</span>
+                    </div>
+                </div>
+                <div class="shrink-0 text-right">
+                    <span class="text-[10px] bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 px-2 py-1 rounded-lg font-semibold block transition">Select ↵</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    listEl.innerHTML = headerHtml + itemsHtml;
+}
+
+export function openBillingProductDropdown() {
+    const dropdown = document.getElementById('billingProductDropdown');
+    if (!dropdown) return;
+    const input = document.getElementById('billProductSearchInput');
+    renderBillingProductDropdown(input ? input.value : '');
+    dropdown.classList.remove('hidden');
+}
+
+export function closeBillingProductDropdown() {
+    const dropdown = document.getElementById('billingProductDropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+}
+
+export function toggleBillingProductDropdown() {
+    const dropdown = document.getElementById('billingProductDropdown');
+    if (!dropdown) return;
+    if (dropdown.classList.contains('hidden')) {
+        const input = document.getElementById('billProductSearchInput');
+        renderBillingProductDropdown(input ? input.value : '');
+        dropdown.classList.remove('hidden');
+        input?.focus();
+    } else {
+        dropdown.classList.add('hidden');
+    }
+}
+
+export function selectBillingProductByIndex(idx) {
+    const item = currentRenderedProductMatches[idx];
+    if (!item) return;
+    selectBillingProduct(item.name);
+}
+
+export function selectBillingProduct(name) {
+    const select = document.getElementById('billProductSelect');
+    const searchInput = document.getElementById('billProductSearchInput');
+    const clearBtn = document.getElementById('billingProdClearBtn');
+
+    if (select) {
+        if (![...select.options].some(o => o.value === name)) {
+            select.add(new Option(name, name));
+        }
+        select.value = name;
+    }
+
+    if (searchInput) {
+        searchInput.value = name;
+    }
+
+    if (clearBtn) {
+        clearBtn.classList.remove('hidden');
+    }
+
+    closeBillingProductDropdown();
+
+    if (typeof fillProductPrice === 'function') {
+        fillProductPrice();
+    }
+
+    setTimeout(() => {
+        const qtyInput = document.getElementById('billQty');
+        if (qtyInput) qtyInput.focus();
+    }, 50);
+}
+
+export function clearBillingProductInput() {
+    const select = document.getElementById('billProductSelect');
+    const searchInput = document.getElementById('billProductSearchInput');
+    const clearBtn = document.getElementById('billingProdClearBtn');
+    if (select) select.value = '';
+    if (searchInput) searchInput.value = '';
+    if (clearBtn) clearBtn.classList.add('hidden');
+    if (typeof fillProductPrice === 'function') {
+        fillProductPrice();
+    }
+    renderBillingProductDropdown('');
+    openBillingProductDropdown();
+    searchInput?.focus();
+}
+
+export function onBillingProductSearchInput(val) {
+    renderBillingProductDropdown(val);
+    const dropdown = document.getElementById('billingProductDropdown');
+    if (dropdown) dropdown.classList.remove('hidden');
+}
+
+export function handleBillingProductKeyDown(event) {
+    const dropdown = document.getElementById('billingProductDropdown');
+    const isDropdownOpen = dropdown && !dropdown.classList.contains('hidden');
+
+    if (event.key === 'Escape') {
+        closeBillingProductDropdown();
+        return;
+    }
+
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (!isDropdownOpen) {
+            openBillingProductDropdown();
+            return;
+        }
+        if (currentRenderedProductMatches.length > 0) {
+            activeBillingProductIndex = (activeBillingProductIndex + 1) % currentRenderedProductMatches.length;
+            updateActiveProductHighlight();
+        }
+        return;
+    }
+
+    if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (!isDropdownOpen) {
+            openBillingProductDropdown();
+            return;
+        }
+        if (currentRenderedProductMatches.length > 0) {
+            activeBillingProductIndex = (activeBillingProductIndex - 1 + currentRenderedProductMatches.length) % currentRenderedProductMatches.length;
+            updateActiveProductHighlight();
+        }
+        return;
+    }
+
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        if (isDropdownOpen && currentRenderedProductMatches.length > 0) {
+            const idx = activeBillingProductIndex >= 0 ? activeBillingProductIndex : 0;
+            selectBillingProductByIndex(idx);
+        }
+        return;
+    }
+}
+
+function updateActiveProductHighlight() {
+    const listEl = document.getElementById('billingProductDropdownList');
+    if (!listEl) return;
+    listEl.querySelectorAll('[id^="billingProdItem_"]').forEach((el, idx) => {
+        if (idx === activeBillingProductIndex) {
+            el.classList.add('bg-slate-800/80', 'ring-1', 'ring-cyan-500/50');
+            el.scrollIntoView({ block: 'nearest' });
+        } else {
+            el.classList.remove('bg-slate-800/80', 'ring-1', 'ring-cyan-500/50');
+        }
+    });
+}
+
 
 export function parsePackageVolume(sizeStr, nameStr) {
     const s = (String(sizeStr || '') + ' ' + String(nameStr || '')).trim();
@@ -901,9 +1228,18 @@ export function addToBillItems() {
     document.getElementById('billRate').value = '';
     document.getElementById('billCalculatedTotal').value = '';
     document.getElementById('billProductSelect').value = '';
+    const pSearchInput = document.getElementById('billProductSearchInput');
+    if (pSearchInput) pSearchInput.value = '';
+    const pClearBtn = document.getElementById('billingProdClearBtn');
+    if (pClearBtn) pClearBtn.classList.add('hidden');
+    if (typeof closeBillingProductDropdown === 'function') closeBillingProductDropdown();
     document.getElementById('billNumberOfUnits').value = '1';
     renderBillPreviewInput();
     calculateBalance();
+    setTimeout(() => {
+        const nextInput = document.getElementById('billProductSearchInput');
+        if (nextInput) nextInput.focus();
+    }, 50);
 }
 
 export function editBillItem(index) {
@@ -1317,6 +1653,11 @@ export function resetCustomerForm() {
     const clearBtn = document.getElementById('billingCustClearBtn');
     if (clearBtn) clearBtn.classList.add('hidden');
     if (typeof window.closeBillingCustomerDropdown === 'function') window.closeBillingCustomerDropdown();
+    const prodSearchInput = document.getElementById('billProductSearchInput');
+    if (prodSearchInput) prodSearchInput.value = '';
+    const prodClearBtn = document.getElementById('billingProdClearBtn');
+    if (prodClearBtn) prodClearBtn.classList.add('hidden');
+    if (typeof closeBillingProductDropdown === 'function') closeBillingProductDropdown();
     const notice = document.getElementById('billRateNotice');
     if (notice) notice.innerHTML = '';
     const prevBanner = document.getElementById('custDueAlertBanner');
@@ -2520,5 +2861,26 @@ if (typeof window !== 'undefined') {
     window.resetCombinedBillForm = resetCombinedBillForm;
     window.saveCombinedBill = saveCombinedBill;
     window.editCombinedSavedBill = editCombinedSavedBill;
+    window.getAllUnifiedBillingProducts = getAllUnifiedBillingProducts;
+    window.renderBillingProductDropdown = renderBillingProductDropdown;
+    window.openBillingProductDropdown = openBillingProductDropdown;
+    window.closeBillingProductDropdown = closeBillingProductDropdown;
+    window.toggleBillingProductDropdown = toggleBillingProductDropdown;
+    window.selectBillingProductByIndex = selectBillingProductByIndex;
+    window.selectBillingProduct = selectBillingProduct;
+    window.clearBillingProductInput = clearBillingProductInput;
+    window.onBillingProductSearchInput = onBillingProductSearchInput;
+    window.handleBillingProductKeyDown = handleBillingProductKeyDown;
+}
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('click', (e) => {
+        const container = document.getElementById('billingProductSearchContainer');
+        if (container && !container.contains(e.target)) {
+            if (typeof closeBillingProductDropdown === 'function') {
+                closeBillingProductDropdown();
+            }
+        }
+    });
 }
 

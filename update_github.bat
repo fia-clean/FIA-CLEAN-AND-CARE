@@ -4,7 +4,7 @@ color 0A
 
 echo ========================================================
 echo    FIA CLEAN & CARE - GITHUB AUTO PUSH & DEPLOY
-echo    Version: v51.2.3 (Package & Product Stock Qty in Consolidation)
+echo    Version: v51.2.4 (Live Product Letter Autocomplete in Billing)
 echo ========================================================
 echo.
 
@@ -15,7 +15,7 @@ git add .
 
 echo.
 echo [2/3] Committing changes...
-git commit -m "feat(stock): v51.2.3 - show exact stock count and unit in package list and consolidated reports"
+git commit -m "feat(billing): v51.2.4 - live product search autocomplete with letter typing in billing section"
 
 echo.
 echo [3/3] Pushing to GitHub (main branch)...
@@ -25,7 +25,7 @@ echo.
 if %ERRORLEVEL% EQU 0 (
     echo ========================================================
     echo    SUCCESS! Updates pushed to GitHub successfully.
-    echo    Version v51.2.2 is now LIVE on GitHub!
+    echo    Version v51.2.4 is now LIVE on GitHub!
     echo ========================================================
 ) else (
     echo ========================================================

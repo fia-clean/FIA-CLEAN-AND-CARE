@@ -75,6 +75,7 @@ export const Billing: React.FC<BillingProps> = ({
 
   // Current Item in composition
   const [selectedProductId, setSelectedProductId] = useState('');
+  const [productSearch, setProductSearch] = useState('');
   const [manualPackSize, setManualPackSize] = useState<number>(500); // default 500 ml
   const [selectedPackUnit, setSelectedPackUnit] = useState<'ml' | 'Ltr' | 'g' | 'Kg' | 'mg'>('ml');
   const [itemQty, setItemQty] = useState<number>(1);
@@ -608,9 +609,27 @@ export const Billing: React.FC<BillingProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Select Product */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">
-                  Bulk Chemical / Product <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-700">
+                    Bulk Chemical / Product <span className="text-rose-500">*</span>
+                  </label>
+                  {productSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setProductSearch('')}
+                      className="text-[10px] text-indigo-600 font-bold hover:underline"
+                    >
+                      Clear Search
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  placeholder="🔍 Type first letter / product name..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  className="w-full border border-slate-300 bg-slate-50 px-2.5 py-1.5 rounded-md text-xs font-semibold focus:bg-white focus:border-indigo-500 outline-none"
+                />
                 <select
                   value={selectedProductId}
                   onChange={(e) => {
@@ -620,7 +639,21 @@ export const Billing: React.FC<BillingProps> = ({
                 >
                   <option value="">-- Choose Product from Stock --</option>
                   {[...products]
-                    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
+                    .filter((p) => {
+                      if (!productSearch.trim()) return true;
+                      const q = productSearch.trim().toLowerCase();
+                      return (p.name || '').toLowerCase().includes(q) || (p.barcode || '').toLowerCase().includes(q);
+                    })
+                    .sort((a, b) => {
+                      const q = productSearch.trim().toLowerCase();
+                      if (q) {
+                        const aPrefix = (a.name || '').toLowerCase().startsWith(q);
+                        const bPrefix = (b.name || '').toLowerCase().startsWith(q);
+                        if (aPrefix && !bPrefix) return -1;
+                        if (!aPrefix && bPrefix) return 1;
+                      }
+                      return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+                    })
                     .map((p) => {
                       const isLow = p.stock <= 5 && p.stock > 0;
                       const isZero = p.stock <= 0;
