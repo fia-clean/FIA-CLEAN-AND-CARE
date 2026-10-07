@@ -4,7 +4,7 @@ color 0A
 
 echo ========================================================
 echo    FIA CLEAN & CARE - GITHUB AUTO PUSH & DEPLOY
-echo    Version: v51.2.14 (PC Widescreen Due & Low Stock modals + Global Escape Key navigation)
+echo    Version: v51.2.15 (PC Widescreen ratio for Backup modal in Day Book)
 echo ========================================================
 echo.
 
@@ -15,7 +15,7 @@ git add .
 
 echo.
 echo [2/3] Committing changes...
-git commit -m "feat(desktop): v51.2.14 - PC widescreen due & low stock modals + global Escape key back navigation"
+git commit -m "feat(desktop): v51.2.15 - responsive PC widescreen layout for Day Book backup modal"
 
 echo.
 echo [3/3] Pushing to GitHub (main branch)...
@@ -25,7 +25,7 @@ echo.
 if %ERRORLEVEL% EQU 0 (
     echo ========================================================
     echo    SUCCESS! Updates pushed to GitHub successfully.
-    echo    Version v51.2.14 is now LIVE on GitHub!
+    echo    Version v51.2.15 is now LIVE on GitHub!
     echo ========================================================
 ) else (
     echo ========================================================
