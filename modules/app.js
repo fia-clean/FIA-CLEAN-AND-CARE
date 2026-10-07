@@ -658,6 +658,9 @@ export function hideUnwantedStockMenus() {
     });
 }
 
+export let currentActiveTab = 'home';
+export const tabNavigationHistory = [];
+
 export function switchTab(tabName, pushToHistory = true) {
     const isAuthed = state.isLoggedIn || window._isLoggedInFlag || (sessionStorage.getItem('fia_logged_in') === 'true');
     if (!isAuthed) {
@@ -666,6 +669,14 @@ export function switchTab(tabName, pushToHistory = true) {
     }
     state.isLoggedIn = true;
     window._isLoggedInFlag = true;
+
+    if (tabName) {
+        if (currentActiveTab && currentActiveTab !== tabName) {
+            tabNavigationHistory.push(currentActiveTab);
+            if (tabNavigationHistory.length > 30) tabNavigationHistory.shift();
+        }
+        currentActiveTab = tabName;
+    }
 
     const sections = ['home', 'customers', 'billing', 'operations', 'stock', 'purchase', 'expenses', 'cosmetics', 'accounts', 'dno'];
 
@@ -923,11 +934,134 @@ if (typeof window !== 'undefined') {
         }
 
         if (event.state && event.state.tab) {
+            currentActiveTab = event.state.tab;
             switchTab(event.state.tab, false);
         } else {
+            currentActiveTab = 'home';
             switchTab('home', false);
         }
     };
+
+    // ================= GLOBAL ESCAPE KEY NAVIGATION & MODAL DISMISSAL =================
+    window.handleGlobalEscapeKey = function(e) {
+        const isAuthed = state.isLoggedIn || window._isLoggedInFlag || (sessionStorage.getItem('fia_logged_in') === 'true');
+        if (!isAuthed) return false;
+
+        // 1. High-priority modal & popup closing
+        const modalHandlers = [
+            { id: 'quickNoteModal', fn: () => typeof window.closeQuickNoteModal === 'function' ? window.closeQuickNoteModal() : null },
+            { id: 'addDemandModal', fn: () => typeof window.closeAddDemandModal === 'function' ? window.closeAddDemandModal() : null },
+            { id: 'newOrderModal', fn: () => typeof window.closeNewOrderModal === 'function' ? window.closeNewOrderModal() : null },
+            { id: 'dnoCheckAlertsModal', fn: () => typeof window.closeCheckAlertsModal === 'function' ? window.closeCheckAlertsModal() : null },
+            { id: 'dnoManageAlertsModal', fn: () => typeof window.closeManageAlertsModal === 'function' ? window.closeManageAlertsModal() : null },
+            { id: 'dueAmountListModal', fn: () => typeof window.closeDueAmountList === 'function' ? window.closeDueAmountList() : null },
+            { id: 'lowStockListModal', fn: () => typeof window.closeLowStockList === 'function' ? window.closeLowStockList() : null },
+            { id: 'billPreviewModal', fn: () => typeof window.closeBillPreview === 'function' ? window.closeBillPreview() : null },
+            { id: 'customerProfileModal', fn: () => typeof window.closeCustomerProfileModal === 'function' ? window.closeCustomerProfileModal() : null },
+            { id: 'customerConsolidatedDetailModal', fn: () => typeof window.closeCustomerConsolidatedDetail === 'function' ? window.closeCustomerConsolidatedDetail() : null },
+            { id: 'supplierConsolidatedDetailModal', fn: () => typeof window.closeSupplierConsolidatedDetail === 'function' ? window.closeSupplierConsolidatedDetail() : null },
+            { id: 'recordViewModal', fn: () => typeof window.closeRecordView === 'function' ? window.closeRecordView() : null },
+            { id: 'barcodeScannerModal', fn: () => typeof window.closeBarcodeScanner === 'function' ? window.closeBarcodeScanner() : null },
+            { id: 'settingsModal', fn: () => typeof window.closeSettingsModal === 'function' ? window.closeSettingsModal() : null },
+            { id: 'backupModal', fn: () => typeof window.closeBackupModal === 'function' ? window.closeBackupModal() : null },
+            { id: 'changePinModal', fn: () => typeof window.closeChangePinModal === 'function' ? window.closeChangePinModal() : null },
+            { id: 'resetPinModal', fn: () => typeof window.closeResetPinModal === 'function' ? window.closeResetPinModal() : null }
+        ];
+
+        for (const item of modalHandlers) {
+            const el = document.getElementById(item.id);
+            if (el && !el.classList.contains('hidden') && el.style.display !== 'none' && !el.hasAttribute('hidden')) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
+                try {
+                    if (typeof item.fn === 'function') item.fn();
+                } catch (err) {}
+                el.classList.add('hidden');
+                return true;
+            }
+        }
+
+        // Generic fallback for any fixed modal overlay currently visible
+        const openModals = document.querySelectorAll('.fixed.z-50:not(.hidden), .fixed.z-\\[100000\\]:not(.hidden), .fixed.z-\\[99999\\]:not(.hidden)');
+        for (const m of openModals) {
+            if (m.id !== 'appToastBanner' && m.id !== 'offlinePwaBanner' && m.id !== 'loginOverlay') {
+                if (e) { e.preventDefault(); e.stopPropagation(); }
+                if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
+                m.classList.add('hidden');
+                return true;
+            }
+        }
+
+        // Customer search dropdown dismissal
+        const custDropdown = document.getElementById('billingCustomerDropdown');
+        if (custDropdown && !custDropdown.classList.contains('hidden')) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            custDropdown.classList.add('hidden');
+            if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
+            return true;
+        }
+
+        // 2. Unfocus any active input/textarea so user exits typing mode
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT')) {
+            document.activeElement.blur();
+        }
+
+        // 3. Sub-section handling within current tab (hierarchical step-back)
+        // If in Billing History or Analysis -> return to Billing New Bill
+        const histPanel = document.getElementById('billingSalesHistoryPanel');
+        const analysisPanel = document.getElementById('billingProductAnalysisPanel');
+        if (currentActiveTab === 'billing' && ((histPanel && !histPanel.classList.contains('hidden')) || (analysisPanel && !analysisPanel.classList.contains('hidden')))) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            if (typeof window.openBillingSection === 'function') {
+                window.openBillingSection('new');
+            }
+            return true;
+        }
+
+        // If in Customer consolidation sub-tab -> return to directory
+        const custReport = document.getElementById('customerReportSubContent');
+        if (currentActiveTab === 'customers' && custReport && !custReport.classList.contains('hidden')) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            if (typeof window.switchCustomerSubTab === 'function') {
+                window.switchCustomerSubTab('directory');
+            }
+            return true;
+        }
+
+        // If in Operations sub-section (stock, purchase, expenses) -> return to Operations overview
+        if (['stock', 'purchase', 'expenses', 'cosmetics'].includes(currentActiveTab)) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            switchTab('operations');
+            return true;
+        }
+
+        // 4. Tab navigation history step-back (back to previous menu or Home)
+        if (currentActiveTab !== 'home') {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            while (tabNavigationHistory.length > 0) {
+                const prev = tabNavigationHistory.pop();
+                if (prev && prev !== currentActiveTab) {
+                    switchTab(prev, true);
+                    return true;
+                }
+            }
+            switchTab('home', true);
+            return true;
+        }
+
+        return false;
+    };
+
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) {
+            window.handleGlobalEscapeKey(e);
+        }
+    }, true);
 
     // ================= INITIALIZATION & MOUNTING =================
     let isAppBootstrapped = false;

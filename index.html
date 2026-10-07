@@ -581,7 +581,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.13';
+                var CURRENT_APP_VERSION = '51.2.14';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -608,9 +608,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.13) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.14) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.13');
+                        localStorage.setItem('fia_app_version', '51.2.14');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -919,7 +919,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.13</span>
+                    <span>v51.2.14</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -2707,49 +2707,51 @@
     </div> <!-- /mainAppContainer -->
 
     <!-- Modals -->
-    <div id="dueAmountListModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-2xl">
-            <div class="flex justify-between items-center p-3 border-b border-slate-800">
+    <div id="dueAmountListModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1450px] max-h-[92vh] overflow-hidden shadow-2xl flex flex-col">
+            <div class="flex justify-between items-center p-3.5 sm:p-4 border-b border-slate-800 shrink-0">
                 <div>
-                    <h3 class="font-bold text-rose-300 text-sm">Due Amount List</h3>
-                    <p id="dueAmountListTotal" class="text-[10px] text-slate-400 mt-0.5">Total Due: ₹0</p>
+                    <h3 class="font-extrabold text-rose-300 text-sm sm:text-base flex items-center gap-2">
+                        <span>🧾</span> <span>Due Amount List</span>
+                    </h3>
+                    <p id="dueAmountListTotal" class="text-xs text-slate-400 mt-0.5">Total Due: ₹0</p>
                 </div>
-                <button type="button" onclick="closeDueAmountList()" class="text-slate-400 hover:text-white font-bold text-sm">✕ Close</button>
+                <button type="button" onclick="closeDueAmountList()" class="text-slate-400 hover:text-white font-bold text-xs sm:text-sm px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 transition cursor-pointer">✕ Close (Esc)</button>
             </div>
-            <div class="px-3 pt-2 pb-1 border-b border-slate-800 bg-slate-950/40 flex gap-2">
-                <button type="button" id="btnDueModeCustomer" onclick="switchDueListViewMode('customer')" class="flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-rose-600 text-white shadow transition cursor-pointer">
+            <div class="px-3 sm:px-4 pt-2.5 pb-2 border-b border-slate-800 bg-slate-950/40 flex gap-2 shrink-0">
+                <button type="button" id="btnDueModeCustomer" onclick="switchDueListViewMode('customer')" class="flex-1 py-2 px-3 text-xs font-bold rounded-xl bg-rose-600 text-white shadow transition cursor-pointer">
                     👥 By Customer
                 </button>
-                <button type="button" id="btnDueModeBill" onclick="switchDueListViewMode('bill')" class="flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 transition cursor-pointer">
+                <button type="button" id="btnDueModeBill" onclick="switchDueListViewMode('bill')" class="flex-1 py-2 px-3 text-xs font-bold rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition cursor-pointer">
                     📄 By Individual Bill
                 </button>
             </div>
-            <div id="dueAmountListContainer" class="p-3 overflow-y-auto max-h-[75vh] space-y-2.5"></div>
+            <div id="dueAmountListContainer" class="p-3 sm:p-4 overflow-y-auto max-h-[75vh] space-y-2.5 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
         </div>
     </div>
 
-    <div id="customerConsolidatedDetailModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg max-h-[88vh] overflow-hidden shadow-2xl">
-            <div class="flex justify-between items-center p-3 border-b border-slate-800">
-                <h3 id="customerConsolidatedDetailTitle" class="font-bold text-slate-100 text-sm">Customer Details</h3>
-                <button type="button" onclick="closeCustomerConsolidatedDetail()" class="text-slate-400 hover:text-white font-bold text-sm">✕ Close</button>
+    <div id="customerConsolidatedDetailModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg md:max-w-3xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            <div class="flex justify-between items-center p-3.5 sm:p-4 border-b border-slate-800 shrink-0">
+                <h3 id="customerConsolidatedDetailTitle" class="font-extrabold text-slate-100 text-sm sm:text-base">Customer Details</h3>
+                <button type="button" onclick="closeCustomerConsolidatedDetail()" class="text-slate-400 hover:text-white font-bold text-xs sm:text-sm px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 transition cursor-pointer">✕ Close (Esc)</button>
             </div>
-            <div id="customerConsolidatedDetailContent" class="p-4 overflow-y-auto max-h-[68vh] text-xs text-slate-200"></div>
-            <div class="p-3 border-t border-slate-800">
-                <button type="button" onclick="shareSelectedCustomerConsolidatedDetail()" class="w-full bg-green-700 text-white py-2.5 rounded-xl text-xs font-bold">💬 Share Customer Details on WhatsApp</button>
+            <div id="customerConsolidatedDetailContent" class="p-4 overflow-y-auto max-h-[72vh] text-xs text-slate-200"></div>
+            <div class="p-3.5 border-t border-slate-800 shrink-0">
+                <button type="button" onclick="shareSelectedCustomerConsolidatedDetail()" class="w-full bg-green-700 hover:bg-green-600 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md">💬 Share Customer Details on WhatsApp</button>
             </div>
         </div>
     </div>
 
     <!-- Dealer / Supplier Consolidated Detail Modal -->
-    <div id="supplierConsolidatedDetailModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg max-h-[88vh] overflow-hidden shadow-2xl flex flex-col">
-            <div class="flex justify-between items-center p-3 border-b border-slate-800 shrink-0">
-                <h3 id="supplierConsolidatedDetailTitle" class="font-bold text-slate-100 text-sm">Dealer Purchase Ledger</h3>
-                <button type="button" onclick="closeSupplierConsolidatedDetail()" class="text-slate-400 hover:text-white font-bold text-sm">✕ Close</button>
+    <div id="supplierConsolidatedDetailModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg md:max-w-3xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            <div class="flex justify-between items-center p-3.5 sm:p-4 border-b border-slate-800 shrink-0">
+                <h3 id="supplierConsolidatedDetailTitle" class="font-extrabold text-slate-100 text-sm sm:text-base">Dealer Purchase Ledger</h3>
+                <button type="button" onclick="closeSupplierConsolidatedDetail()" class="text-slate-400 hover:text-white font-bold text-xs sm:text-sm px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 transition cursor-pointer">✕ Close (Esc)</button>
             </div>
-            <div id="supplierConsolidatedDetailContent" class="p-4 overflow-y-auto max-h-[68vh] text-xs text-slate-200"></div>
-            <div class="p-3 border-t border-slate-800 shrink-0 flex gap-2">
+            <div id="supplierConsolidatedDetailContent" class="p-4 overflow-y-auto max-h-[72vh] text-xs text-slate-200"></div>
+            <div class="p-3.5 border-t border-slate-800 shrink-0 flex gap-2">
                 <button type="button" onclick="shareSelectedSupplierConsolidatedDetail()" class="w-full bg-green-700 hover:bg-green-600 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md">💬 Share Statement on WhatsApp</button>
             </div>
         </div>
@@ -3063,7 +3065,7 @@
 
     <!-- ================= NEW CUSTOMER BULK ORDER MODAL ================= -->
     <div id="newOrderModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] hidden overflow-y-auto p-2 sm:p-4 flex items-center justify-center min-h-screen">
-        <div class="relative bg-white border border-slate-200 rounded-3xl max-w-lg w-full shadow-2xl my-auto flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden">
+        <div class="relative bg-white border border-slate-200 rounded-3xl max-w-lg md:max-w-2xl lg:max-w-3xl w-full shadow-2xl my-auto flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden">
             <!-- Fixed Header (Always visible) -->
             <div class="flex justify-between items-center border-b border-slate-100 p-4 sm:p-5 shrink-0 bg-white">
                 <div class="flex items-center gap-2">
@@ -3219,7 +3221,7 @@
 
     <!-- ================= QUICK ORDER NOTEPAD MODAL ================= -->
     <div id="quickNoteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] hidden overflow-y-auto p-2 sm:p-4 flex items-center justify-center min-h-screen">
-        <div class="relative bg-white border border-slate-200 rounded-3xl max-w-lg w-full shadow-2xl my-auto flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden">
+        <div class="relative bg-white border border-slate-200 rounded-3xl max-w-lg md:max-w-2xl lg:max-w-3xl w-full shadow-2xl my-auto flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden">
             <!-- Fixed Header -->
             <div class="flex justify-between items-center border-b border-slate-100 p-4 sm:p-5 shrink-0 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50">
                 <div class="flex items-center gap-2.5">
@@ -3272,23 +3274,23 @@
 
     <!-- Low Stock Products Modal -->
     <div id="lowStockListModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] hidden overflow-y-auto p-2 sm:p-4 flex items-center justify-center min-h-screen">
-      <div class="relative max-w-md w-full bg-white border border-slate-200 rounded-3xl shadow-2xl p-5 space-y-3 max-h-[88vh] overflow-y-auto modal-scroll-body my-auto">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+      <div class="relative w-full max-w-md sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1450px] bg-white border border-slate-200 rounded-3xl shadow-2xl p-4 sm:p-6 space-y-3.5 max-h-[88vh] overflow-y-auto modal-scroll-body my-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-                <h3 class="font-extrabold text-rose-700 text-sm flex items-center gap-1.5">
+                <h3 class="font-black text-rose-700 text-sm sm:text-base flex items-center gap-1.5">
                     <span>⚠️</span> <span>Low Stock Products</span>
                 </h3>
-                <p class="text-[10px] text-slate-500">Tap any product to directly add stock</p>
+                <p class="text-xs text-slate-500">Tap any product to directly add stock</p>
             </div>
-            <button type="button" onclick="closeLowStockList()" class="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 py-1">×</button>
+            <button type="button" onclick="closeLowStockList()" class="text-slate-400 hover:text-slate-700 font-bold text-xs sm:text-sm px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 transition cursor-pointer">✕ Close (Esc)</button>
         </div>
-        <div id="lowStockListContainer" class="space-y-2 pt-1"></div>
+        <div id="lowStockListContainer" class="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1"></div>
       </div>
     </div>
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.13"></script>
+    <script type="module" src="./modules/app.js?v=51.2.14"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3303,7 +3305,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.13) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.14) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3357,7 +3359,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.13')
+                navigator.serviceWorker.register('./sw.js?v=51.2.14')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
