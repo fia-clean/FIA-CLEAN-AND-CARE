@@ -871,9 +871,10 @@ export function populateCustomerDatalist() {
     if (!dl) return;
     const names = new Set();
     (state.customers || []).forEach(c => {
-        if (c && c.name && !isItemDeleted(c)) names.add(c.name);
+        if (c && c.name && !isItemDeleted(c)) names.add(c.name.trim());
     });
-    dl.innerHTML = Array.from(names).map(n => `<option value="${n}">`).join('');
+    const sortedNames = Array.from(names).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
+    dl.innerHTML = sortedNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
 }
 
 export function onOrderCustomerSelect() {
@@ -891,21 +892,32 @@ export function populateProductSelect() {
 
     let html = '<option value="">-- Choose Product --</option>';
 
+    const sortFn = list => [...(list || [])]
+        .filter(p => p && !isItemDeleted(p) && p.name)
+        .sort((a, b) => String(a.name || '').trim().localeCompare(String(b.name || '').trim(), undefined, { sensitivity: 'base', numeric: true }));
+
+    const cleanList = sortFn(state.products);
+    const cosList = sortFn(state.cosProducts);
+
     // Cleaning Products
-    html += '<optgroup label="🧴 Cleaning Products">';
-    (state.products || []).filter(p => !isItemDeleted(p)).forEach(p => {
-        const variantCount = Array.isArray(p.variants) && p.variants.length > 0 ? ` (${p.variants.length} pack sizes)` : '';
-        html += `<option value="cln_${p.id}" data-type="cleaning" data-id="${p.id}">${p.name}${variantCount}</option>`;
-    });
-    html += '</optgroup>';
+    if (cleanList.length > 0) {
+        html += '<optgroup label="🧴 Cleaning Products">';
+        cleanList.forEach(p => {
+            const variantCount = Array.isArray(p.variants) && p.variants.length > 0 ? ` (${p.variants.length} pack sizes)` : '';
+            html += `<option value="cln_${p.id}" data-type="cleaning" data-id="${p.id}">${escapeHtml(p.name)}${variantCount}</option>`;
+        });
+        html += '</optgroup>';
+    }
 
     // Cosmetics Products
-    html += '<optgroup label="💄 Cosmetics Products">';
-    (state.cosProducts || []).filter(p => !isItemDeleted(p)).forEach(p => {
-        const variantCount = Array.isArray(p.variants) && p.variants.length > 0 ? ` (${p.variants.length} pack sizes)` : '';
-        html += `<option value="cos_${p.id}" data-type="cosmetics" data-id="${p.id}">${p.name}${variantCount}</option>`;
-    });
-    html += '</optgroup>';
+    if (cosList.length > 0) {
+        html += '<optgroup label="💄 Cosmetics Products">';
+        cosList.forEach(p => {
+            const variantCount = Array.isArray(p.variants) && p.variants.length > 0 ? ` (${p.variants.length} pack sizes)` : '';
+            html += `<option value="cos_${p.id}" data-type="cosmetics" data-id="${p.id}">${escapeHtml(p.name)}${variantCount}</option>`;
+        });
+        html += '</optgroup>';
+    }
 
     select.innerHTML = html;
 }
@@ -1580,9 +1592,10 @@ export function populateQuickNoteCustomerDatalist() {
     if (!dl) return;
     const names = new Set();
     (state.customers || []).forEach(c => {
-        if (c && c.name && !isItemDeleted(c)) names.add(c.name);
+        if (c && c.name && !isItemDeleted(c)) names.add(c.name.trim());
     });
-    dl.innerHTML = Array.from(names).map(n => `<option value="${escapeHtml(n)}">`).join('');
+    const sortedNames = Array.from(names).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
+    dl.innerHTML = sortedNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
 }
 
 export function onQuickNoteCustomerChange() {
