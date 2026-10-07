@@ -525,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.10';
+                var CURRENT_APP_VERSION = '51.2.11';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -552,9 +552,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.10) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.11) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.10');
+                        localStorage.setItem('fia_app_version', '51.2.11');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -863,7 +863,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.10</span>
+                    <span>v51.2.11</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -914,32 +914,37 @@
                 </div>
             </div>
 
-            <!-- Key business indicators (5 Columns on Desktop, 2 on Mobile) -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
-                <button onclick="switchTab('stock')" class="text-left bg-slate-50 border border-slate-200 rounded-2xl p-3 hover:border-emerald-600 transition shadow-xs">
+            <!-- Key business indicators (6 Columns on Desktop, 3 on Tablet, 2 on Mobile) -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 sm:gap-3">
+                <button onclick="switchTab('stock')" class="text-left bg-slate-50 border border-slate-200 rounded-2xl p-3 hover:border-emerald-600 transition shadow-xs cursor-pointer">
                     <div class="flex items-center justify-between"><span class="text-xl">📦</span><span class="text-[9px] text-slate-500 uppercase font-bold">Stock</span></div>
                     <div id="dashProductCount" class="text-xl font-black text-slate-900 mt-2">0</div>
-                    <div class="text-[10px] text-slate-500 font-medium">Products</div>
+                    <div class="text-[10px] text-slate-500 font-medium truncate">Products</div>
                 </button>
-                <button onclick="switchTab('customers')" class="text-left bg-slate-50 border border-slate-200 rounded-2xl p-3 hover:border-indigo-600 transition shadow-xs">
+                <button onclick="switchTab('customers')" class="text-left bg-slate-50 border border-slate-200 rounded-2xl p-3 hover:border-indigo-600 transition shadow-xs cursor-pointer">
                     <div class="flex items-center justify-between"><span class="text-xl">👥</span><span class="text-[9px] text-slate-500 uppercase font-bold">CRM</span></div>
                     <div id="dashCustomerCount" class="text-xl font-black text-slate-900 mt-2">0</div>
-                    <div class="text-[10px] text-slate-500 font-medium">Customers</div>
+                    <div class="text-[10px] text-slate-500 font-medium truncate">Customers</div>
                 </button>
-                <button onclick="openDueAmountList()" class="text-left bg-rose-50 border border-rose-200 rounded-2xl p-3 hover:border-rose-400 transition shadow-xs">
+                <button onclick="openDueAmountList()" class="text-left bg-rose-50 border border-rose-200 rounded-2xl p-3 hover:border-rose-400 transition shadow-xs cursor-pointer">
                     <div class="flex items-center justify-between"><span class="text-xl">🧾</span><span class="text-[9px] text-rose-800 uppercase font-bold">Due</span></div>
                     <div id="dashDueAmount" class="text-lg font-black text-rose-800 mt-2">₹0</div>
-                    <div class="text-[10px] text-rose-700 font-medium">Pending • Tap</div>
+                    <div class="text-[10px] text-rose-700 font-medium truncate">Pending • Tap</div>
                 </button>
-                <button onclick="openLowStockList()" class="text-left bg-amber-50 border border-amber-200 rounded-2xl p-3 hover:border-amber-400 transition shadow-xs">
+                <button onclick="openLowStockList()" class="text-left bg-amber-50 border border-amber-200 rounded-2xl p-3 hover:border-amber-400 transition shadow-xs cursor-pointer">
                     <div class="flex items-center justify-between"><span class="text-xl">⚠️</span><span class="text-[9px] text-amber-800 uppercase font-bold">Low Stock</span></div>
                     <div id="dashLowStockMainCount" class="text-xl font-black text-amber-800 mt-2">0</div>
-                    <div class="text-[10px] text-amber-700 font-medium">Shortage</div>
+                    <div class="text-[10px] text-amber-700 font-medium truncate">Shortage</div>
                 </button>
-                <button type="button" onclick="window.openThisMonthDayBook()" class="text-left bg-emerald-50 border border-emerald-200 rounded-2xl p-3 hover:border-emerald-400 transition shadow-xs col-span-2 sm:col-span-1 cursor-pointer">
+                <button type="button" onclick="window.openThisMonthDayBook()" class="text-left bg-emerald-50 border border-emerald-200 rounded-2xl p-3 hover:border-emerald-400 transition shadow-xs cursor-pointer">
                     <div class="flex items-center justify-between"><span class="text-xl">📈</span><span class="text-[9px] text-emerald-800 uppercase font-extrabold tracking-wider">This Month</span></div>
                     <div id="dashThisMonthSales" class="text-lg sm:text-xl font-black text-emerald-900 mt-2">₹0.00</div>
                     <div id="dashThisMonthLabel" class="text-[10px] text-emerald-700 font-semibold truncate">This Month Sales • Tap</div>
+                </button>
+                <button type="button" onclick="switchTab('dno')" class="text-left bg-indigo-50 border border-indigo-200 rounded-2xl p-3 hover:border-indigo-400 transition shadow-xs cursor-pointer">
+                    <div class="flex items-center justify-between"><span class="text-xl">📋</span><span class="text-[9px] text-indigo-800 uppercase font-bold">D & O</span></div>
+                    <div id="dashboardDnoAlertCount" class="text-xl font-black text-indigo-900 mt-2">0</div>
+                    <div class="text-[10px] text-indigo-700 font-medium truncate">Demands & Orders</div>
                 </button>
             </div>
             <!-- Alerts -->
@@ -3218,7 +3223,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.10"></script>
+    <script type="module" src="./modules/app.js?v=51.2.11"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3233,7 +3238,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.10) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.11) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3287,7 +3292,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.10')
+                navigator.serviceWorker.register('./sw.js?v=51.2.11')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
