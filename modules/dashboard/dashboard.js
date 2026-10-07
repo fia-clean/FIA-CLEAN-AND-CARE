@@ -9,7 +9,8 @@ import {
     getTodayDateString,
     normalizeToDateKey,
     dateSortValue,
-    isCustItemDeleted
+    isCustItemDeleted,
+    isItemDeleted
 } from '../core/state.js';
 
 export function pushDashboardModalState(modalName) {
@@ -511,6 +512,47 @@ export function updateDashboard() {
     if (document.getElementById('dashTodayPurchase')) document.getElementById('dashTodayPurchase').textContent = money(purchaseToday);
     if (document.getElementById('dashTodayExpense')) document.getElementById('dashTodayExpense').textContent = money(expenseToday);
     if (document.getElementById('dashTodayCollection')) document.getElementById('dashTodayCollection').textContent = money(collectionToday);
+    // Calculate This Month Sales (strictly matches Daybook's 'This Month' calculation)
+    const now = new Date();
+    const currYear = now.getFullYear();
+    const currMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const firstDayStr = `${currYear}-${currMonth}-01`;
+    const lastDayNum = new Date(currYear, now.getMonth() + 1, 0).getDate();
+    const lastDayStr = `${currYear}-${currMonth}-${String(lastDayNum).padStart(2, '0')}`;
+    const monthShortName = now.toLocaleString('en-IN', { month: 'short' });
+
+    let thisMonthSales = 0;
+    if (typeof window.getAllMasterEntries === 'function') {
+        const allEntries = window.getAllMasterEntries() || [];
+        const monthEntries = allEntries.filter(e => {
+            if ((state.clearedDayBookEntries || []).includes(e.id) || (e.originalId && (state.clearedDayBookEntries || []).includes(e.originalId))) return false;
+            const ed = normalizeToDateKey(e.date);
+            if (!ed) return false;
+            return ed >= firstDayStr && ed <= lastDayStr && e.type === 'Income';
+        });
+        thisMonthSales = monthEntries.reduce((s, e) => s + Number(e.amount || 0), 0);
+    } else {
+        (state.customers || []).forEach(c => {
+            if (!c || c._deleted || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
+            const ed = normalizeToDateKey(c.date);
+            if (ed && ed >= firstDayStr && ed <= lastDayStr) {
+                thisMonthSales += Number(c.grandTotal || 0);
+            }
+        });
+        (state.cosSales || []).forEach(s => {
+            if (!s || s._deleted || isItemDeleted(s, 'cosSale')) return;
+            const ed = normalizeToDateKey(s.date);
+            if (ed && ed >= firstDayStr && ed <= lastDayStr) {
+                thisMonthSales += Number(s.grandTotal !== undefined ? s.grandTotal : (s.netTotal || s.total || 0));
+            }
+        });
+    }
+
+    const thisMonthSalesEl = document.getElementById('dashThisMonthSales');
+    if (thisMonthSalesEl) thisMonthSalesEl.textContent = money(thisMonthSales);
+    const thisMonthLabelEl = document.getElementById('dashThisMonthLabel');
+    if (thisMonthLabelEl) thisMonthLabelEl.textContent = `${monthShortName} Sales • Tap`;
+
     if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     
     updateRecentTransactions();
@@ -523,9 +565,21 @@ export function updateDashboard() {
     }
 }
 
+export function openThisMonthDayBook() {
+    if (typeof window.switchTab === 'function') {
+        window.switchTab('accounts');
+    }
+    setTimeout(() => {
+        if (typeof window.setFilterPreset === 'function') {
+            window.setFilterPreset('month');
+        }
+    }, 50);
+}
+
 // Window attachments for inline HTML onclick handlers
 if (typeof window !== 'undefined') {
     window.updateDashboard = updateDashboard;
+    window.openThisMonthDayBook = openThisMonthDayBook;
     window.updateRecentTransactions = updateRecentTransactions;
     window.toggleRecentTransactionsFolder = toggleRecentTransactionsFolder;
     window.openDueAmountList = openDueAmountList;

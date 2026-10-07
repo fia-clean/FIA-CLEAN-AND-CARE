@@ -1606,18 +1606,18 @@ export function renderQuickNotes() {
 
     if (notes.length === 0) {
         container.innerHTML = `
-            <div class="p-3.5 sm:p-4 bg-gradient-to-r from-amber-50/70 via-orange-50/40 to-amber-50/70 border border-dashed border-amber-300 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+            <div class="p-3.5 sm:p-4 bg-gradient-to-r from-amber-50/70 via-orange-50/40 to-amber-50/70 border border-dashed border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
                 <div class="flex items-center gap-3">
-                    <span class="text-2xl sm:text-3xl">📝</span>
+                    <span class="text-2xl sm:text-3xl shrink-0">📝</span>
                     <div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-xs font-black text-amber-950 uppercase tracking-wide">Quick Order Notepad (ക്വിക്ക് നോട്സ്)</span>
                             <span class="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold">Fast Entry</span>
                         </div>
-                        <p class="text-[11px] text-amber-800 mt-0.5 font-medium">കടകളിൽ കസ്റ്റമറുടെ അടുത്ത് നിൽക്കുമ്പോൾ സാധനങ്ങൾ പെട്ടെന്ന് നോട്ട് ചെയ്യാം (e.g. DTL 10, DW 25...)</p>
+                        <p class="text-[11px] text-amber-800 mt-0.5 font-medium">കടകളിൽ കസ്റ്റമറുടെ അടുത്ത് നിൽക്കുമ്പോൾ സാധനങ്ങൾ പെട്ടെന്ന് നോട്ട് ചെയ്യാം</p>
                     </div>
                 </div>
-                <button type="button" onclick="window.openQuickNoteModal()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                <button type="button" onclick="window.openQuickNoteModal()" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
                     <span>➕</span> <span>Take Quick Note</span>
                 </button>
             </div>

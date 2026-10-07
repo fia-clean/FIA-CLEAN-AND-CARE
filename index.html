@@ -525,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.9';
+                var CURRENT_APP_VERSION = '51.2.10';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -552,9 +552,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.9) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.10) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.9');
+                        localStorage.setItem('fia_app_version', '51.2.10');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -863,7 +863,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.9</span>
+                    <span>v51.2.10</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -936,10 +936,10 @@
                     <div id="dashLowStockMainCount" class="text-xl font-black text-amber-800 mt-2">0</div>
                     <div class="text-[10px] text-amber-700 font-medium">Shortage</div>
                 </button>
-                <button onclick="switchTab('dno')" class="text-left bg-emerald-50 border border-emerald-200 rounded-2xl p-3 hover:border-emerald-400 transition shadow-xs col-span-2 sm:col-span-1">
-                    <div class="flex items-center justify-between"><span class="text-xl">📋</span><span class="text-[9px] text-emerald-800 uppercase font-bold">D & O</span></div>
-                    <div id="dashboardDnoAlertCount" class="text-xl font-black text-emerald-800 mt-2">0</div>
-                    <div class="text-[10px] text-emerald-700 font-medium">Demand & Orders</div>
+                <button type="button" onclick="window.openThisMonthDayBook()" class="text-left bg-emerald-50 border border-emerald-200 rounded-2xl p-3 hover:border-emerald-400 transition shadow-xs col-span-2 sm:col-span-1 cursor-pointer">
+                    <div class="flex items-center justify-between"><span class="text-xl">📈</span><span class="text-[9px] text-emerald-800 uppercase font-extrabold tracking-wider">This Month</span></div>
+                    <div id="dashThisMonthSales" class="text-lg sm:text-xl font-black text-emerald-900 mt-2">₹0.00</div>
+                    <div id="dashThisMonthLabel" class="text-[10px] text-emerald-700 font-semibold truncate">This Month Sales • Tap</div>
                 </button>
             </div>
             <!-- Alerts -->
@@ -1088,11 +1088,11 @@
                 </div>
 
                 <!-- Sub-tab Switcher: Demands vs Orders -->
-                <div class="flex gap-2 mt-4 bg-slate-200/60 p-1 rounded-2xl">
-                    <button type="button" onclick="window.switchDnoSubTab('demands')" id="subTabDemands" class="flex-1 py-2.5 px-4 text-center font-bold text-xs sm:text-sm rounded-xl bg-emerald-600 text-white shadow-xs transition">
+                <div class="flex gap-1.5 sm:gap-2 mt-4 bg-slate-200/60 p-1 rounded-2xl">
+                    <button type="button" onclick="window.switchDnoSubTab('demands')" id="subTabDemands" class="flex-1 py-2.5 px-2 sm:px-4 text-center font-bold text-xs sm:text-sm rounded-xl bg-emerald-600 text-white shadow-xs transition truncate">
                         📉 Demands & Shortages
                     </button>
-                    <button type="button" onclick="window.switchDnoSubTab('orders')" id="subTabOrders" class="flex-1 py-2.5 px-4 text-center font-bold text-xs sm:text-sm rounded-xl bg-transparent text-slate-700 hover:text-slate-900 transition">
+                    <button type="button" onclick="window.switchDnoSubTab('orders')" id="subTabOrders" class="flex-1 py-2.5 px-2 sm:px-4 text-center font-bold text-xs sm:text-sm rounded-xl bg-transparent text-slate-700 hover:text-slate-900 transition truncate">
                         📦 Bulk Orders & Reminders
                     </button>
                 </div>
@@ -1103,21 +1103,22 @@
                 <!-- Summary stats -->
                 <div id="demandsSummaryStats"></div>
 
-                <!-- Actions & Filters bar -->
-                <div class="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <button type="button" onclick="window.filterDemands('all')" id="filterDemand_all" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-xs transition">All</button>
-                        <button type="button" onclick="window.filterDemands('needed')" id="filterDemand_needed" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">Needed</button>
-                        <button type="button" onclick="window.filterDemands('urgent')" id="filterDemand_urgent" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">⚠️ Urgent</button>
-                        <button type="button" onclick="window.filterDemands('received')" id="filterDemand_received" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">✓ Received</button>
+                <!-- Actions & Filters bar (Mobile Optimized Layout) -->
+                <div class="space-y-2.5 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <div class="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-1.5 sm:gap-2 w-full">
+                        <button type="button" onclick="window.shareDemandsWhatsApp()" class="py-2 px-2 sm:px-3 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[11px] sm:text-xs hover:bg-emerald-200 transition flex items-center justify-center gap-1.5 truncate cursor-pointer">
+                            <span>📲</span> <span class="truncate">Share List</span>
+                        </button>
+                        <button type="button" onclick="window.openAddDemandModal()" class="py-2 px-2 sm:px-3.5 rounded-xl bg-emerald-600 text-white font-bold text-[11px] sm:text-xs hover:bg-emerald-700 shadow-sm transition flex items-center justify-center gap-1.5 truncate cursor-pointer">
+                            <span>➕</span> <span class="truncate">Quick Add Demand</span>
+                        </button>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button type="button" onclick="window.shareDemandsWhatsApp()" class="px-3 py-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs hover:bg-emerald-200 transition flex items-center gap-1.5">
-                            <span>📲</span> <span>Share List</span>
-                        </button>
-                        <button type="button" onclick="window.openAddDemandModal()" class="px-3.5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5">
-                            <span>➕</span> <span>Quick Add Demand</span>
-                        </button>
+
+                    <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:pb-0 scrollbar-none w-full border-t border-slate-200/60 pt-2 sm:border-0 sm:pt-0 sm:flex-wrap">
+                        <button type="button" onclick="window.filterDemands('all')" id="filterDemand_all" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-[11px] sm:text-xs shadow-xs transition shrink-0">All</button>
+                        <button type="button" onclick="window.filterDemands('needed')" id="filterDemand_needed" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-[11px] sm:text-xs transition shrink-0">Needed</button>
+                        <button type="button" onclick="window.filterDemands('urgent')" id="filterDemand_urgent" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-[11px] sm:text-xs transition shrink-0">⚠️ Urgent</button>
+                        <button type="button" onclick="window.filterDemands('received')" id="filterDemand_received" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-[11px] sm:text-xs transition shrink-0">✓ Received</button>
                     </div>
                 </div>
 
@@ -1130,25 +1131,28 @@
                 <!-- Summary stats -->
                 <div id="ordersSummaryStats"></div>
 
-                <!-- Actions & Filters bar -->
-                <div class="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <button type="button" onclick="window.filterOrders('all')" id="filterOrder_all" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-xs transition">All Orders</button>
-                        <button type="button" onclick="window.filterOrders('overdue')" id="filterOrder_overdue" class="px-3 py-1.5 rounded-xl bg-slate-100 text-rose-700 hover:bg-rose-50 font-bold text-xs transition">⚠️ Overdue / Today</button>
-                        <button type="button" onclick="window.filterOrders('pending')" id="filterOrder_pending" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">Pending</button>
-                        <button type="button" onclick="window.filterOrders('processing')" id="filterOrder_processing" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">Processing</button>
-                        <button type="button" onclick="window.filterOrders('delivered')" id="filterOrder_delivered" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">✓ Delivered</button>
+                <!-- Actions & Filters bar (Mobile Optimized Layout) -->
+                <div class="space-y-2.5 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <!-- Top Row: Primary Action Buttons (Full-width 3-column grid on mobile, flex on desktop) -->
+                    <div class="grid grid-cols-3 sm:flex sm:items-center sm:justify-end gap-1.5 sm:gap-2 w-full">
+                        <button type="button" onclick="window.openQuickNoteModal()" class="py-2 px-1.5 sm:px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] sm:text-xs shadow-xs transition flex items-center justify-center gap-1 cursor-pointer truncate">
+                            <span>📝</span> <span class="truncate">Quick Notes</span>
+                        </button>
+                        <button type="button" onclick="window.checkOverdueOrderAlerts(true)" title="Check Reminders & Voice Alert" class="py-2 px-1.5 sm:px-3 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[11px] sm:text-xs hover:bg-amber-200 transition flex items-center justify-center gap-1 cursor-pointer truncate">
+                            <span>🔔</span> <span class="truncate">Alerts</span>
+                        </button>
+                        <button type="button" onclick="window.openNewOrderModal()" class="py-2 px-1.5 sm:px-3.5 rounded-xl bg-emerald-600 text-white font-bold text-[11px] sm:text-xs hover:bg-emerald-700 shadow-xs transition flex items-center justify-center gap-1 cursor-pointer truncate">
+                            <span>➕</span> <span class="truncate">Book Order</span>
+                        </button>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button type="button" onclick="window.openQuickNoteModal()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer">
-                            <span>📝</span> <span>Quick Notes</span>
-                        </button>
-                        <button type="button" onclick="window.checkOverdueOrderAlerts(true)" title="Check Reminders & Voice Alert" class="px-3 py-2 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs hover:bg-amber-200 transition flex items-center gap-1.5">
-                            <span>🔔</span> <span>Check Alerts</span>
-                        </button>
-                        <button type="button" onclick="window.openNewOrderModal()" class="px-3.5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 shadow-sm transition flex items-center gap-1.5">
-                            <span>➕</span> <span>New Order Booking</span>
-                        </button>
+
+                    <!-- Filter Chips: Smooth horizontal scrolling on mobile, flex-wrap on desktop -->
+                    <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:pb-0 scrollbar-none w-full border-t border-slate-200/60 pt-2 sm:border-0 sm:pt-0 sm:flex-wrap">
+                        <button type="button" onclick="window.filterOrders('all')" id="filterOrder_all" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-[11px] sm:text-xs shadow-xs transition shrink-0">All Orders</button>
+                        <button type="button" onclick="window.filterOrders('overdue')" id="filterOrder_overdue" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 text-rose-700 hover:bg-rose-50 font-bold text-[11px] sm:text-xs transition shrink-0">⚠️ Overdue / Today</button>
+                        <button type="button" onclick="window.filterOrders('pending')" id="filterOrder_pending" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-[11px] sm:text-xs transition shrink-0">Pending</button>
+                        <button type="button" onclick="window.filterOrders('processing')" id="filterOrder_processing" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-[11px] sm:text-xs transition shrink-0">Processing</button>
+                        <button type="button" onclick="window.filterOrders('delivered')" id="filterOrder_delivered" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-[11px] sm:text-xs transition shrink-0">✓ Delivered</button>
                     </div>
                 </div>
 
@@ -3214,7 +3218,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.9"></script>
+    <script type="module" src="./modules/app.js?v=51.2.10"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3229,7 +3233,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.9) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.10) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3283,7 +3287,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.9')
+                navigator.serviceWorker.register('./sw.js?v=51.2.10')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();
