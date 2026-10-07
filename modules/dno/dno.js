@@ -13,6 +13,7 @@ import {
     markIdDeleted,
     markRecordDeleted,
     saveLocalStateSafely,
+    notifyStateChange,
     toTitleCase
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
@@ -588,6 +589,7 @@ export function shareDemandsWhatsApp() {
 // -------------------------------------------------------------
 
 export function renderOrders() {
+    renderQuickNotes();
     const container = document.getElementById('ordersListContainer');
     if (!container) return;
 
@@ -1558,3 +1560,333 @@ window.shareOrderWhatsApp = shareOrderWhatsApp;
 window.toggleAudioMute = toggleAudioMute;
 window.checkOverdueOrderAlerts = checkOverdueOrderAlerts;
 window.updateOrderModalTotals = updateOrderModalTotals;
+
+// -------------------------------------------------------------
+// QUICK ORDER NOTES / NOTEPAD SUB-MODULE
+// -------------------------------------------------------------
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+export function populateQuickNoteCustomerDatalist() {
+    const dl = document.getElementById('quickNoteCustomerDatalist');
+    if (!dl) return;
+    const names = new Set();
+    (state.customers || []).forEach(c => {
+        if (c && c.name && !isItemDeleted(c)) names.add(c.name);
+    });
+    dl.innerHTML = Array.from(names).map(n => `<option value="${escapeHtml(n)}">`).join('');
+}
+
+export function onQuickNoteCustomerChange() {
+    const nameInput = document.getElementById('quickNoteCustomerName');
+    const phoneInput = document.getElementById('quickNotePhone');
+    if (!nameInput || !phoneInput) return;
+    const val = (nameInput.value || '').trim().toLowerCase();
+    if (!val) return;
+    const match = (state.customers || []).find(c => c && c.name && c.name.toLowerCase() === val && !isItemDeleted(c));
+    if (match && match.phone && !phoneInput.value) {
+        phoneInput.value = match.phone;
+    }
+}
+
+export function renderQuickNotes() {
+    const container = document.getElementById('quickNotesSection');
+    if (!container) return;
+
+    const notes = (state.orderNotes || []).filter(n => !isItemDeleted(n));
+    notes.sort((a, b) => Number(b.savedAt || 0) - Number(a.savedAt || 0));
+
+    if (notes.length === 0) {
+        container.innerHTML = `
+            <div class="p-3.5 sm:p-4 bg-gradient-to-r from-amber-50/70 via-orange-50/40 to-amber-50/70 border border-dashed border-amber-300 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl sm:text-3xl">📝</span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black text-amber-950 uppercase tracking-wide">Quick Order Notepad (ക്വിക്ക് നോട്സ്)</span>
+                            <span class="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold">Fast Entry</span>
+                        </div>
+                        <p class="text-[11px] text-amber-800 mt-0.5 font-medium">കടകളിൽ കസ്റ്റമറുടെ അടുത്ത് നിൽക്കുമ്പോൾ സാധനങ്ങൾ പെട്ടെന്ന് നോട്ട് ചെയ്യാം (e.g. DTL 10, DW 25...)</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.openQuickNoteModal()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                    <span>➕</span> <span>Take Quick Note</span>
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    let html = `
+        <div class="space-y-3 p-3 sm:p-4 bg-amber-50/30 border border-amber-200/80 rounded-2xl shadow-2xs">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/60 pb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-black text-amber-950 uppercase tracking-wide flex items-center gap-1.5">
+                        <span>📝 Quick Order Notes / ഓർഡർ നോട്ട്പാഡ്</span>
+                        <span class="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black">${notes.length} ${notes.length === 1 ? 'Note' : 'Notes'}</span>
+                    </span>
+                    <span class="text-[10px] text-slate-500 hidden sm:inline">• Shop/Customer quick entries</span>
+                </div>
+                <button type="button" onclick="window.openQuickNoteModal()" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition flex items-center gap-1 cursor-pointer">
+                    <span>➕ New Note</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+    `;
+
+    notes.forEach(note => {
+        const custDisplay = note.customerName && note.customerName.trim() ? note.customerName.trim() : 'General / Rough Note';
+        const formattedDate = note.date ? formatDateDDMMYYYY(note.date) : '';
+        const timeDisplay = note.time ? note.time : '';
+        const phoneDisplay = note.phone ? note.phone : '';
+
+        html += `
+            <div class="p-3.5 rounded-2xl bg-white border border-amber-200 hover:border-amber-400 hover:shadow-md transition flex flex-col justify-between shadow-2xs">
+                <div>
+                    <!-- Header -->
+                    <div class="flex items-start justify-between gap-2 border-b border-amber-100 pb-2">
+                        <div class="min-w-0">
+                            <h4 class="font-black text-xs sm:text-sm text-slate-900 truncate flex items-center gap-1.5" title="${escapeHtml(custDisplay)}">
+                                <span>🏪</span> <span class="truncate">${escapeHtml(custDisplay)}</span>
+                            </h4>
+                            ${phoneDisplay ? `<p class="text-[11px] text-slate-500 mt-0.5 font-mono">📞 ${escapeHtml(phoneDisplay)}</p>` : ''}
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="text-[10px] font-bold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-full block">
+                                ${formattedDate} ${timeDisplay}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Note Content Body -->
+                    <div class="my-2.5 p-3 rounded-xl bg-amber-50/50 border border-amber-200/50 text-slate-800 text-xs sm:text-sm font-sans leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto selection:bg-amber-200">
+                        ${escapeHtml(note.content)}
+                    </div>
+                </div>
+
+                <!-- Footer toolbar -->
+                <div class="flex flex-wrap items-center justify-between gap-1.5 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="window.convertQuickNoteToOrder('${note.id}')" title="Book as Full Order" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[11px] transition flex items-center gap-1 cursor-pointer">
+                        <span>📦</span> <span>Book Order</span>
+                    </button>
+
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="window.copyQuickNoteText('${note.id}')" title="Copy text" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition cursor-pointer">
+                            📋
+                        </button>
+                        <button type="button" onclick="window.shareQuickNoteWhatsApp('${note.id}')" title="Share on WhatsApp" class="p-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold text-xs transition cursor-pointer">
+                            📲
+                        </button>
+                        <button type="button" onclick="window.editQuickNote('${note.id}')" title="Edit Note" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition cursor-pointer">
+                            ✏️
+                        </button>
+                        <button type="button" onclick="window.deleteQuickNote('${note.id}')" title="Delete Note" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition cursor-pointer">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    html += `
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+export function openQuickNoteModal(noteData = null) {
+    const modal = document.getElementById('quickNoteModal');
+    if (!modal) return;
+
+    populateQuickNoteCustomerDatalist();
+
+    const idInput = document.getElementById('quickNoteId');
+    const custInput = document.getElementById('quickNoteCustomerName');
+    const phoneInput = document.getElementById('quickNotePhone');
+    const contentInput = document.getElementById('quickNoteContent');
+    const titleEl = document.getElementById('quickNoteModalTitle');
+    const saveBtn = document.getElementById('btnSaveQuickNote');
+
+    if (idInput) idInput.value = noteData ? (noteData.id || '') : '';
+    if (custInput) custInput.value = noteData ? (noteData.customerName || '') : '';
+    if (phoneInput) phoneInput.value = noteData ? (noteData.phone || '') : '';
+    if (contentInput) contentInput.value = noteData ? (noteData.content || '') : '';
+
+    if (titleEl) {
+        titleEl.textContent = noteData && noteData.id ? '✏️ Edit Quick Note' : '📝 Quick Order Notepad';
+    }
+    if (saveBtn) {
+        saveBtn.innerHTML = noteData && noteData.id ? '<span>✓</span> <span>Update Note</span>' : '<span>💾</span> <span>Save Note</span>';
+    }
+
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        if (contentInput && (!noteData || !noteData.content)) {
+            contentInput.focus();
+        } else if (custInput) {
+            custInput.focus();
+        }
+    }, 60);
+}
+
+export function closeQuickNoteModal() {
+    const modal = document.getElementById('quickNoteModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+export function saveQuickNote() {
+    const idInput = document.getElementById('quickNoteId');
+    const custInput = document.getElementById('quickNoteCustomerName');
+    const phoneInput = document.getElementById('quickNotePhone');
+    const contentInput = document.getElementById('quickNoteContent');
+
+    const id = idInput ? idInput.value : '';
+    const customerName = custInput ? (custInput.value || '').trim() : '';
+    const phone = phoneInput ? (phoneInput.value || '').trim() : '';
+    const content = contentInput ? (contentInput.value || '').trim() : '';
+
+    if (!content) {
+        alert("Please write note items/text first! (സാധനങ്ങൾ എഴുതുക)");
+        if (contentInput) contentInput.focus();
+        return;
+    }
+
+    if (!Array.isArray(state.orderNotes)) state.orderNotes = [];
+
+    const now = new Date();
+    const today = getTodayDateString();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (id) {
+        const idx = state.orderNotes.findIndex(n => n.id === id);
+        if (idx !== -1) {
+            state.orderNotes[idx].customerName = customerName || 'General / Rough Note';
+            state.orderNotes[idx].phone = phone;
+            state.orderNotes[idx].content = content;
+            state.orderNotes[idx].updatedAt = Date.now();
+        }
+    } else {
+        const newNote = {
+            id: 'note_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+            customerName: customerName || 'General / Rough Note',
+            phone: phone,
+            content: content,
+            date: today,
+            time: timeStr,
+            savedAt: Date.now()
+        };
+        state.orderNotes.unshift(newNote);
+    }
+
+    saveLocalStateSafely();
+    try {
+        notifyStateChange('orderNotesUpdated', { id });
+    } catch (e) {}
+    try {
+        syncToFirebase();
+    } catch (e) {}
+
+    closeQuickNoteModal();
+    renderQuickNotes();
+}
+
+export function editQuickNote(id) {
+    const note = (state.orderNotes || []).find(n => n.id === id && !isItemDeleted(n));
+    if (note) {
+        openQuickNoteModal(note);
+    }
+}
+
+export function deleteQuickNote(id) {
+    const note = (state.orderNotes || []).find(n => n.id === id);
+    if (!note) return;
+    const cust = note.customerName || 'this note';
+    if (!confirm(`Are you sure you want to delete note for "${cust}"?`)) return;
+
+    markRecordDeleted(note, 'orderNote');
+    state.orderNotes = (state.orderNotes || []).filter(n => n.id !== id);
+
+    saveLocalStateSafely();
+    try {
+        notifyStateChange('orderNoteDeleted', { id });
+    } catch (e) {}
+    try {
+        syncToFirebase();
+    } catch (e) {}
+
+    renderQuickNotes();
+}
+
+export function copyQuickNoteText(id) {
+    const note = (state.orderNotes || []).find(n => n.id === id);
+    if (!note) return;
+
+    const text = `${note.customerName && note.customerName !== 'General / Rough Note' ? `${note.customerName}:\n` : ''}${note.content}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert("✓ Note copied to clipboard!");
+        }).catch(() => {
+            prompt("Copy note text:", text);
+        });
+    } else {
+        prompt("Copy note text:", text);
+    }
+}
+
+export function shareQuickNoteWhatsApp(id) {
+    const note = (state.orderNotes || []).find(n => n.id === id);
+    if (!note) return;
+
+    let text = `*📝 FIA CLEAN & CARE - QUICK NOTE*\n`;
+    if (note.customerName && note.customerName !== 'General / Rough Note') {
+        text += `*Customer:* ${note.customerName}\n`;
+    }
+    text += `*Date:* ${formatDateDDMMYYYY(note.date)} ${note.time || ''}\n`;
+    text += `------------------------------------\n`;
+    text += `${note.content}\n`;
+    text += `------------------------------------\n`;
+    text += `_Noted via FIA Clean & Care App_`;
+
+    const cleanPhone = (note.phone || '').replace(/\D/g, '');
+    const url = cleanPhone && cleanPhone.length >= 10
+        ? `https://wa.me/91${cleanPhone.slice(-10)}?text=${encodeURIComponent(text)}`
+        : `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+}
+
+export function convertQuickNoteToOrder(id) {
+    const note = (state.orderNotes || []).find(n => n.id === id);
+    if (!note) return;
+
+    const custName = note.customerName && note.customerName !== 'General / Rough Note' ? note.customerName : '';
+    openNewOrderModal({
+        customerName: custName,
+        phone: note.phone || '',
+        notes: `Quick Note:\n${note.content}`
+    });
+}
+
+// Window registrations for Quick Notes
+window.renderQuickNotes = renderQuickNotes;
+window.openQuickNoteModal = openQuickNoteModal;
+window.closeQuickNoteModal = closeQuickNoteModal;
+window.saveQuickNote = saveQuickNote;
+window.editQuickNote = editQuickNote;
+window.deleteQuickNote = deleteQuickNote;
+window.copyQuickNoteText = copyQuickNoteText;
+window.shareQuickNoteWhatsApp = shareQuickNoteWhatsApp;
+window.convertQuickNoteToOrder = convertQuickNoteToOrder;
+window.populateQuickNoteCustomerDatalist = populateQuickNoteCustomerDatalist;
+window.onQuickNoteCustomerChange = onQuickNoteCustomerChange;

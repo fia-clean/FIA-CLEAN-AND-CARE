@@ -19,6 +19,7 @@ export const state = {
     packages: [],
     demands: [],
     orders: [],
+    orderNotes: [],
     stockReturns: [],
     clearedDayBookEntries: [],
     dayBookOpeningBalance: 0,
@@ -542,6 +543,7 @@ export function loadFromLocalStorage() {
         state.packages = (JSON.parse(localStorage.getItem('fia_packages')) || []).filter(p => !isItemDeleted(p));
         state.demands = (JSON.parse(localStorage.getItem('fia_demands')) || []).filter(d => !isItemDeleted(d));
         state.orders = (JSON.parse(localStorage.getItem('fia_orders')) || []).filter(o => !isItemDeleted(o));
+        state.orderNotes = (JSON.parse(localStorage.getItem('fia_order_notes')) || []).filter(n => !isItemDeleted(n));
         state.stockReturns = JSON.parse(localStorage.getItem('fia_stock_returns')) || [];
         state.clearedDayBookEntries = JSON.parse(localStorage.getItem('fia_cleared_daybook')) || [];
         state.dayBookOpeningBalance = Number(localStorage.getItem('fia_daybook_opening_balance') || 0);
@@ -603,6 +605,7 @@ export function loadFromLocalStorage() {
                 restoreIfEmpty('cosPurchases', 'cosPurchases', p => !isItemDeleted(p));
                 restoreIfEmpty('cosSales', 'cosSales', s => !isItemDeleted(s));
                 restoreIfEmpty('packages', 'packages', p => !isItemDeleted(p));
+                restoreIfEmpty('orderNotes', 'orderNotes', n => !isItemDeleted(n));
                 restoreIfEmpty('stockReturns', 'stockReturns', null);
                 restoreIfEmpty('clearedDayBookEntries', 'clearedDayBookEntries', null);
 
@@ -638,6 +641,7 @@ export function saveLocalStateSafely() {
         saveCollectionSafely('fia_packages', state.packages, p => !isItemDeleted(p));
         saveCollectionSafely('fia_demands', state.demands, d => !isItemDeleted(d));
         saveCollectionSafely('fia_orders', state.orders, o => !isItemDeleted(o));
+        saveCollectionSafely('fia_order_notes', state.orderNotes, n => !isItemDeleted(n));
         saveCollectionSafely('fia_stock_returns', state.stockReturns, () => true);
         saveCollectionSafely('fia_cleared_daybook', state.clearedDayBookEntries, () => true);
         localStorage.setItem('fia_daybook_opening_balance', String(state.dayBookOpeningBalance || 0));
@@ -697,6 +701,7 @@ export function createAutomaticLocalBackup() {
         const safePackages = getSafeList(state.packages, 'packages', 'fia_packages', p => !isItemDeleted(p));
         const safeDemands = getSafeList(state.demands, 'demands', 'fia_demands', d => !isItemDeleted(d));
         const safeOrders = getSafeList(state.orders, 'orders', 'fia_orders', o => !isItemDeleted(o));
+        const safeOrderNotes = getSafeList(state.orderNotes, 'orderNotes', 'fia_order_notes', n => !isItemDeleted(n));
         
         const backupData = {
             backupVersion: 1,
@@ -709,7 +714,8 @@ export function createAutomaticLocalBackup() {
                 customers: safeCustomers.length,
                 packages: safePackages.length,
                 demands: safeDemands.length,
-                orders: safeOrders.length
+                orders: safeOrders.length,
+                orderNotes: safeOrderNotes.length
             },
             data: {
                 products: safeProducts,
@@ -722,6 +728,7 @@ export function createAutomaticLocalBackup() {
                 packages: safePackages,
                 demands: safeDemands,
                 orders: safeOrders,
+                orderNotes: safeOrderNotes,
                 stockReturns: state.stockReturns || [],
                 clearedDayBookEntries: state.clearedDayBookEntries || [],
                 dayBookOpeningBalance: Number(state.dayBookOpeningBalance || 0),

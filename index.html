@@ -525,7 +525,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.8';
+                var CURRENT_APP_VERSION = '51.2.9';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -552,9 +552,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.8) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.9) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.8');
+                        localStorage.setItem('fia_app_version', '51.2.9');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -863,7 +863,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.8</span>
+                    <span>v51.2.9</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -1140,6 +1140,9 @@
                         <button type="button" onclick="window.filterOrders('delivered')" id="filterOrder_delivered" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs transition">✓ Delivered</button>
                     </div>
                     <div class="flex items-center gap-2">
+                        <button type="button" onclick="window.openQuickNoteModal()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                            <span>📝</span> <span>Quick Notes</span>
+                        </button>
                         <button type="button" onclick="window.checkOverdueOrderAlerts(true)" title="Check Reminders & Voice Alert" class="px-3 py-2 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs hover:bg-amber-200 transition flex items-center gap-1.5">
                             <span>🔔</span> <span>Check Alerts</span>
                         </button>
@@ -1148,6 +1151,9 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Quick Notes Notepad Section -->
+                <div id="quickNotesSection" class="space-y-3"></div>
 
                 <!-- Orders list container -->
                 <div id="ordersListContainer" class="space-y-3"></div>
@@ -3137,6 +3143,59 @@
         </div>
     </div>
 
+    <!-- ================= QUICK ORDER NOTEPAD MODAL ================= -->
+    <div id="quickNoteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] hidden overflow-y-auto p-2 sm:p-4 flex items-center justify-center min-h-screen">
+        <div class="relative bg-white border border-slate-200 rounded-3xl max-w-lg w-full shadow-2xl my-auto flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden">
+            <!-- Fixed Header -->
+            <div class="flex justify-between items-center border-b border-slate-100 p-4 sm:p-5 shrink-0 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-2xl">📝</span>
+                    <div>
+                        <h3 id="quickNoteModalTitle" class="font-extrabold text-slate-900 text-sm sm:text-base">Quick Order Notepad</h3>
+                        <p class="text-[10px] text-slate-500 font-medium">കസ്റ്റമറുടെ അടുത്ത് നിൽക്കുമ്പോൾ പെട്ടെന്ന് എഴുതിയെടുക്കുക</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeQuickNoteModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 py-1 cursor-pointer">✕</button>
+            </div>
+
+            <!-- Scrollable Form Body -->
+            <form id="quickNoteForm" onsubmit="event.preventDefault(); saveQuickNote();" class="overflow-y-auto modal-scroll-body flex-1 p-4 sm:p-5 space-y-3.5 text-xs">
+                <input type="hidden" id="quickNoteId" value="">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Customer / Shop Name (കസ്റ്റമർ / കട)</label>
+                        <input type="text" id="quickNoteCustomerName" list="quickNoteCustomerDatalist" oninput="onQuickNoteCustomerChange()" placeholder="e.g. Shafi Supermarket" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs sm:text-sm focus:border-amber-500 focus:outline-none">
+                        <datalist id="quickNoteCustomerDatalist"></datalist>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Phone / Place (Optional)</label>
+                        <input type="text" id="quickNotePhone" placeholder="e.g. 9847... / Ernakulam" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs sm:text-sm focus:border-amber-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block font-bold text-slate-700">Quick Items & Notes (സാധനങ്ങൾ & അളവുകൾ) <span class="text-rose-500">*</span></label>
+                        <span class="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">Notepad</span>
+                    </div>
+                    <textarea id="quickNoteContent" rows="8" placeholder="ഉദാഹരണത്തിന്:&#10;DTL 10 (ഡിറ്റർജന്റ് ലിക്വിഡ്)&#10;DW 25 (ഡിഷ്വാഷ്)&#10;Floor Cleaner 5L - 2 can&#10;White Phenyl 10&#10;Advance ₹500 തന്നു..." required class="w-full p-3 bg-amber-50/40 border border-amber-300 rounded-2xl text-slate-900 text-xs sm:text-sm font-mono leading-relaxed focus:border-amber-600 focus:bg-white focus:outline-none placeholder:text-slate-400 placeholder:font-sans transition shadow-inner"></textarea>
+                    <p class="text-[10px] text-slate-400 mt-1 italic">💡 ഒരു വരിയിൽ ഒരു സാധനം എന്ന രീതിയിൽ പെട്ടെന്ന് ടൈപ്പ് ചെയ്യാം. പിന്നീട് സൗകര്യം പോലെ ഫുൾ ഓർഡർ ആക്കാം.</p>
+                </div>
+            </form>
+
+            <!-- Fixed Footer -->
+            <div class="p-3 sm:p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2 shrink-0">
+                <button type="button" onclick="saveQuickNote()" id="btnSaveQuickNote" class="flex-1 py-2.5 sm:py-3 rounded-xl bg-amber-500 text-white font-bold text-xs sm:text-sm hover:bg-amber-600 transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5">
+                    <span>💾</span> <span>Save Note</span>
+                </button>
+                <button type="button" onclick="closeQuickNoteModal()" class="px-4 py-2.5 sm:py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs sm:text-sm hover:bg-slate-100 transition cursor-pointer">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Low Stock Products Modal -->
     <div id="lowStockListModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] hidden overflow-y-auto p-2 sm:p-4 flex items-center justify-center min-h-screen">
       <div class="relative max-w-md w-full bg-white border border-slate-200 rounded-3xl shadow-2xl p-5 space-y-3 max-h-[88vh] overflow-y-auto modal-scroll-body my-auto">
@@ -3155,7 +3214,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.8"></script>
+    <script type="module" src="./modules/app.js?v=51.2.9"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3170,7 +3229,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.8) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.9) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3224,7 +3283,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.8')
+                navigator.serviceWorker.register('./sw.js?v=51.2.9')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

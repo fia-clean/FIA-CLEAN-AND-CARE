@@ -146,6 +146,11 @@ export function ensureStableTransactionIds() {
         if (!o.id) o.id = 'ord_' + (stamp + idx);
         if (!o.savedAt) o.savedAt = stamp + idx;
     });
+    (state.orderNotes || []).forEach((n, idx) => {
+        if (!n) return;
+        if (!n.id) n.id = 'note_' + (stamp + idx);
+        if (!n.savedAt) n.savedAt = stamp + idx;
+    });
 }
 
 function mergeProductRecords(base, incoming) {
@@ -561,6 +566,7 @@ export function unmarkAllActiveLocalRecords() {
     register(state.packages, p => [p.id, p.name]);
     register(state.demands, d => [d.id]);
     register(state.orders, o => [o.id, o.orderNo]);
+    register(state.orderNotes, n => [n.id]);
 
     activeLocalKeys.forEach(k => state.deletedRecordIds.delete(k));
     return activeLocalKeys;
@@ -591,6 +597,7 @@ export function buildSyncPayload() {
         packages: getSafeArray(state.packages, 'fia_packages', p => !isItemDeleted(p, 'package')),
         demands: getSafeArray(state.demands, 'fia_demands', d => !isItemDeleted(d, 'demand')),
         orders: getSafeArray(state.orders, 'fia_orders', o => !isItemDeleted(o, 'order')),
+        orderNotes: getSafeArray(state.orderNotes, 'fia_order_notes', n => !isItemDeleted(n, 'orderNote')),
         stockReturns: (state.stockReturns || []).filter(r => !isItemDeleted(r, 'stockReturn')),
         clearedDayBookEntries: state.clearedDayBookEntries || [],
         dayBookOpeningBalance: Number(state.dayBookOpeningBalance || 0),
@@ -647,6 +654,7 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     state.stockReturns = (state.stockReturns || []).filter(r => !isItemDeleted(r, 'stockReturn'));
     state.demands = (state.demands || []).filter(d => !isItemDeleted(d, 'demand'));
     state.orders = (state.orders || []).filter(o => !isItemDeleted(o, 'order'));
+    state.orderNotes = (state.orderNotes || []).filter(n => !isItemDeleted(n, 'orderNote'));
 
     // 3. Safe bidirectional union: local unsaved records are preserved, tombstoned cloud items are filtered out
     state.products = mergeInventoryProducts(state.products, data.products);
@@ -660,6 +668,7 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     state.stockReturns = mergeCollection(state.stockReturns, data.stockReturns, 'id');
     state.demands = mergeCollection(state.demands, data.demands, 'id');
     state.orders = mergeCollection(state.orders, data.orders, 'id');
+    state.orderNotes = mergeCollection(state.orderNotes, data.orderNotes, 'id');
     normalizeLoadedProducts();
     normalizeCustomerRecords();
 
