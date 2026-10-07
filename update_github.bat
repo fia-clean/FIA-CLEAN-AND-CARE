@@ -4,7 +4,7 @@ color 0A
 
 echo ========================================================
 echo    FIA CLEAN & CARE - GITHUB AUTO PUSH & DEPLOY
-echo    Version: v51.2.12 (Set D&O in original 5th place, This Month in 6th place, and add D&O to Main Modules)
+echo    Version: v51.2.13 (Responsive multi-device layout for PC widescreen, tablet & mobile)
 echo ========================================================
 echo.
 
@@ -15,7 +15,7 @@ git add .
 
 echo.
 echo [2/3] Committing changes...
-git commit -m "feat(dashboard): v51.2.12 - place D&O at original position 5, This Month at position 6, and add D&O to Main Modules"
+git commit -m "feat(responsive): v51.2.13 - multi-device widescreen support for PC, tablet and mobile"
 
 echo.
 echo [3/3] Pushing to GitHub (main branch)...
@@ -25,7 +25,7 @@ echo.
 if %ERRORLEVEL% EQU 0 (
     echo ========================================================
     echo    SUCCESS! Updates pushed to GitHub successfully.
-    echo    Version v51.2.12 is now LIVE on GitHub!
+    echo    Version v51.2.13 is now LIVE on GitHub!
     echo ========================================================
 ) else (
     echo ========================================================

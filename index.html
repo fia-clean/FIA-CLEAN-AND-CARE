@@ -287,6 +287,62 @@
             }
         }
 
+        /* ================= RESPONSIVE MULTI-DEVICE SCREEN RATIO ENHANCEMENT ================= */
+        /* Smooth, full-width scaling on Mobile, Tablet & Widescreen Desktop PC / Laptop */
+        .app-responsive-container {
+            width: 100% !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            transition: max-width 0.2s ease-in-out;
+        }
+
+        /* Mobile (< 640px): 100% full width, thumb-friendly */
+        @media (max-width: 639px) {
+            .app-responsive-container {
+                max-width: 100% !important;
+            }
+        }
+
+        /* Tablet (640px - 1023px): Comfortable tablet canvas */
+        @media (min-width: 640px) and (max-width: 1023px) {
+            .app-responsive-container {
+                max-width: 768px !important;
+            }
+        }
+
+        /* Laptop / Standard PC (1024px - 1279px): Spacious desktop view */
+        @media (min-width: 1024px) {
+            .app-responsive-container {
+                max-width: 1080px !important;
+            }
+            .tab-scroll {
+                justify-content: center;
+                gap: 6px;
+            }
+            .tab-scroll > button {
+                padding: 8px 16px !important;
+                font-size: 13px !important;
+            }
+        }
+
+        /* Desktop PC / Widescreen Monitor (1280px - 1535px) */
+        @media (min-width: 1280px) {
+            .app-responsive-container {
+                max-width: 1320px !important;
+            }
+            .tab-scroll > button {
+                padding: 9px 20px !important;
+                font-size: 13.5px !important;
+            }
+        }
+
+        /* Full HD & Ultra-Wide Monitor (>= 1536px) */
+        @media (min-width: 1536px) {
+            .app-responsive-container {
+                max-width: 1500px !important;
+            }
+        }
+
         /* ===== GLOBAL ACCESSIBILITY & FONT SIZE BASE ENHANCEMENT ===== */
         input, select, textarea {
             font-size: 15px !important;
@@ -525,7 +581,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.12';
+                var CURRENT_APP_VERSION = '51.2.13';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -552,9 +608,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.12) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.13) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.12');
+                        localStorage.setItem('fia_app_version', '51.2.13');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -854,8 +910,8 @@
     <!-- ================= MAIN AUTHENTICATED APP CONTAINER ================= -->
     <div id="mainAppContainer" class="hidden">
 
-        <!-- Modern Floating Status & Action Bar (Compact 2-Line Mobile Layout) -->
-        <div class="max-w-md md:max-w-2xl mx-auto mb-3.5 rounded-2xl p-2.5 sm:px-3.5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style="background: linear-gradient(135deg, #e0f2fe 0%, #eff6ff 50%, #e0e7ff 100%); border: 1.5px solid #93c5fd;">
+        <!-- Modern Floating Status & Action Bar (Multi-Device Responsive Layout) -->
+        <div class="app-responsive-container max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl 2xl:max-w-[1500px] mb-3.5 rounded-2xl p-2.5 sm:px-3.5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs" style="background: linear-gradient(135deg, #e0f2fe 0%, #eff6ff 50%, #e0e7ff 100%); border: 1.5px solid #93c5fd;">
             <!-- Line 1: Cloud Sync Status & App Version Badge -->
             <div class="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
                 <span id="syncStatus" onclick="handleSyncStatusClick()" title="Cloud Sync Status. Tap to sync or configure cloud security" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300 shadow-xs whitespace-nowrap min-w-0 transition-colors cursor-pointer hover:bg-amber-100">
@@ -863,7 +919,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.12</span>
+                    <span>v51.2.13</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -875,7 +931,7 @@
             </div>
         </div>
 
-    <div class="max-w-md mx-auto bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden md:max-w-2xl p-3 sm:p-6 mb-10 space-y-6">
+    <div class="app-responsive-container max-w-md md:max-w-3xl lg:max-w-5xl xl:max-w-7xl 2xl:max-w-[1500px] bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden p-3 sm:p-6 mb-10 space-y-6">
         
         <!-- Header Title -->
         <div class="relative text-center space-y-1">
@@ -1261,7 +1317,7 @@
                 <!-- Cleaning: VIEW TAB -->
                 <div id="cleanStockViewContent" class="hidden">
                     <div class="flex justify-between items-center px-1 mb-2"><h2 class="font-bold text-slate-300 text-sm">Cleaning Product Stock List</h2><span class="text-[10px] text-slate-500">Edit / Delete available</span></div>
-                    <div class="space-y-2.5" id="productListContainer"></div>
+                    <div class="space-y-2.5 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5" id="productListContainer"></div>
                 </div>
 
                 <!-- Cleaning: CONSOLIDATED STOCK REPORT -->
@@ -1379,7 +1435,7 @@
                 <!-- Cosmetics: VIEW TAB -->
                 <div id="cosStockViewContent" class="hidden">
                     <div class="flex justify-between items-center px-1 mb-2"><h2 class="font-bold text-slate-300 text-sm">Cosmetic Product Stock List</h2><span class="text-[10px] text-slate-500">Edit / Delete available</span></div>
-                    <div class="space-y-2.5" id="cosProductListContainer"></div>
+                    <div class="space-y-2.5 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5" id="cosProductListContainer"></div>
                 </div>
 
                 <!-- Cosmetics: CONSOLIDATED STOCK REPORT -->
@@ -1538,7 +1594,7 @@
                 <div class="bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
                     <input id="customerDirectorySearch" type="search" oninput="renderDirectCustomerList()" placeholder="Search customer name or mobile number..." class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-200 focus:outline-none focus:border-indigo-500">
                 </div>
-                <div id="directCustomerListContainer" class="space-y-2.5"></div>
+                <div id="directCustomerListContainer" class="space-y-2.5 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
             </div>
 
             <!-- Sub-tab 2: Customer Consolidation -->
@@ -2642,7 +2698,7 @@
                     </div>
 
                     <!-- Scrollable List Container (max-h-[60vh]) prevents endless scrolling -->
-                    <div id="dayBookListContainer" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1 overscroll-contain"></div>
+                    <div id="dayBookListContainer" class="space-y-2 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-2.5 max-h-[60vh] overflow-y-auto pr-1 overscroll-contain"></div>
                 </div>
             </div>
         </div>
@@ -3232,7 +3288,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.12"></script>
+    <script type="module" src="./modules/app.js?v=51.2.13"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3247,7 +3303,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.12) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.13) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3301,7 +3357,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.12')
+                navigator.serviceWorker.register('./sw.js?v=51.2.13')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

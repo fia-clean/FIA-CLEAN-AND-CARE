@@ -205,7 +205,7 @@ export function renderDemands() {
             </div>
         `;
     } else {
-        html += `<div class="grid grid-cols-1 gap-2.5">`;
+        html += `<div class="grid grid-cols-1 lg:grid-cols-2 gap-2.5">`;
         filteredManual.forEach(item => {
             const isReceived = item.status === 'received';
             const categoryBadge = getCategoryBadge(item.category);
@@ -657,7 +657,7 @@ export function renderOrders() {
         return;
     }
 
-    let html = `<div class="grid grid-cols-1 gap-3">`;
+    let html = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-3">`;
 
     filteredOrders.forEach(order => {
         const isDelivered = order.status === 'delivered';
