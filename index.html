@@ -581,7 +581,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.16';
+                var CURRENT_APP_VERSION = '51.2.17';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -608,9 +608,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.16) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.17) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.16');
+                        localStorage.setItem('fia_app_version', '51.2.17');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -919,7 +919,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.16</span>
+                    <span>v51.2.17</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -998,7 +998,7 @@
                     <div class="text-[10px] text-indigo-700 font-medium truncate">Demands & Orders</div>
                 </button>
                 <button type="button" onclick="window.openThisMonthDayBook()" class="text-left bg-emerald-50 border border-emerald-200 rounded-2xl p-3 hover:border-emerald-400 transition shadow-xs cursor-pointer">
-                    <div class="flex items-center justify-between"><span class="text-xl">📈</span><span class="text-[9px] text-emerald-800 uppercase font-extrabold tracking-wider">This Month</span></div>
+                    <div class="flex items-center justify-between"><span class="text-xl">📈</span><span class="text-[9px] text-emerald-800 uppercase font-extrabold tracking-wider">Sale of the Month</span></div>
                     <div id="dashThisMonthSales" class="text-lg sm:text-xl font-black text-emerald-900 mt-2">₹0.00</div>
                     <div id="dashThisMonthLabel" class="text-[10px] text-emerald-700 font-semibold truncate">This Month Sales • Tap</div>
                 </button>
@@ -3290,7 +3290,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.16"></script>
+    <script type="module" src="./modules/app.js?v=51.2.17"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3305,7 +3305,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.16) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.17) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3359,7 +3359,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.16')
+                navigator.serviceWorker.register('./sw.js?v=51.2.17')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

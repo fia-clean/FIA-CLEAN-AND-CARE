@@ -4,7 +4,7 @@ color 0A
 
 echo ========================================================
 echo    FIA CLEAN & CARE - GITHUB AUTO PUSH & DEPLOY
-echo    Version: v51.2.16 (Alphabetical ascending order for Bulk Order products)
+echo    Version: v51.2.17 (Dashboard 'Sale of the Month' heading update)
 echo ========================================================
 echo.
 
@@ -15,7 +15,7 @@ git add .
 
 echo.
 echo [2/3] Committing changes...
-git commit -m "feat(dno): v51.2.16 - sort products alphabetically in Bulk Order dropdown"
+git commit -m "feat(dashboard): v51.2.17 - update dashboard card heading to Sale of the Month"
 
 echo.
 echo [3/3] Pushing to GitHub (main branch)...
@@ -25,7 +25,7 @@ echo.
 if %ERRORLEVEL% EQU 0 (
     echo ========================================================
     echo    SUCCESS! Updates pushed to GitHub successfully.
-    echo    Version v51.2.16 is now LIVE on GitHub!
+    echo    Version v51.2.17 is now LIVE on GitHub!
     echo ========================================================
 ) else (
     echo ========================================================
