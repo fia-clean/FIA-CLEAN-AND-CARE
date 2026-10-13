@@ -1,7 +1,8 @@
 /**
- * FIA CLEAN & CARE - Product-Wise Sales Analysis & Item List Engine
- * Consolidates quantity sold, revenue, stock levels & rankings across all customer bills (Cleaning, Cosmetics, Combined).
- * Provides both Summary Overview (Top/Lowest sold, Total Units, Revenue) and complete Item-Wise List of all products.
+ * FIA CLEAN & CARE - Product-Wise Sales Analysis Engine
+ * Consolidates quantity sold, revenue, and rankings across all customer bills (Cleaning, Cosmetics, Combined).
+ * Displays Top Selling, Lowest Sold, Total Units Sold, Revenue, and the complete product sales ranking.
+ * Strictly sorted in descending order (Highest sales first -> Lowest sales last).
  */
 
 import { state, normalizeToDateKey, getTodayDateString, isCustItemDeleted, isItemDeleted } from '../core/state.js';
@@ -9,70 +10,12 @@ import { pullFromFirebase } from '../core/db.js';
 import { normalizeCosSale } from './billing-history.js';
 import { getBillingUnitFactor } from './billing.js';
 
-export let productAnalysisPeriod = 'today'; // 'today', 'this_week', 'this_month', 'all', 'custom'
+export let productAnalysisPeriod = 'today'; // Defaults to 'today' (can toggle 'this_week', 'this_month', 'all', 'custom')
 export let productAnalysisCategory = 'all'; // 'all', 'cleaning', 'cosmetics'
 export let productAnalysisSaleType = 'all'; // 'all', 'wholesale', 'retail'
 export let productAnalysisSearchQuery = '';
 export let productAnalysisStartDate = '';
 export let productAnalysisEndDate = '';
-export let productAnalysisSubTab = 'overview'; // 'overview' or 'itemwise'
-export let productAnalysisStatusFilter = 'all'; // 'all', 'sold', 'unsold'
-export let productAnalysisSortBy = 'highest_sold'; // 'highest_sold', 'lowest_sold', 'name_asc', 'highest_rev'
-
-/**
- * Switch between Overview & Item-Wise List sub-tabs in Analysis
- */
-export function switchProductAnalysisTab(subTab) {
-    productAnalysisSubTab = subTab || 'overview';
-    const overviewSec = document.getElementById('paOverviewSection');
-    const itemWiseSec = document.getElementById('paItemWiseSection');
-    const tabOverviewBtn = document.getElementById('btnPaSubTabOverview');
-    const tabItemWiseBtn = document.getElementById('btnPaSubTabItemWise');
-    const btnBillingAnalysis = document.getElementById('btnBillingAnalysis');
-    const btnBillingItemWise = document.getElementById('btnBillingItemWise');
-
-    if (productAnalysisSubTab === 'itemwise') {
-        if (overviewSec) overviewSec.classList.add('hidden');
-        if (itemWiseSec) itemWiseSec.classList.remove('hidden');
-
-        if (tabOverviewBtn) {
-            tabOverviewBtn.className = 'py-2 px-3 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition';
-        }
-        if (tabItemWiseBtn) {
-            tabItemWiseBtn.className = 'py-2 px-3 rounded-lg bg-cyan-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm';
-        }
-        if (btnBillingAnalysis) {
-            btnBillingAnalysis.className = 'py-3 rounded-xl bg-slate-800 text-amber-300 border border-amber-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
-        }
-        if (btnBillingItemWise) {
-            btnBillingItemWise.className = 'py-3 rounded-xl bg-cyan-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
-        }
-
-        renderProductSalesAnalysis();
-        setTimeout(() => {
-            const input = document.getElementById('paItemWiseSearchInput');
-            if (input) input.focus();
-        }, 60);
-    } else {
-        if (overviewSec) overviewSec.classList.remove('hidden');
-        if (itemWiseSec) itemWiseSec.classList.add('hidden');
-
-        if (tabOverviewBtn) {
-            tabOverviewBtn.className = 'py-2 px-3 rounded-lg bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm';
-        }
-        if (tabItemWiseBtn) {
-            tabItemWiseBtn.className = 'py-2 px-3 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition';
-        }
-        if (btnBillingAnalysis) {
-            btnBillingAnalysis.className = 'py-3 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
-        }
-        if (btnBillingItemWise) {
-            btnBillingItemWise.className = 'py-3 rounded-xl bg-slate-800 text-cyan-300 border border-cyan-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
-        }
-
-        renderProductSalesAnalysis();
-    }
-}
 
 export function setProductAnalysisPeriod(period) {
     productAnalysisPeriod = period;
@@ -96,25 +39,8 @@ export function setProductAnalysisSaleType(saleType) {
     renderProductSalesAnalysis();
 }
 
-export function setProductAnalysisStatusFilter(status) {
-    productAnalysisStatusFilter = status || 'all';
-    updateStatusFilterButtonStyles();
-    renderProductSalesAnalysisListOnly();
-}
-
-export function setProductAnalysisSortBy(sortKey) {
-    productAnalysisSortBy = sortKey || 'highest_sold';
-    updateSortButtonStyles();
-    renderProductSalesAnalysis();
-}
-
 export function onProductAnalysisSearch(val) {
     productAnalysisSearchQuery = (val || '').trim().toLowerCase();
-    // Keep both search inputs in sync if both exist
-    const inputMain = document.getElementById('paItemWiseSearchInput');
-    const inputFolder = document.getElementById('paSearchInput');
-    if (inputMain && inputMain.value !== val) inputMain.value = val;
-    if (inputFolder && inputFolder.value !== val) inputFolder.value = val;
     renderProductSalesAnalysisListOnly();
 }
 
@@ -160,25 +86,6 @@ function updateSaleTypeButtonStyles() {
     });
 }
 
-function updateStatusFilterButtonStyles() {
-    ['all', 'sold', 'unsold'].forEach(st => {
-        const btn = document.getElementById('paStatusBtn_' + st);
-        if (!btn) return;
-        if (st === productAnalysisStatusFilter) {
-            btn.className = 'px-2.5 py-1 rounded-lg bg-cyan-600 text-white font-bold text-[10px] shadow-sm transition';
-        } else {
-            btn.className = 'px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-[10px] hover:bg-slate-800 transition';
-        }
-    });
-}
-
-function updateSortButtonStyles() {
-    const sel = document.getElementById('paSortSelect');
-    if (sel && sel.value !== productAnalysisSortBy) {
-        sel.value = productAnalysisSortBy;
-    }
-}
-
 /**
  * Filter matching logic for date periods
  */
@@ -218,83 +125,29 @@ function isDateInPeriod(dateStr, period, customStart, customEnd) {
 
 /**
  * Compile Consolidated Product Sales Data
- * Includes all active products from inventory as well as billed custom products.
  */
-export function getProductSalesAnalysisData(includeAllProducts = true) {
+export function getProductSalesAnalysisData() {
     const productMap = {};
 
     // Helper to find live stock
     const findStockInfo = (name, category) => {
         const clean = String(name || '').trim().toLowerCase();
         if (category === 'Cosmetics') {
-            const prod = (state.cosProducts || []).find(p => p && !isItemDeleted(p, 'cosProduct') && String(p.name || '').trim().toLowerCase() === clean);
+            const prod = (state.cosProducts || []).find(p => p && String(p.name || '').trim().toLowerCase() === clean);
             return {
-                stock: (prod && prod.stock !== undefined && prod.stock !== null && !isNaN(prod.stock)) ? Number(prod.stock) : null,
+                stock: prod ? Number(prod.stock || 0) : null,
                 unit: prod?.unit || 'Pcs'
             };
         } else {
-            const prod = (state.products || []).find(p => p && !isItemDeleted(p, 'product') && String(p.name || '').trim().toLowerCase() === clean);
+            const prod = (state.products || []).find(p => p && String(p.name || '').trim().toLowerCase() === clean);
             return {
-                stock: (prod && prod.stock !== undefined && prod.stock !== null && !isNaN(prod.stock)) ? Number(prod.stock) : null,
+                stock: prod ? Number(prod.stock || 0) : null,
                 unit: prod?.unit || 'Bottle/Ltr'
             };
         }
     };
 
-    // 1. Prepopulate master products from inventory so every product is tracked
-    if (includeAllProducts) {
-        // Cleaning inventory
-        if (productAnalysisCategory === 'all' || productAnalysisCategory === 'cleaning') {
-            (state.products || []).forEach(p => {
-                if (!p || isItemDeleted(p, 'product')) return;
-                const name = String(p.name || '').trim();
-                if (!name) return;
-                const mapKey = `Cleaning_${name.toLowerCase()}`;
-                if (!productMap[mapKey]) {
-                    productMap[mapKey] = {
-                        name,
-                        category: 'Cleaning',
-                        qtySold: 0,
-                        unitsSold: 0,
-                        totalRevenue: 0,
-                        billCount: 0,
-                        billNos: new Set(),
-                        unit: p.unit || 'Bottle/Ltr',
-                        currentStock: (p.stock !== undefined && p.stock !== null && !isNaN(p.stock)) ? Number(p.stock) : null,
-                        retailQty: 0,
-                        wholesaleQty: 0
-                    };
-                }
-            });
-        }
-
-        // Cosmetics inventory
-        if (productAnalysisCategory === 'all' || productAnalysisCategory === 'cosmetics') {
-            (state.cosProducts || []).forEach(p => {
-                if (!p || isItemDeleted(p, 'cosProduct')) return;
-                const name = String(p.name || '').trim();
-                if (!name) return;
-                const mapKey = `Cosmetics_${name.toLowerCase()}`;
-                if (!productMap[mapKey]) {
-                    productMap[mapKey] = {
-                        name,
-                        category: 'Cosmetics',
-                        qtySold: 0,
-                        unitsSold: 0,
-                        totalRevenue: 0,
-                        billCount: 0,
-                        billNos: new Set(),
-                        unit: p.unit || 'Pcs',
-                        currentStock: (p.stock !== undefined && p.stock !== null && !isNaN(p.stock)) ? Number(p.stock) : null,
-                        retailQty: 0,
-                        wholesaleQty: 0
-                    };
-                }
-            });
-        }
-    }
-
-    // 2. Process Cleaning & Combined Customer Bills
+    // 1. Process Cleaning & Combined Bills
     (state.customers || []).forEach(c => {
         if (!c || c._deleted || isCustItemDeleted(c)) return;
         if (c.isCancelled || c.status === 'cancelled') return; // Exclude cancelled bills
@@ -365,7 +218,7 @@ export function getProductSalesAnalysisData(includeAllProducts = true) {
         });
     });
 
-    // 3. Process Cosmetics Bills
+    // 2. Process Cosmetics Bills
     (state.cosSales || []).forEach(s => {
         if (!s || s._deleted || isItemDeleted(s, 'cosSale')) return;
         if (s.isCancelled || s.status === 'cancelled') return; // Exclude cancelled bills
@@ -436,23 +289,11 @@ export function getProductSalesAnalysisData(includeAllProducts = true) {
 
     const list = Object.values(productMap).map(p => ({
         ...p,
-        billCount: p.billNos.size || (p.qtySold > 0 ? 1 : 0)
+        billCount: p.billNos.size || 1
     }));
 
-    // Sorting according to selected order
+    // CRITICAL: Sort in strictly DESCENDING ORDER (Highest quantity sold at the very top)
     list.sort((a, b) => {
-        if (productAnalysisSortBy === 'name_asc') {
-            return a.name.localeCompare(b.name);
-        }
-        if (productAnalysisSortBy === 'lowest_sold') {
-            if (a.qtySold !== b.qtySold) return a.qtySold - b.qtySold;
-            return a.totalRevenue - b.totalRevenue;
-        }
-        if (productAnalysisSortBy === 'highest_rev') {
-            if (b.totalRevenue !== a.totalRevenue) return b.totalRevenue - a.totalRevenue;
-            return b.qtySold - a.qtySold;
-        }
-        // Default: 'highest_sold' (Highest quantity sold at the very top)
         if (b.qtySold !== a.qtySold) {
             return b.qtySold - a.qtySold;
         }
@@ -463,34 +304,25 @@ export function getProductSalesAnalysisData(includeAllProducts = true) {
 }
 
 /**
- * Render Master Product Sales Analysis & Item-Wise View
+ * Render Master Product Sales Analysis View
  */
 export function renderProductSalesAnalysis() {
+    const container = document.getElementById('productAnalysisContainer');
+    if (!container) return;
+
     updatePeriodButtonStyles();
     updateCategoryButtonStyles();
     updateSaleTypeButtonStyles();
-    updateStatusFilterButtonStyles();
-    updateSortButtonStyles();
 
-    const allData = getProductSalesAnalysisData(true);
+    const allData = getProductSalesAnalysisData();
 
     // Summary calculations across all data before search filtering
     const totalUnits = allData.reduce((sum, p) => sum + p.qtySold, 0);
     const totalRevenue = allData.reduce((sum, p) => sum + p.totalRevenue, 0);
+    const topSeller = allData.length > 0 ? allData[0] : null;
+    const lowestSeller = allData.length > 1 ? allData[allData.length - 1] : null;
 
-    const soldItems = allData.filter(p => p.qtySold > 0);
-    const unsoldItems = allData.filter(p => p.qtySold === 0);
-
-    // Identify top and lowest seller among products with sales
-    const sortedSold = [...soldItems].sort((a, b) => {
-        if (b.qtySold !== a.qtySold) return b.qtySold - a.qtySold;
-        return b.totalRevenue - a.totalRevenue;
-    });
-
-    const topSeller = sortedSold.length > 0 ? sortedSold[0] : null;
-    const lowestSeller = sortedSold.length > 1 ? sortedSold[sortedSold.length - 1] : (sortedSold.length === 1 ? sortedSold[0] : null);
-
-    // 1. Update Overview KPI Elements
+    // Update KPI Banner Elements
     const kpiTopName = document.getElementById('paKpiTopName');
     const kpiTopQty = document.getElementById('paKpiTopQty');
     const kpiLowName = document.getElementById('paKpiLowName');
@@ -501,203 +333,114 @@ export function renderProductSalesAnalysis() {
 
     if (kpiTopName) kpiTopName.textContent = topSeller ? topSeller.name : '—';
     if (kpiTopQty) kpiTopQty.textContent = topSeller ? `${formatQty(topSeller.qtySold)} ${topSeller.unit}` : '0 Qty';
-    if (kpiLowName) kpiLowName.textContent = lowestSeller ? lowestSeller.name : '—';
+    if (kpiLowName) kpiLowName.textContent = lowestSeller ? lowestSeller.name : (allData.length === 1 ? 'Only 1 item' : '—');
     if (kpiLowQty) kpiLowQty.textContent = lowestSeller ? `${formatQty(lowestSeller.qtySold)} ${lowestSeller.unit}` : '—';
     if (kpiTotalUnits) kpiTotalUnits.textContent = formatQty(totalUnits);
     if (kpiTotalRev) kpiTotalRev.textContent = '₹' + totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (kpiCount) kpiCount.textContent = `${soldItems.length} of ${allData.length} Sold`;
+    if (kpiCount) kpiCount.textContent = allData.length + ' Products';
 
-    // 2. Update Subtab Badge & Item-wise KPI Strip Elements
-    const badge = document.getElementById('paItemWiseCountBadge');
-    if (badge) badge.textContent = `${allData.length} Items`;
-
-    const iwTotalProds = document.getElementById('paIwTotalProducts');
-    const iwSoldProds = document.getElementById('paIwSoldProducts');
-    const iwUnsoldProds = document.getElementById('paIwUnsoldProducts');
-    const iwTotalUnits = document.getElementById('paIwTotalUnits');
-
-    if (iwTotalProds) iwTotalProds.textContent = String(allData.length);
-    if (iwSoldProds) iwSoldProds.textContent = String(soldItems.length);
-    if (iwUnsoldProds) iwUnsoldProds.textContent = String(unsoldItems.length);
-    if (iwTotalUnits) iwTotalUnits.textContent = formatQty(totalUnits);
-
-    const btnStatusAll = document.getElementById('paStatusBtn_all');
-    if (btnStatusAll) btnStatusAll.textContent = `All (${allData.length})`;
-    const btnStatusSold = document.getElementById('paStatusBtn_sold');
-    if (btnStatusSold) btnStatusSold.textContent = `✓ Sold (${soldItems.length})`;
-    const btnStatusUnsold = document.getElementById('paStatusBtn_unsold');
-    if (btnStatusUnsold) btnStatusUnsold.textContent = `0 Sold (${unsoldItems.length})`;
-
-    const folderBadge = document.getElementById('paFolderCountBadge');
-    if (folderBadge) folderBadge.textContent = `${soldItems.length} Products Sold`;
+    const countBadge = document.getElementById('paFolderCountBadge');
+    if (countBadge) countBadge.textContent = allData.length + ' Products';
 
     renderProductSalesAnalysisListOnly(allData);
 }
 
 /**
- * Toggle Collapsible Product Analysis Folder Card (Overview tab)
+ * Renders the product cards list (fast live typing search)
  */
-export function toggleProductAnalysisFolder(forceState) {
-    const content = document.getElementById('productAnalysisFolderContent');
-    const toggleBtn = document.getElementById('paFolderToggleBtn');
-    const btnIcon = document.getElementById('paFolderBtnIcon');
-    const btnText = document.getElementById('paFolderBtnText');
-    const statusText = document.getElementById('paFolderStatusText');
-    if (!content) return;
+export function renderProductSalesAnalysisListOnly(providedData = null) {
+    const container = document.getElementById('productAnalysisContainer');
+    if (!container) return;
 
-    const isCurrentlyHidden = content.classList.contains('hidden');
-    const willOpen = (typeof forceState === 'boolean') ? forceState : isCurrentlyHidden;
+    const data = providedData || getProductSalesAnalysisData();
+    let displayList = data;
 
-    if (willOpen) {
-        content.classList.remove('hidden');
-        if (btnIcon) btnIcon.textContent = '📁';
-        if (btnText) btnText.textContent = 'Close';
-        if (statusText) statusText.textContent = 'Showing product breakdown • Tap to fold';
-        if (toggleBtn) {
-            toggleBtn.className = 'bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-xl border border-slate-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer whitespace-nowrap';
-        }
-        setTimeout(() => {
-            document.getElementById('paSearchInput')?.focus();
-        }, 80);
-    } else {
-        content.classList.add('hidden');
-        if (btnIcon) btnIcon.textContent = '👁️';
-        if (btnText) btnText.textContent = 'View';
-        if (statusText) statusText.textContent = 'Tap to view / hide detailed product ranking list';
-        if (toggleBtn) {
-            toggleBtn.className = 'bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1.5 rounded-xl border border-amber-500 text-xs font-bold shadow-md transition flex items-center gap-1 cursor-pointer whitespace-nowrap';
-        }
+    if (productAnalysisSearchQuery) {
+        displayList = data.filter(p => p.name.toLowerCase().includes(productAnalysisSearchQuery) || p.category.toLowerCase().includes(productAnalysisSearchQuery));
     }
-}
 
-/**
- * Builds HTML for an individual product sales card
- */
-function buildProductCardHtml(p, index) {
-    const isSold = p.qtySold > 0;
-    const rank = index + 1;
-    let rankBadge = '';
+    const countBadge = document.getElementById('paFolderCountBadge');
+    if (countBadge) {
+        countBadge.textContent = productAnalysisSearchQuery 
+            ? `${displayList.length} of ${data.length} Products` 
+            : `${data.length} Products`;
+    }
 
-    if (isSold) {
-        if (rank === 1 && productAnalysisSortBy === 'highest_sold') {
+    if (!displayList.length) {
+        container.innerHTML = `
+            <div class="text-center py-8 bg-slate-900/40 rounded-2xl border border-slate-800 p-6 space-y-3">
+                <span class="text-3xl">📦</span>
+                <p class="text-slate-400 font-bold text-xs">No product sales found for this period and filter selection.</p>
+                <button type="button" onclick="window.setProductAnalysisPeriod('all'); window.setProductAnalysisCategory('all'); window.setProductAnalysisSaleType('all');" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition">
+                    Show All Sales Records
+                </button>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = displayList.map((p, index) => {
+        const rank = index + 1;
+        let rankBadge = '';
+        if (rank === 1) {
             rankBadge = `<span class="w-7 h-7 rounded-xl bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shadow-amber-500/20" title="Rank #1 Top Seller">🥇 1</span>`;
-        } else if (rank === 2 && productAnalysisSortBy === 'highest_sold') {
+        } else if (rank === 2) {
             rankBadge = `<span class="w-7 h-7 rounded-xl bg-slate-300 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shadow-slate-300/20" title="Rank #2 Seller">🥈 2</span>`;
-        } else if (rank === 3 && productAnalysisSortBy === 'highest_sold') {
+        } else if (rank === 3) {
             rankBadge = `<span class="w-7 h-7 rounded-xl bg-amber-700 text-white font-black text-xs flex items-center justify-center shadow-md" title="Rank #3 Seller">🥉 3</span>`;
         } else {
             rankBadge = `<span class="w-7 h-7 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center border border-slate-700">#${rank}</span>`;
         }
-    } else {
-        rankBadge = `<span class="w-7 h-7 rounded-xl bg-slate-900 text-slate-500 font-bold text-xs flex items-center justify-center border border-slate-800">#${rank}</span>`;
-    }
 
-    const catBadge = p.category === 'Cleaning'
-        ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800/60">🧹 Cleaning</span>`
-        : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-950/80 text-pink-300 border border-pink-800/60">💄 Cosmetics</span>`;
+        const catBadge = p.category === 'Cleaning'
+            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800/60">🧹 Cleaning</span>`
+            : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-950/80 text-pink-300 border border-pink-800/60">💄 Cosmetics</span>`;
 
-    const soldStatusBadge = isSold
-        ? `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">✓ Sold</span>`
-        : `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">0 Sold</span>`;
+        let stockInfoHtml = '';
+        if (p.currentStock !== null) {
+            const isLow = p.currentStock <= 5;
+            stockInfoHtml = `<span class="text-[11px] font-semibold ${isLow ? 'text-rose-400 font-bold' : 'text-slate-400'}">
+                Stock: <strong class="${isLow ? 'text-rose-300' : 'text-slate-200'}">${formatQty(p.currentStock)} ${p.unit}</strong> ${isLow ? '⚠️ Low' : '✓ In Stock'}
+            </span>`;
+        }
 
-    let stockInfoHtml = '';
-    if (p.currentStock !== null) {
-        const isLow = p.currentStock <= 5;
-        stockInfoHtml = `<span class="text-[11px] font-semibold ${isLow ? 'text-rose-400 font-bold' : 'text-slate-400'}">
-            Stock: <strong class="${isLow ? 'text-rose-300' : 'text-slate-200'}">${formatQty(p.currentStock)} ${p.unit}</strong> ${isLow ? '⚠️ Low' : '✓ In Stock'}
-        </span>`;
-    }
+        const unitsSoldNote = (p.unitsSold > 0 && p.unit !== 'Pcs' && p.unitsSold !== p.qtySold)
+            ? `<div class="text-[10px] text-slate-400 font-medium">(${p.unitsSold} units/bottles)</div>`
+            : '';
 
-    const unitsSoldNote = (p.unitsSold > 0 && p.unit !== 'Pcs' && p.unitsSold !== p.qtySold)
-        ? `<div class="text-[10px] text-slate-400 font-medium">(${p.unitsSold} units/bottles)</div>`
-        : '';
-
-    return `
-        <div class="bg-slate-900/80 hover:bg-slate-900 border ${isSold ? 'border-slate-800' : 'border-slate-800/60 opacity-90'} p-3.5 rounded-2xl transition space-y-2.5 shadow-sm">
-            <div class="flex items-start justify-between gap-3">
-                <div class="flex items-start gap-2.5 min-w-0">
-                    <div class="shrink-0 pt-0.5">${rankBadge}</div>
-                    <div class="min-w-0">
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <h3 class="font-extrabold text-slate-100 text-sm leading-snug break-words">${p.name}</h3>
-                            ${catBadge}
-                            ${soldStatusBadge}
-                        </div>
-                        <div class="flex items-center gap-3 text-slate-400 text-xs mt-1 flex-wrap">
-                            <span>${p.billCount > 0 ? `In <strong>${p.billCount}</strong> bill${p.billCount > 1 ? 's' : ''}` : 'No bills in period'}</span>
-                            ${stockInfoHtml ? `<span>• ${stockInfoHtml}</span>` : ''}
+        return `
+            <div class="bg-slate-900/80 hover:bg-slate-900 border border-slate-800 p-3.5 rounded-2xl transition space-y-2.5 shadow-sm">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-start gap-2.5 min-w-0">
+                        <div class="shrink-0 pt-0.5">${rankBadge}</div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <h3 class="font-extrabold text-slate-100 text-sm leading-snug break-words">${p.name}</h3>
+                                ${catBadge}
+                            </div>
+                            <div class="flex items-center gap-3 text-slate-400 text-xs mt-1 flex-wrap">
+                                <span>In <strong>${p.billCount}</strong> bills</span>
+                                ${stockInfoHtml ? `<span>• ${stockInfoHtml}</span>` : ''}
+                            </div>
                         </div>
                     </div>
+                    <div class="text-right shrink-0">
+                        <div class="text-base sm:text-lg font-black text-amber-300">${formatQty(p.qtySold)} <span class="text-xs font-semibold text-slate-400">${p.unit}</span></div>
+                        ${unitsSoldNote}
+                        <div class="text-xs font-bold text-emerald-400 mt-0.5">₹${p.totalRevenue.toFixed(2)}</div>
+                    </div>
                 </div>
-                <div class="text-right shrink-0">
-                    <div class="text-base sm:text-lg font-black ${isSold ? 'text-amber-300' : 'text-slate-400'}">${formatQty(p.qtySold)} <span class="text-xs font-semibold text-slate-400">${p.unit}</span></div>
-                    ${unitsSoldNote}
-                    <div class="text-xs font-bold ${isSold ? 'text-emerald-400' : 'text-slate-500'} mt-0.5">₹${p.totalRevenue.toFixed(2)}</div>
+
+                <!-- Breakdown Bar (Retail vs Wholesale) -->
+                <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Retail: <strong class="text-slate-300">${formatQty(p.retailQty)}</strong></span>
+                        <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> Wholesale: <strong class="text-slate-300">${formatQty(p.wholesaleQty)}</strong></span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-medium">Avg Rate: ₹${p.qtySold > 0 ? (p.totalRevenue / p.qtySold).toFixed(2) : '0.00'}</div>
                 </div>
             </div>
-
-            <!-- Breakdown: Retail vs Wholesale & Avg Rate -->
-            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Retail: <strong class="text-slate-300">${formatQty(p.retailQty)}</strong></span>
-                    <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> Wholesale: <strong class="text-slate-300">${formatQty(p.wholesaleQty)}</strong></span>
-                </div>
-                <div class="text-[10px] text-slate-500 font-medium">Avg Rate: ₹${p.qtySold > 0 ? (p.totalRevenue / p.qtySold).toFixed(2) : '0.00'}</div>
-            </div>
-        </div>
-    `;
-}
-
-/**
- * Renders the product cards list into both Item-Wise container and the overview folder container
- */
-export function renderProductSalesAnalysisListOnly(providedData = null) {
-    const mainContainer = document.getElementById('paItemWiseContainer');
-    const folderContainer = document.getElementById('productAnalysisContainer');
-
-    const data = providedData || getProductSalesAnalysisData(true);
-
-    // Apply Status Filter
-    let filteredList = data;
-    if (productAnalysisStatusFilter === 'sold') {
-        filteredList = filteredList.filter(p => p.qtySold > 0);
-    } else if (productAnalysisStatusFilter === 'unsold') {
-        filteredList = filteredList.filter(p => p.qtySold === 0);
-    }
-
-    // Apply Live Search Query
-    if (productAnalysisSearchQuery) {
-        filteredList = filteredList.filter(p =>
-            p.name.toLowerCase().includes(productAnalysisSearchQuery) ||
-            p.category.toLowerCase().includes(productAnalysisSearchQuery)
-        );
-    }
-
-    const emptyHtml = `
-        <div class="text-center py-8 bg-slate-900/40 rounded-2xl border border-slate-800 p-6 space-y-3">
-            <span class="text-3xl">📦</span>
-            <p class="text-slate-400 font-bold text-xs">No products found matching the current filters and search.</p>
-            <button type="button" onclick="window.setProductAnalysisPeriod('all'); window.setProductAnalysisCategory('all'); window.setProductAnalysisSaleType('all'); window.setProductAnalysisStatusFilter('all');" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition">
-                Reset All Filters
-            </button>
-        </div>`;
-
-    const cardsHtml = filteredList.length ? filteredList.map((p, idx) => buildProductCardHtml(p, idx)).join('') : emptyHtml;
-
-    if (mainContainer) {
-        mainContainer.innerHTML = cardsHtml;
-    }
-
-    // In folder container (Overview tab), show sold items list by default
-    if (folderContainer) {
-        const soldOnlyList = productAnalysisSearchQuery 
-            ? data.filter(p => p.qtySold > 0 && (p.name.toLowerCase().includes(productAnalysisSearchQuery) || p.category.toLowerCase().includes(productAnalysisSearchQuery)))
-            : data.filter(p => p.qtySold > 0);
-        
-        folderContainer.innerHTML = soldOnlyList.length 
-            ? soldOnlyList.map((p, idx) => buildProductCardHtml(p, idx)).join('') 
-            : `<div class="text-center py-6 text-slate-400 font-bold text-xs">No product sales found for this period.</div>`;
-    }
+        `;
+    }).join('');
 }
 
 function formatQty(num) {
@@ -710,9 +453,9 @@ function formatQty(num) {
  * Share Product-wise Analysis Summary via WhatsApp
  */
 export function shareProductAnalysisWhatsApp() {
-    const data = getProductSalesAnalysisData(true);
+    const data = getProductSalesAnalysisData();
     if (!data.length) {
-        alert('No product data found to share.');
+        alert('No product sales data found to share.');
         return;
     }
 
@@ -724,39 +467,30 @@ export function shareProductAnalysisWhatsApp() {
         custom: 'Custom Range'
     }[productAnalysisPeriod] || productAnalysisPeriod;
 
-    const soldItems = data.filter(p => p.qtySold > 0);
-    const unsoldItems = data.filter(p => p.qtySold === 0);
-    const totalQty = data.reduce((sum, p) => sum + p.qtySold, 0);
-    const totalRev = data.reduce((sum, p) => sum + p.totalRevenue, 0);
-
+    let totalQty = 0;
+    let totalRev = 0;
     const lines = [
-        `📊 *FIA CLEAN & CARE - Item-Wise Sales Report*`,
+        `📊 *FIA CLEAN & CARE - Product-Wise Sales Report*`,
         `📅 Period: *${periodName}*`,
         `🏷️ Category: *${productAnalysisCategory.toUpperCase()}* | Type: *${productAnalysisSaleType.toUpperCase()}*`,
-        `----------------------------------------`,
-        `📦 *Total Products:* ${data.length} (${soldItems.length} Sold | ${unsoldItems.length} Unsold)`,
-        `🔢 *Total Units Sold:* ${formatQty(totalQty)}`,
-        `💰 *Total Revenue:* ₹${totalRev.toFixed(2)}`,
-        `----------------------------------------`,
-        `*TOP SELLING ITEMS:*`
+        `----------------------------------------`
     ];
 
-    soldItems.slice(0, 25).forEach((p, idx) => {
+    data.slice(0, 25).forEach((p, idx) => {
+        totalQty += p.qtySold;
+        totalRev += p.totalRevenue;
         const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
         lines.push(`${medal} *${p.name}* (${p.category})`);
-        lines.push(`   └ Qty Sold: *${formatQty(p.qtySold)} ${p.unit}* | Sales: *₹${p.totalRevenue.toFixed(2)}* | Stock: ${p.currentStock !== null ? formatQty(p.currentStock) : '—'}`);
+        lines.push(`   └ Qty: *${formatQty(p.qtySold)} ${p.unit}* | Sales: *₹${p.totalRevenue.toFixed(2)}*`);
     });
 
-    if (soldItems.length > 25) {
-        lines.push(`...and ${soldItems.length - 25} more sold products`);
-    }
-
-    if (unsoldItems.length > 0) {
-        lines.push(`----------------------------------------`);
-        lines.push(`💤 *Unsold Products in Period:* ${unsoldItems.length} items`);
+    if (data.length > 25) {
+        lines.push(`...and ${data.length - 25} more products`);
     }
 
     lines.push(`----------------------------------------`);
+    lines.push(`📦 *Total Units Sold:* ${formatQty(totalQty)}`);
+    lines.push(`💰 *Total Product Sales:* ₹${totalRev.toFixed(2)}`);
     lines.push(`✨ Generated by FIA CLEAN & CARE App`);
 
     const text = encodeURIComponent(lines.join('\n'));
@@ -774,11 +508,11 @@ export function refreshProductAnalysisFromCloud() {
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '✓ Synced';
-            setTimeout(() => { btn.innerHTML = '↻ Cloud Sync'; }, 1500);
+            setTimeout(() => { btn.innerHTML = '↻ Sync'; }, 1500);
         }
     }).catch(() => {
         renderProductSalesAnalysis();
-        if (btn) { btn.disabled = false; btn.innerHTML = '↻ Cloud Sync'; }
+        if (btn) { btn.disabled = false; btn.innerHTML = '↻ Sync'; }
     });
 }
 
@@ -787,14 +521,10 @@ if (typeof window !== 'undefined') {
     window.setProductAnalysisPeriod = setProductAnalysisPeriod;
     window.setProductAnalysisCategory = setProductAnalysisCategory;
     window.setProductAnalysisSaleType = setProductAnalysisSaleType;
-    window.setProductAnalysisStatusFilter = setProductAnalysisStatusFilter;
-    window.setProductAnalysisSortBy = setProductAnalysisSortBy;
-    window.switchProductAnalysisTab = switchProductAnalysisTab;
     window.onProductAnalysisSearch = onProductAnalysisSearch;
     window.onProductAnalysisCustomDateChange = onProductAnalysisCustomDateChange;
     window.renderProductSalesAnalysis = renderProductSalesAnalysis;
     window.renderProductSalesAnalysisListOnly = renderProductSalesAnalysisListOnly;
-    window.toggleProductAnalysisFolder = toggleProductAnalysisFolder;
     window.shareProductAnalysisWhatsApp = shareProductAnalysisWhatsApp;
     window.refreshProductAnalysisFromCloud = refreshProductAnalysisFromCloud;
 }
