@@ -898,8 +898,10 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                           <option value="Kg">Kilogram (Kg)</option>
                           <option value="Gram">Gram (g)</option>
                           <option value="ml">Millilitre (ml)</option>
+                          <option value="mg">Milligram (mg)</option>
                           <option value="Pcs">Pieces (Pcs)</option>
                           <option value="Bottle">Bottle</option>
+                          <option value="General">General</option>
                         </select>
                       </div>
                     </div>
@@ -988,9 +990,13 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                           className="w-full border-2 border-slate-200 p-2.5 rounded-md text-xs font-semibold focus:border-pink-500 outline-none bg-white"
                         >
                           <option value="Bottle">Bottle</option>
-                          <option value="Pcs">Pieces</option>
-                          <option value="Ltr">Litre</option>
-                          <option value="ml">ml</option>
+                          <option value="Pcs">Pieces (Pcs)</option>
+                          <option value="Ltr">Litre (Ltr)</option>
+                          <option value="ml">Millilitre (ml)</option>
+                          <option value="Kg">Kilogram (Kg)</option>
+                          <option value="Gram">Gram (g)</option>
+                          <option value="mg">Milligram (mg)</option>
+                          <option value="General">General</option>
                         </select>
                       </div>
                     </div>
@@ -1931,9 +1937,13 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                       >
                         <option value="Ltr">Ltr</option>
                         <option value="Kg">Kg</option>
+                        <option value="Gram">Gram</option>
+                        <option value="ml">ml</option>
+                        <option value="mg">mg</option>
                         <option value="Pcs">Pcs</option>
+                        <option value="Bottle">Bottle</option>
                         <option value="Box">Box</option>
-                        <option value="Set">Set</option>
+                        <option value="General">General</option>
                       </select>
                     </div>
 
@@ -2690,6 +2700,7 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                     <option value="mg">mg (Milligram)</option>
                     <option value="Bottle">Bottle</option>
                     <option value="Pcs">Pcs</option>
+                    <option value="General">General</option>
                   </select>
                 </div>
               </div>

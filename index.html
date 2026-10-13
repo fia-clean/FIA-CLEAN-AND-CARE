@@ -1268,7 +1268,7 @@
                             <div class="flex gap-2">
                                 <input type="number" id="prodStock" placeholder="Stock Qty" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-emerald-500" min="0" step="any">
                                 <select id="prodUnit" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-emerald-500">
-                                    <option value="">Select Unit</option><option value="Ltr">Litre (Ltr)</option><option value="Kg">Kilogram (Kg)</option><option value="Gram">Gram (g)</option><option value="ml">Millilitre (ml)</option><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option>
+                                    <option value="">Select Unit</option><option value="Ltr">Litre (Ltr)</option><option value="Kg">Kilogram (Kg)</option><option value="Gram">Gram (g)</option><option value="ml">Millilitre (ml)</option><option value="mg">Milligram (mg)</option><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option><option value="General">General</option>
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-2">
@@ -1405,7 +1405,7 @@
                 <div id="cosStockAddContent">
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-pink-800/40 shadow-inner">
                         <div class="flex justify-between items-center mb-3"><h2 id="cosStockFormTitle" class="font-bold text-pink-400 text-sm">Add Cosmetic Product</h2><button type="button" onclick="openBarcodeScannerForCosmeticStock()" class="bg-slate-800 text-pink-300 border border-slate-700 px-2.5 py-1 rounded-lg text-[11px] font-bold">📷 Scan Barcode</button></div>
-                        <form id="cosProductForm" class="space-y-3" onsubmit="saveCosProduct(event)"><input type="hidden" id="cosProdId" value=""><input type="text" id="cosProdName" placeholder="Product Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><input type="text" id="cosProdBarcode" placeholder="Barcode / QR Number (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><div class="flex gap-2"><input type="number" id="cosProdStock" placeholder="Stock Qty" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"><select id="cosProdUnit" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">Select Unit</option><option value="Ltr">Litre (Ltr)</option><option value="Kg">Kilogram (Kg)</option><option value="Gram">Gram (g)</option><option value="ml">Millilitre (ml)</option><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option></select></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Package Used per Selling Unit:</label><select id="cosProdPackageId" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">No Package Mapping</option></select></div><div><label class="text-[10px] text-slate-400 block mb-1">Package Qty:</label><input type="number" id="cosProdPackageQty" value="1" min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"></div></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Wholesale Price (₹):</label><input type="number" id="cosProdCostPrice" placeholder="Wholesale Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div><div><label class="text-[10px] text-slate-400 block mb-1">Retail Price (₹):</label><input type="number" id="cosProdSalePrice" placeholder="Retail Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div></div>
+                        <form id="cosProductForm" class="space-y-3" onsubmit="saveCosProduct(event)"><input type="hidden" id="cosProdId" value=""><input type="text" id="cosProdName" placeholder="Product Name" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><input type="text" id="cosProdBarcode" placeholder="Barcode / QR Number (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><div class="flex gap-2"><input type="number" id="cosProdStock" placeholder="Stock Qty" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"><select id="cosProdUnit" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">Select Unit</option><option value="Ltr">Litre (Ltr)</option><option value="Kg">Kilogram (Kg)</option><option value="Gram">Gram (g)</option><option value="ml">Millilitre (ml)</option><option value="mg">Milligram (mg)</option><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option><option value="General">General</option></select></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Package Used per Selling Unit:</label><select id="cosProdPackageId" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">No Package Mapping</option></select></div><div><label class="text-[10px] text-slate-400 block mb-1">Package Qty:</label><input type="number" id="cosProdPackageQty" value="1" min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"></div></div><div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] text-slate-400 block mb-1">Wholesale Price (₹):</label><input type="number" id="cosProdCostPrice" placeholder="Wholesale Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div><div><label class="text-[10px] text-slate-400 block mb-1">Retail Price (₹):</label><input type="number" id="cosProdSalePrice" placeholder="Retail Rate" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100" min="0" step="any"></div></div>
 <!-- Multi-Variant Pack Sizes & Custom Rates for Cosmetics -->
 <div class="p-3 bg-slate-900/90 border border-pink-500/40 rounded-xl space-y-2.5">
     <div class="flex items-center justify-between gap-2">
@@ -2176,7 +2176,7 @@
                             <input type="number" id="rawQty" placeholder="Quantity" required class="w-1/2 p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-blue-500" min="0" step="any" oninput="calculatePurchaseTotal()">
                         </div>
                         <select id="rawUnit" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-blue-500">
-                            <option value="">Select Unit</option><option value="Ltr">Litre (Ltr)</option><option value="Kg">Kilogram (Kg)</option><option value="Gram">Gram (g)</option><option value="ml">Millilitre (ml)</option><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option>
+                            <option value="">Select Unit</option><option value="Ltr">Litre (Ltr)</option><option value="Kg">Kilogram (Kg)</option><option value="Gram">Gram (g)</option><option value="ml">Millilitre (ml)</option><option value="mg">Milligram (mg)</option><option value="Pcs">Pieces (Pcs)</option><option value="Bottle">Bottle</option><option value="General">General</option>
                         </select>
                         <div class="grid grid-cols-2 gap-2">
                             <input type="number" id="rawUnitPrice" placeholder="Unit Price (₹)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 focus:outline-none focus:border-blue-500" min="0" step="any" oninput="calculatePurchaseTotal()">
@@ -2290,8 +2290,10 @@
                                 <option value="Kg">Kilogram (Kg)</option>
                                 <option value="Gram">Gram (g)</option>
                                 <option value="ml">Millilitre (ml)</option>
+                                <option value="mg">Milligram (mg)</option>
                                 <option value="Pcs">Pieces (Pcs)</option>
                                 <option value="Bottle">Bottle</option>
+                                <option value="General">General</option>
                             </select>
                         </div>
 
@@ -3305,7 +3307,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.17) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.18) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3359,7 +3361,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.17')
+                navigator.serviceWorker.register('./sw.js?v=51.2.18')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

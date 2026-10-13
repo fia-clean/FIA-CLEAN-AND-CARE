@@ -77,8 +77,10 @@ export function addProductVariantRow(target = 'cleaning', data = null) {
                         <option value="Ltr" ${v.unit === 'Ltr' ? 'selected' : ''}>Ltr</option>
                         <option value="g" ${v.unit === 'g' ? 'selected' : ''}>g</option>
                         <option value="Kg" ${v.unit === 'Kg' ? 'selected' : ''}>Kg</option>
+                        <option value="mg" ${v.unit === 'mg' ? 'selected' : ''}>mg</option>
                         <option value="Pcs" ${v.unit === 'Pcs' ? 'selected' : ''}>Pcs</option>
                         <option value="Bottle" ${v.unit === 'Bottle' ? 'selected' : ''}>Bottle</option>
+                        <option value="General" ${v.unit === 'General' ? 'selected' : ''}>General</option>
                     </select>
                 </div>
             </div>

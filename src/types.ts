@@ -1,4 +1,4 @@
-export type UnitType = 'Ltr' | 'Kg' | 'Gram' | 'ml' | 'mg' | 'Pcs' | 'Bottle';
+export type UnitType = 'Ltr' | 'Kg' | 'Gram' | 'ml' | 'mg' | 'Pcs' | 'Bottle' | 'General';
 
 export interface Product {
   id: string;

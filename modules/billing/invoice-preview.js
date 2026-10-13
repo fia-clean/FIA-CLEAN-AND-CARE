@@ -34,7 +34,7 @@ export function formatInvoiceItemQty(item) {
         const p = (state.products || []).find(x => x && (x.name === name || (x.id && item.stockId && String(x.id) === String(item.stockId))))
             || (state.cosProducts || []).find(x => x && (x.name === name || (x.id && item.stockId && String(x.id) === String(item.stockId))))
             || (state.packages || []).find(x => x && (x.name === name || (x.id && item.packageId && String(x.id) === String(item.packageId))));
-        if (p && p.unit && p.unit !== 'Standard' && p.unit !== 'General') {
+        if (p && p.unit && p.unit !== 'Standard') {
             unit = String(p.unit).trim();
         }
     }
@@ -45,15 +45,17 @@ export function formatInvoiceItemQty(item) {
     else if (/^(ml|millilitre|millilitres)$/i.test(cleanUnit)) cleanUnit = 'ml';
     else if (/^(kg|kilogram|kilograms)$/i.test(cleanUnit)) cleanUnit = 'Kg';
     else if (/^(g|gram|grams|gm)$/i.test(cleanUnit)) cleanUnit = 'Gram';
+    else if (/^(mg|milligram|milligrams)$/i.test(cleanUnit)) cleanUnit = 'mg';
     else if (/^(pcs|piece|pieces|pc)$/i.test(cleanUnit)) cleanUnit = 'Pcs';
     else if (/^(bottle|bottles)$/i.test(cleanUnit)) cleanUnit = 'Bottle';
     else if (/^(can|cans)$/i.test(cleanUnit)) cleanUnit = 'Can';
     else if (/^(pouch|pouches)$/i.test(cleanUnit)) cleanUnit = 'Pouch';
     else if (/^(box|boxes)$/i.test(cleanUnit)) cleanUnit = 'Box';
+    else if (/^(general)$/i.test(cleanUnit)) cleanUnit = 'General';
 
     // If still empty, check item quantityType or default to Ltr
     if (!cleanUnit) {
-        if (item.quantityType && !/^(other|standard|general)$/i.test(item.quantityType)) {
+        if (item.quantityType && !/^(other|standard)$/i.test(item.quantityType)) {
             cleanUnit = item.quantityType;
         } else {
             cleanUnit = 'Ltr';

@@ -1124,7 +1124,7 @@ export function normalizeUnitCategory(unit) {
     if (['ml', 'millilitre', 'milliliter', 'millilitres', 'milliliters'].includes(u)) return 'ml';
     if (['kg', 'kilogram', 'kilograms'].includes(u)) return 'kg';
     if (['g', 'gm', 'gram', 'grams'].includes(u)) return 'g';
-    if (['pcs', 'pc', 'piece', 'pieces', 'bottle', 'bottles', 'box', 'boxes', 'pack', 'packs', 'standard', 'unit', 'units'].includes(u)) return 'pcs';
+    if (['pcs', 'pc', 'piece', 'pieces', 'bottle', 'bottles', 'box', 'boxes', 'pack', 'packs', 'standard', 'unit', 'units', 'general'].includes(u)) return 'pcs';
     return u;
 }
 
@@ -1147,7 +1147,7 @@ export function isProductPieceTracked(product, category = null) {
         return true;
     }
     const norm = normalizeUnitCategory(product.unit);
-    return ['pcs', 'unit', 'bottle', 'box', 'pack'].includes(norm);
+    return ['pcs', 'unit', 'bottle', 'box', 'pack', 'general'].includes(norm);
 }
 
 export function calculateItemTotal() {
