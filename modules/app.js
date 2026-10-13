@@ -136,6 +136,9 @@ import {
     setProductAnalysisPeriod,
     setProductAnalysisCategory,
     setProductAnalysisSaleType,
+    setProductAnalysisStatusFilter,
+    setProductAnalysisSortBy,
+    switchProductAnalysisTab,
     onProductAnalysisSearch,
     onProductAnalysisCustomDateChange,
     toggleProductAnalysisFolder,
@@ -421,6 +424,9 @@ if (typeof window !== 'undefined') {
     window.setProductAnalysisPeriod = setProductAnalysisPeriod;
     window.setProductAnalysisCategory = setProductAnalysisCategory;
     window.setProductAnalysisSaleType = setProductAnalysisSaleType;
+    window.setProductAnalysisStatusFilter = setProductAnalysisStatusFilter;
+    window.setProductAnalysisSortBy = setProductAnalysisSortBy;
+    window.switchProductAnalysisTab = switchProductAnalysisTab;
     window.onProductAnalysisSearch = onProductAnalysisSearch;
     window.onProductAnalysisCustomDateChange = onProductAnalysisCustomDateChange;
     window.toggleProductAnalysisFolder = toggleProductAnalysisFolder;
@@ -757,6 +763,36 @@ export function openBillingSection(type) {
     const btnNew = document.getElementById('btnBillingNew');
     const btnHist = document.getElementById('btnBillingHistory');
     const btnAnalysis = document.getElementById('btnBillingAnalysis');
+    const btnItemWise = document.getElementById('btnBillingItemWise');
+
+    if (type === 'itemwise') {
+        if (std) std.classList.add('hidden');
+        if (hist) hist.classList.add('hidden');
+        if (analysis) analysis.classList.remove('hidden');
+        if (btnNew) {
+            btnNew.className = 'py-3 rounded-xl bg-slate-800 text-indigo-300 border border-indigo-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+        }
+        if (btnHist) {
+            btnHist.className = 'py-3 rounded-xl bg-slate-800 text-emerald-300 border border-emerald-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+        }
+        if (btnAnalysis) {
+            btnAnalysis.className = 'py-3 rounded-xl bg-slate-800 text-amber-300 border border-amber-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+        }
+        if (btnItemWise) {
+            btnItemWise.className = 'py-3 rounded-xl bg-cyan-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
+        }
+        if (typeof window.switchProductAnalysisTab === 'function') {
+            window.switchProductAnalysisTab('itemwise');
+        } else if (typeof renderProductSalesAnalysis === 'function') {
+            renderProductSalesAnalysis();
+        }
+        if (typeof pullFromFirebase === 'function') {
+            pullFromFirebase().then(() => {
+                if (typeof renderProductSalesAnalysis === 'function') renderProductSalesAnalysis();
+            });
+        }
+        return;
+    }
 
     if (type === 'analysis') {
         if (std) std.classList.add('hidden');
@@ -771,7 +807,12 @@ export function openBillingSection(type) {
         if (btnAnalysis) {
             btnAnalysis.className = 'py-3 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition';
         }
-        if (typeof renderProductSalesAnalysis === 'function') {
+        if (btnItemWise) {
+            btnItemWise.className = 'py-3 rounded-xl bg-slate-800 text-cyan-300 border border-cyan-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+        }
+        if (typeof window.switchProductAnalysisTab === 'function') {
+            window.switchProductAnalysisTab('overview');
+        } else if (typeof renderProductSalesAnalysis === 'function') {
             renderProductSalesAnalysis();
         }
         if (typeof pullFromFirebase === 'function') {
@@ -794,6 +835,9 @@ export function openBillingSection(type) {
         }
         if (btnAnalysis) {
             btnAnalysis.className = 'py-3 rounded-xl bg-slate-800 text-amber-300 border border-amber-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+        }
+        if (btnItemWise) {
+            btnItemWise.className = 'py-3 rounded-xl bg-slate-800 text-cyan-300 border border-cyan-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
         }
         window.__fiaSalesHistoryFilter = window.__fiaSalesHistoryFilter || 'all';
         if (window.__fiaSalesHistoryFilter === 'customer' && typeof window.renderCustomerSalesHistory === 'function') {
@@ -828,6 +872,9 @@ export function openBillingSection(type) {
     }
     if (btnAnalysis) {
         btnAnalysis.className = 'py-3 rounded-xl bg-slate-800 text-amber-300 border border-amber-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
+    }
+    if (btnItemWise) {
+        btnItemWise.className = 'py-3 rounded-xl bg-slate-800 text-cyan-300 border border-cyan-800/50 text-xs font-bold flex items-center justify-center gap-1.5 transition';
     }
 
     updateBillingFormDisplays();

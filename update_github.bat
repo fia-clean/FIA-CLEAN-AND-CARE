@@ -4,7 +4,7 @@ color 0A
 
 echo ========================================================
 echo    FIA CLEAN & CARE - GITHUB AUTO PUSH & DEPLOY
-echo    Version: v51.2.18 (Add General unit in Stock & Purchases)
+echo    Version: v51.2.19 (Add Item-Wise List tab & full product sales analysis in Billing)
 echo ========================================================
 echo.
 
@@ -15,7 +15,7 @@ git add .
 
 echo.
 echo [2/3] Committing changes...
-git commit -m "feat(stock): v51.2.18 - add General unit option in Stock and Purchases"
+git commit -m "feat(billing): v51.2.19 - add Item-Wise List tab & complete product sales analysis"
 
 echo.
 echo [3/3] Pushing to GitHub (main branch)...
