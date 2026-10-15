@@ -903,19 +903,33 @@
             </div>
             <button type="button" onclick="verifyLoginPin()" class="w-full bg-emerald-600 text-white py-3.5 rounded-2xl font-bold text-sm hover:bg-emerald-700 active:scale-[0.99] transition shadow-lg shadow-emerald-700/20 cursor-pointer">Login</button>
             
-            <!-- Biometric Quick Unlock Option (WebAuthn: Fingerprint / Face ID) -->
-            <div id="biometricContainer" class="hidden pt-1 space-y-2">
-                <div class="relative flex py-1 items-center">
+            <!-- Modern Mobile In-Display Animated Fingerprint Scanner -->
+            <div id="biometricContainer" class="hidden pt-1 flex-col items-center justify-center space-y-2">
+                <div class="relative flex py-1 w-full items-center">
                     <div class="flex-grow border-t border-slate-200"></div>
-                    <span class="flex-shrink mx-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">OR FAST UNLOCK</span>
+                    <span class="flex-shrink mx-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">OR SCAN</span>
                     <div class="flex-grow border-t border-slate-200"></div>
                 </div>
-                <button type="button" id="biometricBtn" onclick="handleBiometricAuth()" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-2xl font-bold text-xs tracking-wide transition flex items-center justify-center gap-2 shadow-md shadow-slate-900/15 cursor-pointer active:scale-[0.99]">
-                    <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 004.07 9.878m12.39-4.242A7.962 7.962 0 0012 4c-3.15 0-5.877 1.821-7.16 4.464M9 20c.553.44 1.144.823 1.768 1.142m6.232-1.142A11.956 11.956 0 0112 21.5c-1.572 0-3.07-.302-4.444-.852"/>
-                    </svg>
-                    <span id="biometricBtnLabel">Unlock with Fingerprint / Face ID</span>
-                </button>
+
+                <div class="flex flex-col items-center justify-center pt-1 group">
+                    <button type="button" id="biometricBtn" onclick="handleBiometricAuth()" aria-label="Biometric Fingerprint Scanner" class="relative flex items-center justify-center focus:outline-none cursor-pointer active:scale-90 transition-transform duration-150">
+                        <!-- Radar Pulse Ping Waves -->
+                        <span id="biometricPulseRing" class="absolute -inset-2 rounded-full bg-emerald-400/30 blur-xs animate-ping pointer-events-none"></span>
+                        <span class="absolute -inset-1.5 rounded-full border border-emerald-500/30 pointer-events-none"></span>
+                        
+                        <!-- Circular Sensor Pod -->
+                        <div id="biometricSensorPod" class="relative w-16 h-16 rounded-full bg-gradient-to-b from-slate-900 via-slate-950 to-emerald-950 border-2 border-emerald-500/60 shadow-xl shadow-emerald-500/25 flex items-center justify-center transition-all group-hover:border-emerald-400 group-hover:shadow-emerald-500/40">
+                            <!-- Fingerprint SVG Icon with subtle pulse -->
+                            <svg id="biometricFingerprintIcon" class="w-8 h-8 text-emerald-400 group-hover:text-emerald-300 transition-colors animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.75">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 004.07 9.878m12.39-4.242A7.962 7.962 0 0012 4c-3.15 0-5.877 1.821-7.16 4.464M9 20c.553.44 1.144.823 1.768 1.142m6.232-1.142A11.956 11.956 0 0112 21.5c-1.572 0-3.07-.302-4.444-.852"/>
+                            </svg>
+                        </div>
+                    </button>
+                    
+                    <span id="biometricBtnLabel" class="text-[11px] font-bold text-slate-500 mt-2 tracking-wide group-hover:text-emerald-700 transition">
+                        Touch sensor to unlock
+                    </span>
+                </div>
             </div>
 
             <div class="flex justify-between text-xs pt-2 border-t border-slate-100">

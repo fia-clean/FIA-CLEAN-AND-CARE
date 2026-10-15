@@ -437,21 +437,39 @@ export async function updateBiometricUI() {
         if (container) {
             if (available) {
                 container.classList.remove('hidden');
-                container.style.removeProperty('display');
+                container.style.display = 'flex';
                 if (label) {
                     label.textContent = enrolled 
-                        ? 'Unlock with Fingerprint / Face ID' 
-                        : 'Set up Fingerprint / Face ID';
+                        ? 'Touch sensor to unlock' 
+                        : 'Tap to set up Fingerprint';
                 }
-                if (btn) {
+                const pulse = document.getElementById('biometricPulseRing');
+                const pod = document.getElementById('biometricSensorPod');
+                const icon = document.getElementById('biometricFingerprintIcon');
+                if (pulse) {
                     if (enrolled) {
-                        btn.className = "w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-2xl font-bold text-xs tracking-wide transition flex items-center justify-center gap-2 shadow-md shadow-slate-900/15 cursor-pointer active:scale-[0.99]";
+                        pulse.classList.remove('hidden');
                     } else {
-                        btn.className = "w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 py-2.5 rounded-2xl font-bold text-xs tracking-wide transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]";
+                        pulse.classList.add('hidden');
+                    }
+                }
+                if (pod) {
+                    if (enrolled) {
+                        pod.className = "relative w-16 h-16 rounded-full bg-gradient-to-b from-slate-900 via-slate-950 to-emerald-950 border-2 border-emerald-500/60 shadow-xl shadow-emerald-500/25 flex items-center justify-center transition-all group-hover:border-emerald-400 group-hover:shadow-emerald-500/40";
+                    } else {
+                        pod.className = "relative w-16 h-16 rounded-full bg-gradient-to-b from-indigo-50 to-white border-2 border-indigo-300 shadow-md shadow-indigo-200/50 flex items-center justify-center transition-all group-hover:border-indigo-500";
+                    }
+                }
+                if (icon) {
+                    if (enrolled) {
+                        icon.className = "w-8 h-8 text-emerald-400 group-hover:text-emerald-300 transition-colors animate-pulse";
+                    } else {
+                        icon.className = "w-8 h-8 text-indigo-600 group-hover:text-indigo-700 transition-colors";
                     }
                 }
             } else {
                 container.classList.add('hidden');
+                container.style.display = 'none';
             }
         }
 

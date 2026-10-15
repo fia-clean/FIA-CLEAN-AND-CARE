@@ -210,36 +210,59 @@ export const PinModal: React.FC<PinModalProps> = ({
           </button>
         </form>
 
-        {/* Biometric Quick Unlock Option */}
+        {/* Modern Mobile In-Display Animated Fingerprint Scanner */}
         {biometricAvailable && (
-          <div className="space-y-2">
-            <div className="relative flex py-1 items-center">
+          <div className="pt-1 flex flex-col items-center justify-center space-y-2">
+            <div className="relative flex py-1 w-full items-center">
               <div className="flex-grow border-t border-slate-200"></div>
-              <span className="flex-shrink mx-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                OR FAST UNLOCK
+              <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                OR SCAN
               </span>
               <div className="flex-grow border-t border-slate-200"></div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleBiometricAction}
-              disabled={biometricLoading}
-              className={`w-full py-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99] ${
-                biometricEnrolled
-                  ? 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/10'
-                  : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
-              }`}
-            >
-              <Fingerprint className={`w-4 h-4 ${biometricEnrolled ? 'text-teal-400 animate-pulse' : 'text-indigo-600'}`} />
-              <span>
+            <div className="flex flex-col items-center justify-center pt-1 group">
+              <button
+                type="button"
+                onClick={handleBiometricAction}
+                disabled={biometricLoading}
+                aria-label="Biometric Fingerprint Scanner"
+                className="relative flex items-center justify-center focus:outline-none cursor-pointer active:scale-90 transition-transform duration-150"
+              >
+                {/* Radar Pulse Ping Waves (when enrolled) */}
+                {biometricEnrolled && (
+                  <>
+                    <span className="absolute -inset-2 rounded-full bg-emerald-400/30 blur-xs animate-ping pointer-events-none"></span>
+                    <span className="absolute -inset-1.5 rounded-full border border-emerald-500/30 pointer-events-none"></span>
+                  </>
+                )}
+
+                {/* Circular Sensor Pod */}
+                <div
+                  className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all ${
+                    biometricEnrolled
+                      ? 'bg-gradient-to-b from-slate-900 via-slate-950 to-emerald-950 border-2 border-emerald-500/60 shadow-xl shadow-emerald-500/25 group-hover:border-emerald-400 group-hover:shadow-emerald-500/40'
+                      : 'bg-gradient-to-b from-indigo-50 to-white border-2 border-indigo-300 shadow-md shadow-indigo-200/50 group-hover:border-indigo-500'
+                  }`}
+                >
+                  <Fingerprint
+                    className={`w-8 h-8 transition-colors ${
+                      biometricEnrolled
+                        ? 'text-emerald-400 group-hover:text-emerald-300 animate-pulse'
+                        : 'text-indigo-600 group-hover:text-indigo-700'
+                    }`}
+                  />
+                </div>
+              </button>
+
+              <span className="text-[11px] font-bold text-slate-500 mt-2 tracking-wide group-hover:text-emerald-700 transition">
                 {biometricLoading
-                  ? 'Verifying Biometrics...'
+                  ? 'Scanning...'
                   : biometricEnrolled
-                  ? 'Unlock with Fingerprint / Face ID'
-                  : 'Set up Fingerprint / Face ID'}
+                  ? 'Touch sensor to unlock'
+                  : 'Tap to set up Fingerprint'}
               </span>
-            </button>
+            </div>
           </div>
         )}
 
