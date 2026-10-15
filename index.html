@@ -540,27 +540,20 @@
     <!-- ================= INSTANT SYNCHRONOUS AUTHENTICATION ENGINE ================= -->
     <script>
         (function() {
-            var MASTER_KEYS = ["FIA786", "FIA-CLEAN-CARE-MASTER-2026", "FIA2026", "MASTER786"];
-            var DEFAULT_PINS = ["1234", "1122", "0000", "7860"];
-
-            window.isMasterKey = function(key) {
-                if (!key) return false;
-                var clean = String(key).trim().toUpperCase();
-                return MASTER_KEYS.indexOf(clean) !== -1;
+            window.isMasterKey = function() {
+                return false;
             };
 
             window.isAuthorizedPin = function(val, savedPin) {
                 if (!val) return false;
                 var clean = String(val).trim();
-                if (window.isMasterKey(clean)) return true;
-                if (DEFAULT_PINS.indexOf(clean) !== -1) return true;
-                if (savedPin && clean === String(savedPin).trim()) return true;
+                var saved = '1234';
                 try {
-                    var local = localStorage.getItem('fia_app_pin');
-                    if (local && clean === String(local).trim()) return true;
-                    if (window.state && window.state.appPin && clean === String(window.state.appPin).trim()) return true;
-                } catch(e) {}
-                return false;
+                    saved = localStorage.getItem('fia_app_pin') || (window.state && window.state.appPin) || savedPin || '1234';
+                } catch(e) {
+                    saved = savedPin || '1234';
+                }
+                return clean === String(saved).trim();
             };
 
             // If session already logged in, automatically dismiss overlay when DOM is ready
@@ -680,14 +673,6 @@
                 savedPin = String(savedPin).trim();
 
                 if (window.isAuthorizedPin(entered, savedPin)) {
-                    if (window.isMasterKey(entered)) {
-                        // Master key used: reset forgotten appPin back to default 1234
-                        try {
-                            localStorage.setItem('fia_app_pin', '1234');
-                            if (window.state) window.state.appPin = '1234';
-                            if (typeof window.syncToFirebase === 'function') window.syncToFirebase();
-                        } catch(e) {}
-                    }
                     if (window.state) {
                         window.state.isLoggedIn = true;
                     }
@@ -804,8 +789,20 @@
             window.openResetPinModal = function() {
                 var m = document.getElementById('resetPinModal');
                 if (m) { m.classList.remove('hidden'); m.removeAttribute('hidden'); }
-                var r = document.getElementById('rpMasterKey');
-                if (r) { r.value = ''; r.focus(); }
+                var e = document.getElementById('rpAdminEmail');
+                if (e) {
+                    var curUserEmail = (window.FB_AUTH && window.FB_AUTH.currentUser && window.FB_AUTH.currentUser.email) ? window.FB_AUTH.currentUser.email : '';
+                    if (!curUserEmail) {
+                        curUserEmail = document.getElementById('cloudAuthEmail')?.value || '';
+                    }
+                    e.value = curUserEmail;
+                    if (!curUserEmail) e.focus();
+                }
+                var p = document.getElementById('rpAdminPass');
+                if (p) {
+                    p.value = '';
+                    if (e && e.value) p.focus();
+                }
                 var np = document.getElementById('rpNewDirect');
                 if (np) np.value = '';
                 var st = document.getElementById('rpMasterStatus');
@@ -817,29 +814,47 @@
                 if (m) m.classList.add('hidden');
             };
 
-            window.verifyMasterKeyAndReset = function() {
-                var enteredKey = (document.getElementById('rpMasterKey')?.value || '').trim();
+            window.verifyAdminAndResetPin = async function() {
+                var email = (document.getElementById('rpAdminEmail')?.value || '').trim();
+                var pass = document.getElementById('rpAdminPass')?.value || '';
                 var newPin = (document.getElementById('rpNewDirect')?.value || '').trim();
                 var status = document.getElementById('rpMasterStatus');
+                var btn = document.getElementById('rpSaveBtn');
 
-                if (!window.isMasterKey(enteredKey)) {
-                    if (status) { status.textContent = '⚠️ Invalid Master Key!'; status.classList.remove('hidden'); }
+                if (!email || !pass) {
+                    if (status) { status.textContent = '⚠️ Please enter your Firebase Admin Email and Password.'; status.classList.remove('hidden'); }
                     return;
                 }
                 if (newPin.length < 3) {
                     if (status) { status.textContent = '⚠️ New PIN must be at least 3 digits.'; status.classList.remove('hidden'); }
                     return;
                 }
+                if (!window.FB_AUTH) {
+                    if (status) { status.textContent = '⚠️ Firebase is initializing. Please check connection.'; status.classList.remove('hidden'); }
+                    return;
+                }
+                if (btn) { btn.textContent = 'Verifying with Firebase...'; btn.disabled = true; }
                 try {
-                    localStorage.setItem('fia_app_pin', newPin);
-                    if (window.state) window.state.appPin = newPin;
-                    if (typeof window.syncToFirebase === 'function') window.syncToFirebase();
-                } catch(e) {}
-                alert("✓ Security PIN updated successfully!");
-                window.closeResetPinModal();
-                var loginInput = document.getElementById('loginPinInput');
-                if (loginInput) { loginInput.value = newPin; loginInput.focus(); }
+                    await window.FB_AUTH.signInWithEmailAndPassword(email, pass);
+                    try {
+                        localStorage.setItem('fia_app_pin', newPin);
+                        if (window.state) window.state.appPin = newPin;
+                        if (typeof window.syncToFirebase === 'function') window.syncToFirebase();
+                    } catch(e) {}
+                    alert("✓ Admin identity verified!\nSecurity PIN updated successfully to: " + newPin);
+                    window.closeResetPinModal();
+                    var loginInput = document.getElementById('loginPinInput');
+                    if (loginInput) { loginInput.value = newPin; loginInput.focus(); }
+                } catch(err) {
+                    if (status) {
+                        status.textContent = '⚠️ Verification failed: ' + (err.message || 'Invalid admin credentials');
+                        status.classList.remove('hidden');
+                    }
+                } finally {
+                    if (btn) { btn.textContent = 'Verify & Save PIN'; btn.disabled = false; }
+                }
             };
+            window.verifyMasterKeyAndReset = window.verifyAdminAndResetPin;
 
             window.logoutApp = function() {
                 if (window.state) {
@@ -2974,22 +2989,32 @@
         </div>
     </div>
 
-    <!-- Clean Master Key Reset Modal -->
+    <!-- Clean Admin Auth PIN Reset Modal (Zero Backdoors) -->
     <div id="resetPinModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[100000] hidden flex items-center justify-center p-3">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 space-y-4 text-center shadow-2xl">
-            <h3 class="font-bold text-sky-400 text-sm">🔑 Reset Security PIN</h3>
+            <div class="flex items-center justify-center gap-2">
+                <span class="text-xl">🛡️</span>
+                <h3 class="font-bold text-sky-400 text-sm">Secure PIN Recovery</h3>
+            </div>
+            <p class="text-[11px] text-slate-400">Verify your Firebase Admin credentials to reset the Security PIN.</p>
             
             <div class="space-y-3 text-xs text-left">
                 <div>
-                    <input type="password" id="rpMasterKey" placeholder="Enter Master Recovery Key" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-sky-500 text-sm" maxlength="50">
+                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Firebase Admin Email</label>
+                    <input type="email" id="rpAdminEmail" placeholder="admin@gmail.com" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-sky-500 text-sm" autocomplete="email">
                 </div>
                 <div>
+                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Firebase Admin Password</label>
+                    <input type="password" id="rpAdminPass" placeholder="Enter Firebase Password" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-sky-500 text-sm" autocomplete="current-password">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">New Security PIN</label>
                     <input type="password" id="rpNewDirect" placeholder="Enter New PIN (min 3 digits)" class="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 text-sm" maxlength="10">
                 </div>
                 <p id="rpMasterStatus" class="text-[11px] text-rose-400 hidden text-center font-semibold"></p>
                 
                 <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="verifyMasterKeyAndReset()" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-emerald-500 transition shadow-lg shadow-emerald-900/30 cursor-pointer">Save New PIN</button>
+                    <button type="button" id="rpSaveBtn" onclick="verifyAdminAndResetPin()" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-emerald-500 transition shadow-lg shadow-emerald-900/30 cursor-pointer">Verify & Save PIN</button>
                     <button type="button" onclick="closeResetPinModal()" class="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl font-bold text-sm hover:bg-slate-700 transition cursor-pointer">Cancel</button>
                 </div>
             </div>

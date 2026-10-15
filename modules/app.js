@@ -43,6 +43,7 @@ import {
     submitChangePin,
     openResetPinModal,
     closeResetPinModal,
+    verifyAdminAndResetPin,
     verifyMasterKeyAndReset,
     saveNewPin,
     openSettingsModal,

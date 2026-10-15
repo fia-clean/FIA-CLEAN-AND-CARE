@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, KeyRound, Shield, Eye, EyeOff, X, CheckCircle2, ShieldCheck, Fingerprint } from 'lucide-react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase';
 import {
   isBiometricAvailable,
   isBiometricEnrolled,
@@ -24,13 +26,15 @@ export const PinModal: React.FC<PinModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
-  const [resetMethod, setResetMethod] = useState<'current' | 'master'>('current');
+  const [resetMethod, setResetMethod] = useState<'current' | 'admin'>('current');
   const [currentPinCheck, setCurrentPinCheck] = useState('');
-  const [masterKey, setMasterKey] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
   const [newPinDirect, setNewPinDirect] = useState('');
   const [showResetNewPin, setShowResetNewPin] = useState(false);
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState('');
+  const [resetSubmitting, setResetSubmitting] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnrolled, setBiometricEnrolled] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
@@ -56,13 +60,7 @@ export const PinModal: React.FC<PinModalProps> = ({
         setErrorMsg('Please enter password above first to register Fingerprint / Face ID.');
         return;
       }
-      if (
-        entered !== active &&
-        entered !== '1122' &&
-        entered !== '1234' &&
-        entered !== 'FIA786' &&
-        entered.toUpperCase() !== 'FIA786'
-      ) {
+      if (entered !== active) {
         setErrorMsg('Incorrect Password! Cannot register biometrics.');
         return;
       }
@@ -101,13 +99,7 @@ export const PinModal: React.FC<PinModalProps> = ({
     e.preventDefault();
     const entered = pinInput.trim();
     const active = (appPin || '1234').trim();
-    if (
-      entered === active ||
-      entered === '1122' ||
-      entered === '1234' ||
-      entered === 'FIA786' ||
-      entered.toUpperCase() === 'FIA786'
-    ) {
+    if (entered === active) {
       setErrorMsg('');
       setPinInput('');
       onSuccess();
@@ -116,20 +108,30 @@ export const PinModal: React.FC<PinModalProps> = ({
     }
   };
 
-  const handlePasswordUpdate = (e: React.FormEvent) => {
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetError('');
     setResetSuccess('');
 
     if (resetMethod === 'current') {
-      if (currentPinCheck.trim() !== appPin.trim()) {
+      if (currentPinCheck.trim() !== (appPin || '1234').trim()) {
         setResetError('Current password does not match active system password!');
         return;
       }
     } else {
-      if (masterKey.trim() !== 'FIA786') {
-        setResetError('Invalid Master Recovery Key!');
+      if (!adminEmail.trim() || !adminPassword) {
+        setResetError('Please enter your Firebase Admin Email and Password.');
         return;
+      }
+      try {
+        setResetSubmitting(true);
+        await signInWithEmailAndPassword(auth, adminEmail.trim(), adminPassword);
+      } catch (err: any) {
+        setResetError('Admin verification failed: ' + (err.message || 'Invalid admin credentials'));
+        setResetSubmitting(false);
+        return;
+      } finally {
+        setResetSubmitting(false);
       }
     }
 
@@ -144,7 +146,8 @@ export const PinModal: React.FC<PinModalProps> = ({
     setTimeout(() => {
       setShowResetModal(false);
       setCurrentPinCheck('');
-      setMasterKey('');
+      setAdminEmail('');
+      setAdminPassword('');
       setNewPinDirect('');
       setResetSuccess('');
       setResetError('');
@@ -275,7 +278,8 @@ export const PinModal: React.FC<PinModalProps> = ({
               setResetSuccess('');
               setCurrentPinCheck('');
               setNewPinDirect('');
-              setMasterKey('');
+              setAdminEmail('');
+              setAdminPassword('');
             }}
             className="text-indigo-600 hover:text-indigo-800 hover:underline font-semibold inline-flex items-center gap-1 cursor-pointer transition"
           >
@@ -302,7 +306,7 @@ export const PinModal: React.FC<PinModalProps> = ({
               </button>
             </div>
 
-            {/* Method switch: with current password OR with master key */}
+            {/* Method switch: with current password OR with Firebase Admin */}
             <div className="flex bg-slate-100 p-1 rounded-lg text-[11px] font-bold">
               <button
                 type="button"
@@ -321,16 +325,16 @@ export const PinModal: React.FC<PinModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setResetMethod('master');
+                  setResetMethod('admin');
                   setResetError('');
                 }}
                 className={`flex-1 py-1.5 rounded-md transition ${
-                  resetMethod === 'master'
+                  resetMethod === 'admin'
                     ? 'bg-white text-indigo-900 shadow-xs'
                     : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                Forgot? (Master Key)
+                Forgot? (Firebase Admin)
               </button>
             </div>
 
@@ -361,16 +365,29 @@ export const PinModal: React.FC<PinModalProps> = ({
                   />
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Master Recovery Key</label>
-                  <input
-                    type="password"
-                    placeholder="Default master key (FIA786)"
-                    value={masterKey}
-                    onChange={(e) => setMasterKey(e.target.value)}
-                    required
-                    className="w-full border border-slate-300 p-2 rounded-lg text-xs font-mono outline-none focus:border-indigo-600"
-                  />
+                <div className="space-y-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Firebase Admin Email</label>
+                    <input
+                      type="email"
+                      placeholder="admin@gmail.com"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      required
+                      className="w-full border border-slate-300 p-2 rounded-lg text-xs outline-none focus:border-indigo-600"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Firebase Admin Password</label>
+                    <input
+                      type="password"
+                      placeholder="Enter Firebase password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      required
+                      className="w-full border border-slate-300 p-2 rounded-lg text-xs font-mono outline-none focus:border-indigo-600"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -398,9 +415,10 @@ export const PinModal: React.FC<PinModalProps> = ({
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 bg-indigo-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 shadow-xs"
+                  disabled={resetSubmitting}
+                  className="flex-1 bg-indigo-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 shadow-xs"
                 >
-                  Save Active Password
+                  {resetSubmitting ? 'Verifying...' : 'Save Active Password'}
                 </button>
                 <button
                   type="button"

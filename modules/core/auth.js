@@ -2,7 +2,7 @@
  * FIA CLEAN & CARE - Authentication & PIN Security Module
  */
 
-import { state, MASTER_RECOVERY_KEY, MASTER_RECOVERY_KEYS } from './state.js';
+import { state } from './state.js';
 import { syncToFirebase, pullFromFirebase } from './db.js';
 import {
     isBiometricAvailable,
@@ -12,28 +12,20 @@ import {
     disableBiometric
 } from './biometrics.js';
 
-export const ACCEPTED_MASTER_KEYS = MASTER_RECOVERY_KEYS || ["FIA786", "FIA-CLEAN-CARE-MASTER-2026", "FIA2026", "MASTER786"];
-export const DEFAULT_FALLBACK_PINS = ["1234", "1122", "0000", "7860"];
-
-export function isMasterKey(val) {
-    if (!val) return false;
-    const clean = String(val).trim().toUpperCase();
-    return ACCEPTED_MASTER_KEYS.includes(clean);
+export function isMasterKey() {
+    return false;
 }
 
 export function isAuthorizedPin(entered, activePin) {
     if (!entered) return false;
     const clean = String(entered).trim();
-    if (isMasterKey(clean)) return true;
-    if (DEFAULT_FALLBACK_PINS.includes(clean)) return true;
-    if (activePin && clean === String(activePin).trim()) return true;
+    let saved = '1234';
     try {
-        const local = localStorage.getItem('fia_app_pin');
-        if (local && clean === String(local).trim()) return true;
-        if (state && state.appPin && clean === String(state.appPin).trim()) return true;
-        if (window.state && window.state.appPin && clean === String(window.state.appPin).trim()) return true;
-    } catch(e) {}
-    return false;
+        saved = localStorage.getItem('fia_app_pin') || (state && state.appPin) || (window.state && window.state.appPin) || activePin || '1234';
+    } catch(e) {
+        saved = activePin || '1234';
+    }
+    return clean === String(saved).trim();
 }
 
 export function verifyLoginPin() {
@@ -49,13 +41,6 @@ export function verifyLoginPin() {
         try {
             sessionStorage.setItem('fia_logged_in', 'true');
         } catch(e) {}
-
-        // If master key was used, restore forgotten pin to default 1234
-        if (isMasterKey(entered)) {
-            state.appPin = '1234';
-            try { localStorage.setItem('fia_app_pin', '1234'); } catch(e) {}
-            syncToFirebase();
-        }
 
         if (typeof window._dismissLoginOverlay === 'function') {
             window._dismissLoginOverlay();
@@ -195,15 +180,30 @@ export function submitChangePin() {
 }
 
 export function openResetPinModal() {
-    const rKey = document.getElementById('rpMasterKey');
+    const adminEmailInput = document.getElementById('rpAdminEmail');
+    const adminPassInput = document.getElementById('rpAdminPass');
     const rPin = document.getElementById('rpNewDirect');
-    if (rKey) rKey.value = '';
-    if (rPin) rPin.value = '';
     const status = document.getElementById('rpMasterStatus');
+
+    if (adminEmailInput) {
+        let savedEmail = '';
+        if (window.FB_AUTH && window.FB_AUTH.currentUser && window.FB_AUTH.currentUser.email) {
+            savedEmail = window.FB_AUTH.currentUser.email;
+        } else {
+            savedEmail = document.getElementById('cloudAuthEmail')?.value || '';
+        }
+        adminEmailInput.value = savedEmail;
+    }
+    if (adminPassInput) adminPassInput.value = '';
+    if (rPin) rPin.value = '';
     if (status) { status.textContent = ''; status.classList.add('hidden'); }
     const modal = document.getElementById('resetPinModal');
     if (modal) modal.classList.remove('hidden');
-    if (rKey) rKey.focus();
+    if (adminEmailInput && !adminEmailInput.value) {
+        adminEmailInput.focus();
+    } else if (adminPassInput) {
+        adminPassInput.focus();
+    }
 }
 
 export function closeResetPinModal() {
@@ -211,13 +211,15 @@ export function closeResetPinModal() {
     if (modal) modal.classList.add('hidden');
 }
 
-export function verifyMasterKeyAndReset() {
-    const enteredKey = (document.getElementById('rpMasterKey')?.value || '').trim();
+export async function verifyAdminAndResetPin() {
+    const email = (document.getElementById('rpAdminEmail')?.value || '').trim();
+    const pass = document.getElementById('rpAdminPass')?.value || '';
     const newPin = (document.getElementById('rpNewDirect')?.value || '').trim();
     const status = document.getElementById('rpMasterStatus');
+    const btn = document.getElementById('rpSaveBtn');
 
-    if (!isMasterKey(enteredKey)) {
-        if (status) { status.textContent = '⚠️ Invalid Master Key!'; status.classList.remove('hidden'); }
+    if (!email || !pass) {
+        if (status) { status.textContent = '⚠️ Please enter your Firebase Admin Email and Password.'; status.classList.remove('hidden'); }
         return;
     }
     if (newPin.length < 3) {
@@ -225,14 +227,41 @@ export function verifyMasterKeyAndReset() {
         return;
     }
 
-    state.appPin = newPin;
-    try { localStorage.setItem('fia_app_pin', newPin); } catch(e) {}
-    syncToFirebase();
-    alert('✓ Security PIN updated successfully!');
-    closeResetPinModal();
-    const loginInput = document.getElementById('loginPinInput');
-    if (loginInput) { loginInput.value = newPin; loginInput.focus(); }
+    if (!window.FB_AUTH) {
+        if (status) { status.textContent = '⚠️ Firebase is initializing. Please check your internet connection.'; status.classList.remove('hidden'); }
+        return;
+    }
+
+    if (btn) {
+        btn.textContent = 'Verifying with Firebase...';
+        btn.disabled = true;
+    }
+
+    try {
+        await window.FB_AUTH.signInWithEmailAndPassword(email, pass);
+        // Authentication succeeded with Firebase!
+        state.appPin = newPin;
+        try { localStorage.setItem('fia_app_pin', newPin); } catch(e) {}
+        syncToFirebase();
+        alert('✓ Admin identity successfully verified!\nSecurity PIN updated to: ' + newPin);
+        closeResetPinModal();
+        const loginInput = document.getElementById('loginPinInput');
+        if (loginInput) { loginInput.value = newPin; loginInput.focus(); }
+    } catch (err) {
+        console.warn('Admin reset verification failed:', err);
+        if (status) {
+            status.textContent = '⚠️ Verification failed: ' + (err.message || 'Invalid admin credentials');
+            status.classList.remove('hidden');
+        }
+    } finally {
+        if (btn) {
+            btn.textContent = 'Verify & Save PIN';
+            btn.disabled = false;
+        }
+    }
 }
+
+export const verifyMasterKeyAndReset = verifyAdminAndResetPin;
 
 export function openSettingsModal() { 
     document.getElementById('settingsModal')?.classList.remove('hidden'); 

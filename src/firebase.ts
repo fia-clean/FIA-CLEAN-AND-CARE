@@ -1,5 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase, ref, onValue, set, get, update, off } from 'firebase/database';
+import { getAuth } from 'firebase/auth';
 
 export const firebaseConfig = {
   apiKey: "AIzaSyAl6U6hwZsqNLoxYmdWrQMkH6F-0dnn7Kg",
@@ -13,6 +14,7 @@ export const firebaseConfig = {
 
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 export const db = getDatabase(app);
+export const auth = getAuth(app);
 
 export interface CloudPayload {
   products?: any[];

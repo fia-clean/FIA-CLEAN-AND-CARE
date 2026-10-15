@@ -2,8 +2,6 @@
  * FIA CLEAN & CARE - Core Reactive State & Tombstone Engine
  */
 
-export const MASTER_RECOVERY_KEY = "FIA786";
-export const MASTER_RECOVERY_KEYS = ["FIA786", "FIA-CLEAN-CARE-MASTER-2026", "FIA2026", "MASTER786"];
 export const myFiaClientId = 'client_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
 
 // Application Collections & State
