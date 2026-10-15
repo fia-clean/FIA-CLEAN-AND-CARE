@@ -4,7 +4,7 @@ color 0A
 
 echo ========================================================
 echo    FIA CLEAN & CARE - GITHUB AUTO PUSH & DEPLOY
-echo    Version: v51.2.19 (Add Item-Wise List tab & full product sales analysis in Billing)
+echo    Version: v51.2.21 (Biometric Fingerprint & Face ID Login with PIN fallback)
 echo ========================================================
 echo.
 
@@ -15,7 +15,7 @@ git add .
 
 echo.
 echo [2/3] Committing changes...
-git commit -m "feat(billing): v51.2.19 - add Item-Wise List tab & complete product sales analysis"
+git commit -m "feat(auth): v51.2.21 - add Biometric Fingerprint and Face ID login with PIN fallback"
 
 echo.
 echo [3/3] Pushing to GitHub (main branch)...
@@ -25,7 +25,7 @@ echo.
 if %ERRORLEVEL% EQU 0 (
     echo ========================================================
     echo    SUCCESS! Updates pushed to GitHub successfully.
-    echo    Version v51.2.17 is now LIVE on GitHub!
+    echo    Version v51.2.21 is now LIVE on GitHub!
     echo ========================================================
 ) else (
     echo ========================================================
