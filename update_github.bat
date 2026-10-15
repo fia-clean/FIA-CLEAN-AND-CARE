@@ -4,7 +4,7 @@ color 0A
 
 echo ========================================================
 echo    FIA CLEAN & CARE - GITHUB AUTO PUSH & DEPLOY
-echo    Version: v51.2.21 (Biometric Fingerprint & Face ID Login with PIN fallback)
+echo    Version: v51.2.22 (Zero Master Keys - Secure Firebase Admin Auth PIN Reset)
 echo ========================================================
 echo.
 
@@ -15,7 +15,7 @@ git add .
 
 echo.
 echo [2/3] Committing changes...
-git commit -m "feat(auth): v51.2.21 - add Biometric Fingerprint and Face ID login with PIN fallback"
+git commit -m "feat(security): v51.2.22 - eliminate hardcoded master keys and implement Firebase Admin PIN reset"
 
 echo.
 echo [3/3] Pushing to GitHub (main branch)...
