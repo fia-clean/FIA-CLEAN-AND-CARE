@@ -664,6 +664,9 @@
                         pin.value = '';
                         setTimeout(function() { pin.focus(); }, 80);
                     }
+                    if (typeof window.updateBiometricUI === 'function') {
+                        try { window.updateBiometricUI(); } catch(e) {}
+                    }
                 }
             };
 
@@ -900,6 +903,21 @@
             </div>
             <button type="button" onclick="verifyLoginPin()" class="w-full bg-emerald-600 text-white py-3.5 rounded-2xl font-bold text-sm hover:bg-emerald-700 active:scale-[0.99] transition shadow-lg shadow-emerald-700/20 cursor-pointer">Login</button>
             
+            <!-- Biometric Quick Unlock Option (WebAuthn: Fingerprint / Face ID) -->
+            <div id="biometricContainer" class="hidden pt-1 space-y-2">
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink mx-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">OR FAST UNLOCK</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+                <button type="button" id="biometricBtn" onclick="handleBiometricAuth()" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-2xl font-bold text-xs tracking-wide transition flex items-center justify-center gap-2 shadow-md shadow-slate-900/15 cursor-pointer active:scale-[0.99]">
+                    <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 004.07 9.878m12.39-4.242A7.962 7.962 0 0012 4c-3.15 0-5.877 1.821-7.16 4.464M9 20c.553.44 1.144.823 1.768 1.142m6.232-1.142A11.956 11.956 0 0112 21.5c-1.572 0-3.07-.302-4.444-.852"/>
+                    </svg>
+                    <span id="biometricBtnLabel">Unlock with Fingerprint / Face ID</span>
+                </button>
+            </div>
+
             <div class="flex justify-between text-xs pt-2 border-t border-slate-100">
                 <button type="button" onclick="openChangePinModal()" class="text-emerald-700 hover:underline font-semibold">Change PIN</button>
                 <button type="button" onclick="openResetPinModal()" class="text-amber-700 hover:underline font-semibold">Forgot PIN?</button>
@@ -2812,6 +2830,23 @@
                 </div>
                 <button onclick="saveNewPin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold transition shadow-md shadow-emerald-950/40 cursor-pointer">Save PIN</button>
 
+                <!-- ================= BIOMETRIC / DEVICE SECURITY ================= -->
+                <div id="biometricSettingsSection" class="hidden pt-3 border-t border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 004.07 9.878m12.39-4.242A7.962 7.962 0 0012 4c-3.15 0-5.877 1.821-7.16 4.464M9 20c.553.44 1.144.823 1.768 1.142m6.232-1.142A11.956 11.956 0 0112 21.5c-1.572 0-3.07-.302-4.444-.852"/>
+                            </svg>
+                            <span>Fingerprint / Face ID (Biometric)</span>
+                        </div>
+                        <span id="biometricSettingsStatus" class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">Checking...</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400">Unlock this app instantly using your device fingerprint scanner or Face ID.</p>
+                    <div class="text-right">
+                        <button type="button" id="biometricSettingsActionBtn" class="text-xs text-emerald-400 hover:text-emerald-300 font-semibold underline cursor-pointer">Enable Biometric</button>
+                    </div>
+                </div>
+
                 <!-- ================= FIREBASE CLOUD SECURITY & DEVICE AUTHORIZATION ================= -->
                 <div class="pt-3 border-t border-slate-800 space-y-2">
                     <div class="flex items-center justify-between">
@@ -3272,7 +3307,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.20"></script>
+    <script type="module" src="./modules/app.js?v=51.2.21"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3287,7 +3322,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.20) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.21) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3341,7 +3376,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.20')
+                navigator.serviceWorker.register('./sw.js?v=51.2.21')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

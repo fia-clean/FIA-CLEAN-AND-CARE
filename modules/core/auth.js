@@ -4,6 +4,13 @@
 
 import { state, MASTER_RECOVERY_KEY, MASTER_RECOVERY_KEYS } from './state.js';
 import { syncToFirebase, pullFromFirebase } from './db.js';
+import {
+    isBiometricAvailable,
+    isBiometricEnrolled,
+    registerBiometricDevice,
+    authenticateBiometric,
+    disableBiometric
+} from './biometrics.js';
 
 export const ACCEPTED_MASTER_KEYS = MASTER_RECOVERY_KEYS || ["FIA786", "FIA-CLEAN-CARE-MASTER-2026", "FIA2026", "MASTER786"];
 export const DEFAULT_FALLBACK_PINS = ["1234", "1122", "0000", "7860"];
@@ -232,6 +239,9 @@ export function openSettingsModal() {
     if (typeof updateCloudAuthUI === 'function') {
         updateCloudAuthUI(window.FB_AUTH ? window.FB_AUTH.currentUser : null);
     }
+    if (typeof updateBiometricUI === 'function') {
+        updateBiometricUI();
+    }
 }
 export function closeSettingsModal() { document.getElementById('settingsModal')?.classList.add('hidden'); }
 
@@ -410,6 +420,192 @@ export function setupFirebaseAuthListener() {
     }
 }
 
+// ================= BIOMETRIC AUTHENTICATION (WEBAUTHN) =================
+export async function updateBiometricUI() {
+    try {
+        const available = await isBiometricAvailable();
+        const container = document.getElementById('biometricContainer');
+        const btn = document.getElementById('biometricBtn');
+        const label = document.getElementById('biometricBtnLabel');
+        const settingsSection = document.getElementById('biometricSettingsSection');
+        const settingsStatus = document.getElementById('biometricSettingsStatus');
+        const settingsActionBtn = document.getElementById('biometricSettingsActionBtn');
+
+        const enrolled = isBiometricEnrolled();
+
+        // Login Overlay Biometric Button
+        if (container) {
+            if (available) {
+                container.classList.remove('hidden');
+                container.style.removeProperty('display');
+                if (label) {
+                    label.textContent = enrolled 
+                        ? 'Unlock with Fingerprint / Face ID' 
+                        : 'Set up Fingerprint / Face ID';
+                }
+                if (btn) {
+                    if (enrolled) {
+                        btn.className = "w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-2xl font-bold text-xs tracking-wide transition flex items-center justify-center gap-2 shadow-md shadow-slate-900/15 cursor-pointer active:scale-[0.99]";
+                    } else {
+                        btn.className = "w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 py-2.5 rounded-2xl font-bold text-xs tracking-wide transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]";
+                    }
+                }
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        // Settings Modal Biometric Status
+        if (settingsSection) {
+            if (available) {
+                settingsSection.classList.remove('hidden');
+                settingsSection.style.removeProperty('display');
+                if (settingsStatus) {
+                    settingsStatus.textContent = enrolled ? 'Active on this device' : 'Not configured';
+                    settingsStatus.className = enrolled 
+                        ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800'
+                        : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700';
+                }
+                if (settingsActionBtn) {
+                    settingsActionBtn.textContent = enrolled ? 'Remove Biometric' : 'Enable Biometric';
+                    settingsActionBtn.className = enrolled 
+                        ? 'text-xs text-rose-400 hover:text-rose-300 font-semibold underline cursor-pointer'
+                        : 'text-xs text-emerald-400 hover:text-emerald-300 font-semibold underline cursor-pointer';
+                    settingsActionBtn.onclick = enrolled ? resetDeviceBiometrics : () => promptEnrollBiometricsFromSettings();
+                }
+            } else {
+                settingsSection.classList.add('hidden');
+            }
+        }
+    } catch (e) {
+        console.warn('updateBiometricUI error:', e);
+    }
+}
+
+export function onBiometricAuthSuccess() {
+    state.isLoggedIn = true;
+    if (window.state) window.state.isLoggedIn = true;
+    window._isLoggedInFlag = true;
+    try { sessionStorage.setItem('fia_logged_in', 'true'); } catch(e) {}
+    if (typeof window._dismissLoginOverlay === 'function') {
+        window._dismissLoginOverlay();
+    } else {
+        const overlay = document.getElementById('loginOverlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+            overlay.setAttribute('hidden', 'true');
+            overlay.style.setProperty('display', 'none', 'important');
+        }
+        const mainApp = document.getElementById('mainAppContainer');
+        if (mainApp) {
+            mainApp.classList.remove('hidden');
+            mainApp.removeAttribute('hidden');
+            mainApp.style.removeProperty('display');
+            mainApp.style.setProperty('display', 'block', 'important');
+        }
+    }
+    history.replaceState({ loggedIn: true, tab: 'home' }, "", "#home");
+    const input = document.getElementById('loginPinInput');
+    if (input) input.value = '';
+    if (typeof window.switchTab === 'function') {
+        try { window.switchTab('home', false); } catch(e) {}
+    }
+    if (typeof window.renderAll === 'function') {
+        try { window.renderAll(); } catch(e) {}
+    }
+    if (typeof window.showAppToast === 'function') {
+        window.showAppToast('✓ Welcome! Unlocked via Biometrics.', 'success');
+    }
+}
+
+export async function handleBiometricAuth() {
+    const enrolled = isBiometricEnrolled();
+    const label = document.getElementById('biometricBtnLabel');
+
+    if (!enrolled) {
+        // Enrolling biometrics: User MUST verify their PIN first for security
+        const input = document.getElementById('loginPinInput');
+        let entered = (input ? input.value : '').trim();
+        let savedLocal = '1234';
+        try { savedLocal = localStorage.getItem('fia_app_pin') || '1234'; } catch(e) {}
+        const active = (state.appPin || savedLocal || '1234').trim();
+
+        if (!entered) {
+            entered = prompt("Please enter your current PIN to register Fingerprint / Face ID for this device:");
+            if (!entered) return;
+            entered = entered.trim();
+        }
+
+        if (!isAuthorizedPin(entered, active)) {
+            alert("Incorrect PIN! Cannot register biometric.");
+            if (input) { input.value = ''; input.focus(); }
+            return;
+        }
+
+        try {
+            if (label) label.textContent = 'Touch sensor or show face...';
+            await registerBiometricDevice();
+            if (typeof window.showAppToast === 'function') {
+                window.showAppToast('✓ Fingerprint / Face ID enabled successfully!', 'success');
+            } else {
+                alert('✓ Fingerprint / Face ID registered successfully!');
+            }
+            onBiometricAuthSuccess();
+        } catch (err) {
+            console.warn('Biometric registration error:', err);
+            updateBiometricUI();
+            if (err.name !== 'NotAllowedError') {
+                alert('Biometric setup could not be completed: ' + (err.message || err));
+            }
+        }
+        return;
+    }
+
+    // Already enrolled: perform Biometric fast unlock
+    try {
+        if (label) label.textContent = 'Scanning Fingerprint / Face ID...';
+        await authenticateBiometric();
+        onBiometricAuthSuccess();
+    } catch (err) {
+        console.warn('Biometric assertion error:', err);
+        updateBiometricUI();
+        if (err.name !== 'NotAllowedError') {
+            if (typeof window.showAppToast === 'function') {
+                window.showAppToast('Biometric unlock failed. Please use PIN.', 'error');
+            }
+        }
+    }
+}
+
+export function resetDeviceBiometrics() {
+    if (confirm("Remove biometric login (Fingerprint / Face ID) from this device? You will continue to login with your PIN.")) {
+        disableBiometric();
+        updateBiometricUI();
+        if (typeof window.showAppToast === 'function') {
+            window.showAppToast('Biometric removed from this device.', 'success');
+        } else {
+            alert('Biometric removed from this device.');
+        }
+    }
+}
+
+export async function promptEnrollBiometricsFromSettings() {
+    try {
+        await registerBiometricDevice();
+        updateBiometricUI();
+        if (typeof window.showAppToast === 'function') {
+            window.showAppToast('✓ Biometric registered for this device!', 'success');
+        } else {
+            alert('✓ Biometric registered successfully!');
+        }
+    } catch (err) {
+        console.warn(err);
+        if (err.name !== 'NotAllowedError') {
+            alert('Biometric setup failed: ' + (err.message || err));
+        }
+    }
+}
+
 // Window attachments for inline HTML onclick handlers
 if (typeof window !== 'undefined') {
     window.isMasterKey = isMasterKey;
@@ -432,4 +628,15 @@ if (typeof window !== 'undefined') {
     window.setupFirebaseAuthListener = setupFirebaseAuthListener;
     window.autoSignInFirebase = autoSignInFirebase;
     window.ensureFirebaseAuth = ensureFirebaseAuth;
+    window.isBiometricAvailable = isBiometricAvailable;
+    window.isBiometricEnrolled = isBiometricEnrolled;
+    window.handleBiometricAuth = handleBiometricAuth;
+    window.updateBiometricUI = updateBiometricUI;
+    window.resetDeviceBiometrics = resetDeviceBiometrics;
+    window.promptEnrollBiometricsFromSettings = promptEnrollBiometricsFromSettings;
+
+    // Auto-initialize biometric UI on load
+    setTimeout(() => {
+        try { updateBiometricUI(); } catch(e) {}
+    }, 150);
 }

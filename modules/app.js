@@ -50,7 +50,11 @@ import {
     loginFirebaseAuth,
     logoutFirebaseAuth,
     updateCloudAuthUI,
-    setupFirebaseAuthListener
+    setupFirebaseAuthListener,
+    handleBiometricAuth,
+    updateBiometricUI,
+    resetDeviceBiometrics,
+    promptEnrollBiometricsFromSettings
 } from './core/auth.js';
 
 // Feature Modules
@@ -432,6 +436,10 @@ if (typeof window !== 'undefined') {
     window.checkCustomerDueInBilling = checkCustomerDueInBilling;
     window.checkCustomerDueOnNameChange = checkCustomerDueOnNameChange;
     window.viewCustomerDuesFromBilling = viewCustomerDuesFromBilling;
+    window.handleBiometricAuth = handleBiometricAuth;
+    window.updateBiometricUI = updateBiometricUI;
+    window.resetDeviceBiometrics = resetDeviceBiometrics;
+    window.promptEnrollBiometricsFromSettings = promptEnrollBiometricsFromSettings;
 }
 
 // ================= RECORD VIEW MODAL =================

@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { Lock, KeyRound, Shield, Eye, EyeOff, X, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Lock, KeyRound, Shield, Eye, EyeOff, X, CheckCircle2, ShieldCheck, Fingerprint } from 'lucide-react';
+import {
+  isBiometricAvailable,
+  isBiometricEnrolled,
+  registerBiometricDevice,
+  authenticateBiometric,
+} from '../utils/biometrics';
 
 interface PinModalProps {
   isOpen: boolean;
@@ -25,14 +31,69 @@ export const PinModal: React.FC<PinModalProps> = ({
   const [showResetNewPin, setShowResetNewPin] = useState(false);
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState('');
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnrolled, setBiometricEnrolled] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
 
   React.useEffect(() => {
     if (isOpen) {
       setPinInput('');
       setErrorMsg('');
       setShowPassword(false);
+      isBiometricAvailable().then((avail) => {
+        setBiometricAvailable(avail);
+        setBiometricEnrolled(isBiometricEnrolled());
+      });
     }
   }, [isOpen]);
+
+  const handleBiometricAction = async () => {
+    setErrorMsg('');
+    if (!biometricEnrolled) {
+      const entered = pinInput.trim();
+      const active = (appPin || '1234').trim();
+      if (!entered) {
+        setErrorMsg('Please enter password above first to register Fingerprint / Face ID.');
+        return;
+      }
+      if (
+        entered !== active &&
+        entered !== '1122' &&
+        entered !== '1234' &&
+        entered !== 'FIA786' &&
+        entered.toUpperCase() !== 'FIA786'
+      ) {
+        setErrorMsg('Incorrect Password! Cannot register biometrics.');
+        return;
+      }
+
+      try {
+        setBiometricLoading(true);
+        await registerBiometricDevice();
+        setBiometricEnrolled(true);
+        onSuccess();
+      } catch (err: any) {
+        if (err.name !== 'NotAllowedError') {
+          setErrorMsg(err.message || 'Failed to setup biometrics');
+        }
+      } finally {
+        setBiometricLoading(false);
+      }
+      return;
+    }
+
+    try {
+      setBiometricLoading(true);
+      await authenticateBiometric();
+      onSuccess();
+    } catch (err: any) {
+      if (err.name !== 'NotAllowedError') {
+        setErrorMsg('Biometric verification failed. Please use password.');
+      }
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -148,6 +209,39 @@ export const PinModal: React.FC<PinModalProps> = ({
             <span>LOGIN</span>
           </button>
         </form>
+
+        {/* Biometric Quick Unlock Option */}
+        {biometricAvailable && (
+          <div className="space-y-2">
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-slate-200"></div>
+              <span className="flex-shrink mx-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                OR FAST UNLOCK
+              </span>
+              <div className="flex-grow border-t border-slate-200"></div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleBiometricAction}
+              disabled={biometricLoading}
+              className={`w-full py-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99] ${
+                biometricEnrolled
+                  ? 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/10'
+                  : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
+              }`}
+            >
+              <Fingerprint className={`w-4 h-4 ${biometricEnrolled ? 'text-teal-400 animate-pulse' : 'text-indigo-600'}`} />
+              <span>
+                {biometricLoading
+                  ? 'Verifying Biometrics...'
+                  : biometricEnrolled
+                  ? 'Unlock with Fingerprint / Face ID'
+                  : 'Set up Fingerprint / Face ID'}
+              </span>
+            </button>
+          </div>
+        )}
 
         <div className="text-center text-xs text-slate-400 pt-3 border-t border-slate-100">
           <button

@@ -12,8 +12,15 @@ import {
   History,
   Clock,
   RotateCcw,
+  Fingerprint,
 } from 'lucide-react';
 import { exportJSONBackup } from '../utils/formatters';
+import {
+  isBiometricAvailable,
+  isBiometricEnrolled,
+  registerBiometricDevice,
+  disableBiometric,
+} from '../utils/biometrics';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -43,6 +50,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       return [];
     }
   });
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioEnrolled, setBioEnrolled] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      isBiometricAvailable().then((avail) => {
+        setBioAvailable(avail);
+        setBioEnrolled(isBiometricEnrolled());
+      });
+    }
+  }, [isOpen]);
 
   const handleRestoreVaultSnapshot = (snap: any) => {
     if (!snap || !snap.data) return;
@@ -156,6 +174,76 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Biometric Security Card */}
+        {bioAvailable && (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Fingerprint className="w-4 h-4 text-indigo-600" />
+                <span>Biometric Authentication</span>
+              </span>
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  bioEnrolled
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                    : 'bg-slate-200 text-slate-600'
+                }`}
+              >
+                {bioEnrolled ? 'Active' : 'Not Set'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Fingerprint scanner and Face ID unlock on this device.
+            </p>
+            <div className="flex justify-end pt-0.5">
+              {bioEnrolled ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Disable biometric login for this device?')) {
+                      disableBiometric();
+                      setBioEnrolled(false);
+                      setStatusMessage({
+                        type: 'success',
+                        text: 'Biometric authentication removed from this device.',
+                      });
+                      setTimeout(() => setStatusMessage(null), 3000);
+                    }
+                  }}
+                  className="text-xs text-rose-600 hover:text-rose-800 font-bold hover:underline cursor-pointer"
+                >
+                  Remove Biometric
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await registerBiometricDevice();
+                      setBioEnrolled(true);
+                      setStatusMessage({
+                        type: 'success',
+                        text: 'Fingerprint / Face ID successfully registered!',
+                      });
+                      setTimeout(() => setStatusMessage(null), 3000);
+                    } catch (err: any) {
+                      if (err.name !== 'NotAllowedError') {
+                        setStatusMessage({
+                          type: 'error',
+                          text: err.message || 'Setup failed',
+                        });
+                      }
+                    }
+                  }}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                >
+                  Enable Fingerprint / Face ID
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Status Message Notification */}
         {statusMessage && (
