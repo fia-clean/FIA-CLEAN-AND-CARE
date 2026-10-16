@@ -1427,14 +1427,163 @@
                 <!-- Cleaning: RETURN TAB -->
                 <div id="cleanStockReturnContent" class="hidden">
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-amber-800/40 shadow-inner">
-                        <div class="mb-3"><h3 class="font-bold text-amber-300 text-sm">↩️ Return Stock</h3><p class="text-[10px] text-slate-500">Returned from customer / issued stock</p></div>
-                        <form id="cleanReturnStockForm" class="space-y-2.5" onsubmit="saveStockReturn(event,'cleaning')">
-                            <select id="cleanReturnProduct" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 min-h-[48px]"></select>
-                            <div class="grid grid-cols-2 gap-2"><input type="text" id="cleanReturnCustomer" placeholder="Customer / Party Name" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><input type="number" id="cleanReturnQty" placeholder="Return Qty" required min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"></div>
-                            <div class="grid grid-cols-2 gap-2"><select id="cleanReturnCondition" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">-- Select Condition --</option><option value="Usable">🟢 Usable Stock</option><option value="Damaged">🔴 Damaged / Not Usable</option></select><input type="text" id="cleanReturnReason" placeholder="Reason (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"></div>
-                            <input type="text" id="cleanReturnRemarks" placeholder="Remarks (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><button type="submit" class="w-full bg-amber-600 text-white py-3 rounded-xl text-sm font-bold">↩️ Save Return Stock</button>
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h3 class="font-bold text-amber-300 text-sm flex items-center gap-1.5">
+                                    <span>↩️</span> Customer Stock Return
+                                </h3>
+                                <p class="text-[10px] text-slate-400">Return product from customer bill, adjust pending due & update stock</p>
+                            </div>
+                        </div>
+
+                        <!-- Mode Switcher: Bill-Linked Return vs Direct Return -->
+                        <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800 mb-3">
+                            <button type="button" id="cleanReturnModeBillBtn" onclick="toggleStockReturnMode('cleaning','bill')" class="py-2 text-xs font-bold rounded-lg transition bg-amber-600 text-white shadow">
+                                🧾 Bill-Linked Return
+                            </button>
+                            <button type="button" id="cleanReturnModeDirectBtn" onclick="toggleStockReturnMode('cleaning','direct')" class="py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-slate-200">
+                                📦 Direct Return
+                            </button>
+                        </div>
+
+                        <form id="cleanReturnStockForm" class="space-y-3" onsubmit="saveStockReturn(event,'cleaning')">
+                            <input type="hidden" id="cleanReturnMode" value="bill">
+
+                            <!-- Bill-Linked Section -->
+                            <div id="cleanReturnBillSection" class="space-y-2.5">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">1. Select Customer Bill (സെലക്ട് ബില്ല് / കസ്റ്റമർ):</label>
+                                    <select id="cleanReturnBillSelect" onchange="onStockReturnBillSelected('cleaning')" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 min-h-[46px] focus:ring-1 focus:ring-amber-500">
+                                        <option value="">-- Choose Customer Bill --</option>
+                                    </select>
+                                </div>
+
+                                <!-- Bill Quick Summary Card (Hidden until bill chosen) -->
+                                <div id="cleanReturnBillCard" class="hidden p-3 rounded-xl bg-slate-900/90 border border-slate-700 text-xs space-y-1">
+                                    <div class="flex justify-between items-center text-slate-200 font-bold">
+                                        <span id="cleanReturnBillCustName">Customer</span>
+                                        <span id="cleanReturnBillNumber" class="text-amber-400 font-mono">Bill #</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+                                        <span>Total: <strong id="cleanReturnBillTotal" class="text-slate-200">₹0</strong></span>
+                                        <span>Paid: <strong id="cleanReturnBillPaid" class="text-emerald-400">₹0</strong></span>
+                                        <span>Pending Due: <strong id="cleanReturnBillPending" class="text-rose-400 font-bold">₹0</strong></span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">2. Select Item to Return (റിട്ടേൺ ചെയ്യുന്ന പ്രോഡക്റ്റ്):</label>
+                                    <select id="cleanReturnItemSelect" onchange="onStockReturnItemSelected('cleaning')" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 min-h-[46px] focus:ring-1 focus:ring-amber-500">
+                                        <option value="">-- Select Bill First --</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Direct Return Section (Hidden by default) -->
+                            <div id="cleanReturnDirectSection" class="hidden space-y-2.5">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Select Product:</label>
+                                    <select id="cleanReturnDirectProduct" onchange="onStockReturnDirectProductSelected('cleaning')" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 min-h-[46px]">
+                                        <option value="">-- Select Cleaning Product --</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Customer / Party Name:</label>
+                                    <input type="text" id="cleanReturnDirectCustomer" placeholder="Customer Name (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100">
+                                </div>
+                            </div>
+
+                            <!-- Pack Size & Quantity Row -->
+                            <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-slate-300">📦 Packaging & Quantity</span>
+                                    <span id="cleanReturnItemRateBadge" class="text-[10px] text-amber-400 font-mono">Rate: ₹0</span>
+                                </div>
+
+                                <!-- Preset Pack buttons (300ml, 500ml, 900ml, 1L, 5L) -->
+                                <div>
+                                    <div class="text-[10px] text-slate-400 mb-1">Quick Pack Sizes:</div>
+                                    <div class="flex flex-wrap gap-1">
+                                        <button type="button" onclick="setStockReturnPreset('cleaning', 300, 'ml')" class="px-2 py-1 bg-slate-800 hover:bg-amber-900/50 text-slate-300 hover:text-amber-200 border border-slate-700 rounded-lg text-[10px] font-semibold">300 ml</button>
+                                        <button type="button" onclick="setStockReturnPreset('cleaning', 500, 'ml')" class="px-2 py-1 bg-slate-800 hover:bg-amber-900/50 text-slate-300 hover:text-amber-200 border border-slate-700 rounded-lg text-[10px] font-semibold">500 ml</button>
+                                        <button type="button" onclick="setStockReturnPreset('cleaning', 900, 'ml')" class="px-2 py-1 bg-slate-800 hover:bg-amber-900/50 text-slate-300 hover:text-amber-200 border border-slate-700 rounded-lg text-[10px] font-semibold">900 ml</button>
+                                        <button type="button" onclick="setStockReturnPreset('cleaning', 1000, 'ml')" class="px-2 py-1 bg-slate-800 hover:bg-amber-900/50 text-slate-300 hover:text-amber-200 border border-slate-700 rounded-lg text-[10px] font-semibold">1 Ltr</button>
+                                        <button type="button" onclick="setStockReturnPreset('cleaning', 5000, 'ml')" class="px-2 py-1 bg-slate-800 hover:bg-amber-900/50 text-slate-300 hover:text-amber-200 border border-slate-700 rounded-lg text-[10px] font-semibold">5 Ltr</button>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-0.5">Return Qty</label>
+                                        <input type="number" id="cleanReturnQty" placeholder="1" min="0.01" step="any" required oninput="calculateStockReturnPreview('cleaning')" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-100 font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-0.5">Pack Volume</label>
+                                        <input type="number" id="cleanReturnPackSize" placeholder="e.g. 500" min="0" step="any" oninput="calculateStockReturnPreview('cleaning')" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-100">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-0.5">Unit</label>
+                                        <select id="cleanReturnPackUnit" onchange="calculateStockReturnPreview('cleaning')" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-100">
+                                            <option value="ml">ml</option>
+                                            <option value="Ltr">Ltr</option>
+                                            <option value="g">Gram (g)</option>
+                                            <option value="Kg">Kg</option>
+                                            <option value="Bottle">Bottle</option>
+                                            <option value="Pcs">Pcs</option>
+                                            <option value="Can">Can</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Condition & Financial Refund Action -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Stock Condition:</label>
+                                    <select id="cleanReturnCondition" required onchange="calculateStockReturnPreview('cleaning')" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 font-semibold">
+                                        <option value="Usable">🟢 Usable (Add back to stock)</option>
+                                        <option value="Damaged">🔴 Damaged (Do NOT add to stock)</option>
+                                    </select>
+                                </div>
+                                <div id="cleanReturnRefundActionWrapper">
+                                    <label class="block text-[10px] text-slate-400 mb-1">Amount Action (അക്കൗണ്ട്സ്):</label>
+                                    <select id="cleanReturnRefundAction" onchange="calculateStockReturnPreview('cleaning')" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 font-semibold">
+                                        <option value="due">💳 Deduct from Bill Due (ബാക്കിയിൽ കുറയ്ക്കുക)</option>
+                                        <option value="cash">💵 Cash Refund (പണം തിരികെ നൽകി - DayBook)</option>
+                                        <option value="none">📦 Stock Adjustment Only (No money change)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Live Impact Preview Box -->
+                            <div id="cleanReturnPreviewBox" class="p-3 bg-amber-950/30 border border-amber-800/60 rounded-xl text-xs space-y-1">
+                                <div class="flex justify-between items-center text-amber-200 font-bold">
+                                    <span>Return Valuation:</span>
+                                    <span id="cleanReturnAmountPreview" class="text-base text-amber-300 font-mono">₹0.00</span>
+                                </div>
+                                <div id="cleanReturnStockPreview" class="text-[11px] text-slate-300">Stock Impact: Select product & quantity</div>
+                                <div id="cleanReturnFinancePreview" class="text-[11px] text-emerald-400">Financial Impact: Select bill</div>
+                            </div>
+
+                            <!-- Reason & Remarks -->
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="cleanReturnReason" placeholder="Reason (e.g. Excess, Leakage)" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100">
+                                <input type="text" id="cleanReturnRemarks" placeholder="Remarks (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100">
+                            </div>
+
+                            <button type="submit" id="cleanReturnSubmitBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 rounded-xl text-sm font-bold shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                <span>↩️</span> Save Return Stock & Update Bill
+                            </button>
                         </form>
-                        <div class="mt-4 pt-3 border-t border-slate-800"><div class="flex justify-between items-center mb-2"><h4 class="font-bold text-slate-300 text-xs">Return History</h4><span class="text-[9px] text-slate-500">Newest first</span></div><div id="cleanReturnHistoryContainer" class="space-y-2"></div></div>
+
+                        <!-- Return History -->
+                        <div class="mt-4 pt-3 border-t border-slate-800">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-slate-300 text-xs">Return History (റിട്ടേൺ ചരിത്രം)</h4>
+                                <span class="text-[9px] text-slate-500">Newest first</span>
+                            </div>
+                            <div id="cleanReturnHistoryContainer" class="space-y-2"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1544,9 +1693,162 @@
 
                 <!-- Cosmetics: RETURN TAB -->
                 <div id="cosStockReturnContent" class="hidden">
-                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-amber-800/40 shadow-inner"><div class="mb-3"><h3 class="font-bold text-amber-300 text-sm">↩️ Return Stock</h3><p class="text-[10px] text-slate-500">Returned from customer / issued stock</p></div>
-                        <form id="cosReturnStockForm" class="space-y-2.5" onsubmit="saveStockReturn(event,'cosmetics')"><select id="cosReturnProduct" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100 min-h-[48px]"></select><div class="grid grid-cols-2 gap-2"><input type="text" id="cosReturnCustomer" placeholder="Customer / Party Name" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><input type="number" id="cosReturnQty" placeholder="Return Qty" required min="0" step="any" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"></div><div class="grid grid-cols-2 gap-2"><select id="cosReturnCondition" required class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><option value="">-- Select Condition --</option><option value="Usable">🟢 Usable Stock</option><option value="Damaged">🔴 Damaged / Not Usable</option></select><input type="text" id="cosReturnReason" placeholder="Reason (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"></div><input type="text" id="cosReturnRemarks" placeholder="Remarks (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-sm bg-slate-900 text-slate-100"><button type="submit" class="w-full bg-amber-600 text-white py-3 rounded-xl text-sm font-bold">↩️ Save Return Stock</button></form>
-                        <div class="mt-4 pt-3 border-t border-slate-800"><div class="flex justify-between items-center mb-2"><h4 class="font-bold text-slate-300 text-xs">Return History</h4><span class="text-[9px] text-slate-500">Newest first</span></div><div id="cosReturnHistoryContainer" class="space-y-2"></div></div>
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-pink-800/40 shadow-inner">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h3 class="font-bold text-pink-300 text-sm flex items-center gap-1.5">
+                                    <span>↩️</span> Cosmetic Customer Stock Return
+                                </h3>
+                                <p class="text-[10px] text-slate-400">Return cosmetic product from customer bill, adjust pending due & update stock</p>
+                            </div>
+                        </div>
+
+                        <!-- Mode Switcher: Bill-Linked Return vs Direct Return -->
+                        <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800 mb-3">
+                            <button type="button" id="cosReturnModeBillBtn" onclick="toggleStockReturnMode('cosmetics','bill')" class="py-2 text-xs font-bold rounded-lg transition bg-pink-700 text-white shadow">
+                                🧾 Bill-Linked Return
+                            </button>
+                            <button type="button" id="cosReturnModeDirectBtn" onclick="toggleStockReturnMode('cosmetics','direct')" class="py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-slate-200">
+                                📦 Direct Return
+                            </button>
+                        </div>
+
+                        <form id="cosReturnStockForm" class="space-y-3" onsubmit="saveStockReturn(event,'cosmetics')">
+                            <input type="hidden" id="cosReturnMode" value="bill">
+
+                            <!-- Bill-Linked Section -->
+                            <div id="cosReturnBillSection" class="space-y-2.5">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">1. Select Customer Bill (സെലക്ട് ബില്ല് / കസ്റ്റമർ):</label>
+                                    <select id="cosReturnBillSelect" onchange="onStockReturnBillSelected('cosmetics')" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 min-h-[46px] focus:ring-1 focus:ring-pink-500">
+                                        <option value="">-- Choose Customer Bill --</option>
+                                    </select>
+                                </div>
+
+                                <!-- Bill Quick Summary Card -->
+                                <div id="cosReturnBillCard" class="hidden p-3 rounded-xl bg-slate-900/90 border border-slate-700 text-xs space-y-1">
+                                    <div class="flex justify-between items-center text-slate-200 font-bold">
+                                        <span id="cosReturnBillCustName">Customer</span>
+                                        <span id="cosReturnBillNumber" class="text-pink-400 font-mono">Bill #</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+                                        <span>Total: <strong id="cosReturnBillTotal" class="text-slate-200">₹0</strong></span>
+                                        <span>Paid: <strong id="cosReturnBillPaid" class="text-emerald-400">₹0</strong></span>
+                                        <span>Pending Due: <strong id="cosReturnBillPending" class="text-rose-400 font-bold">₹0</strong></span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">2. Select Item to Return (റിട്ടേൺ ചെയ്യുന്ന പ്രോഡക്റ്റ്):</label>
+                                    <select id="cosReturnItemSelect" onchange="onStockReturnItemSelected('cosmetics')" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 min-h-[46px] focus:ring-1 focus:ring-pink-500">
+                                        <option value="">-- Select Bill First --</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Direct Return Section -->
+                            <div id="cosReturnDirectSection" class="hidden space-y-2.5">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Select Product:</label>
+                                    <select id="cosReturnDirectProduct" onchange="onStockReturnDirectProductSelected('cosmetics')" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 min-h-[46px]">
+                                        <option value="">-- Select Cosmetic Product --</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Customer / Party Name:</label>
+                                    <input type="text" id="cosReturnDirectCustomer" placeholder="Customer Name (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100">
+                                </div>
+                            </div>
+
+                            <!-- Pack Size & Quantity Row -->
+                            <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-slate-300">📦 Packaging & Quantity</span>
+                                    <span id="cosReturnItemRateBadge" class="text-[10px] text-pink-400 font-mono">Rate: ₹0</span>
+                                </div>
+
+                                <div>
+                                    <div class="text-[10px] text-slate-400 mb-1">Quick Pack Sizes:</div>
+                                    <div class="flex flex-wrap gap-1">
+                                        <button type="button" onclick="setStockReturnPreset('cosmetics', 100, 'ml')" class="px-2 py-1 bg-slate-800 hover:bg-pink-900/50 text-slate-300 hover:text-pink-200 border border-slate-700 rounded-lg text-[10px] font-semibold">100 ml</button>
+                                        <button type="button" onclick="setStockReturnPreset('cosmetics', 200, 'ml')" class="px-2 py-1 bg-slate-800 hover:bg-pink-900/50 text-slate-300 hover:text-pink-200 border border-slate-700 rounded-lg text-[10px] font-semibold">200 ml</button>
+                                        <button type="button" onclick="setStockReturnPreset('cosmetics', 300, 'ml')" class="px-2 py-1 bg-slate-800 hover:bg-pink-900/50 text-slate-300 hover:text-pink-200 border border-slate-700 rounded-lg text-[10px] font-semibold">300 ml</button>
+                                        <button type="button" onclick="setStockReturnPreset('cosmetics', 500, 'ml')" class="px-2 py-1 bg-slate-800 hover:bg-pink-900/50 text-slate-300 hover:text-pink-200 border border-slate-700 rounded-lg text-[10px] font-semibold">500 ml</button>
+                                        <button type="button" onclick="setStockReturnPreset('cosmetics', 1000, 'ml')" class="px-2 py-1 bg-slate-800 hover:bg-pink-900/50 text-slate-300 hover:text-pink-200 border border-slate-700 rounded-lg text-[10px] font-semibold">1 Ltr</button>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-0.5">Return Qty</label>
+                                        <input type="number" id="cosReturnQty" placeholder="1" min="0.01" step="any" required oninput="calculateStockReturnPreview('cosmetics')" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-100 font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-0.5">Pack Volume</label>
+                                        <input type="number" id="cosReturnPackSize" placeholder="e.g. 300" min="0" step="any" oninput="calculateStockReturnPreview('cosmetics')" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-100">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-0.5">Unit</label>
+                                        <select id="cosReturnPackUnit" onchange="calculateStockReturnPreview('cosmetics')" class="w-full p-2.5 border border-slate-700 rounded-xl text-xs bg-slate-950 text-slate-100">
+                                            <option value="ml">ml</option>
+                                            <option value="Ltr">Ltr</option>
+                                            <option value="g">Gram (g)</option>
+                                            <option value="Kg">Kg</option>
+                                            <option value="Bottle">Bottle</option>
+                                            <option value="Pcs">Pcs</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Condition & Financial Refund Action -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Stock Condition:</label>
+                                    <select id="cosReturnCondition" required onchange="calculateStockReturnPreview('cosmetics')" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 font-semibold">
+                                        <option value="Usable">🟢 Usable (Add back to stock)</option>
+                                        <option value="Damaged">🔴 Damaged (Do NOT add to stock)</option>
+                                    </select>
+                                </div>
+                                <div id="cosReturnRefundActionWrapper">
+                                    <label class="block text-[10px] text-slate-400 mb-1">Amount Action (അക്കൗണ്ട്സ്):</label>
+                                    <select id="cosReturnRefundAction" onchange="calculateStockReturnPreview('cosmetics')" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100 font-semibold">
+                                        <option value="due">💳 Deduct from Bill Due (ബാക്കിയിൽ കുറയ്ക്കുക)</option>
+                                        <option value="cash">💵 Cash Refund (പണം തിരികെ നൽകി - DayBook)</option>
+                                        <option value="none">📦 Stock Adjustment Only (No money change)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Live Impact Preview Box -->
+                            <div id="cosReturnPreviewBox" class="p-3 bg-pink-950/30 border border-pink-800/60 rounded-xl text-xs space-y-1">
+                                <div class="flex justify-between items-center text-pink-200 font-bold">
+                                    <span>Return Valuation:</span>
+                                    <span id="cosReturnAmountPreview" class="text-base text-pink-300 font-mono">₹0.00</span>
+                                </div>
+                                <div id="cosReturnStockPreview" class="text-[11px] text-slate-300">Stock Impact: Select product & quantity</div>
+                                <div id="cosReturnFinancePreview" class="text-[11px] text-emerald-400">Financial Impact: Select bill</div>
+                            </div>
+
+                            <!-- Reason & Remarks -->
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="cosReturnReason" placeholder="Reason (e.g. Excess, Leakage)" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100">
+                                <input type="text" id="cosReturnRemarks" placeholder="Remarks (Optional)" class="w-full p-3 border border-slate-700 rounded-xl text-xs bg-slate-900 text-slate-100">
+                            </div>
+
+                            <button type="submit" id="cosReturnSubmitBtn" class="w-full bg-pink-700 hover:bg-pink-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                <span>↩️</span> Save Cosmetic Return & Update Bill
+                            </button>
+                        </form>
+
+                        <!-- Return History -->
+                        <div class="mt-4 pt-3 border-t border-slate-800">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-slate-300 text-xs">Return History (റിട്ടേൺ ചരിത്രം)</h4>
+                                <span class="text-[9px] text-slate-500">Newest first</span>
+                            </div>
+                            <div id="cosReturnHistoryContainer" class="space-y-2"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3346,7 +3648,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.21"></script>
+    <script type="module" src="./modules/app.js?v=51.2.23"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3361,7 +3663,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.21) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.23) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3415,7 +3717,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.21')
+                navigator.serviceWorker.register('./sw.js?v=51.2.23')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

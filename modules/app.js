@@ -240,6 +240,12 @@ import {
     saveStockReturn,
     updateStockReturnDropdowns,
     renderStockReturnHistory,
+    toggleStockReturnMode,
+    onStockReturnBillSelected,
+    onStockReturnItemSelected,
+    onStockReturnDirectProductSelected,
+    setStockReturnPreset,
+    calculateStockReturnPreview,
 
     renderProducts,
     editProduct,
@@ -378,6 +384,12 @@ if (typeof window !== 'undefined') {
     window.switchStockTopTab = switchStockTopTab;
     window.switchStockSubTab = switchStockSubTab;
     window.switchStockActionTab = switchStockActionTab;
+    window.toggleStockReturnMode = toggleStockReturnMode;
+    window.onStockReturnBillSelected = onStockReturnBillSelected;
+    window.onStockReturnItemSelected = onStockReturnItemSelected;
+    window.onStockReturnDirectProductSelected = onStockReturnDirectProductSelected;
+    window.setStockReturnPreset = setStockReturnPreset;
+    window.calculateStockReturnPreview = calculateStockReturnPreview;
     window.switchPurchaseSubTab = switchPurchaseSubTab;
     window.switchPurchaseActionTab = switchPurchaseActionTab;
     window.switchCustomerSubTab = switchCustomerSubTab;

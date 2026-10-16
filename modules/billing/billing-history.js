@@ -63,6 +63,7 @@ export function getSalesHistoryRows() {
                 total: Number(c.grandTotal || 0),
                 paid: Number(c.paidAmount !== undefined ? c.paidAmount : (c.grandTotal || 0)),
                 due: Number(c.pendingAmount !== undefined ? c.pendingAmount : Math.max(0, Number(c.grandTotal || 0) - Number(c.paidAmount || 0))),
+                returnedAmount: Number(c.returnedAmount || 0),
                 items: safeItems,
                 saleType: c.saleType || 'Retail',
                 paymentMode: c.paymentMode || 'Cash',
@@ -89,6 +90,7 @@ export function getSalesHistoryRows() {
             total: Number(n.grandTotal || 0),
             paid: Number(n.paidAmount || 0),
             due: Number(n.pendingAmount || 0),
+            returnedAmount: Number(s.returnedAmount || n.returnedAmount || 0),
             items: n.items || [],
             saleType: n.saleType || 'Retail',
             paymentMode: n.paymentMode || 'Cash',
@@ -126,9 +128,10 @@ export function renderSalesHistoryCard(r, label) {
         ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-950 text-rose-300 border border-rose-700/80 animate-pulse">⛔ CANCELLED</span>`
         : typeBadge;
 
+    const returnBadge = Number(r.returnedAmount || 0) > 0 ? ` · <span class="text-amber-400 font-bold">↩️ Ret: -₹${Number(r.returnedAmount).toFixed(2)}</span>` : '';
     const totalDisplay = isCancelled
         ? `<span class="line-through text-slate-500 font-medium">Total: ₹${r.total.toFixed(2)}</span> <span class="text-rose-400 font-bold text-[11px] block sm:inline sm:ml-2">❌ ${r.cancelReason || 'Order Cancelled'}</span>`
-        : `<span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-400 font-semibold">Paid: ₹${r.paid.toFixed(2)}</span> · <span class="${r.due > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Due: ₹${r.due.toFixed(2)}</span>`;
+        : `<span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-400 font-semibold">Paid: ₹${r.paid.toFixed(2)}</span> · <span class="${r.due > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Due: ₹${r.due.toFixed(2)}</span>${returnBadge}`;
 
     const cardBg = isCancelled ? 'bg-rose-950/20 border-rose-900/60' : 'bg-slate-900/80 border-slate-800';
 

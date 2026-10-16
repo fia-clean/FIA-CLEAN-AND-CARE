@@ -11,7 +11,8 @@ import {
     markIdDeleted,
     unmarkIdDeleted,
     markRecordDeleted,
-    toTitleCase
+    toTitleCase,
+    generateUniqueRecordId
 } from '../core/state.js';
 import { syncToFirebase, pullFromFirebase } from '../core/db.js';
 import { getProductWholesalePrice, getProductRetailPrice, updateProductDropdown, updateCombinedProductSelect, updateBillQuantityTypeDropdown } from '../billing/billing.js';
@@ -658,50 +659,570 @@ export function updateCleaningAddStockDropdown() {
 }
 
 
-export function saveStockReturn(event, type) {
-    event.preventDefault();
-    const isCos = type === 'cosmetics';
-    const productSelect = document.getElementById(isCos ? 'cosReturnProduct' : 'cleanReturnProduct');
-    const customerEl = document.getElementById(isCos ? 'cosReturnCustomer' : 'cleanReturnCustomer');
-    const qtyEl = document.getElementById(isCos ? 'cosReturnQty' : 'cleanReturnQty');
-    const conditionEl = document.getElementById(isCos ? 'cosReturnCondition' : 'cleanReturnCondition');
-    const reasonEl = document.getElementById(isCos ? 'cosReturnReason' : 'cleanReturnReason');
-    const remarksEl = document.getElementById(isCos ? 'cosReturnRemarks' : 'cleanReturnRemarks');
-    const id = productSelect?.value;
-    const qty = parseFloat(qtyEl?.value);
-    const condition = conditionEl?.value;
-    const list = isCos ? state.cosProducts : state.products;
-    const product = list.find(p => p.id === id);
+// ================= ADVANCED CUSTOMER & BILL-LINKED STOCK RETURN ENGINE =================
 
-    if (!id || !product || !(qty > 0) || !condition) {
-        alert('Product, valid return quantity and condition are required.');
+export function calculateReturnStockUnits(product, returnQty, packSize, packUnit) {
+    if (!product || !(returnQty > 0)) return 0;
+    const prodUnit = String(product.unit || 'Ltr').toLowerCase().trim();
+    const pSize = parseFloat(packSize) || 0;
+    const pUnit = String(packUnit || '').toLowerCase().trim();
+
+    // Volume-based conversion (ml to Ltr)
+    if (['ltr', 'l', 'litre'].includes(prodUnit)) {
+        if (['ml', 'millilitre'].includes(pUnit) && pSize > 0) {
+            return (returnQty * pSize) / 1000;
+        }
+        if (['ltr', 'l', 'litre'].includes(pUnit) && pSize > 0) {
+            return returnQty * pSize;
+        }
+        if (pSize > 0 && !pUnit) {
+            return pSize >= 50 ? (returnQty * pSize) / 1000 : (returnQty * pSize);
+        }
+    }
+
+    // Weight-based conversion (g to Kg)
+    if (['kg', 'kilogram'].includes(prodUnit)) {
+        if (['g', 'gm', 'gram'].includes(pUnit) && pSize > 0) {
+            return (returnQty * pSize) / 1000;
+        }
+        if (['kg', 'kilogram'].includes(pUnit) && pSize > 0) {
+            return returnQty * pSize;
+        }
+    }
+
+    // Direct unit match or count-based (Pcs, Bottle, Box, etc.)
+    return returnQty;
+}
+
+export function toggleStockReturnMode(type, mode) {
+    const isCos = type === 'cosmetics';
+    const prefix = isCos ? 'cosReturn' : 'cleanReturn';
+    const modeInput = document.getElementById(prefix + 'Mode');
+    if (modeInput) modeInput.value = mode;
+
+    const billBtn = document.getElementById(prefix + 'ModeBillBtn');
+    const directBtn = document.getElementById(prefix + 'ModeDirectBtn');
+    const billSec = document.getElementById(prefix + 'BillSection');
+    const directSec = document.getElementById(prefix + 'DirectSection');
+    const refundWrapper = document.getElementById(prefix + 'RefundActionWrapper');
+
+    if (mode === 'bill') {
+        if (billBtn) billBtn.className = isCos 
+            ? 'py-2 text-xs font-bold rounded-lg transition bg-pink-700 text-white shadow'
+            : 'py-2 text-xs font-bold rounded-lg transition bg-amber-600 text-white shadow';
+        if (directBtn) directBtn.className = 'py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-slate-200';
+        if (billSec) billSec.classList.remove('hidden');
+        if (directSec) directSec.classList.add('hidden');
+        if (refundWrapper) refundWrapper.classList.remove('hidden');
+    } else {
+        if (directBtn) directBtn.className = isCos
+            ? 'py-2 text-xs font-bold rounded-lg transition bg-pink-700 text-white shadow'
+            : 'py-2 text-xs font-bold rounded-lg transition bg-amber-600 text-white shadow';
+        if (billBtn) billBtn.className = 'py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-slate-200';
+        if (billSec) billSec.classList.add('hidden');
+        if (directSec) directSec.classList.remove('hidden');
+        if (refundWrapper) refundWrapper.classList.add('hidden');
+    }
+    calculateStockReturnPreview(type);
+}
+
+export function updateStockReturnDropdowns() {
+    // 1. Cleaning Bills & Direct Products
+    const cleanBillSelect = document.getElementById('cleanReturnBillSelect');
+    if (cleanBillSelect) {
+        cleanBillSelect.innerHTML = '<option value="">-- Choose Customer Bill --</option>';
+        const bills = (state.customers || [])
+            .filter(c => c && !c._deleted && (c.billNo || (c.items && c.items.length > 0)))
+            .slice()
+            .reverse();
+        bills.slice(0, 100).forEach(b => {
+            const billNo = b.billNo || 'CLN';
+            const name = b.name || 'Customer';
+            const due = Number(b.pendingAmount || 0);
+            const total = Number(b.grandTotal || 0);
+            cleanBillSelect.innerHTML += `<option value="${b.id || billNo}">[#${billNo}] ${toTitleCase(name)} • ₹${total}${due > 0 ? ` (Due: ₹${due})` : ''}</option>`;
+        });
+    }
+
+    const cleanDirectProd = document.getElementById('cleanReturnDirectProduct');
+    if (cleanDirectProd) {
+        cleanDirectProd.innerHTML = '<option value="">-- Select Cleaning Product --</option>';
+        sortByNameAsc(state.products).forEach(p => {
+            cleanDirectProd.innerHTML += `<option value="${p.id}">${toTitleCase(p.name)} (Stock: ${p.stock} ${p.unit})</option>`;
+        });
+    }
+
+    // 2. Cosmetics Bills & Direct Products
+    const cosBillSelect = document.getElementById('cosReturnBillSelect');
+    if (cosBillSelect) {
+        cosBillSelect.innerHTML = '<option value="">-- Choose Customer Bill --</option>';
+        const cosBills = (state.cosSales || [])
+            .filter(b => b && !b._deleted && (b.billNo || (b.items && b.items.length > 0)))
+            .slice()
+            .reverse();
+        cosBills.slice(0, 100).forEach(b => {
+            const billNo = b.billNo || 'COS';
+            const name = b.customer || b.customerName || b.name || 'Customer';
+            const due = Number(b.pendingAmount || 0);
+            const total = Number(b.grandTotal || 0);
+            cosBillSelect.innerHTML += `<option value="${b.id || billNo}">[#${billNo}] ${toTitleCase(name)} • ₹${total}${due > 0 ? ` (Due: ₹${due})` : ''}</option>`;
+        });
+    }
+
+    const cosDirectProd = document.getElementById('cosReturnDirectProduct');
+    if (cosDirectProd) {
+        cosDirectProd.innerHTML = '<option value="">-- Select Cosmetic Product --</option>';
+        sortByNameAsc(state.cosProducts).forEach(p => {
+            cosDirectProd.innerHTML += `<option value="${p.id}">${toTitleCase(p.name)} (Stock: ${p.stock} ${p.unit})</option>`;
+        });
+    }
+}
+
+export function onStockReturnBillSelected(type) {
+    const isCos = type === 'cosmetics';
+    const prefix = isCos ? 'cosReturn' : 'cleanReturn';
+    const billSelect = document.getElementById(prefix + 'BillSelect');
+    const billCard = document.getElementById(prefix + 'BillCard');
+    const itemSelect = document.getElementById(prefix + 'ItemSelect');
+    const billId = billSelect?.value;
+
+    if (!billId) {
+        if (billCard) billCard.classList.add('hidden');
+        if (itemSelect) itemSelect.innerHTML = '<option value="">-- Select Bill First --</option>';
+        calculateStockReturnPreview(type);
         return;
     }
 
-    if (condition === 'Usable') {
-        product.stock = (parseFloat(product.stock) || 0) + qty;
-        product.savedAt = Date.now();
+    const list = isCos ? (state.cosSales || []) : (state.customers || []);
+    const bill = list.find(b => String(b.id) === String(billId) || String(b.billNo) === String(billId));
+
+    if (!bill) return;
+
+    // Show Bill Info Card
+    if (billCard) {
+        billCard.classList.remove('hidden');
+        const custNameEl = document.getElementById(prefix + 'BillCustName');
+        const billNumEl = document.getElementById(prefix + 'BillNumber');
+        const totalEl = document.getElementById(prefix + 'BillTotal');
+        const paidEl = document.getElementById(prefix + 'BillPaid');
+        const pendingEl = document.getElementById(prefix + 'BillPending');
+
+        if (custNameEl) custNameEl.textContent = toTitleCase(bill.name || bill.customer || 'Customer');
+        if (billNumEl) billNumEl.textContent = '#' + (bill.billNo || '—');
+        if (totalEl) totalEl.textContent = '₹' + Number(bill.grandTotal || 0).toFixed(2);
+        if (paidEl) paidEl.textContent = '₹' + Number(bill.paidAmount || 0).toFixed(2);
+        if (pendingEl) pendingEl.textContent = '₹' + Number(bill.pendingAmount || 0).toFixed(2);
     }
 
-    state.stockReturns.push({
+    // Populate Item Dropdown
+    if (itemSelect) {
+        itemSelect.innerHTML = '<option value="">-- Choose Sold Item to Return --</option>';
+        const items = Array.isArray(bill.items) ? bill.items : (bill.items && typeof bill.items === 'object' ? Object.values(bill.items) : []);
+        items.forEach((it, idx) => {
+            const itName = it.productName || it.name || 'Item';
+            const itQty = Number(it.qty || it.quantity || 1);
+            const itRate = Number(it.rate || it.price || 0);
+            const pack = it.packSize || it.size || '';
+            const unit = it.unit || 'Bottle';
+
+            const alreadyReturned = (bill.returns || [])
+                .filter(r => (r.itemId && r.itemId === it.id) || (r.productName === itName && r.packSize === pack))
+                .reduce((s, r) => s + Number(r.qty || 0), 0);
+            const remaining = Math.max(0, itQty - alreadyReturned);
+
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = `${itName} ${pack ? `(${pack})` : ''} — Sold: ${itQty} ${unit} @ ₹${itRate} (Returnable: ${remaining})`;
+            if (remaining <= 0) {
+                opt.disabled = true;
+                opt.textContent += ' [Fully Returned]';
+            }
+            itemSelect.appendChild(opt);
+        });
+    }
+
+    calculateStockReturnPreview(type);
+}
+
+export function onStockReturnItemSelected(type) {
+    const isCos = type === 'cosmetics';
+    const prefix = isCos ? 'cosReturn' : 'cleanReturn';
+    const billSelect = document.getElementById(prefix + 'BillSelect');
+    const itemSelect = document.getElementById(prefix + 'ItemSelect');
+    const billId = billSelect?.value;
+    const itemIdx = itemSelect?.value;
+
+    if (!billId || itemIdx === '' || itemIdx === undefined) {
+        calculateStockReturnPreview(type);
+        return;
+    }
+
+    const list = isCos ? (state.cosSales || []) : (state.customers || []);
+    const bill = list.find(b => String(b.id) === String(billId) || String(b.billNo) === String(billId));
+    if (!bill) return;
+
+    const items = Array.isArray(bill.items) ? bill.items : Object.values(bill.items || {});
+    const it = items[parseInt(itemIdx, 10)];
+    if (!it) return;
+
+    const itQty = Number(it.qty || it.quantity || 1);
+    const itRate = Number(it.rate || it.price || 0);
+
+    const itName = it.productName || it.name || '';
+    const pack = it.packSize || it.size || '';
+    const alreadyReturned = (bill.returns || [])
+        .filter(r => (r.itemId && r.itemId === it.id) || (r.productName === itName && r.packSize === pack))
+        .reduce((s, r) => s + Number(r.qty || 0), 0);
+    const remaining = Math.max(0, itQty - alreadyReturned);
+
+    let packVol = '';
+    let packUnit = it.unit || 'Bottle';
+    const rawPack = String(pack || it.name || it.productName || '');
+    const mlMatch = rawPack.match(/(\d+(?:\.\d+)?)\s*(?:ml|millilitre)/i);
+    const ltrMatch = rawPack.match(/(\d+(?:\.\d+)?)\s*(?:ltr|l|litre)/i);
+    const gMatch = rawPack.match(/(\d+(?:\.\d+)?)\s*(?:g|gm|gram)/i);
+    const kgMatch = rawPack.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilogram)/i);
+
+    if (mlMatch) {
+        packVol = mlMatch[1];
+        packUnit = 'ml';
+    } else if (ltrMatch) {
+        packVol = ltrMatch[1];
+        packUnit = 'Ltr';
+    } else if (gMatch) {
+        packVol = gMatch[1];
+        packUnit = 'g';
+    } else if (kgMatch) {
+        packVol = kgMatch[1];
+        packUnit = 'Kg';
+    } else if (parseFloat(it.size)) {
+        packVol = it.size;
+    }
+
+    const qtyInput = document.getElementById(prefix + 'Qty');
+    const packSizeInput = document.getElementById(prefix + 'PackSize');
+    const packUnitSelect = document.getElementById(prefix + 'PackUnit');
+    const rateBadge = document.getElementById(prefix + 'ItemRateBadge');
+
+    if (qtyInput) {
+        qtyInput.value = remaining > 0 ? (remaining >= 1 ? 1 : remaining) : 0;
+        qtyInput.max = remaining;
+    }
+    if (packSizeInput && packVol) packSizeInput.value = packVol;
+    if (packUnitSelect && packUnit) {
+        if (![...packUnitSelect.options].some(o => o.value.toLowerCase() === packUnit.toLowerCase())) {
+            packUnitSelect.add(new Option(packUnit, packUnit));
+        }
+        packUnitSelect.value = packUnit;
+    }
+    if (rateBadge) rateBadge.textContent = `Rate: ₹${itRate.toFixed(2)}`;
+
+    const refundSelect = document.getElementById(prefix + 'RefundAction');
+    if (refundSelect) {
+        const pending = Number(bill.pendingAmount || 0);
+        refundSelect.value = pending > 0 ? 'due' : 'cash';
+    }
+
+    calculateStockReturnPreview(type);
+}
+
+export function onStockReturnDirectProductSelected(type) {
+    calculateStockReturnPreview(type);
+}
+
+export function setStockReturnPreset(type, size, unit) {
+    const isCos = type === 'cosmetics';
+    const prefix = isCos ? 'cosReturn' : 'cleanReturn';
+    const sizeInput = document.getElementById(prefix + 'PackSize');
+    const unitSelect = document.getElementById(prefix + 'PackUnit');
+    if (sizeInput) sizeInput.value = size;
+    if (unitSelect) unitSelect.value = unit;
+    calculateStockReturnPreview(type);
+}
+
+export function calculateStockReturnPreview(type) {
+    const isCos = type === 'cosmetics';
+    const prefix = isCos ? 'cosReturn' : 'cleanReturn';
+    const mode = document.getElementById(prefix + 'Mode')?.value || 'bill';
+    const qty = parseFloat(document.getElementById(prefix + 'Qty')?.value) || 0;
+    const packSize = parseFloat(document.getElementById(prefix + 'PackSize')?.value) || 0;
+    const packUnit = document.getElementById(prefix + 'PackUnit')?.value || 'ml';
+    const condition = document.getElementById(prefix + 'Condition')?.value || 'Usable';
+    const refundAction = document.getElementById(prefix + 'RefundAction')?.value || 'due';
+
+    const amtPreview = document.getElementById(prefix + 'AmountPreview');
+    const stockPreview = document.getElementById(prefix + 'StockPreview');
+    const finPreview = document.getElementById(prefix + 'FinancePreview');
+
+    let itemRate = 0;
+    let prod = null;
+    let bill = null;
+
+    if (mode === 'bill') {
+        const billSelect = document.getElementById(prefix + 'BillSelect');
+        const itemSelect = document.getElementById(prefix + 'ItemSelect');
+        const billId = billSelect?.value;
+        const itemIdx = itemSelect?.value;
+
+        if (billId) {
+            const list = isCos ? (state.cosSales || []) : (state.customers || []);
+            bill = list.find(b => String(b.id) === String(billId) || String(b.billNo) === String(billId));
+            if (bill && itemIdx !== '' && itemIdx !== undefined) {
+                const items = Array.isArray(bill.items) ? bill.items : Object.values(bill.items || {});
+                const it = items[parseInt(itemIdx, 10)];
+                if (it) {
+                    itemRate = Number(it.rate || it.price || 0);
+                    const prodList = isCos ? state.cosProducts : state.products;
+                    prod = prodList.find(p => p.id === it.productId || p.name === (it.productName || it.name));
+                }
+            }
+        }
+    } else {
+        const directProdSelect = document.getElementById(prefix + 'DirectProduct');
+        const prodId = directProdSelect?.value;
+        const prodList = isCos ? state.cosProducts : state.products;
+        prod = prodList.find(p => p.id === prodId);
+        if (prod) {
+            itemRate = Number(getProductRetailPrice(prod) || 0);
+        }
+    }
+
+    const returnAmount = qty * itemRate;
+    if (amtPreview) amtPreview.textContent = `₹${returnAmount.toFixed(2)}`;
+
+    // Stock impact
+    if (stockPreview) {
+        if (!prod && mode === 'direct') {
+            stockPreview.textContent = 'Stock Impact: Please select a product';
+        } else if (condition === 'Damaged') {
+            stockPreview.innerHTML = '<span class="text-rose-400 font-bold">🔴 Damaged stock:</span> Will NOT be added to usable inventory.';
+        } else {
+            const converted = prod ? calculateReturnStockUnits(prod, qty, packSize, packUnit) : qty;
+            const u = prod ? prod.unit : (packUnit || 'units');
+            stockPreview.innerHTML = `<span class="text-emerald-400 font-bold">🟢 Usable stock:</span> +${Number(converted.toFixed(3))} ${u} will be added back to inventory.`;
+        }
+    }
+
+    // Financial impact
+    if (finPreview) {
+        if (mode === 'bill' && bill) {
+            const pending = Number(bill.pendingAmount || 0);
+            if (refundAction === 'due') {
+                const dueDeduct = Math.min(pending, returnAmount);
+                const surplus = Math.max(0, returnAmount - pending);
+                if (pending <= 0) {
+                    finPreview.innerHTML = `⚠️ Bill has ₹0 due. Consider selecting <strong>Cash Refund</strong>.`;
+                } else if (surplus > 0) {
+                    finPreview.innerHTML = `💳 <strong>Bill Due Reduced:</strong> -₹${dueDeduct.toFixed(2)} (New Due: ₹0) + 💵 <strong>Surplus Cash:</strong> ₹${surplus.toFixed(2)}`;
+                } else {
+                    finPreview.innerHTML = `💳 <strong>Bill Due Reduced:</strong> -₹${dueDeduct.toFixed(2)} (New Due: ₹${(pending - dueDeduct).toFixed(2)})`;
+                }
+            } else if (refundAction === 'cash') {
+                finPreview.innerHTML = `💵 <strong>Cash Refund:</strong> ₹${returnAmount.toFixed(2)} refunded to customer & recorded in DayBook expense.`;
+            } else {
+                finPreview.innerHTML = `📦 <strong>Stock Only:</strong> No bill or cash adjustment.`;
+            }
+        } else if (mode === 'bill') {
+            finPreview.textContent = 'Financial Impact: Select a bill to view impact';
+        } else {
+            finPreview.textContent = 'Direct return: Stock updated, no bill deduction.';
+        }
+    }
+}
+
+export function saveStockReturn(event, type) {
+    event.preventDefault();
+    const isCos = type === 'cosmetics';
+    const prefix = isCos ? 'cosReturn' : 'cleanReturn';
+    const mode = document.getElementById(prefix + 'Mode')?.value || 'bill';
+    const qty = parseFloat(document.getElementById(prefix + 'Qty')?.value) || 0;
+    const packSize = parseFloat(document.getElementById(prefix + 'PackSize')?.value) || 0;
+    const packUnit = document.getElementById(prefix + 'PackUnit')?.value || 'ml';
+    const condition = document.getElementById(prefix + 'Condition')?.value;
+    const reason = (document.getElementById(prefix + 'Reason')?.value || '').trim();
+    const remarks = (document.getElementById(prefix + 'Remarks')?.value || '').trim();
+    const refundAction = document.getElementById(prefix + 'RefundAction')?.value || 'due';
+
+    if (!(qty > 0)) {
+        alert('Please enter a valid return quantity greater than 0.');
+        return;
+    }
+    if (!condition) {
+        alert('Please select stock condition (Usable or Damaged).');
+        return;
+    }
+
+    const prodList = isCos ? state.cosProducts : state.products;
+    const billList = isCos ? (state.cosSales || []) : (state.customers || []);
+
+    let product = null;
+    let bill = null;
+    let selectedItem = null;
+    let itemRate = 0;
+    let customerName = '';
+    let billNo = '';
+    let billId = '';
+    let returnAmount = 0;
+    let convertedStockQty = 0;
+
+    if (mode === 'bill') {
+        const billSelect = document.getElementById(prefix + 'BillSelect');
+        const itemSelect = document.getElementById(prefix + 'ItemSelect');
+        billId = billSelect?.value;
+        const itemIdx = itemSelect?.value;
+
+        if (!billId) {
+            alert('Please select a customer bill.');
+            return;
+        }
+        if (itemIdx === '' || itemIdx === undefined) {
+            alert('Please select the item to return from the chosen bill.');
+            return;
+        }
+
+        bill = billList.find(b => String(b.id) === String(billId) || String(b.billNo) === String(billId));
+        if (!bill) {
+            alert('Selected bill not found.');
+            return;
+        }
+
+        const items = Array.isArray(bill.items) ? bill.items : Object.values(bill.items || {});
+        selectedItem = items[parseInt(itemIdx, 10)];
+        if (!selectedItem) {
+            alert('Selected item not found in bill.');
+            return;
+        }
+
+        const itName = selectedItem.productName || selectedItem.name || '';
+        const pack = selectedItem.packSize || selectedItem.size || '';
+        const itQty = Number(selectedItem.qty || selectedItem.quantity || 1);
+        const alreadyReturned = (bill.returns || [])
+            .filter(r => (r.itemId && r.itemId === selectedItem.id) || (r.productName === itName && r.packSize === pack))
+            .reduce((s, r) => s + Number(r.qty || 0), 0);
+        const remaining = Math.max(0, itQty - alreadyReturned);
+
+        if (qty > remaining + 0.001) {
+            alert(`Return quantity (${qty}) exceeds remaining returnable quantity (${remaining}) for this item.`);
+            return;
+        }
+
+        customerName = bill.name || bill.customer || 'Customer';
+        billNo = bill.billNo || '';
+        itemRate = Number(selectedItem.rate || selectedItem.price || 0);
+        returnAmount = Math.round((qty * itemRate) * 100) / 100;
+
+        product = prodList.find(p => p.id === selectedItem.productId || p.name === itName);
+
+        if (refundAction === 'due') {
+            const currentPending = Number(bill.pendingAmount || 0);
+            const dueDeduction = Math.min(currentPending, returnAmount);
+            bill.pendingAmount = Math.max(0, currentPending - dueDeduction);
+            const surplusCash = Math.max(0, returnAmount - dueDeduction);
+
+            if (surplusCash > 0) {
+                if (!Array.isArray(state.expenses)) state.expenses = [];
+                state.expenses.push({
+                    id: generateUniqueRecordId('exp'),
+                    type: 'Expense',
+                    category: 'Sales Return Refund',
+                    title: `Sales Return Refund (Surplus) - ${customerName} (Bill #${billNo})`,
+                    amount: surplusCash,
+                    date: todayDDMMYYYY(),
+                    paymentMode: 'Cash',
+                    savedAt: Date.now()
+                });
+            }
+        } else if (refundAction === 'cash') {
+            if (!Array.isArray(state.expenses)) state.expenses = [];
+            state.expenses.push({
+                id: generateUniqueRecordId('exp'),
+                type: 'Expense',
+                category: 'Sales Return Refund',
+                title: `Sales Return Refund - ${customerName} (Bill #${billNo})`,
+                amount: returnAmount,
+                date: todayDDMMYYYY(),
+                paymentMode: 'Cash',
+                savedAt: Date.now()
+            });
+        }
+
+        bill.returnedAmount = (Number(bill.returnedAmount || 0)) + returnAmount;
+        if (!Array.isArray(bill.returns)) bill.returns = [];
+        const returnId = 'ret_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        bill.returns.push({
+            id: returnId,
+            itemId: selectedItem.id || '',
+            productId: product ? product.id : (selectedItem.productId || ''),
+            productName: itName,
+            packSize: packSize ? `${packSize} ${packUnit}` : (pack || ''),
+            qty,
+            rate: itemRate,
+            returnAmount,
+            condition,
+            refundType: refundAction,
+            reason,
+            remarks,
+            date: todayDDMMYYYY(),
+            savedAt: Date.now()
+        });
+        bill.savedAt = Date.now();
+
+    } else {
+        const directProdSelect = document.getElementById(prefix + 'DirectProduct');
+        const prodId = directProdSelect?.value;
+        product = prodList.find(p => p.id === prodId);
+        if (!product) {
+            alert('Please select a product for direct return.');
+            return;
+        }
+        customerName = (document.getElementById(prefix + 'DirectCustomer')?.value || '').trim() || 'Direct Return';
+        itemRate = Number(getProductRetailPrice(product) || 0);
+        returnAmount = Math.round((qty * itemRate) * 100) / 100;
+    }
+
+    // Replenish usable stock
+    if (condition === 'Usable') {
+        if (product) {
+            convertedStockQty = calculateReturnStockUnits(product, qty, packSize, packUnit);
+            product.stock = Math.round(((parseFloat(product.stock) || 0) + convertedStockQty) * 1000) / 1000;
+            product.savedAt = Date.now();
+        }
+    }
+
+    if (!Array.isArray(state.stockReturns)) state.stockReturns = [];
+    const returnRecord = {
         id: 'ret_' + Date.now().toString() + '_' + Math.random().toString(36).slice(2, 7),
         type,
-        productId: product.id,
-        productName: product.name,
-        unit: product.unit,
-        customer: (customerEl?.value || '').trim(),
+        mode,
+        billId: bill ? (bill.id || '') : '',
+        billNo: bill ? (bill.billNo || '') : '',
+        productId: product ? product.id : (selectedItem ? selectedItem.productId : ''),
+        productName: product ? product.name : (selectedItem ? (selectedItem.productName || selectedItem.name) : 'Product'),
+        packSize: packSize ? `${packSize} ${packUnit}` : (selectedItem ? selectedItem.packSize : ''),
+        unit: product ? product.unit : packUnit,
         qty,
+        convertedBaseQty: condition === 'Usable' ? convertedStockQty : 0,
+        rate: itemRate,
+        returnAmount,
+        refundType: mode === 'bill' ? refundAction : 'none',
+        customer: customerName,
         condition,
-        reason: (reasonEl?.value || '').trim(),
-        remarks: (remarksEl?.value || '').trim(),
+        reason,
+        remarks,
         date: todayDDMMYYYY(),
         savedAt: Date.now()
-    });
+    };
+    state.stockReturns.push(returnRecord);
 
+    saveLocalStateSafely();
     syncToFirebase();
 
-    const form = document.getElementById(isCos ? 'cosReturnStockForm' : 'cleanReturnStockForm');
+    const form = document.getElementById(prefix + 'StockForm');
     if (form) form.reset();
+    const billCard = document.getElementById(prefix + 'BillCard');
+    if (billCard) billCard.classList.add('hidden');
+    const itemSelect = document.getElementById(prefix + 'ItemSelect');
+    if (itemSelect) itemSelect.innerHTML = '<option value="">-- Choose Customer Bill First --</option>';
 
     renderProducts();
     renderCosProductStock();
@@ -711,29 +1232,18 @@ export function saveStockReturn(event, type) {
     updateStockReturnDropdowns();
     renderStockReturnHistory();
     renderConsolidatedStockReport();
+    if (window.renderCustomers) window.renderCustomers();
+    if (window.renderCosSales) window.renderCosSales();
+    if (window.renderSalesHistory) window.renderSalesHistory();
+    if (window.renderDayBook) window.renderDayBook();
+    if (window.updateDashboard) window.updateDashboard();
 
-    alert(condition === 'Usable'
-        ? `${qty} ${product.unit} returned to usable stock successfully.`
-        : `${qty} ${product.unit} recorded as damaged. It was NOT added to usable stock.`);
-}
+    const actionText = refundAction === 'due' ? 'Deducted from Pending Due' : refundAction === 'cash' ? 'Cash Refund Recorded' : 'Stock Adjustment Only';
+    const alertMsg = condition === 'Usable'
+        ? `✅ Return Saved Successfully!\n\n• Product: ${returnRecord.productName} (${returnRecord.packSize || ''})\n• Returned: ${qty} (+${convertedStockQty} ${product ? product.unit : ''} to Stock)\n• Value: ₹${returnAmount.toFixed(2)}${mode === 'bill' ? `\n• Customer Bill: #${billNo} (${actionText})` : ''}`
+        : `⚠️ Return Recorded as Damaged!\n\n• Product: ${returnRecord.productName}\n• Qty: ${qty}\n• Stock was NOT added to usable inventory.\n• Value: ₹${returnAmount.toFixed(2)}${mode === 'bill' ? `\n• Customer Bill: #${billNo} (${actionText})` : ''}`;
 
-export function updateStockReturnDropdowns() {
-    const clean = document.getElementById('cleanReturnProduct');
-    const cos = document.getElementById('cosReturnProduct');
-
-    if (clean) {
-        clean.innerHTML = '<option value="">-- Select Cleaning Product --</option>';
-        sortByNameAsc(state.products).forEach(p => {
-            clean.innerHTML += `<option value="${p.id}">${toTitleCase(p.name)} (Stock: ${p.stock} ${p.unit})</option>`;
-        });
-    }
-
-    if (cos) {
-        cos.innerHTML = '<option value="">-- Select Cosmetic Product --</option>';
-        sortByNameAsc(state.cosProducts).forEach(p => {
-            cos.innerHTML += `<option value="${p.id}">${toTitleCase(p.name)} (Stock: ${p.stock} ${p.unit})</option>`;
-        });
-    }
+    alert(alertMsg);
 }
 
 export function renderStockReturnHistory() {
@@ -741,21 +1251,50 @@ export function renderStockReturnHistory() {
     const cos = document.getElementById('cosReturnHistoryContainer');
     const render = (container, type) => {
         if (!container) return;
-        const rows = state.stockReturns.filter(r => r.type === type).slice().reverse();
+        const rows = (state.stockReturns || []).filter(r => r.type === type).slice().reverse();
         if (!rows.length) {
             container.innerHTML = '<p class="text-[10px] text-slate-500 text-center py-2">No return records yet.</p>';
             return;
         }
-        container.innerHTML = rows.slice(0, 30).map(r => `
-            <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-2.5 text-[10px]">
-                <div class="flex justify-between gap-2">
-                    <span class="font-bold text-slate-200">${r.productName}</span>
-                    <span class="${r.condition === 'Usable' ? 'text-emerald-300' : 'text-rose-300'} font-bold">${r.condition}</span>
+        container.innerHTML = rows.slice(0, 30).map(r => {
+            const isUsable = r.condition === 'Usable';
+            const condBadge = isUsable 
+                ? '<span class="text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-800">🟢 Usable (+Stock)</span>'
+                : '<span class="text-rose-400 font-bold bg-rose-950/80 px-2 py-0.5 rounded-md border border-rose-800">🔴 Damaged</span>';
+            const finBadge = r.refundType === 'due'
+                ? '<span class="text-amber-300 font-bold bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-800">💳 Due Deducted</span>'
+                : r.refundType === 'cash'
+                ? '<span class="text-sky-300 font-bold bg-sky-950/80 px-2 py-0.5 rounded-md border border-sky-800">💵 Cash Refund</span>'
+                : '';
+            const billBadge = r.billNo ? `<span class="text-amber-400 font-mono font-bold bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">#${r.billNo}</span>` : '';
+
+            return `
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-xs space-y-1.5 shadow-sm">
+                <div class="flex justify-between items-start gap-2">
+                    <div>
+                        <div class="font-bold text-slate-100 flex items-center gap-1.5 flex-wrap">
+                            <span>${r.productName}</span>
+                            ${r.packSize ? `<span class="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded font-mono">📦 ${r.packSize}</span>` : ''}
+                            ${billBadge}
+                        </div>
+                        <div class="text-[11px] text-slate-400 mt-0.5">
+                            Customer: <strong class="text-slate-200">${r.customer || 'Walk-in'}</strong> • ${r.date}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-amber-300 font-mono font-bold">₹${Number(r.returnAmount || 0).toFixed(2)}</div>
+                        <div class="text-[10px] text-slate-500">${r.qty} returned</div>
+                    </div>
                 </div>
-                <div class="text-slate-400 mt-1">${r.qty} ${r.unit} • ${r.date}${r.customer ? ' • ' + r.customer : ''}</div>
-                ${r.reason ? `<div class="text-slate-500 mt-1">Reason: ${r.reason}</div>` : ''}
-                ${r.remarks ? `<div class="text-slate-500">Remarks: ${r.remarks}</div>` : ''}
-            </div>`).join('');
+                <div class="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-800/80 text-[10px]">
+                    ${condBadge}
+                    ${finBadge}
+                    ${r.convertedBaseQty > 0 ? `<span class="text-slate-400">+${r.convertedBaseQty} ${r.unit} in stock</span>` : ''}
+                </div>
+                ${r.reason ? `<div class="text-[10px] text-slate-400 italic">Reason: ${r.reason}</div>` : ''}
+                ${r.remarks ? `<div class="text-[10px] text-slate-500">Remarks: ${r.remarks}</div>` : ''}
+            </div>`;
+        }).join('');
     };
     render(clean, 'cleaning');
     render(cos, 'cosmetics');
@@ -1420,6 +1959,12 @@ if (typeof window !== 'undefined') {
     window.saveStockReturn = saveStockReturn;
     window.updateStockReturnDropdowns = updateStockReturnDropdowns;
     window.renderStockReturnHistory = renderStockReturnHistory;
+    window.toggleStockReturnMode = toggleStockReturnMode;
+    window.onStockReturnBillSelected = onStockReturnBillSelected;
+    window.onStockReturnItemSelected = onStockReturnItemSelected;
+    window.onStockReturnDirectProductSelected = onStockReturnDirectProductSelected;
+    window.setStockReturnPreset = setStockReturnPreset;
+    window.calculateStockReturnPreview = calculateStockReturnPreview;
     window.renderProducts = renderProducts;
     window.editProduct = editProduct;
     window.deleteProduct = deleteProduct;

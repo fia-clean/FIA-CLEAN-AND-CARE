@@ -196,6 +196,12 @@ export function previewBill(identifier) {
                         <span style="font-size: 13px; font-weight: 900; color: ${themeColor} !important;">₹${grandVal.toFixed(2)}</span>
                     </div>`}
 
+                    ${Number(c.returnedAmount || 0) > 0 ? `
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #dc2626 !important; font-weight: 700; margin-bottom: 2px;">
+                        <span>Returned Items (റിട്ടേൺ ചെയ്തത്):</span>
+                        <span>-₹${Number(c.returnedAmount).toFixed(2)}</span>
+                    </div>` : ''}
+
                     <div style="display: flex; justify-content: space-between; align-items: center; color: #047857 !important; font-weight: 700;">
                         <span>Paid:</span>
                         <span>₹${paidVal.toFixed(2)}</span>
@@ -464,6 +470,12 @@ function getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal
                     <span style="font-size: 12.5px; font-weight: 800; color: #111827;">Grand Total:</span>
                     <span style="font-size: 14.5px; font-weight: 900; color: ${themeColor};">₹${grandVal.toFixed(2)}</span>
                 </div>`}
+
+                ${Number(c.returnedAmount || 0) > 0 ? `
+                <div style="display: flex; justify-content: space-between; align-items: center; color: #dc2626; font-weight: 700; margin-bottom: 3px;">
+                    <span>Returned Items (റിട്ടേൺ ചെയ്തത്):</span>
+                    <span>-₹${Number(c.returnedAmount).toFixed(2)}</span>
+                </div>` : ''}
 
                 <div style="display: flex; justify-content: space-between; align-items: center; color: #047857; font-weight: 700;">
                     <span>Paid Amount:</span>
