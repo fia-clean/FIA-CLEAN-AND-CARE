@@ -145,6 +145,18 @@ export function createWhatsAppBillMessage(sale: SaleRecord): string {
     })
     .join('\n');
 
+  const returnsText =
+    sale.returns && sale.returns.length > 0
+      ? `\n*Returned Items:*\n` +
+        sale.returns
+          .map(
+            (r, idx) =>
+              `${idx + 1}. ↩️ ${getCleanInvoiceProductName(r.productName)} (${r.packDisplay || '—'}) x ${r.qty} = -₹${Number(r.refundAmount || 0).toFixed(2)}`
+          )
+          .join('\n') +
+        `\n*Total Returned:* -₹${Number(sale.returnedAmount || 0).toFixed(2)}\n*Net Bill Total:* *₹${Number(sale.netGrandTotal ?? (sale.grandTotal - (sale.returnedAmount || 0))).toFixed(2)}*\n`
+      : '';
+
   const pendingText =
     sale.pendingAmount > 0
       ? `*Balance Due:* ₹${sale.pendingAmount.toFixed(2)}\n`
@@ -163,8 +175,10 @@ export function createWhatsAppBillMessage(sale: SaleRecord): string {
     `*Customer:* ${sale.name}\n` +
     `*Date:* ${formatDateDDMMYYYY(sale.date)}\n` +
     `*Type:* ${sale.saleType} | *Payment:* ${sale.paymentMode}\n\n` +
-    `*Items:*\n${itemsText}\n\n` +
+    `*Items:*\n${itemsText}\n` +
+    `${returnsText}\n` +
     `*Grand Total:* *₹${sale.grandTotal.toFixed(2)}*\n` +
+    (sale.returnedAmount && sale.returnedAmount > 0 ? `*Net Total:* *₹${Number(sale.netGrandTotal ?? (sale.grandTotal - sale.returnedAmount)).toFixed(2)}*\n` : '') +
     `*Paid Amount:* ₹${sale.paidAmount.toFixed(2)}\n` +
     `${pendingText}${excessText}\n` +
     `_Thank you for choosing FIA Clean & Care!_`

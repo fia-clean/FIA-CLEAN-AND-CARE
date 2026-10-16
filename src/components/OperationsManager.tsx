@@ -21,8 +21,8 @@ import {
   Phone,
   Calendar,
 } from 'lucide-react';
-import { Product, CosmeticProduct, PurchaseRecord, Supplier, ExpenseRecord, StockReturnRecord, UnitType } from '../types';
-import { formatCurrency, formatDateDDMMYYYY, getTodayDateString } from '../utils/formatters';
+import { Product, CosmeticProduct, PurchaseRecord, Supplier, ExpenseRecord, StockReturnRecord, UnitType, SaleRecord, CustomerProfile } from '../types';
+import { formatCurrency, formatDateDDMMYYYY, getTodayDateString, formatPackDisplay, getCleanInvoiceProductName } from '../utils/formatters';
 
 interface OperationsManagerProps {
   initialSubTab?: 'stock' | 'purchases' | 'expenses';
@@ -32,6 +32,9 @@ interface OperationsManagerProps {
   suppliers: Supplier[];
   expenses: ExpenseRecord[];
   stockReturns: StockReturnRecord[];
+  sales?: SaleRecord[];
+  customers?: CustomerProfile[];
+  onUpdateSale?: (sale: SaleRecord) => void;
   onSaveProduct: (product: Product) => void;
   onUpdateProduct: (product: Product) => void;
   onDeleteProduct: (id: string) => void;
@@ -55,6 +58,9 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
   suppliers,
   expenses,
   stockReturns,
+  sales = [],
+  customers = [],
+  onUpdateSale,
   onSaveProduct,
   onUpdateProduct,
   onDeleteProduct,
@@ -178,12 +184,38 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
   const [expDate, setExpDate] = useState(getTodayDateString());
   const [editingExpId, setEditingExpId] = useState<string | null>(null);
 
-  // Stock Return Form
+  // Stock Return Form States
+  const [retMode, setRetMode] = useState<'bill' | 'direct'>('bill');
+  const [retDepartment, setRetDepartment] = useState<'all' | 'cleaning' | 'cosmetics'>('all');
+  const [retBillSearch, setRetBillSearch] = useState('');
+  const [retSelectedBillId, setRetSelectedBillId] = useState('');
+  const [retSelectedItemId, setRetSelectedItemId] = useState('');
+  const [retRefundMode, setRetRefundMode] = useState<'due_deduction' | 'cash_refund'>('due_deduction');
   const [retProductId, setRetProductId] = useState('');
   const [retCustomer, setRetCustomer] = useState('');
-  const [retQty, setRetQty] = useState<number>(0);
+  const [retQty, setRetQty] = useState<number>(1);
   const [retCondition, setRetCondition] = useState<'Usable' | 'Damaged'>('Usable');
   const [retReason, setRetReason] = useState('');
+  const [retDirectPackSize, setRetDirectPackSize] = useState<number>(500);
+  const [retDirectPackUnit, setRetDirectPackUnit] = useState<'ml' | 'Ltr' | 'g' | 'Kg' | 'Pcs' | 'Bottle'>('ml');
+  const [retHistorySearch, setRetHistorySearch] = useState('');
+  const [retHistoryFilter, setRetHistoryFilter] = useState<'all' | 'Usable' | 'Damaged'>('all');
+
+  const calculateReturnStockUnits = (item: {
+    packageSizeMl?: number;
+    packUnit?: string;
+    qty: number;
+    unit?: string;
+  }): number => {
+    const size = item.packageSizeMl;
+    const unit = item.packUnit;
+    const qty = item.qty || 1;
+    if (!size || size <= 0) return qty;
+    if (unit === 'Ltr' || unit === 'Kg') return Number((size * qty).toFixed(3));
+    if (unit === 'ml' || unit === 'g') return Number(((size / 1000) * qty).toFixed(3));
+    if (unit === 'mg') return Number(((size / 1000000) * qty).toFixed(4));
+    return qty;
+  };
 
   // Search filter
   const [stockSearchQuery, setStockSearchQuery] = useState('');
@@ -718,52 +750,224 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
     setExpDate(getTodayDateString());
   };
 
-  // Save Stock Return
+  // Save Stock Return (Bill-Linked & Direct Stock Returns)
   const handleSaveReturn = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!retProductId || retQty <= 0) {
-      alert('Please select product and enter valid return quantity.');
-      return;
-    }
-    const isClean = stockCategory === 'cleaning';
-    const prod = isClean
-      ? products.find((p) => p.id === retProductId)
-      : cosProducts.find((p) => p.id === retProductId);
 
-    if (!prod) return;
-
-    if (retCondition === 'Usable') {
-      if (isClean) {
-        onUpdateProduct({ ...(prod as Product), stock: prod.stock + retQty });
-      } else {
-        onUpdateCosProduct({ ...(prod as CosmeticProduct), stock: prod.stock + retQty });
+    if (retMode === 'bill') {
+      if (!retSelectedBillId) {
+        alert('Please select a customer bill to process return.');
+        return;
       }
+      const targetSale = sales.find((s) => s.id === retSelectedBillId);
+      if (!targetSale) {
+        alert('Selected bill could not be found.');
+        return;
+      }
+      const targetItem = targetSale.items.find((i) => i.id === retSelectedItemId);
+      if (!targetItem) {
+        alert('Please select an item from the bill to return.');
+        return;
+      }
+
+      // Calculate previously returned quantity for this item
+      const alreadyReturnedQty = (targetSale.returns || [])
+        .filter((r) => r.itemId === targetItem.id)
+        .reduce((sum, r) => sum + (r.qty || 0), 0);
+      const maxReturnable = Math.max(0, targetItem.qty - alreadyReturnedQty);
+
+      if (retQty <= 0) {
+        alert('Please enter a valid return quantity greater than 0.');
+        return;
+      }
+      if (retQty > maxReturnable) {
+        alert(`Cannot return more than ${maxReturnable} units (Original billed: ${targetItem.qty}, already returned: ${alreadyReturnedQty}).`);
+        return;
+      }
+
+      // Calculate stock units to restore (exact ml / Ltr conversion)
+      const stockToAdd = calculateReturnStockUnits({
+        packageSizeMl: targetItem.packageSizeMl,
+        packUnit: targetItem.packUnit,
+        qty: retQty,
+        unit: targetItem.packUnit,
+      });
+
+      // Calculate refund amount
+      const refundAmount = Number((targetItem.rate * retQty).toFixed(2));
+
+      // 1. Replenish inventory if Usable
+      if (retCondition === 'Usable') {
+        if (targetSale.type === 'cleaning') {
+          const prod = products.find(
+            (p) => p.id === targetItem.stockId || p.name.trim().toLowerCase() === targetItem.productName.trim().toLowerCase()
+          );
+          if (prod) {
+            onUpdateProduct({ ...prod, stock: Number((prod.stock + stockToAdd).toFixed(3)) });
+          }
+        } else {
+          const cosProd = cosProducts.find(
+            (p) => p.id === targetItem.stockId || p.name.trim().toLowerCase() === targetItem.productName.trim().toLowerCase()
+          );
+          if (cosProd) {
+            onUpdateCosProduct({ ...cosProd, stock: Number((cosProd.stock + stockToAdd).toFixed(3)) });
+          }
+        }
+      }
+
+      // 2. Save StockReturnRecord (which App.tsx uses to update SaleRecord & Accounts)
+      onSaveStockReturn({
+        id: 'ret_' + Date.now(),
+        type: targetSale.type,
+        productId: targetItem.stockId || targetItem.id,
+        productName: targetItem.productName,
+        unit: (targetItem.packUnit as UnitType) || (targetSale.type === 'cleaning' ? 'Ltr' : 'Bottle'),
+        customer: targetSale.name,
+        customerId: customers.find((c) => c.name.trim().toLowerCase() === targetSale.name.trim().toLowerCase())?.id,
+        saleId: targetSale.id,
+        billNo: targetSale.billNo,
+        itemId: targetItem.id,
+        qty: retQty,
+        packDisplay: formatPackDisplay(targetItem),
+        packUnit: targetItem.packUnit,
+        packageSizeMl: targetItem.packageSizeMl,
+        rate: targetItem.rate,
+        refundAmount: refundAmount,
+        refundMode: retRefundMode,
+        condition: retCondition,
+        reason: retReason.trim() || undefined,
+        date: getTodayDateString(),
+        savedAt: Date.now(),
+      });
+
+      alert(
+        `✅ Return recorded successfully for Bill #${targetSale.billNo}!\n\n` +
+        `• Product: ${targetItem.productName} (${formatPackDisplay(targetItem)}) x ${retQty}\n` +
+        `• Stock: ${retCondition === 'Usable' ? `+${stockToAdd} units restored to inventory` : 'Marked as damaged stock'}\n` +
+        `• Accounts: ₹${refundAmount} ${
+          retRefundMode === 'due_deduction' ? 'deducted from pending bill balance' : 'recorded as cash refund'
+        }`
+      );
+
+      // Reset
+      setRetSelectedItemId('');
+      setRetQty(1);
+      setRetReason('');
+    } else {
+      // Direct Return (Without Bill)
+      if (!retProductId || retQty <= 0) {
+        alert('Please select product and enter valid return quantity.');
+        return;
+      }
+      const isClean = stockCategory === 'cleaning';
+      const prod = isClean
+        ? products.find((p) => p.id === retProductId)
+        : cosProducts.find((p) => p.id === retProductId);
+
+      if (!prod) return;
+
+      const stockToAdd = calculateReturnStockUnits({
+        packageSizeMl: retDirectPackSize,
+        packUnit: retDirectPackUnit,
+        qty: retQty,
+        unit: prod.unit,
+      });
+
+      if (retCondition === 'Usable') {
+        if (isClean) {
+          onUpdateProduct({ ...(prod as Product), stock: Number((prod.stock + stockToAdd).toFixed(3)) });
+        } else {
+          onUpdateCosProduct({ ...(prod as CosmeticProduct), stock: Number((prod.stock + stockToAdd).toFixed(3)) });
+        }
+      }
+
+      onSaveStockReturn({
+        id: 'ret_' + Date.now(),
+        type: stockCategory,
+        productId: prod.id,
+        productName: prod.name,
+        unit: prod.unit,
+        customer: retCustomer.trim() || undefined,
+        qty: retQty,
+        packDisplay: `${retDirectPackSize} ${retDirectPackUnit}`,
+        packUnit: retDirectPackUnit,
+        packageSizeMl: retDirectPackSize,
+        condition: retCondition,
+        refundMode: 'none',
+        reason: retReason.trim() || undefined,
+        date: getTodayDateString(),
+        savedAt: Date.now(),
+      });
+
+      alert(
+        retCondition === 'Usable'
+          ? `Returned ${stockToAdd} ${prod.unit} back to usable stock.`
+          : `Recorded ${stockToAdd} ${prod.unit} as damaged stock.`
+      );
+
+      setRetProductId('');
+      setRetCustomer('');
+      setRetQty(1);
+      setRetReason('');
     }
-
-    onSaveStockReturn({
-      id: 'ret_' + Date.now(),
-      type: stockCategory,
-      productId: prod.id,
-      productName: prod.name,
-      unit: prod.unit,
-      customer: retCustomer.trim() || undefined,
-      qty: retQty,
-      condition: retCondition,
-      reason: retReason.trim() || undefined,
-      date: getTodayDateString(),
-      savedAt: Date.now(),
-    });
-
-    alert(
-      retCondition === 'Usable'
-        ? `Returned ${retQty} ${prod.unit} back to usable stock.`
-        : `Recorded ${retQty} ${prod.unit} as damaged stock.`
-    );
-    setRetProductId('');
-    setRetCustomer('');
-    setRetQty(0);
-    setRetReason('');
   };
+
+  // Filtered sales for Return selection
+  const filteredSalesForReturn = sales.filter((s) => {
+    if (retDepartment !== 'all' && s.type !== retDepartment) return false;
+    if (!retBillSearch.trim()) return true;
+    const query = retBillSearch.trim().toLowerCase();
+    const matchBill = (s.billNo || '').toLowerCase().includes(query);
+    const matchCust = (s.name || '').toLowerCase().includes(query);
+    const matchPhone = (s.phone || '').includes(query);
+    return matchBill || matchCust || matchPhone;
+  });
+
+  const selectedSaleForReturn = sales.find((s) => s.id === retSelectedBillId);
+  const selectedItemForReturn = selectedSaleForReturn?.items.find((i) => i.id === retSelectedItemId);
+
+  // Returnable quantity calculation for the selected item
+  const itemAlreadyReturnedQty = selectedSaleForReturn && selectedItemForReturn
+    ? (selectedSaleForReturn.returns || [])
+        .filter((r) => r.itemId === selectedItemForReturn.id)
+        .reduce((sum, r) => sum + (r.qty || 0), 0)
+    : 0;
+
+  const itemMaxReturnable = selectedItemForReturn
+    ? Math.max(0, selectedItemForReturn.qty - itemAlreadyReturnedQty)
+    : 0;
+
+  // Real-time calculated refund amount
+  const calculatedRefundAmount = selectedItemForReturn
+    ? Number((selectedItemForReturn.rate * (retQty || 0)).toFixed(2))
+    : 0;
+
+  // Real-time stock restoration units
+  const calculatedStockUnits = retMode === 'bill' && selectedItemForReturn
+    ? calculateReturnStockUnits({
+        packageSizeMl: selectedItemForReturn.packageSizeMl,
+        packUnit: selectedItemForReturn.packUnit,
+        qty: retQty,
+        unit: selectedItemForReturn.packUnit,
+      })
+    : calculateReturnStockUnits({
+        packageSizeMl: retDirectPackSize,
+        packUnit: retDirectPackUnit,
+        qty: retQty,
+        unit: retDirectPackUnit,
+      });
+
+  // Filtered return history
+  const filteredStockReturns = stockReturns.filter((r) => {
+    if (retHistoryFilter !== 'all' && r.condition !== retHistoryFilter) return false;
+    if (!retHistorySearch.trim()) return true;
+    const q = retHistorySearch.trim().toLowerCase();
+    const mProd = (r.productName || '').toLowerCase().includes(q);
+    const mCust = (r.customer || '').toLowerCase().includes(q);
+    const mBill = (r.billNo || '').toLowerCase().includes(q);
+    const mReason = (r.reason || '').toLowerCase().includes(q);
+    return mProd || mCust || mBill || mReason;
+  });
 
   return (
     <div className="space-y-6">
@@ -1370,109 +1574,583 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
 
           {/* STOCK RETURNS TAB */}
           {stockActionTab === 'return' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
-                  ↩️ Record Customer Return Stock
-                </h3>
-                <form onSubmit={handleSaveReturn} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Product</label>
-                    <select
-                      value={retProductId}
-                      onChange={(e) => setRetProductId(e.target.value)}
-                      required
-                      className="w-full border-2 border-slate-200 bg-white p-2.5 rounded-md text-xs font-semibold focus:border-indigo-500 outline-none"
+            <div className="space-y-6">
+              {/* Return Mode Switcher */}
+              <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Return Type:</span>
+                  <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setRetMode('bill')}
+                      className={`px-3 py-1.5 rounded-md text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                        retMode === 'bill'
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
                     >
-                      <option value="">-- Select Product to Return --</option>
-                      {[...(stockCategory === 'cleaning' ? products : cosProducts)]
-                        .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
-                        .map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} (Current: {p.stock} {p.unit})
-                          </option>
-                        ))}
-                    </select>
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Return Against Customer Bill (Recommended)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRetMode('direct')}
+                      className={`px-3 py-1.5 rounded-md text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                        retMode === 'direct'
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Package className="w-3.5 h-3.5" />
+                      <span>Direct / Manual Return (Without Bill)</span>
+                    </button>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700">Return Qty</label>
-                      <input
-                        type="number"
-                        value={retQty || ''}
-                        onChange={(e) => setRetQty(parseFloat(e.target.value) || 0)}
-                        min="0.1"
-                        step="any"
-                        required
-                        className="w-full border-2 border-slate-200 p-2.5 rounded-md text-xs font-mono font-bold focus:border-indigo-500 outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700">Condition</label>
-                      <select
-                        value={retCondition}
-                        onChange={(e) => setRetCondition(e.target.value as any)}
-                        className="w-full border-2 border-slate-200 p-2.5 rounded-md text-xs font-semibold focus:border-indigo-500 outline-none bg-white"
-                      >
-                        <option value="Usable">🟢 Usable (Add back to stock)</option>
-                        <option value="Damaged">🔴 Damaged (Do not add)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Customer / Party Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Rahul K."
-                      value={retCustomer}
-                      onChange={(e) => setRetCustomer(e.target.value)}
-                      className="w-full border-2 border-slate-200 p-2.5 rounded-md text-xs focus:border-indigo-500 outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Reason / Remarks</label>
-                    <input
-                      type="text"
-                      placeholder="Optional reason..."
-                      value={retReason}
-                      onChange={(e) => setRetReason(e.target.value.toUpperCase())}
-                      className="w-full border-2 border-slate-200 p-2.5 rounded-md text-xs focus:border-indigo-500 outline-none"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded font-bold text-xs shadow transition"
-                  >
-                    RECORD STOCK RETURN
-                  </button>
-                </form>
+                </div>
+                <div className="text-xs text-slate-500 font-medium hidden sm:block">
+                  {retMode === 'bill'
+                    ? '⚡ Automatically updates bill totals, customer dues, and live stock'
+                    : '📦 Adjusts warehouse stock without modifying past sales bills'}
+                </div>
               </div>
 
-              {/* Returns History */}
-              <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
-                  Return History
-                </h3>
-                <div className="space-y-2.5 max-h-[400px] overflow-y-auto">
-                  {stockReturns.length === 0 ? (
-                    <p className="text-xs text-slate-400 text-center py-6">No returns recorded yet.</p>
-                  ) : (
-                    stockReturns
-                      .slice()
-                      .reverse()
-                      .map((ret) => (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* RETURN FORM CONTAINER */}
+                <div className="lg:col-span-7 bg-white p-5 rounded-lg border border-slate-200 shadow-xs space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center justify-between">
+                    <span>↩️ {retMode === 'bill' ? 'Customer Bill Return & Accounting' : 'Direct Stock Return'}</span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                      {retMode === 'bill' ? 'Linked Mode' : 'Direct Mode'}
+                    </span>
+                  </h3>
+
+                  <form onSubmit={handleSaveReturn} className="space-y-4">
+                    {retMode === 'bill' ? (
+                      /* ================= BILL-LINKED RETURN WORKFLOW ================= */
+                      <div className="space-y-4">
+                        {/* Step 1: Select Bill & Filters */}
+                        <div className="space-y-2 bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                              <Search className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Step 1: Find Customer Bill</span>
+                            </label>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setRetDepartment('all')}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+                                  retDepartment === 'all'
+                                    ? 'bg-slate-800 text-white'
+                                    : 'bg-white text-slate-600 border border-slate-200'
+                                }`}
+                              >
+                                All
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setRetDepartment('cleaning')}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+                                  retDepartment === 'cleaning'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-white text-slate-600 border border-slate-200'
+                                }`}
+                              >
+                                Cleaning
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setRetDepartment('cosmetics')}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+                                  retDepartment === 'cosmetics'
+                                    ? 'bg-pink-600 text-white'
+                                    : 'bg-white text-slate-600 border border-slate-200'
+                                }`}
+                              >
+                                Cosmetics
+                              </button>
+                            </div>
+                          </div>
+
+                          <input
+                            type="text"
+                            placeholder="Type customer name, phone number, or bill number..."
+                            value={retBillSearch}
+                            onChange={(e) => setRetBillSearch(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded p-2 text-xs outline-none focus:border-indigo-500"
+                          />
+
+                          <div className="space-y-1">
+                            <select
+                              value={retSelectedBillId}
+                              onChange={(e) => {
+                                setRetSelectedBillId(e.target.value);
+                                setRetSelectedItemId('');
+                                setRetQty(1);
+                              }}
+                              required
+                              className="w-full border-2 border-slate-300 bg-white p-2.5 rounded-md text-xs font-semibold focus:border-indigo-500 outline-none"
+                            >
+                              <option value="">-- Choose Customer Bill ({filteredSalesForReturn.length} found) --</option>
+                              {filteredSalesForReturn.map((sale) => (
+                                <option key={sale.id} value={sale.id}>
+                                  #{sale.billNo} • {sale.name} ({formatDateDDMMYYYY(sale.date)}) • Total: ₹{sale.grandTotal.toFixed(2)} {sale.pendingAmount > 0 ? `| Due: ₹${sale.pendingAmount.toFixed(2)}` : '| Paid ✓'}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Selected Bill Overview Card */}
+                        {selectedSaleForReturn && (
+                          <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-lg space-y-2 text-xs">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="font-mono font-bold text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded">
+                                  #{selectedSaleForReturn.billNo}
+                                </span>
+                                <h4 className="font-black text-slate-900 text-sm mt-1">
+                                  {selectedSaleForReturn.name}
+                                </h4>
+                                {selectedSaleForReturn.phone && (
+                                  <p className="text-[11px] font-mono text-slate-600">Ph: {selectedSaleForReturn.phone}</p>
+                                )}
+                              </div>
+                              <div className="text-right space-y-0.5">
+                                <span className="text-slate-500 font-mono text-[11px]">{formatDateDDMMYYYY(selectedSaleForReturn.date)}</span>
+                                <div className="font-bold text-slate-800">
+                                  Total: ₹{selectedSaleForReturn.grandTotal.toFixed(2)}
+                                </div>
+                                <div className="font-mono font-bold">
+                                  {selectedSaleForReturn.pendingAmount > 0 ? (
+                                    <span className="text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded">
+                                      Due: ₹{selectedSaleForReturn.pendingAmount.toFixed(2)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                                      Fully Paid ✓
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            {selectedSaleForReturn.returnedAmount && selectedSaleForReturn.returnedAmount > 0 ? (
+                              <div className="text-[11px] font-mono text-rose-700 font-bold bg-white/80 p-1.5 rounded border border-rose-200 flex justify-between">
+                                <span>↩️ Previously Returned from this Bill:</span>
+                                <span>-₹{selectedSaleForReturn.returnedAmount.toFixed(2)}</span>
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+
+                        {/* Step 2: Select Purchased Item from Bill */}
+                        {selectedSaleForReturn && (
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-700">
+                              Step 2: Select Item Being Returned
+                            </label>
+                            <select
+                              value={retSelectedItemId}
+                              onChange={(e) => {
+                                setRetSelectedItemId(e.target.value);
+                                setRetQty(1);
+                              }}
+                              required
+                              className="w-full border-2 border-slate-300 bg-white p-2.5 rounded-md text-xs font-semibold focus:border-indigo-500 outline-none"
+                            >
+                              <option value="">-- Select Purchased Item --</option>
+                              {selectedSaleForReturn.items.map((item) => {
+                                const alreadyRet = (selectedSaleForReturn.returns || [])
+                                  .filter((r) => r.itemId === item.id)
+                                  .reduce((s, r) => s + (r.qty || 0), 0);
+                                const rem = Math.max(0, item.qty - alreadyRet);
+                                return (
+                                  <option key={item.id} value={item.id} disabled={rem <= 0}>
+                                    {getCleanInvoiceProductName(item.productName)} ({formatPackDisplay(item)}) • Sold: {item.qty} @ ₹{Number(item.rate).toFixed(2)} = ₹{Number(item.total).toFixed(2)} {rem <= 0 ? '(Fully Returned)' : `[Returnable: ${rem}]`}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Step 3: Return Quantity, Condition, and Settlement */}
+                        {selectedItemForReturn && itemMaxReturnable > 0 && (
+                          <div className="space-y-4 pt-2 border-t border-slate-100">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {/* Quantity */}
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between items-center">
+                                  <label className="text-xs font-bold text-slate-700">
+                                    Return Quantity (Packs/Bottles)
+                                  </label>
+                                  <span className="text-[10px] font-mono text-slate-500 font-bold">
+                                    Max: {itemMaxReturnable}
+                                  </span>
+                                </div>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max={itemMaxReturnable}
+                                  step="1"
+                                  value={retQty || ''}
+                                  onChange={(e) => setRetQty(Math.min(itemMaxReturnable, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+                                  required
+                                  className="w-full border-2 border-slate-300 p-2.5 rounded-md text-xs font-mono font-bold focus:border-indigo-500 outline-none"
+                                />
+                                <p className="text-[10px] text-slate-500 font-medium">
+                                  Pack: <span className="font-bold text-slate-800">{formatPackDisplay(selectedItemForReturn)}</span> @ ₹{Number(selectedItemForReturn.rate).toFixed(2)}/pack
+                                </p>
+                              </div>
+
+                              {/* Condition */}
+                              <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-700">Stock Condition</label>
+                                <select
+                                  value={retCondition}
+                                  onChange={(e) => setRetCondition(e.target.value as any)}
+                                  className="w-full border-2 border-slate-300 p-2.5 rounded-md text-xs font-semibold focus:border-indigo-500 outline-none bg-white"
+                                >
+                                  <option value="Usable">🟢 Usable (Add back to live stock)</option>
+                                  <option value="Damaged">🔴 Damaged (Mark defective, do not add)</option>
+                                </select>
+                                <p className="text-[10px] text-slate-500 font-medium">
+                                  {retCondition === 'Usable'
+                                    ? `Restores +${calculatedStockUnits} units to inventory`
+                                    : 'Recorded in damaged logs without increasing inventory'}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Financial Settlement Mode */}
+                            <div className="space-y-1.5 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                              <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                                <span>Financial Settlement & Accounts:</span>
+                                <span className="font-mono text-indigo-700 font-bold">
+                                  Refund Value: ₹{calculatedRefundAmount.toFixed(2)}
+                                </span>
+                              </label>
+
+                              {selectedSaleForReturn.pendingAmount > 0 ? (
+                                <div className="space-y-2 pt-1">
+                                  <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-800">
+                                    <input
+                                      type="radio"
+                                      name="refundMode"
+                                      value="due_deduction"
+                                      checked={retRefundMode === 'due_deduction'}
+                                      onChange={() => setRetRefundMode('due_deduction')}
+                                      className="text-indigo-600"
+                                    />
+                                    <span>
+                                      💳 <strong>Deduct from Bill Balance Due</strong> (Bill Due reduces from ₹{selectedSaleForReturn.pendingAmount.toFixed(2)} to{' '}
+                                      <strong className="text-rose-600">
+                                        ₹{Math.max(0, selectedSaleForReturn.pendingAmount - calculatedRefundAmount).toFixed(2)}
+                                      </strong>
+                                      )
+                                    </span>
+                                  </label>
+
+                                  <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-800">
+                                    <input
+                                      type="radio"
+                                      name="refundMode"
+                                      value="cash_refund"
+                                      checked={retRefundMode === 'cash_refund'}
+                                      onChange={() => setRetRefundMode('cash_refund')}
+                                      className="text-indigo-600"
+                                    />
+                                    <span>
+                                      💵 <strong>Give Cash Refund</strong> (Refund ₹{calculatedRefundAmount.toFixed(2)} cash to customer; bill due remains unchanged)
+                                    </span>
+                                  </label>
+                                </div>
+                              ) : (
+                                <div className="text-xs text-emerald-800 bg-emerald-50 p-2 rounded border border-emerald-200 flex items-center gap-2">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                  <span>
+                                    Bill is fully settled. <strong>₹{calculatedRefundAmount.toFixed(2)}</strong> will be recorded as a <strong>Cash Refund</strong> to the customer.
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Impact Summary Card */}
+                            <div className="bg-emerald-50/70 border border-emerald-200 p-3 rounded-lg text-xs space-y-1">
+                              <div className="font-bold text-emerald-950 flex items-center justify-between">
+                                <span>📋 Real-Time Impact Summary:</span>
+                                <span className="font-mono text-emerald-800 font-black">
+                                  ₹{calculatedRefundAmount.toFixed(2)}
+                                </span>
+                              </div>
+                              <p className="text-emerald-800 text-[11px]">
+                                • <strong>Item:</strong> {selectedItemForReturn.productName} ({formatPackDisplay(selectedItemForReturn)}) × {retQty} pack(s)
+                              </p>
+                              <p className="text-emerald-800 text-[11px]">
+                                • <strong>Stock Update:</strong> {retCondition === 'Usable' ? `+${calculatedStockUnits} units added back to live inventory` : 'Zero stock added (Damaged)'}
+                              </p>
+                              <p className="text-emerald-800 text-[11px]">
+                                • <strong>Customer & Bill:</strong> Bill #{selectedSaleForReturn.billNo} Net Total will be updated to ₹{(selectedSaleForReturn.grandTotal - (selectedSaleForReturn.returnedAmount || 0) - calculatedRefundAmount).toFixed(2)}
+                              </p>
+                            </div>
+
+                            {/* Reason / Remarks */}
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-slate-700">Reason / Remarks (Optional)</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Customer brought back unopened 500ml bottle, wrong size, etc."
+                                value={retReason}
+                                onChange={(e) => setRetReason(e.target.value)}
+                                className="w-full border-2 border-slate-200 p-2.5 rounded-md text-xs focus:border-indigo-500 outline-none"
+                              />
+                            </div>
+
+                            <button
+                              type="submit"
+                              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                              <span>PROCESS RETURN & UPDATE ACCOUNTS (₹{calculatedRefundAmount.toFixed(2)})</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {selectedItemForReturn && itemMaxReturnable <= 0 && (
+                          <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg text-center font-bold">
+                            ⚠️ All {selectedItemForReturn.qty} units of this item have already been returned from Bill #{selectedSaleForReturn.billNo}.
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* ================= DIRECT / MANUAL RETURN WORKFLOW ================= */
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-700">Category & Product</label>
+                          <select
+                            value={retProductId}
+                            onChange={(e) => {
+                              setRetProductId(e.target.value);
+                              const found = (stockCategory === 'cleaning' ? products : cosProducts).find(
+                                (p) => p.id === e.target.value
+                              );
+                              if (found) {
+                                if (found.unit === 'Ltr' || found.unit === 'ml') {
+                                  setRetDirectPackUnit('ml');
+                                  setRetDirectPackSize(500);
+                                } else if (found.unit === 'Kg' || found.unit === 'Gram') {
+                                  setRetDirectPackUnit('g');
+                                  setRetDirectPackSize(500);
+                                } else {
+                                  setRetDirectPackUnit('Bottle');
+                                  setRetDirectPackSize(1);
+                                }
+                              }
+                            }}
+                            required
+                            className="w-full border-2 border-slate-200 bg-white p-2.5 rounded-md text-xs font-semibold focus:border-indigo-500 outline-none"
+                          >
+                            <option value="">-- Select Product to Return --</option>
+                            {[...(stockCategory === 'cleaning' ? products : cosProducts)]
+                              .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
+                              .map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name} (Current: {p.stock} {p.unit})
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+
+                        {/* Pack Size & Unit Selection (300ml, 500ml, 900ml, 1Ltr, etc.) */}
+                        <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-700">Pack Volume / Size</label>
+                            <input
+                              type="number"
+                              min="1"
+                              step="any"
+                              value={retDirectPackSize || ''}
+                              onChange={(e) => setRetDirectPackSize(parseFloat(e.target.value) || 0)}
+                              placeholder="e.g. 300, 500, 900"
+                              required
+                              className="w-full bg-white border border-slate-200 p-2.5 rounded text-xs font-mono font-bold outline-none focus:border-indigo-500"
+                            />
+                            <div className="flex gap-1 flex-wrap pt-0.5">
+                              {[300, 500, 900, 1000].map((sz) => (
+                                <button
+                                  key={sz}
+                                  type="button"
+                                  onClick={() => setRetDirectPackSize(sz)}
+                                  className={`text-[10px] px-1.5 py-0.2 rounded border font-mono ${
+                                    retDirectPackSize === sz
+                                      ? 'bg-indigo-600 text-white border-indigo-600 font-bold'
+                                      : 'bg-white text-slate-600 border-slate-200'
+                                  }`}
+                                >
+                                  {sz}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-700">Pack Unit</label>
+                            <select
+                              value={retDirectPackUnit}
+                              onChange={(e) => setRetDirectPackUnit(e.target.value as any)}
+                              className="w-full bg-white border border-slate-200 p-2.5 rounded text-xs font-semibold outline-none focus:border-indigo-500"
+                            >
+                              <option value="ml">ml (Milliliters)</option>
+                              <option value="Ltr">Ltr (Liters)</option>
+                              <option value="g">g (Grams)</option>
+                              <option value="Kg">Kg (Kilograms)</option>
+                              <option value="Bottle">Bottle</option>
+                              <option value="Pcs">Pcs</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-700">Number of Packs</label>
+                            <input
+                              type="number"
+                              value={retQty || ''}
+                              onChange={(e) => setRetQty(parseFloat(e.target.value) || 0)}
+                              min="0.1"
+                              step="any"
+                              required
+                              className="w-full border-2 border-slate-200 p-2.5 rounded-md text-xs font-mono font-bold focus:border-indigo-500 outline-none"
+                            />
+                            <p className="text-[10px] font-mono font-bold text-indigo-700">
+                              Calculated Stock: +{calculatedStockUnits} units
+                            </p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-700">Condition</label>
+                            <select
+                              value={retCondition}
+                              onChange={(e) => setRetCondition(e.target.value as any)}
+                              className="w-full border-2 border-slate-200 p-2.5 rounded-md text-xs font-semibold focus:border-indigo-500 outline-none bg-white"
+                            >
+                              <option value="Usable">🟢 Usable (Add back to stock)</option>
+                              <option value="Damaged">🔴 Damaged (Do not add)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-700">Customer / Party Name (Optional)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Rahul K."
+                            value={retCustomer}
+                            onChange={(e) => setRetCustomer(e.target.value)}
+                            className="w-full border-2 border-slate-200 p-2.5 rounded-md text-xs focus:border-indigo-500 outline-none"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-700">Reason / Remarks</label>
+                          <input
+                            type="text"
+                            placeholder="Optional reason..."
+                            value={retReason}
+                            onChange={(e) => setRetReason(e.target.value.toUpperCase())}
+                            className="w-full border-2 border-slate-200 p-2.5 rounded-md text-xs focus:border-indigo-500 outline-none"
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="w-full bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded-lg font-bold text-xs shadow transition cursor-pointer"
+                        >
+                          RECORD DIRECT STOCK RETURN
+                        </button>
+                      </div>
+                    )}
+                  </form>
+                </div>
+
+                {/* RETURNS HISTORY CONTAINER */}
+                <div className="lg:col-span-5 bg-white p-5 rounded-lg border border-slate-200 shadow-xs space-y-4 flex flex-col">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+                      Return History ({filteredStockReturns.length})
+                    </h3>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setRetHistoryFilter('all')}
+                        className={`text-[10px] px-2 py-0.5 rounded font-bold transition ${
+                          retHistoryFilter === 'all'
+                            ? 'bg-slate-800 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRetHistoryFilter('Usable')}
+                        className={`text-[10px] px-2 py-0.5 rounded font-bold transition ${
+                          retHistoryFilter === 'Usable'
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                        }`}
+                      >
+                        Usable
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRetHistoryFilter('Damaged')}
+                        className={`text-[10px] px-2 py-0.5 rounded font-bold transition ${
+                          retHistoryFilter === 'Damaged'
+                            ? 'bg-rose-600 text-white'
+                            : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                        }`}
+                      >
+                        Damaged
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* History Search Bar */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Search returns by product, customer, or bill #..."
+                      value={retHistorySearch}
+                      onChange={(e) => setRetHistorySearch(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 pl-8 text-xs outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2.5 max-h-[580px] overflow-y-auto flex-1 pr-1">
+                    {filteredStockReturns.length === 0 ? (
+                      <div className="text-center py-12 text-slate-400 space-y-2">
+                        <RotateCcw className="w-8 h-8 mx-auto text-slate-300" />
+                        <p className="text-xs">No returns recorded yet.</p>
+                      </div>
+                    ) : (
+                      filteredStockReturns.map((ret) => (
                         <div
                           key={ret.id}
-                          className="p-3 bg-slate-50 rounded border border-slate-200 text-xs space-y-1"
+                          className="p-3 bg-slate-50/80 rounded-lg border border-slate-200 text-xs space-y-1.5 hover:border-indigo-200 transition"
                         >
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-slate-900">{ret.productName}</span>
+                          <div className="flex justify-between items-start gap-2">
+                            <div>
+                              <span className="font-bold text-slate-900 text-xs">
+                                {ret.productName}
+                              </span>
+                              {ret.packDisplay && (
+                                <span className="ml-1.5 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                  {ret.packDisplay}
+                                </span>
+                              )}
+                            </div>
                             <span
-                              className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                              className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 ${
                                 ret.condition === 'Usable'
                                   ? 'bg-emerald-100 text-emerald-800'
                                   : 'bg-rose-100 text-rose-800'
@@ -1481,13 +2159,53 @@ export const OperationsManager: React.FC<OperationsManagerProps> = ({
                               {ret.condition}
                             </span>
                           </div>
-                          <p className="text-slate-500">
-                            {ret.qty} {ret.unit} • {formatDateDDMMYYYY(ret.date)} • {ret.customer || 'No customer'}
-                          </p>
-                          {ret.reason && <p className="text-[11px] text-slate-600 italic">"{ret.reason}"</p>}
+
+                          <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 gap-1">
+                            <span>
+                              Qty: <strong className="text-slate-800 font-mono">{ret.qty}</strong> • {formatDateDDMMYYYY(ret.date)}
+                            </span>
+                            {ret.customer && (
+                              <span className="font-medium text-slate-700">
+                                👤 {ret.customer}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Bill Reference and Financial Status */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100">
+                            {ret.billNo ? (
+                              <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-200 text-slate-800">
+                                Bill #{ret.billNo}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                                Direct Return
+                              </span>
+                            )}
+
+                            {ret.refundAmount !== undefined && ret.refundAmount > 0 && (
+                              <span
+                                className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                                  ret.refundMode === 'due_deduction'
+                                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                    : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                }`}
+                              >
+                                {ret.refundMode === 'due_deduction' ? '💳 Due Deducted: ' : '💵 Cash Refund: '}
+                                {formatCurrency(ret.refundAmount)}
+                              </span>
+                            )}
+                          </div>
+
+                          {ret.reason && (
+                            <p className="text-[11px] text-slate-600 italic bg-white p-1 rounded border border-slate-100">
+                              "{ret.reason}"
+                            </p>
+                          )}
                         </div>
                       ))
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

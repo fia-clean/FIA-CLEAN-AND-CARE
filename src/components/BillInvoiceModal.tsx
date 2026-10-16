@@ -150,7 +150,8 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
     // Totals Box
     const finalY = (doc as any).lastAutoTable?.finalY || 120;
     const totalsBoxY = finalY + 5;
-    const boxHeight = record.pendingAmount > 0 || (record.excessAmount || 0) > 0 ? 32 : 26;
+    const hasReturns = record.returns && record.returns.length > 0;
+    const boxHeight = (record.pendingAmount > 0 || (record.excessAmount || 0) > 0 ? 32 : 26) + (hasReturns ? 12 : 0);
 
     doc.setFillColor(248, 250, 252);
     doc.setDrawColor(226, 232, 240);
@@ -165,11 +166,25 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
     doc.setTextColor(15, 23, 42);
     doc.text(`₹ ${record.grandTotal.toFixed(2)}`, 192, curY, { align: 'right' });
 
-    curY += 6;
-    doc.setFontSize(9.5);
-    doc.setTextColor(67, 56, 202);
-    doc.text('Grand Total:', 122, curY);
-    doc.text(`₹ ${record.grandTotal.toFixed(2)}`, 192, curY, { align: 'right' });
+    if (hasReturns) {
+      curY += 6;
+      doc.setFontSize(8.5);
+      doc.setTextColor(225, 29, 72); // rose
+      doc.text('Returned Items:', 122, curY);
+      doc.text(`-₹ ${Number(record.returnedAmount || 0).toFixed(2)}`, 192, curY, { align: 'right' });
+
+      curY += 6;
+      doc.setFontSize(9.5);
+      doc.setTextColor(67, 56, 202);
+      doc.text('Net Total:', 122, curY);
+      doc.text(`₹ ${Number(record.netGrandTotal ?? (record.grandTotal - (record.returnedAmount || 0))).toFixed(2)}`, 192, curY, { align: 'right' });
+    } else {
+      curY += 6;
+      doc.setFontSize(9.5);
+      doc.setTextColor(67, 56, 202);
+      doc.text('Grand Total:', 122, curY);
+      doc.text(`₹ ${record.grandTotal.toFixed(2)}`, 192, curY, { align: 'right' });
+    }
 
     curY += 6;
     doc.setFontSize(8.5);
@@ -348,10 +363,21 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
         <span>Sub Total:</span>
         <strong style="font-family:monospace;">₹ ${sale.grandTotal.toFixed(2)}</strong>
       </div>
-      <div class="totals-row grand-row">
-        <span>Grand Total:</span>
-        <strong style="font-family:monospace;">₹ ${sale.grandTotal.toFixed(2)}</strong>
-      </div>
+      ${sale.returns && sale.returns.length > 0 ? `
+        <div class="totals-row" style="color:#e11d48; font-weight:bold;">
+          <span>Returned Items (${sale.returns.length}):</span>
+          <strong style="font-family:monospace;">-₹ ${Number(sale.returnedAmount || 0).toFixed(2)}</strong>
+        </div>
+        <div class="totals-row grand-row">
+          <span>Net Bill Total:</span>
+          <strong style="font-family:monospace; color:#4338ca;">₹ ${Number(sale.netGrandTotal ?? (sale.grandTotal - (sale.returnedAmount || 0))).toFixed(2)}</strong>
+        </div>
+      ` : `
+        <div class="totals-row grand-row">
+          <span>Grand Total:</span>
+          <strong style="font-family:monospace;">₹ ${sale.grandTotal.toFixed(2)}</strong>
+        </div>
+      `}
       <div class="totals-row paid-row">
         <span>Paid Amount:</span>
         <strong style="font-family:monospace;">₹ ${sale.paidAmount.toFixed(2)}</strong>
@@ -566,6 +592,29 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
             </table>
           </div>
 
+          {/* Returned Items Notice if any */}
+          {sale.returns && sale.returns.length > 0 && (
+            <div className="bg-rose-50 border border-rose-200 rounded-md p-3 text-xs space-y-1.5">
+              <div className="flex items-center justify-between text-rose-800 font-bold">
+                <span>↩️ Returned Items ({sale.returns.length}):</span>
+                <span className="font-mono">- {formatCurrency(sale.returnedAmount || 0)}</span>
+              </div>
+              <div className="space-y-1 divide-y divide-rose-100">
+                {sale.returns.map((ret, rIdx) => (
+                  <div key={ret.id || rIdx} className="flex justify-between text-slate-700 text-[11px] pt-1">
+                    <span>
+                      {getCleanInvoiceProductName(ret.productName)} ({ret.packDisplay || '—'}) × {ret.qty}
+                      <span className={`ml-2 px-1.5 py-0.2 rounded text-[10px] font-bold ${ret.condition === 'Usable' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                        {ret.condition}
+                      </span>
+                    </span>
+                    <span className="font-mono font-semibold">- {formatCurrency(ret.refundAmount)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Totals & Summary */}
           <div className="flex justify-end pt-1">
             <div className="w-64 sm:w-72 space-y-1.5 text-xs text-right bg-slate-50 p-3 rounded-lg border border-slate-200">
@@ -575,10 +624,16 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({ sale, onClos
                   {formatCurrency(sale.grandTotal)}
                 </span>
               </div>
+              {sale.returns && sale.returns.length > 0 && (
+                <div className="flex justify-between text-rose-600 font-bold">
+                  <span>Less Returns:</span>
+                  <span className="font-mono">- {formatCurrency(sale.returnedAmount || 0)}</span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-slate-200 pt-1 text-sm font-black text-slate-900">
-                <span>Grand Total:</span>
+                <span>{sale.returns && sale.returns.length > 0 ? 'Net Grand Total:' : 'Grand Total:'}</span>
                 <span className="font-mono text-indigo-700">
-                  {formatCurrency(sale.grandTotal)}
+                  {formatCurrency(sale.returns && sale.returns.length > 0 ? (sale.netGrandTotal ?? (sale.grandTotal - (sale.returnedAmount || 0))) : sale.grandTotal)}
                 </span>
               </div>
               <div className="flex justify-between text-emerald-700 font-bold border-t border-slate-200 pt-1">

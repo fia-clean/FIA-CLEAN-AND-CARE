@@ -614,6 +614,16 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
                       </p>
                     </td>
                     <td className="p-3 text-right">
+                      <div className="font-mono font-bold text-slate-900">
+                        {formatCurrency(sale.grandTotal)}
+                      </div>
+                      {sale.returns && sale.returns.length > 0 && (
+                        <div className="text-[10px] text-rose-600 font-bold font-mono">
+                          ↩️ Ret: -{formatCurrency(sale.returnedAmount || 0)}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-3 text-right">
                       <div className="font-mono font-bold text-emerald-600">
                         {formatCurrency(sale.paidAmount)}
                       </div>
@@ -717,6 +727,11 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
                     <div className="text-base font-mono font-black text-slate-900 mt-1">
                       {formatCurrency(sale.grandTotal)}
                     </div>
+                    {sale.returns && sale.returns.length > 0 && (
+                      <div className="text-[10px] text-rose-600 font-bold font-mono">
+                        ↩️ Ret: -{formatCurrency(sale.returnedAmount || 0)}
+                      </div>
+                    )}
                   </div>
                 </div>
 

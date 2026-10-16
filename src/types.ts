@@ -36,6 +36,24 @@ export interface BillItem {
   stockDeductionQty: number; // exact stock amount deducted in base unit (e.g. 5L = 5, 500ml = 0.5)
 }
 
+export interface SaleReturnItem {
+  id: string;
+  itemId?: string;
+  stockId?: string;
+  productName: string;
+  packDisplay?: string;
+  packUnit?: string;
+  packageSizeMl?: number;
+  qty: number;
+  rate: number;
+  refundAmount: number;
+  condition: 'Usable' | 'Damaged';
+  reason?: string;
+  date: string;
+  savedAt: number;
+  refundMode?: 'due_deduction' | 'cash_refund' | 'credit' | 'none';
+}
+
 export interface SaleRecord {
   id: string;
   billNo: string;
@@ -49,6 +67,9 @@ export interface SaleRecord {
   paidAmount: number;
   pendingAmount: number;
   excessAmount?: number;
+  returnedAmount?: number;
+  netGrandTotal?: number;
+  returns?: SaleReturnItem[];
   date: string; // YYYY-MM-DD
   createdAt: number; // timestamp for sorting
 }
@@ -113,7 +134,17 @@ export interface StockReturnRecord {
   productName: string;
   unit: UnitType;
   customer?: string;
+  customerId?: string;
+  saleId?: string;
+  billNo?: string;
+  itemId?: string;
   qty: number;
+  packDisplay?: string;
+  packUnit?: string;
+  packageSizeMl?: number;
+  rate?: number;
+  refundAmount?: number;
+  refundMode?: 'due_deduction' | 'cash_refund' | 'credit' | 'none';
   condition: 'Usable' | 'Damaged';
   reason?: string;
   remarks?: string;
@@ -124,7 +155,7 @@ export interface StockReturnRecord {
 export interface DayBookEntry {
   id: string;
   type: 'Income' | 'Expense';
-  category: 'Sale' | 'Cosmetics Sale' | 'Purchase' | 'Cosmetics Purchase' | 'Expense';
+  category: 'Sale' | 'Cosmetics Sale' | 'Purchase' | 'Cosmetics Purchase' | 'Expense' | 'Sale Return';
   desc: string;
   amount: number;
   date: string;

@@ -98,6 +98,26 @@ export const DayBook: React.FC<DayBookProps> = ({
     });
   });
 
+  // Sale Return Cash Refunds (Treated as Outflow/Expense)
+  sales.forEach((s) => {
+    if (s.returns && s.returns.length > 0) {
+      s.returns.forEach((r) => {
+        if (r.refundMode === 'cash_refund' && r.refundAmount > 0) {
+          allEntries.push({
+            id: `ret_refund_${r.id}`,
+            type: 'Expense',
+            category: 'Sale Return',
+            desc: `Return Refund: Bill #${s.billNo} (${s.name}) - ${r.productName}`,
+            amount: r.refundAmount,
+            date: r.date,
+            timestamp: r.savedAt,
+            paymentMode: 'Cash',
+          });
+        }
+      });
+    }
+  });
+
   // Filter by date range and exclude cleared items
   const filteredEntries = allEntries
     .filter((entry) => {

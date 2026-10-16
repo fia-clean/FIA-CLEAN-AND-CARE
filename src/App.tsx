@@ -34,6 +34,7 @@ import {
   PurchaseRecord,
   ExpenseRecord,
   StockReturnRecord,
+  SaleReturnItem,
 } from './types';
 
 export default function App() {
@@ -987,6 +988,60 @@ export default function App() {
   };
   const handleSaveStockReturn = (ret: StockReturnRecord) => {
     setStockReturns((prev) => [ret, ...prev]);
+
+    // If this return is linked to an existing sale bill
+    if (ret.saleId) {
+      setSales((prevSales) =>
+        prevSales.map((sale) => {
+          if (sale.id !== ret.saleId) return sale;
+
+          const returnItem: SaleReturnItem = {
+            id: ret.id,
+            itemId: ret.itemId,
+            stockId: ret.productId,
+            productName: ret.productName,
+            packDisplay: ret.packDisplay,
+            packUnit: ret.packUnit,
+            packageSizeMl: ret.packageSizeMl,
+            qty: ret.qty,
+            rate: ret.rate || 0,
+            refundAmount: ret.refundAmount || 0,
+            condition: ret.condition,
+            reason: ret.reason,
+            date: ret.date,
+            savedAt: ret.savedAt,
+            refundMode: ret.refundMode || 'due_deduction',
+          };
+
+          const newReturns = [...(sale.returns || []), returnItem];
+          const newReturnedAmount = Number(((sale.returnedAmount || 0) + (ret.refundAmount || 0)).toFixed(2));
+          const netGrandTotal = Math.max(0, Number((sale.grandTotal - newReturnedAmount).toFixed(2)));
+
+          let newPending = sale.pendingAmount;
+          let newExcess = sale.excessAmount || 0;
+
+          if (ret.refundMode === 'due_deduction') {
+            const refundVal = ret.refundAmount || 0;
+            if (newPending >= refundVal) {
+              newPending = Number((newPending - refundVal).toFixed(2));
+            } else {
+              const excess = refundVal - newPending;
+              newPending = 0;
+              newExcess = Number((newExcess + excess).toFixed(2));
+            }
+          }
+
+          return {
+            ...sale,
+            returns: newReturns,
+            returnedAmount: newReturnedAmount,
+            netGrandTotal,
+            pendingAmount: newPending,
+            excessAmount: newExcess,
+          };
+        })
+      );
+    }
   };
 
   const handleClearDayBook = (entryIds: string[]) => {
@@ -1253,6 +1308,9 @@ export default function App() {
             suppliers={suppliers}
             expenses={expenses}
             stockReturns={stockReturns}
+            sales={sales}
+            customers={customers}
+            onUpdateSale={handleUpdateSale}
             onSaveProduct={handleSaveProduct}
             onUpdateProduct={handleUpdateProduct}
             onDeleteProduct={handleDeleteProduct}
