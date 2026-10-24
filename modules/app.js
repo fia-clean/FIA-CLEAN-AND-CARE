@@ -121,7 +121,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js';
+} from './billing/invoice-preview.js?v=51.2.24';
 
 import {
     renderSalesHistory,

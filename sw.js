@@ -54,9 +54,13 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME).then(async (cache) => {
       await Promise.allSettled(
         PRECACHE_ASSETS.map((asset) =>
-          cache.add(asset).catch((err) => {
-            console.warn('Pre-cache warning for asset:', asset, err);
-          })
+          fetch(new Request(asset, { cache: 'reload' }))
+            .then((res) => {
+              if (res.ok) return cache.put(asset, res);
+            })
+            .catch((err) => {
+              console.warn('Pre-cache warning for asset:', asset, err);
+            })
         )
       );
     })
