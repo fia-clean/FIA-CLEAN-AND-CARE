@@ -98,10 +98,10 @@ export function previewBill(identifier) {
         const cosTag = item.combinedCategory === 'Cosmetics' ? ` <span style="color:#db2777; font-size:9.5px; font-weight:bold;">(Cos)</span>` : '';
         const bg = idx % 2 === 1 ? 'background:#f9fafb;' : 'background:#ffffff;';
         return `<tr style="${bg}">
-            <td style="padding:6px 4px; border-bottom:1px solid #e5e7eb; font-weight:600; color:#111827 !important; word-break:break-word;">${cleanName}${cosTag}</td>
-            <td style="padding:6px 2px; border-bottom:1px solid #e5e7eb; text-align:center; color:#374151 !important; white-space:nowrap;">${qtyDisplay}</td>
-            <td style="padding:6px 2px; border-bottom:1px solid #e5e7eb; text-align:right; color:#374151 !important; white-space:nowrap;">₹${rate}</td>
-            <td style="padding:6px 4px; border-bottom:1px solid #e5e7eb; text-align:right; font-weight:700; color:#111827 !important; white-space:nowrap;">₹${total}</td>
+            <td style="padding:6px 4px 6px 6px; border-bottom:1px solid #e5e7eb; font-weight:600; color:#111827 !important; word-break:break-word; line-height:1.25;">${cleanName}${cosTag}</td>
+            <td style="padding:6px 2px; border-bottom:1px solid #e5e7eb; text-align:center; color:#374151 !important; font-size:10.5px; white-space:nowrap;">${qtyDisplay}</td>
+            <td style="padding:6px 4px; border-bottom:1px solid #e5e7eb; text-align:right; color:#374151 !important; font-size:10.5px; white-space:nowrap;">₹${rate}</td>
+            <td style="padding:6px 6px 6px 4px; border-bottom:1px solid #e5e7eb; text-align:right; font-weight:700; color:#111827 !important; font-size:10.5px; white-space:nowrap;">₹${total}</td>
         </tr>`;
     }).join('');
 
@@ -115,7 +115,7 @@ export function previewBill(identifier) {
     const excessVal = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paidVal - totalWithDueVal);
 
     const billHTML = `
-        <div id="fiaInvoiceCaptureCard" style="font-family: Arial, Helvetica, sans-serif; color: #000000 !important; background-color: #ffffff !important; padding: 16px 14px; width: 380px; max-width: 100%; min-height: 520px; display: flex; flex-direction: column; justify-content: space-between; margin: 0 auto; box-sizing: border-box; border-radius: 12px; border: 2px solid ${themeColor};">
+        <div id="fiaInvoiceCaptureCard" style="font-family: Arial, Helvetica, sans-serif; color: #000000 !important; background-color: #ffffff !important; padding: 16px 12px; width: 380px; max-width: 100%; min-height: 520px; display: flex; flex-direction: column; justify-content: space-between; margin: 0 auto; box-sizing: border-box; border-radius: 12px; border: 2px solid ${themeColor};">
             <div>
                 <!-- Brand Header with Logo -->
                 <div style="text-align: center; border-bottom: 2px solid ${themeColor}; padding-bottom: 8px; margin-bottom: 8px;">
@@ -150,13 +150,13 @@ export function previewBill(identifier) {
                 </div>
 
                 <!-- Particulars Table: 4 Columns, 100% Width, Zero Cutoff -->
-                <table style="width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 11px; margin: 6px 0; color: #000000 !important;">
+                <table style="width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 10.5px; margin: 6px 0; color: #000000 !important;">
                     <thead>
                         <tr style="background: ${themeHeaderBg}; color: #ffffff !important;">
-                            <th style="width: 44%; padding: 6px 4px; text-align: left; color: #ffffff !important; border-top-left-radius: 4px;">Item</th>
-                            <th style="width: 22%; padding: 6px 2px; text-align: center; color: #ffffff !important;">Qty</th>
-                            <th style="width: 17%; padding: 6px 2px; text-align: right; color: #ffffff !important;">Rate</th>
-                            <th style="width: 17%; padding: 6px 4px; text-align: right; color: #ffffff !important; border-top-right-radius: 4px;">Total</th>
+                            <th style="width: 34%; padding: 6px 4px 6px 6px; text-align: left; color: #ffffff !important; border-top-left-radius: 4px; font-weight: 800;">Item</th>
+                            <th style="width: 24%; padding: 6px 2px; text-align: center; color: #ffffff !important; font-weight: 800;">Qty</th>
+                            <th style="width: 20%; padding: 6px 4px; text-align: right; color: #ffffff !important; font-weight: 800;">Rate</th>
+                            <th style="width: 22%; padding: 6px 6px 6px 4px; text-align: right; color: #ffffff !important; border-top-right-radius: 4px; font-weight: 800;">Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -268,10 +268,10 @@ export function previewCosSaleBill(saleOrIdentifier) {
         const total = Number(item.total || 0).toFixed(2);
         const bg = idx % 2 === 1 ? 'background:#fdf2f8;' : 'background:#ffffff;';
         return `<tr style="${bg}">
-            <td style="padding:6px 4px; border-bottom:1px solid #fbcfe8; font-weight:600; color:#111827 !important; word-break:break-word;">${cleanName}</td>
-            <td style="padding:6px 2px; border-bottom:1px solid #fbcfe8; text-align:center; color:#374151 !important; white-space:nowrap;">${qtyDisplay}</td>
-            <td style="padding:6px 2px; border-bottom:1px solid #fbcfe8; text-align:right; color:#374151 !important; white-space:nowrap;">₹${rate}</td>
-            <td style="padding:6px 4px; border-bottom:1px solid #fbcfe8; text-align:right; font-weight:700; color:#111827 !important; white-space:nowrap;">₹${total}</td>
+            <td style="padding:6px 4px 6px 6px; border-bottom:1px solid #fbcfe8; font-weight:600; color:#111827 !important; word-break:break-word; line-height:1.25;">${cleanName}</td>
+            <td style="padding:6px 2px; border-bottom:1px solid #fbcfe8; text-align:center; color:#374151 !important; font-size:10.5px; white-space:nowrap;">${qtyDisplay}</td>
+            <td style="padding:6px 4px; border-bottom:1px solid #fbcfe8; text-align:right; color:#374151 !important; font-size:10.5px; white-space:nowrap;">₹${rate}</td>
+            <td style="padding:6px 6px 6px 4px; border-bottom:1px solid #fbcfe8; text-align:right; font-weight:700; color:#111827 !important; font-size:10.5px; white-space:nowrap;">₹${total}</td>
         </tr>`;
     }).join('');
 
@@ -281,7 +281,7 @@ export function previewCosSaleBill(saleOrIdentifier) {
     const excessVal = Math.max(0, paidVal - grandVal);
 
     const billHTML = `
-        <div id="fiaInvoiceCaptureCard" style="font-family: Arial, Helvetica, sans-serif; color: #000000 !important; background-color: #ffffff !important; padding: 16px 14px; width: 380px; max-width: 100%; min-height: 520px; display: flex; flex-direction: column; justify-content: space-between; margin: 0 auto; box-sizing: border-box; border-radius: 12px; border: 2px solid ${themeColor};">
+        <div id="fiaInvoiceCaptureCard" style="font-family: Arial, Helvetica, sans-serif; color: #000000 !important; background-color: #ffffff !important; padding: 16px 12px; width: 380px; max-width: 100%; min-height: 520px; display: flex; flex-direction: column; justify-content: space-between; margin: 0 auto; box-sizing: border-box; border-radius: 12px; border: 2px solid ${themeColor};">
             <div>
                 <!-- Brand Header with Logo -->
                 <div style="text-align: center; border-bottom: 2px solid ${themeColor}; padding-bottom: 8px; margin-bottom: 8px;">
@@ -316,13 +316,13 @@ export function previewCosSaleBill(saleOrIdentifier) {
                 </div>
 
                 <!-- Particulars Table: 4 Columns, 100% Width, Zero Cutoff -->
-                <table style="width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 11px; margin: 6px 0; color: #000000 !important;">
+                <table style="width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 10.5px; margin: 6px 0; color: #000000 !important;">
                     <thead>
                         <tr style="background: ${themeHeaderBg}; color: #ffffff !important;">
-                            <th style="width: 44%; padding: 6px 4px; text-align: left; color: #ffffff !important; border-top-left-radius: 4px;">Item</th>
-                            <th style="width: 22%; padding: 6px 2px; text-align: center; color: #ffffff !important;">Qty</th>
-                            <th style="width: 17%; padding: 6px 2px; text-align: right; color: #ffffff !important;">Rate</th>
-                            <th style="width: 17%; padding: 6px 4px; text-align: right; color: #ffffff !important; border-top-right-radius: 4px;">Total</th>
+                            <th style="width: 34%; padding: 6px 4px 6px 6px; text-align: left; color: #ffffff !important; border-top-left-radius: 4px; font-weight: 800;">Item</th>
+                            <th style="width: 24%; padding: 6px 2px; text-align: center; color: #ffffff !important; font-weight: 800;">Qty</th>
+                            <th style="width: 20%; padding: 6px 4px; text-align: right; color: #ffffff !important; font-weight: 800;">Rate</th>
+                            <th style="width: 22%; padding: 6px 6px 6px 4px; text-align: right; color: #ffffff !important; border-top-right-radius: 4px; font-weight: 800;">Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -811,8 +811,8 @@ export function generateBillImageBlob() {
         }
 
         if (typeof window.html2canvas !== 'undefined') {
-            const targetWidth = Math.ceil(target.offsetWidth || 380);
-            const targetHeight = Math.ceil(target.offsetHeight || 520);
+            const captureWidth = Math.max(380, Math.ceil(target.offsetWidth || 380));
+            const targetHeight = Math.max(520, Math.ceil(target.offsetHeight || 520));
 
             let scale = 3;
             if (targetHeight > 1600) scale = 1.5;
@@ -823,7 +823,7 @@ export function generateBillImageBlob() {
                 useCORS: true,
                 backgroundColor: '#ffffff',
                 logging: false,
-                width: targetWidth,
+                width: captureWidth,
                 height: targetHeight,
                 scrollX: 0,
                 scrollY: 0,
@@ -831,8 +831,10 @@ export function generateBillImageBlob() {
                     const card = clonedDoc.getElementById('fiaInvoiceCaptureCard');
                     if (card) {
                         card.style.margin = '0 auto';
-                        card.style.width = targetWidth + 'px';
-                        card.style.maxWidth = targetWidth + 'px';
+                        card.style.width = captureWidth + 'px';
+                        card.style.minWidth = captureWidth + 'px';
+                        card.style.maxWidth = captureWidth + 'px';
+                        card.style.boxSizing = 'border-box';
                     }
                 }
             }).then(canvas => {
