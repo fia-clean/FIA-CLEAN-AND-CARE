@@ -40,6 +40,8 @@ export function verifyLoginPin() {
         window._isLoggedInFlag = true;
         try {
             sessionStorage.setItem('fia_logged_in', 'true');
+            localStorage.setItem('fia_session_stay_logged_in', 'true');
+            localStorage.setItem('fia_last_active_time', String(Date.now()));
         } catch(e) {}
 
         if (typeof window._dismissLoginOverlay === 'function') {
@@ -83,6 +85,8 @@ export function logoutApp() {
     try {
         sessionStorage.removeItem('fia_logged_in');
         sessionStorage.removeItem('fia_auth');
+        localStorage.removeItem('fia_session_stay_logged_in');
+        localStorage.removeItem('fia_last_active_time');
     } catch(e) {}
     try {
         if (window.closeBarcodeScanner) window.closeBarcodeScanner();
@@ -450,6 +454,8 @@ export function setupFirebaseAuthListener() {
 }
 
 // ================= BIOMETRIC AUTHENTICATION (WEBAUTHN) =================
+let _autoBiometricPrompted = false;
+
 export async function updateBiometricUI() {
     try {
         const available = await isBiometricAvailable();
@@ -496,6 +502,16 @@ export async function updateBiometricUI() {
                         icon.className = "w-8 h-8 text-indigo-600 group-hover:text-indigo-700 transition-colors";
                     }
                 }
+
+                // Auto-trigger biometric prompt on mobile if enrolled and login overlay is visible
+                const overlay = document.getElementById('loginOverlay');
+                const isOverlayVisible = overlay && !overlay.classList.contains('hidden') && overlay.style.display !== 'none';
+                if (enrolled && isOverlayVisible && !_autoBiometricPrompted && !window._isLoggedInFlag) {
+                    _autoBiometricPrompted = true;
+                    setTimeout(() => {
+                        handleBiometricAuth(true).catch(() => {});
+                    }, 500);
+                }
             } else {
                 container.classList.add('hidden');
                 container.style.display = 'none';
@@ -533,7 +549,11 @@ export function onBiometricAuthSuccess() {
     state.isLoggedIn = true;
     if (window.state) window.state.isLoggedIn = true;
     window._isLoggedInFlag = true;
-    try { sessionStorage.setItem('fia_logged_in', 'true'); } catch(e) {}
+    try { 
+        sessionStorage.setItem('fia_logged_in', 'true');
+        localStorage.setItem('fia_session_stay_logged_in', 'true');
+        localStorage.setItem('fia_last_active_time', String(Date.now()));
+    } catch(e) {}
     if (typeof window._dismissLoginOverlay === 'function') {
         window._dismissLoginOverlay();
     } else {
@@ -565,11 +585,12 @@ export function onBiometricAuthSuccess() {
     }
 }
 
-export async function handleBiometricAuth() {
+export async function handleBiometricAuth(isAuto = false) {
     const enrolled = isBiometricEnrolled();
     const label = document.getElementById('biometricBtnLabel');
 
     if (!enrolled) {
+        if (isAuto) return;
         // Enrolling biometrics: User MUST verify their PIN first for security
         const input = document.getElementById('loginPinInput');
         let entered = (input ? input.value : '').trim();

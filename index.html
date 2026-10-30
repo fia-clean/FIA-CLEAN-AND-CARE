@@ -566,12 +566,20 @@
 
             // If session already logged in, automatically dismiss overlay when DOM is ready
             try {
-                if (sessionStorage.getItem('fia_logged_in') === 'true') {
+                var _hasSession = sessionStorage.getItem('fia_logged_in') === 'true';
+                var _hasPersistent = localStorage.getItem('fia_session_stay_logged_in') === 'true';
+                var _lastActive = parseInt(localStorage.getItem('fia_last_active_time') || '0', 10);
+                var _isPersistValid = _hasPersistent && (Date.now() - _lastActive < 14 * 24 * 60 * 60 * 1000);
+                if (_hasSession || _isPersistValid) {
                     window._isLoggedInFlag = true;
                     if (document.readyState === 'loading') {
                         document.addEventListener('DOMContentLoaded', function() {
-                            if (sessionStorage.getItem('fia_logged_in') === 'true') {
-                                window._dismissLoginOverlay();
+                            var _hasSession = sessionStorage.getItem('fia_logged_in') === 'true';
+                var _hasPersistent = localStorage.getItem('fia_session_stay_logged_in') === 'true';
+                var _lastActive = parseInt(localStorage.getItem('fia_last_active_time') || '0', 10);
+                var _isPersistValid = _hasPersistent && (Date.now() - _lastActive < 14 * 24 * 60 * 60 * 1000);
+                if (_hasSession || _isPersistValid) {
+            window._dismissLoginOverlay();
                             }
                         });
                     } else {
@@ -582,7 +590,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.25';
+                var CURRENT_APP_VERSION = '51.2.26';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -609,9 +617,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.23) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.26) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.23');
+                        localStorage.setItem('fia_app_version', '51.2.26');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -686,7 +694,9 @@
                     }
                     window._isLoggedInFlag = true;
                     try {
-                        sessionStorage.setItem('fia_logged_in', 'true');
+                        localStorage.setItem('fia_session_stay_logged_in', 'true');
+                    localStorage.setItem('fia_last_active_time', String(Date.now()));
+                    sessionStorage.setItem('fia_logged_in', 'true');
                     } catch(e) {}
                     window._dismissLoginOverlay();
                     try {
@@ -974,7 +984,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.25</span>
+                    <span>v51.2.26</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -3721,7 +3731,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.25) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.26) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3775,7 +3785,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.25')
+                navigator.serviceWorker.register('./sw.js?v=51.2.26')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

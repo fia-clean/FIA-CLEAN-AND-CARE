@@ -617,6 +617,8 @@ export function buildSyncPayload() {
     };
 }
 
+let _renderAllThrottleTimer = null;
+
 export function applyCloudData(data, isRealtimeEvent = false) {
     if (!data) return;
     if (isRealtimeEvent && data._meta && data._meta.clientId === myFiaClientId) {
@@ -694,18 +696,22 @@ export function applyCloudData(data, isRealtimeEvent = false) {
         queueAutoPushToFirebase();
     }
 
-    if (window.renderAll) window.renderAll();
-    if (typeof window.renderAccounts === 'function') window.renderAccounts();
-    if (window.__fiaSalesHistoryFilter === 'customer') {
-        if (typeof window.renderCustomerSalesHistory === 'function') window.renderCustomerSalesHistory();
-    } else {
-        if (window.renderSalesHistory) window.renderSalesHistory();
-    }
-    if (window.updateStockReturnDropdowns) window.updateStockReturnDropdowns();
-    if (window.renderStockReturnHistory) window.renderStockReturnHistory();
-    if (typeof window.renderConsolidatedStockReport === 'function') window.renderConsolidatedStockReport();
-    if (typeof window.renderPackageConsolidationReport === 'function') window.renderPackageConsolidationReport();
-    if (typeof window.renderDno === 'function') window.renderDno();
+    if (_renderAllThrottleTimer) clearTimeout(_renderAllThrottleTimer);
+    _renderAllThrottleTimer = setTimeout(() => {
+        _renderAllThrottleTimer = null;
+        if (window.renderAll) window.renderAll();
+        if (typeof window.renderAccounts === 'function') window.renderAccounts();
+        if (window.__fiaSalesHistoryFilter === 'customer') {
+            if (typeof window.renderCustomerSalesHistory === 'function') window.renderCustomerSalesHistory();
+        } else {
+            if (window.renderSalesHistory) window.renderSalesHistory();
+        }
+        if (window.updateStockReturnDropdowns) window.updateStockReturnDropdowns();
+        if (window.renderStockReturnHistory) window.renderStockReturnHistory();
+        if (typeof window.renderConsolidatedStockReport === 'function') window.renderConsolidatedStockReport();
+        if (typeof window.renderPackageConsolidationReport === 'function') window.renderPackageConsolidationReport();
+        if (typeof window.renderDno === 'function') window.renderDno();
+    }, 120);
 }
 
 export function updateBillingFormDisplays() {

@@ -727,8 +727,12 @@ export function switchTab(tabName, pushToHistory = true) {
     try { hideUnwantedStockMenus(); } catch (e) { console.warn('hideUnwantedStockMenus warning:', e); }
     if (['billing', 'customers', 'stock', 'operations', 'cosmetics', 'purchase', 'expenses', 'accounts', 'dno'].includes(tabName)) {
         try {
-            if (typeof checkRemoteTimestampFast === 'function') checkRemoteTimestampFast();
-            else if (typeof pullFromFirebase === 'function') pullFromFirebase();
+            // Debounce tab-switch background sync to avoid freezing the UI
+            clearTimeout(window.__tabSyncDebounceTimer);
+            window.__tabSyncDebounceTimer = setTimeout(() => {
+                if (typeof checkRemoteTimestampFast === 'function') checkRemoteTimestampFast();
+                else if (typeof pullFromFirebase === 'function') pullFromFirebase();
+            }, 600);
         } catch (e) { console.warn('sync check warning:', e); }
     }
     if (tabName === 'accounts') {
@@ -1094,12 +1098,20 @@ if (typeof window !== 'undefined') {
             console.error('loadFromLocalStorage error:', e);
         }
 
-        // Check if user already logged in via instant synchronous authentication or active session
+        // Check if user already logged in via persistent login or active session
         try {
             const hasSession = sessionStorage.getItem('fia_logged_in') === 'true';
-            if (hasSession || window._isLoggedInFlag || (window.state && window.state.isLoggedIn)) {
+            const hasPersistent = localStorage.getItem('fia_session_stay_logged_in') === 'true';
+            const lastActive = parseInt(localStorage.getItem('fia_last_active_time') || '0', 10);
+            const isPersistValid = hasPersistent && (Date.now() - lastActive < 14 * 24 * 60 * 60 * 1000);
+
+            if (hasSession || isPersistValid || window._isLoggedInFlag || (window.state && window.state.isLoggedIn)) {
                 state.isLoggedIn = true;
                 window._isLoggedInFlag = true;
+                try {
+                    sessionStorage.setItem('fia_logged_in', 'true');
+                    localStorage.setItem('fia_last_active_time', String(Date.now()));
+                } catch(e) {}
                 if (typeof window._dismissLoginOverlay === 'function') {
                     window._dismissLoginOverlay();
                 } else {
@@ -1177,7 +1189,15 @@ if (typeof window !== 'undefined') {
         bootstrapApp();
     }
 
-    setInterval(hideUnwantedStockMenus, 500);
+    // Hide unwanted sub-menus safely without blocking loop
+    let lastMenuCheck = 0;
+    function hideUnwantedStockMenusThrottled() {
+        const now = Date.now();
+        if (now - lastMenuCheck < 2500) return;
+        lastMenuCheck = now;
+        hideUnwantedStockMenus();
+    }
+    setInterval(hideUnwantedStockMenusThrottled, 2500);
 
     if (typeof document !== 'undefined') {
         document.addEventListener('input', function(e) {

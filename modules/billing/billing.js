@@ -12,7 +12,7 @@ import {
     saveLocalStateSafely
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
-import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName, formatInvoiceItemQty } from './invoice-preview.js?v=51.2.25';
+import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName, formatInvoiceItemQty } from './invoice-preview.js?v=51.2.26';
 import { normalizeCosSale } from './billing-history.js';
 import { renderCustomers, renderCustomerConsolidationReport, getCustomerTotalPendingDue } from '../customers/customer.js';
 
