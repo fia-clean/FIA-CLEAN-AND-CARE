@@ -539,10 +539,12 @@ export function handleBillingCustomerKeyDown(event) {
 }
 
 export function getCustomerTotalPendingDue(custName, excludeBillId = null) {
-    if (!custName) return { totalPending: 0, billCount: 0, bills: [] };
+    if (!custName) return { totalPending: 0, billCount: 0, bills: [], totalCredit: 0, creditBillCount: 0, creditBills: [] };
     const cleanName = String(custName).trim().toUpperCase();
     let totalPending = 0;
+    let totalCredit = 0;
     const unpaidBills = [];
+    const creditBills = [];
 
     (state.customers || []).forEach((c, idx) => {
         if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
@@ -565,12 +567,29 @@ export function getCustomerTotalPendingDue(custName, excludeBillId = null) {
                 index: idx
             });
         }
+        // Calculate customer credit / advance balance retained from change/excess
+        const credit = c.creditAmount !== undefined ? Number(c.creditAmount) : (c.excessRetainedAsCredit ? Number(c.excessAmount || 0) : 0);
+        if (credit > 0.001) {
+            totalCredit += credit;
+            creditBills.push({
+                billNo: c.billNo || 'Bill',
+                date: c.date,
+                grandTotal: g,
+                paidAmount: p,
+                creditAmount: credit,
+                id: c.id,
+                index: idx
+            });
+        }
     });
 
     return {
         totalPending: Math.round(totalPending * 100) / 100,
         billCount: unpaidBills.length,
-        bills: unpaidBills
+        bills: unpaidBills,
+        totalCredit: Math.round(totalCredit * 100) / 100,
+        creditBillCount: creditBills.length,
+        creditBills
     };
 }
 
@@ -883,7 +902,7 @@ export function openCustomerConsolidationCustomer(encodedName) {
     if (!content) return;
     if (title) title.textContent = name + ' - Consolidated Report';
 
-    let purchaseCount = 0, total = 0, paid = 0, due = 0;
+    let purchaseCount = 0, total = 0, paid = 0, due = 0, credit = 0;
     const customerBills = [];
 
     (state.customers || []).forEach(c => {
@@ -893,13 +912,15 @@ export function openCustomerConsolidationCustomer(encodedName) {
         const g = Number(c.grandTotal || 0);
         const p = c.paidAmount !== undefined ? Number(c.paidAmount) : g;
         const d = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, g - p);
-        purchaseCount += 1; total += g; paid += p; due += d;
+        const cr = c.creditAmount !== undefined ? Number(c.creditAmount) : (c.excessRetainedAsCredit ? Number(c.excessAmount || 0) : 0);
+        purchaseCount += 1; total += g; paid += p; due += d; credit += cr;
         customerBills.push({
             billNo: c.billNo || '—',
             date: c.date,
             grandTotal: g,
             paidAmount: p,
             pendingAmount: d,
+            creditAmount: cr,
             items: c.items || [],
             id: c.id,
             isCosmetics: false
@@ -918,6 +939,7 @@ export function openCustomerConsolidationCustomer(encodedName) {
             grandTotal: g,
             paidAmount: p,
             pendingAmount: d,
+            creditAmount: 0,
             items: s.items || [],
             id: s.id,
             isCosmetics: true
@@ -937,8 +959,8 @@ export function openCustomerConsolidationCustomer(encodedName) {
                     <div class="text-slate-400 text-xs mt-0.5">📞 ${phone || 'No Phone'}</div>
                 </div>
                 <div class="text-right">
-                    <span class="text-[10px] text-slate-400 uppercase font-semibold">Net Balance Due</span>
-                    <p class="text-base font-black ${due > 0 ? 'text-rose-400' : 'text-emerald-400'}">₹${due.toFixed(2)}</p>
+                    <span class="text-[10px] text-slate-400 uppercase font-semibold">${due > 0 ? 'Net Balance Due' : (credit > 0 ? 'Available Credit Balance' : 'Net Balance')}</span>
+                    <p class="text-base font-black ${due > 0 ? 'text-rose-400' : (credit > 0 ? 'text-sky-400' : 'text-emerald-400')}">₹${due > 0 ? due.toFixed(2) : (credit > 0 ? credit.toFixed(2) : '0.00')}</p>
                 </div>
             </div>
             <div class="bg-slate-950/70 rounded-xl p-3 border border-slate-800">
@@ -948,21 +970,23 @@ export function openCustomerConsolidationCustomer(encodedName) {
                     <div class="bg-slate-900 rounded-lg p-2.5"><div class="text-slate-400 text-[10px]">Total Amount</div><b class="text-white text-sm">₹${total.toFixed(2)}</b></div>
                     <div class="bg-slate-900 rounded-lg p-2.5"><div class="text-slate-400 text-[10px]">Total Paid</div><b class="text-emerald-400 text-sm">₹${paid.toFixed(2)}</b></div>
                     <div class="bg-slate-900 rounded-lg p-2.5"><div class="text-slate-400 text-[10px]">Pending Due</div><b class="${due > 0 ? 'text-rose-400 font-bold' : 'text-slate-300'} text-sm">₹${due.toFixed(2)}</b></div>
+                    ${credit > 0 ? `<div class="col-span-2 bg-emerald-950/40 border border-emerald-800/60 rounded-lg p-2 text-center"><div class="text-emerald-300 text-[10px] font-bold">💳 Available Credit / Advance in Account</div><b class="text-emerald-400 text-sm">₹${credit.toFixed(2)}</b></div>` : ''}
                 </div>
             </div>
 
             <div class="space-y-2 pt-1">
                 <div class="flex justify-between items-center px-1">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">All Invoices & Dues (${customerBills.length})</span>
-                    <span class="text-[10px] ${due > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400'}">${due > 0 ? `⚠️ Unpaid: ₹${due.toFixed(2)}` : '✅ All Settled'}</span>
+                    <span class="text-[10px] ${due > 0 ? 'text-rose-400 font-bold' : (credit > 0 ? 'text-sky-400 font-bold' : 'text-emerald-400')}">${due > 0 ? `⚠️ Unpaid: ₹${due.toFixed(2)}` : (credit > 0 ? `💳 Credit: ₹${credit.toFixed(2)}` : '✅ All Settled')}</span>
                 </div>
                 <div class="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
                     ${customerBills.map(b => {
                         const billTarget = (b.billNo && b.billNo !== '—') ? b.billNo : b.id;
                         const viewFn = b.isCosmetics ? `window.previewCosSaleBill('${billTarget}')` : `window.previewBill('${billTarget}')`;
                         const isPending = b.pendingAmount > 0.001;
+                        const hasCredit = Number(b.creditAmount || 0) > 0.001;
                         return `
-                        <div class="bg-slate-900/90 border ${isPending ? 'border-rose-900/60' : 'border-slate-800'} rounded-xl p-2.5 flex justify-between items-center text-xs">
+                        <div class="bg-slate-900/90 border ${isPending ? 'border-rose-900/60' : (hasCredit ? 'border-emerald-800/60' : 'border-slate-800')} rounded-xl p-2.5 flex justify-between items-center text-xs">
                             <div class="min-w-0 flex-1 pr-2">
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="font-bold text-white text-xs">${name}</span>
@@ -975,7 +999,9 @@ export function openCustomerConsolidationCustomer(encodedName) {
                                 </p>
                                 <div class="text-[11px] text-slate-300 mt-1">
                                     Total: <b class="text-white">₹${b.grandTotal.toFixed(2)}</b> • Paid: <b class="text-emerald-400">₹${b.paidAmount.toFixed(2)}</b>
-                                    ${isPending ? ` • <span class="text-rose-400 font-bold bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-800/60">Due: ₹${b.pendingAmount.toFixed(2)}</span>` : ' • <span class="text-emerald-400">Paid</span>'}
+                                    ${isPending ? ` • <span class="text-rose-400 font-bold bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-800/60">Due: ₹${b.pendingAmount.toFixed(2)}</span>` : ''}
+                                    ${hasCredit ? ` • <span class="text-emerald-400 font-bold bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800/60">Credit: ₹${Number(b.creditAmount).toFixed(2)}</span>` : ''}
+                                    ${(!isPending && !hasCredit) ? ' • <span class="text-emerald-400">Paid</span>' : ''}
                                 </div>
                             </div>
                             <button type="button" onclick="${viewFn}" class="shrink-0 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">View</button>

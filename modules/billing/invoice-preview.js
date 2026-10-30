@@ -109,6 +109,7 @@ export function previewBill(identifier) {
     const discountVal = Number(c.discount || 0);
     const subTotalVal = Number(c.subTotal || (grandVal + discountVal));
     const prevDueVal = Number(c.previousDue || 0);
+    const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
     const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
     const paidVal = c.paidAmount !== undefined ? Number(c.paidAmount) : grandVal;
     const finalPending = Math.max(0, totalWithDueVal - paidVal);
@@ -178,6 +179,12 @@ export function previewBill(identifier) {
                         <span>-₹${discountVal.toFixed(2)}</span>
                     </div>` : ''}
                     
+                    ${prevCreditVal > 0 ? `
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #047857 !important; font-weight: 700; margin-bottom: 3px;">
+                        <span>Customer Advance / Credit (പഴയ അഡ്വാൻസ്):</span>
+                        <span>-₹${prevCreditVal.toFixed(2)}</span>
+                    </div>` : ''}
+                    
                     ${prevDueVal > 0 ? `
                     <div style="display: flex; justify-content: space-between; align-items: center; color: #374151 !important; font-weight: 700;">
                         <span>Current Bill:</span>
@@ -213,7 +220,7 @@ export function previewBill(identifier) {
                     </div>` : ''}
                     ${excessVal > 0 ? `
                     <div style="display: flex; justify-content: space-between; align-items: center; color: #b45309 !important; font-weight: 800; margin-top: 2px; padding: 2px 4px; background: #fffbeb; border-radius: 4px;">
-                        <span>🔄 Return / Change:</span>
+                        <span>${c.excessRetainedAsCredit ? '💳 Retained as Customer Credit:' : '🔄 Return / Change:'}</span>
                         <span>₹${excessVal.toFixed(2)}</span>
                     </div>` : ''}
                 </div>
@@ -349,7 +356,7 @@ export function previewCosSaleBill(saleOrIdentifier) {
                     </div>` : ''}
                     ${excessVal > 0 ? `
                     <div style="display: flex; justify-content: space-between; align-items: center; color: #b45309 !important; font-weight: 800; margin-top: 2px; padding: 2px 4px; background: #fffbeb; border-radius: 4px;">
-                        <span>🔄 Return / Change:</span>
+                        <span>${c.excessRetainedAsCredit ? '💳 Retained as Customer Credit:' : '🔄 Return / Change:'}</span>
                         <span>₹${excessVal.toFixed(2)}</span>
                     </div>` : ''}
                 </div>
@@ -437,6 +444,7 @@ function getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal
     const discountVal = Number(c.discount || 0);
     const subTotalVal = Number(c.subTotal || (grandVal + discountVal));
     const prevDueVal = Number(c.previousDue || 0);
+    const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
     const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
     const finalPending = Math.max(0, totalWithDueVal - paidVal);
 
@@ -946,6 +954,7 @@ export function sendBillViaWhatsApp() {
     }).join('\n');
     const paidVal = c.paidAmount !== undefined ? c.paidAmount : c.grandTotal;
     const prevDueVal = Number(c.previousDue || 0);
+    const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
     const totalWithDueVal = Number(c.totalWithDue || (Number(c.grandTotal || 0) + prevDueVal));
     const finalPendingVal = Math.max(0, totalWithDueVal - Number(paidVal));
     const excessVal = Number(c.excessAmount || 0);
@@ -958,11 +967,12 @@ export function sendBillViaWhatsApp() {
         totalsBlock = `*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}`;
     }
 
-    const returnLine = excessVal > 0 ? `*Balance Return:* ₹${excessVal.toFixed(2)}\n` : '';
+    const creditLine = prevCreditVal > 0 ? `*Customer Credit / Advance (പഴയ അഡ്വാൻസ്):* -₹${prevCreditVal.toFixed(2)}\n` : '';
+    const returnLine = excessVal > 0 ? (c.excessRetainedAsCredit ? `*Retained as Customer Credit:* ₹${excessVal.toFixed(2)}\n` : `*Balance Return:* ₹${excessVal.toFixed(2)}\n`) : '';
     const discountVal = Number(c.discount || 0);
     const subTotalVal = Number(c.subTotal || (Number(c.grandTotal || 0) + discountVal));
     const discountLine = discountVal > 0 ? `*Subtotal:* ₹${subTotalVal.toFixed(2)}\n*Discount:* -₹${discountVal.toFixed(2)}\n` : '';
-    let msg = `*FIA CLEAN AND CARE*\n*EDATHANATTUKARA*\n*MOB: 8086452106*\n*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${String(c.name || 'Walk-in').toUpperCase()}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n${discountLine}${totalsBlock}${returnLine}\n_Thank you for your business!_`;
+    let msg = `*FIA CLEAN AND CARE*\n*EDATHANATTUKARA*\n*MOB: 8086452106*\n*${isWholesale ? '🏷️ WHOLESALE INVOICE' : '🛍️ RETAIL INVOICE'}*\n\n*Bill No:* ${c.billNo || '—'}\n*Date:* ${formatDateDDMMYYYY(c.date)}\n*Customer:* ${String(c.name || 'Walk-in').toUpperCase()}\n*Mobile:* ${c.phone || '—'}\n\n*Items:*\n${itemsText}\n\n${discountLine}${creditLine}${totalsBlock}${returnLine}\n_Thank you for your business!_`;
     
     if (window.history && window.history.pushState) {
         window.history.pushState({ loggedIn: true, tab: 'billing' }, "", "#billing");

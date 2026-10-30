@@ -492,6 +492,14 @@
             color: #be185d !important;
         }
 
+        /* High-visibility guarantee for product names in bill item cards */
+        #currentBillItemsPreview .text-white,
+        #cosCurrentBillItemsPreview .text-white,
+        #combinedBillItemsPreview .text-white {
+            color: #0f172a !important;
+            font-weight: 800 !important;
+        }
+
         /* Secondary and utility buttons - convert to clean light buttons */
         button.bg-slate-800, button.bg-slate-900, button.bg-slate-700 {
             background-color: #f1f5f9 !important;
@@ -574,7 +582,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.23';
+                var CURRENT_APP_VERSION = '51.2.25';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -966,7 +974,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.24</span>
+                    <span>v51.2.25</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -2238,6 +2246,25 @@
                         </div>
                     </div>
                     
+                    <!-- Live Customer Advance / Credit Alert Banner -->
+                    <div id="custCreditAlertBanner" class="hidden bg-emerald-950/70 border border-emerald-600/70 rounded-xl p-3 text-xs space-y-1.5 shadow-lg shadow-emerald-950/40">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="text-emerald-400 text-base shrink-0">💳</span>
+                                <div class="min-w-0">
+                                    <span class="text-emerald-200 font-bold block text-xs">Customer has Advance / Credit Balance (പഴയ ക്രെഡിറ്റ്):</span>
+                                    <div class="flex items-baseline gap-1 mt-0.5">
+                                        <span id="custCreditAlertAmount" class="text-emerald-400 font-black text-sm">₹0.00</span>
+                                        <span class="text-[10px] text-slate-300">(Available to adjust)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="if(window.viewCustomerDuesFromBilling) window.viewCustomerDuesFromBilling()" class="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg transition shadow flex items-center gap-1 cursor-pointer">
+                                👁️ View History
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 shadow-md space-y-2">
                         <div class="flex items-center justify-between">
                             <label class="text-xs text-slate-200 font-extrabold uppercase tracking-wide flex items-center gap-1.5">
@@ -2389,6 +2416,31 @@
                             </div>
                         </div>
 
+                        <!-- Customer Previous Credit / Advance Row (Visible when customer has old credit balance) -->
+                        <div id="billPreviousCreditRow" class="hidden bg-emerald-950/40 border border-emerald-800/60 rounded-xl p-2.5 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[11px] font-bold text-emerald-300 flex items-center gap-1">
+                                    <span>💳</span> Customer Credit / Advance (പഴയ ക്രെഡിറ്റ്):
+                                </label>
+                                <label class="text-[10px] text-slate-300 flex items-center gap-1 cursor-pointer select-none">
+                                    <input type="checkbox" id="billIncludePrevCredit" checked onchange="calculateBalance()" class="rounded border-slate-700 text-emerald-600 focus:ring-emerald-500">
+                                    <span>Apply to Bill (കുറയ്ക്കുക)</span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <span class="text-[9px] text-slate-400 block mb-0.5">Old Credit (₹):</span>
+                                    <input type="number" id="billPreviousCredit" value="0.00" oninput="calculateBalance()" class="w-full p-2 border border-emerald-700/60 rounded-lg text-xs bg-slate-950 text-emerald-300 font-bold focus:outline-none min-w-0" step="any">
+                                </div>
+                                <div>
+                                    <span class="text-[9px] text-slate-400 block mb-0.5">Payable after Credit (₹):</span>
+                                    <input type="number" id="billTotalAfterCredit" placeholder="0.00" readonly class="w-full p-2 border border-slate-700 rounded-lg text-xs bg-slate-900 text-emerald-400 font-extrabold cursor-not-allowed min-w-0">
+                                </div>
+                            </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="text-[10px] text-slate-400 font-bold block mb-1">Current Bill (₹):</label>
@@ -2410,6 +2462,12 @@
                             </div>
                             <div class="pt-3">
                                 <div id="billBalanceStatus" class="text-[10px] font-bold text-right"></div>
+                                <div id="billChangeActionRow" class="hidden pt-1.5 flex justify-end">
+                                    <label class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 px-2.5 py-1.5 rounded-lg cursor-pointer shadow-xs select-none hover:bg-emerald-100 transition">
+                                        <input type="checkbox" id="billKeepExcessCredit" class="rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5">
+                                        <span>💳 Keep <span id="billChangeCreditAmt" class="font-extrabold text-emerald-800">₹0.00</span> in Account as Credit</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -3663,7 +3721,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.24) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.25) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3717,7 +3775,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.24')
+                navigator.serviceWorker.register('./sw.js?v=51.2.25')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

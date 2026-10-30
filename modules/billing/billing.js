@@ -12,7 +12,7 @@ import {
     saveLocalStateSafely
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
-import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName, formatInvoiceItemQty } from './invoice-preview.js?v=51.2.24';
+import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName, formatInvoiceItemQty } from './invoice-preview.js?v=51.2.25';
 import { normalizeCosSale } from './billing-history.js';
 import { renderCustomers, renderCustomerConsolidationReport, getCustomerTotalPendingDue } from '../customers/customer.js';
 
@@ -1428,14 +1428,14 @@ export function renderBillPreviewInput() {
     state.currentBillItems = sortBillItemsAlphabetically(state.currentBillItems);
     state.currentBillItems.forEach((item, index) => {
         grandTotal += Number(item.total || 0);
-        const cleanName = getCleanInvoiceProductName(item.productName);
+        const cleanName = getCleanInvoiceProductName(item.productName) || item.productName || item.name || 'Product';
         const unitDisplay = (item.unitType && item.unitType !== 'Standard' && item.unitType !== 'General') ? item.unitType : ((findUnifiedProduct(item.productName)?.unit) || 'Ltr');
         const qtyStr = `${item.qty} ${unitDisplay}`.trim();
         const units = Number(item.numberOfUnits || 1);
         container.innerHTML += `
             <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
                 <div class="hidden sm:grid sm:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
-                    <span class="font-semibold truncate">${cleanName}</span>
+                    <span class="font-bold text-slate-900 truncate">${cleanName || 'Product'}</span>
                     <span>${qtyStr}</span>
                     <span>${units}</span>
                     <span>₹${Number(item.rate).toFixed(2)}</span>
@@ -1445,7 +1445,7 @@ export function renderBillPreviewInput() {
                 </div>
                 <div class="sm:hidden flex flex-col gap-1.5">
                     <div class="flex justify-between items-start gap-2">
-                        <span class="font-bold text-white leading-snug break-words flex-1">${cleanName}</span>
+                        <span class="font-extrabold text-slate-900 text-xs sm:text-sm leading-snug break-words flex-1">${cleanName || 'Product'}</span>
                         <strong class="text-emerald-400 text-sm whitespace-nowrap shrink-0">₹${Number(item.total).toFixed(2)}</strong>
                     </div>
                     <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
@@ -1479,16 +1479,30 @@ export function checkCustomerDueInBilling(name) {
     const countEl = document.getElementById('custDueAlertCount');
     const prevDueInput = document.getElementById('billPreviousDue');
     const prevDueRow = document.getElementById('billPreviousDueRow');
+    const creditBanner = document.getElementById('custCreditAlertBanner');
+    const creditAmtEl = document.getElementById('custCreditAlertAmount');
+    const prevCreditInput = document.getElementById('billPreviousCredit');
+    const prevCreditRow = document.getElementById('billPreviousCreditRow');
 
     if (!name || !name.trim()) {
         if (banner) banner.classList.add('hidden');
         if (prevDueRow) prevDueRow.classList.add('hidden');
+    if (creditBanner) creditBanner.classList.add('hidden');
+    if (prevCreditRow) prevCreditRow.classList.add('hidden');
+    if (prevCreditInput) prevCreditInput.value = '0.00';
+    const changeActionRow = document.getElementById('billChangeActionRow');
+    if (changeActionRow) changeActionRow.classList.add('hidden');
+    const keepExcessBox = document.getElementById('billKeepExcessCredit');
+    if (keepExcessBox) keepExcessBox.checked = false;
         if (prevDueInput) prevDueInput.value = '0.00';
+
+        if (prevCreditRow) prevCreditRow.classList.add('hidden');
+        if (prevCreditInput) prevCreditInput.value = '0.00';
         calculateBalance();
         return;
     }
 
-    const { totalPending, billCount } = getCustomerTotalPendingDue(name, excludeId);
+    const { totalPending, billCount, totalCredit } = getCustomerTotalPendingDue(name, excludeId);
 
     if (totalPending > 0.001) {
         if (banner) banner.classList.remove('hidden');
@@ -1499,13 +1513,57 @@ export function checkCustomerDueInBilling(name) {
     } else {
         if (banner) banner.classList.add('hidden');
         if (prevDueRow) prevDueRow.classList.add('hidden');
+    if (creditBanner) creditBanner.classList.add('hidden');
+    if (prevCreditRow) prevCreditRow.classList.add('hidden');
+    if (prevCreditInput) prevCreditInput.value = '0.00';
+    const changeActionRow = document.getElementById('billChangeActionRow');
+    if (changeActionRow) changeActionRow.classList.add('hidden');
+    const keepExcessBox = document.getElementById('billKeepExcessCredit');
+    if (keepExcessBox) keepExcessBox.checked = false;
         if (prevDueInput) prevDueInput.value = '0.00';
+    }
+
+    // Manage Previous Customer Credit / Advance UI
+    if (totalCredit > 0.001) {
+        if (creditBanner) creditBanner.classList.remove('hidden');
+        if (creditAmtEl) creditAmtEl.textContent = '₹' + totalCredit.toFixed(2);
+        if (prevCreditRow) prevCreditRow.classList.remove('hidden');
+        if (prevCreditInput) prevCreditInput.value = totalCredit.toFixed(2);
+    } else {
+        if (creditBanner) creditBanner.classList.add('hidden');
+        if (prevCreditRow) prevCreditRow.classList.add('hidden');
+        if (prevCreditInput) prevCreditInput.value = '0.00';
+    }
+    calculateBalance();
+    return;
+}
+
+/*
+
+    } else {
+
+        if (prevDueRow) prevDueRow.classList.remove('hidden');
+        if (prevDueInput) prevDueInput.value = totalPending.toFixed(2);
+    } else {
+        if (banner) banner.classList.add('hidden');
+        if (prevDueRow) prevDueRow.classList.add('hidden');
+    if (creditBanner) creditBanner.classList.add('hidden');
+    if (prevCreditRow) prevCreditRow.classList.add('hidden');
+    if (prevCreditInput) prevCreditInput.value = '0.00';
+    const changeActionRow = document.getElementById('billChangeActionRow');
+    if (changeActionRow) changeActionRow.classList.add('hidden');
+    const keepExcessBox = document.getElementById('billKeepExcessCredit');
+    if (keepExcessBox) keepExcessBox.checked = false;
+        if (prevDueInput) prevDueInput.value = '0.00';
+
+        if (prevCreditRow) prevCreditRow.classList.add('hidden');
+        if (prevCreditInput) prevCreditInput.value = '0.00';
     }
 
     calculateBalance();
 }
 
-export function checkCustomerDueOnNameChange() {
+*/ export function checkCustomerDueOnNameChange() {
     const name = (document.getElementById('custName')?.value || '').trim();
     checkCustomerDueInBilling(name);
 }
@@ -1530,7 +1588,17 @@ export function calculateBalance() {
 
     const includePrev = document.getElementById('billIncludePrevDue')?.checked ?? true;
     const prevDueVal = includePrev ? (parseFloat(document.getElementById('billPreviousDue')?.value) || 0) : 0;
-    const totalWithDue = Math.max(0, netPayable + prevDueVal);
+    const includePrevCredit = document.getElementById('billIncludePrevCredit')?.checked ?? true;
+    const prevCreditVal = includePrevCredit ? (parseFloat(document.getElementById('billPreviousCredit')?.value) || 0) : 0;
+
+    const billAmountBeforeCredit = netPayable + prevDueVal;
+    const appliedCredit = Math.min(billAmountBeforeCredit, prevCreditVal);
+    const totalWithDue = Math.max(0, billAmountBeforeCredit - appliedCredit);
+
+    const totalAfterCreditEl = document.getElementById('billTotalAfterCredit');
+    if (totalAfterCreditEl) {
+        totalAfterCreditEl.value = totalWithDue.toFixed(2);
+    }
 
     const totalWithDueEl = document.getElementById('billTotalWithDue');
     if (totalWithDueEl) {
@@ -1540,11 +1608,11 @@ export function calculateBalance() {
     const paidInputRaw = document.getElementById('billPaidAmt')?.value;
     const paidInput = parseFloat(paidInputRaw);
     const isPaidEmpty = paidInputRaw === '' || paidInputRaw === undefined;
-    const effectivePaid = isPaidEmpty ? (prevDueVal > 0 ? 0 : netPayable) : (Number.isFinite(paidInput) ? paidInput : 0);
+    const effectivePaid = isPaidEmpty ? (totalWithDue === 0 ? 0 : (prevDueVal > 0 ? 0 : totalWithDue)) : (Number.isFinite(paidInput) ? paidInput : 0);
     
     const paidEl = document.getElementById('billPaidAmt');
     if (paidEl && isPaidEmpty) {
-        paidEl.placeholder = prevDueVal > 0 ? "0.00" : netPayable.toFixed(2);
+        paidEl.placeholder = (prevDueVal > 0 && totalWithDue > 0) ? "0.00" : totalWithDue.toFixed(2);
     }
 
     const balance = totalWithDue - effectivePaid;
@@ -1552,17 +1620,25 @@ export function calculateBalance() {
     const excess = Math.max(0, -balance);
     const field = document.getElementById('billPendingAmt');
     const status = document.getElementById('billBalanceStatus');
+    const changeActionRow = document.getElementById('billChangeActionRow');
+    const changeCreditAmtEl = document.getElementById('billChangeCreditAmt');
     if (field) field.value = due.toFixed(2);
     if (status) {
         if (balance > 0.001) {
             status.textContent = (prevDueVal > 0 ? 'NET BALANCE DUE: ₹' : 'BALANCE DUE: ₹') + due.toFixed(2);
-            status.className = 'text-xs font-black mt-1 text-right text-rose-400 animate-pulse';
+            status.className = 'text-xs font-black mt-1 text-right text-rose-600 animate-pulse';
+            if (changeActionRow) changeActionRow.classList.add('hidden');
         } else if (balance < -0.001) {
             status.textContent = 'BALANCE RETURN / CHANGE: ₹' + excess.toFixed(2);
-            status.className = 'text-xs font-black mt-1 text-right text-sky-300';
+            status.className = 'text-xs font-black mt-1 text-right text-sky-700';
+            if (changeActionRow) {
+                changeActionRow.classList.remove('hidden');
+                if (changeCreditAmtEl) changeCreditAmtEl.textContent = '₹' + excess.toFixed(2);
+            }
         } else {
             status.textContent = 'PAID IN FULL — BALANCE: ₹0.00';
-            status.className = 'text-xs font-black mt-1 text-right text-emerald-400';
+            status.className = 'text-xs font-black mt-1 text-right text-emerald-600';
+            if (changeActionRow) changeActionRow.classList.add('hidden');
         }
     }
 }
@@ -1688,17 +1764,43 @@ export function saveCustomer(e) {
 
     const includePrev = document.getElementById('billIncludePrevDue')?.checked ?? true;
     const previousDue = includePrev ? (parseFloat(document.getElementById('billPreviousDue')?.value) || 0) : 0;
-    const totalWithDue = Math.max(0, grandTotal + previousDue);
+    const includePrevCredit = document.getElementById('billIncludePrevCredit')?.checked ?? true;
+    const previousCredit = includePrevCredit ? (parseFloat(document.getElementById('billPreviousCredit')?.value) || 0) : 0;
+    const billBeforeCredit = grandTotal + previousDue;
+    const appliedCredit = Math.min(billBeforeCredit, previousCredit);
+    const totalWithDue = Math.max(0, billBeforeCredit - appliedCredit);
+
+    // If customer had credit and applied it, deduct from previous credit bills
+    if (appliedCredit > 0.001) {
+        let remainingCreditToDeduct = appliedCredit;
+        const cleanCustName = name.toLowerCase();
+        (state.customers || []).forEach(c => {
+            if (remainingCreditToDeduct <= 0.001) return;
+            if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
+            if (String(c.name || '').trim().toLowerCase() !== cleanCustName) return;
+            if (index >= 0 && (c.id === billId || c.billNo === billNo)) return;
+            let cr = c.creditAmount !== undefined ? Number(c.creditAmount) : (c.excessRetainedAsCredit ? Number(c.excessAmount || 0) : 0);
+            if (cr > 0.001) {
+                const deductPortion = Math.min(cr, remainingCreditToDeduct);
+                c.creditAmount = Math.max(0, cr - deductPortion);
+                if (c.creditAmount <= 0.001) c.excessRetainedAsCredit = false;
+                c.savedAt = Date.now();
+                remainingCreditToDeduct -= deductPortion;
+            }
+        });
+    }
 
     const paidAmount = parseFloat(document.getElementById('billPaidAmt')?.value);
     const isPaidEmpty = document.getElementById('billPaidAmt')?.value === '' || document.getElementById('billPaidAmt')?.value === undefined;
-    const safePaidAmount = isPaidEmpty ? (previousDue > 0 ? 0 : grandTotal) : (Number.isFinite(paidAmount) ? Math.max(0, paidAmount) : 0);
+    const safePaidAmount = isPaidEmpty ? (totalWithDue === 0 ? 0 : (previousDue > 0 ? 0 : totalWithDue)) : (Number.isFinite(paidAmount) ? Math.max(0, paidAmount) : 0);
     
     // Allocate payment:
     const currentBillPaid = Math.min(grandTotal, safePaidAmount);
-    const pendingAmount = Math.max(0, grandTotal - currentBillPaid);
+    const pendingAmount = Math.max(0, totalWithDue - safePaidAmount);
     const excessTowardsPrev = Math.max(0, safePaidAmount - grandTotal);
     const excessAmount = Math.max(0, safePaidAmount - totalWithDue);
+    const keepAsCredit = Boolean(document.getElementById('billKeepExcessCredit')?.checked && excessAmount > 0.001);
+    const creditAmount = keepAsCredit ? excessAmount : 0;
 
     // If customer paid extra beyond current bill, apply to previous unpaid bills (oldest first):
     if (excessTowardsPrev > 0 && previousDue > 0) {
@@ -1746,10 +1848,14 @@ export function saveCustomer(e) {
         discount,
         grandTotal,
         previousDue,
+        previousCredit,
+        appliedCredit,
         totalWithDue,
         paidAmount: safePaidAmount,
         pendingAmount,
         excessAmount,
+        excessRetainedAsCredit: keepAsCredit,
+        creditAmount,
         date: (index >= 0 && state.customers[index]?.date) || getTodayDateString(),
         savedAt: Date.now()
     };
@@ -1794,7 +1900,18 @@ export function resetCustomerForm() {
     const prevBanner = document.getElementById('custDueAlertBanner');
     if (prevBanner) prevBanner.classList.add('hidden');
     const prevDueRow = document.getElementById('billPreviousDueRow');
+    const creditBanner = document.getElementById('custCreditAlertBanner');
+    const creditAmtEl = document.getElementById('custCreditAlertAmount');
+    const prevCreditInput = document.getElementById('billPreviousCredit');
+    const prevCreditRow = document.getElementById('billPreviousCreditRow');
     if (prevDueRow) prevDueRow.classList.add('hidden');
+    if (creditBanner) creditBanner.classList.add('hidden');
+    if (prevCreditRow) prevCreditRow.classList.add('hidden');
+    if (prevCreditInput) prevCreditInput.value = '0.00';
+    const changeActionRow = document.getElementById('billChangeActionRow');
+    if (changeActionRow) changeActionRow.classList.add('hidden');
+    const keepExcessBox = document.getElementById('billKeepExcessCredit');
+    if (keepExcessBox) keepExcessBox.checked = false;
     const prevDueInput = document.getElementById('billPreviousDue');
     if (prevDueInput) prevDueInput.value = '0.00';
     const totalWithDueEl = document.getElementById('billTotalWithDue');
@@ -1847,6 +1964,18 @@ export function editCustomerBill(identifier) {
     const prevDueInput = document.getElementById('billPreviousDue');
     if (prevDueInput) prevDueInput.value = Number(c.previousDue || 0).toFixed(2);
     const prevDueRow = document.getElementById('billPreviousDueRow');
+    const creditBanner = document.getElementById('custCreditAlertBanner');
+    const creditAmtEl = document.getElementById('custCreditAlertAmount');
+    const prevCreditInput = document.getElementById('billPreviousCredit');
+    const prevCreditRow = document.getElementById('billPreviousCreditRow');
+    const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
+    if (prevCreditInput) prevCreditInput.value = prevCreditVal.toFixed(2);
+    if (prevCreditRow) {
+        if (prevCreditVal > 0) prevCreditRow.classList.remove('hidden');
+        else prevCreditRow.classList.add('hidden');
+    }
+    const keepExcessBox = document.getElementById('billKeepExcessCredit');
+    if (keepExcessBox) keepExcessBox.checked = Boolean(c.excessRetainedAsCredit);
     if (prevDueRow) {
         if (Number(c.previousDue || 0) > 0) prevDueRow.classList.remove('hidden');
         else prevDueRow.classList.add('hidden');
@@ -1995,20 +2124,20 @@ export function renderCosBillPreviewInput() {
     state.currentCosBillItems = sortBillItemsAlphabetically(state.currentCosBillItems || []);
     state.currentCosBillItems.forEach((item, index) => {
         grandTotal += Number(item.total || 0);
-        const cleanName = getCleanInvoiceProductName(item.productName);
+        const cleanName = getCleanInvoiceProductName(item.productName) || item.productName || item.name || 'Product';
         const unitDisplay = (item.unitType && item.unitType !== 'Standard' && item.unitType !== 'General') ? item.unitType : ((state.cosProducts || []).find(p => p.id === item.stockId || p.name === item.productName)?.unit || 'Pcs');
         const qtyStr = `${item.qty} ${unitDisplay}`.trim();
         const units = Number(item.numberOfUnits || 1);
         container.innerHTML += `
             <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
                 <div class="hidden sm:grid sm:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
-                    <span class="font-semibold truncate">${cleanName}</span><span>${qtyStr}</span><span>${units}</span><span>₹${Number(item.rate).toFixed(2)}</span><strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
+                    <span class="font-bold text-slate-900 truncate">${cleanName || 'Product'}</span><span>${qtyStr}</span><span>${units}</span><span>₹${Number(item.rate).toFixed(2)}</span><strong class="text-emerald-400">₹${Number(item.total).toFixed(2)}</strong>
                     <button type="button" onclick="editCosBillItem(${index})" class="text-amber-300 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Edit item">✎</button>
                     <button type="button" onclick="state.currentCosBillItems.splice(${index},1);renderCosBillPreviewInput();calculateCosSalesBalance();" class="text-red-400 font-bold px-1.5 py-1 hover:bg-slate-800 rounded" title="Delete item">✕</button>
                 </div>
                 <div class="sm:hidden flex flex-col gap-1.5">
                     <div class="flex justify-between items-start gap-2">
-                        <span class="font-bold text-white leading-snug break-words flex-1">${cleanName}</span>
+                        <span class="font-extrabold text-slate-900 text-xs sm:text-sm leading-snug break-words flex-1">${cleanName || 'Product'}</span>
                         <strong class="text-emerald-400 text-sm whitespace-nowrap shrink-0">₹${Number(item.total).toFixed(2)}</strong>
                     </div>
                     <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
@@ -2676,14 +2805,14 @@ export function renderCombinedBillItems() {
     let total = 0;
     c.innerHTML = state.currentBillItems.map((item, i) => {
         total += Number(item.total || 0);
-        const cleanName = getCleanInvoiceProductName(item.productName);
+        const cleanName = getCleanInvoiceProductName(item.productName) || item.productName || item.name || 'Product';
         const rec = combinedStockRecord({ category: item.combinedCategory, productName: item.productName });
         const unitDisplay = (item.unitType && item.unitType !== 'Standard' && item.unitType !== 'General') ? item.unitType : (rec?.unit || 'Pcs');
         const qtyStr = `${item.qty} ${unitDisplay}`.trim();
         const units = Number(item.numberOfUnits || 1);
         return `<div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs">
             <div class="hidden sm:grid sm:grid-cols-[1.5fr_0.7fr_0.7fr_0.8fr_0.9fr_auto_auto] gap-1 items-center">
-                <span class="font-semibold truncate">${cleanName} <small class="text-cyan-400">(${item.combinedCategory || ''})</small></span>
+                <span class="font-bold text-slate-900 truncate">${cleanName || 'Product'} <small class="text-indigo-600 font-bold">(${item.combinedCategory || ''})</small></span>
                 <span>${qtyStr}</span>
                 <span>${units}</span>
                 <span>₹${Number(item.rate || 0).toFixed(2)}</span>
@@ -2693,7 +2822,7 @@ export function renderCombinedBillItems() {
             </div>
             <div class="sm:hidden flex flex-col gap-1.5">
                 <div class="flex justify-between items-start gap-2">
-                    <span class="font-bold text-white leading-snug break-words flex-1">${cleanName} <small class="text-cyan-400">(${item.combinedCategory || ''})</small></span>
+                    <span class="font-extrabold text-slate-900 text-xs sm:text-sm leading-snug break-words flex-1">${cleanName || 'Product'} <small class="text-indigo-600 font-bold">(${item.combinedCategory || ''})</small></span>
                     <strong class="text-emerald-400 text-sm whitespace-nowrap shrink-0">₹${Number(item.total || 0).toFixed(2)}</strong>
                 </div>
                 <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-800/60 pt-1">
