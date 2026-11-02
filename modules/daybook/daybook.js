@@ -322,6 +322,15 @@ export function getAllMasterEntries() {
         const entryId = c.id ? (c.id.startsWith('bill_') || c.id.startsWith('cust_') ? c.id : 'bill_' + c.id) : ('bill_' + (c.billNo ? String(c.billNo) : (c.savedAt || i)));
         if (incomeVal > 0 || Number(c.paidAmount || 0) > 0) {
             const cleanDate = normalizeToDateKey(c.date) || normalizeToDateKey(c.savedAt) || normalizeToDateKey(c.createdAt) || getTodayDateString();
+            
+            // Check if there are subsequent due settlements on dates different from the bill date
+            const subsequentPayments = Array.isArray(c.paymentHistory) 
+                ? c.paymentHistory.filter(p => p && Number(p.amount) > 0 && normalizeToDateKey(p.date) && normalizeToDateKey(p.date) !== cleanDate)
+                : [];
+            const subsequentSum = subsequentPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+            const totalPaidVal = Number(c.paidAmount !== undefined ? c.paidAmount : (incomeVal - Number(c.pendingAmount || 0)));
+            const initialPaid = Math.max(0, totalPaidVal - subsequentSum);
+
             entries.push({
                 id: entryId,
                 originalId: c.id || (c.billNo ? String(c.billNo) : entryId),
@@ -329,11 +338,29 @@ export function getAllMasterEntries() {
                 category: c.billType === 'Combined' ? 'Combined Sale' : 'Cleaning Sale',
                 desc: `${c.billType === 'Combined' ? 'Bill' : 'Cleaning Bill'} #${c.billNo || (i + 1)} (${c.name || 'Customer'})`,
                 amount: incomeVal,
-                paidAmount: Number(c.paidAmount !== undefined ? c.paidAmount : (incomeVal - Number(c.pendingAmount || 0))),
+                paidAmount: initialPaid,
                 pendingAmount: Math.max(0, Number(c.pendingAmount || 0)),
                 paymentMode: c.paymentMode || 'Cash',
                 date: cleanDate,
                 timestamp: Number(c.savedAt || c.createdAt || dateSortValue(cleanDate) || 0)
+            });
+
+            // Register distinct collection entries for payments on their respective dates
+            subsequentPayments.forEach((p, pIdx) => {
+                const pDate = normalizeToDateKey(p.date) || getTodayDateString();
+                entries.push({
+                    id: `pay_${c.id || c.billNo || i}_${p.id || pIdx}`,
+                    originalId: c.id || (c.billNo ? String(c.billNo) : entryId),
+                    type: 'Income',
+                    category: 'Customer Due Collection',
+                    desc: `💰 Due Collection: ${c.name || 'Customer'} (Bill #${c.billNo || (i + 1)})${p.note ? ' - ' + p.note : ''}`,
+                    amount: Number(p.amount || 0),
+                    paidAmount: Number(p.amount || 0),
+                    pendingAmount: 0,
+                    paymentMode: p.paymentMode || 'Cash',
+                    date: pDate,
+                    timestamp: Number(p.timestamp || dateSortValue(pDate) || 0)
+                });
             });
         }
     });
@@ -349,6 +376,14 @@ export function getAllMasterEntries() {
         const entryId = s.id ? (s.id.startsWith('cossale_') ? s.id : 'cossale_' + s.id) : ('cossale_' + (s.billNo ? String(s.billNo) : (s.savedAt || i)));
         if (incomeVal > 0 || Number(norm.paidAmount || 0) > 0) {
             const cleanDate = normalizeToDateKey(s.date) || normalizeToDateKey(s.savedAt) || normalizeToDateKey(s.createdAt) || getTodayDateString();
+            
+            const subsequentPayments = Array.isArray(s.paymentHistory) 
+                ? s.paymentHistory.filter(p => p && Number(p.amount) > 0 && normalizeToDateKey(p.date) && normalizeToDateKey(p.date) !== cleanDate)
+                : [];
+            const subsequentSum = subsequentPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+            const totalPaidVal = Number(norm.paidAmount !== undefined ? norm.paidAmount : (incomeVal - Number(norm.pendingAmount || 0)));
+            const initialPaid = Math.max(0, totalPaidVal - subsequentSum);
+
             entries.push({
                 id: entryId,
                 originalId: s.id || (s.billNo ? String(s.billNo) : entryId),
@@ -356,11 +391,28 @@ export function getAllMasterEntries() {
                 category: 'Cosmetics Sale',
                 desc: `Cosmetics Bill #${s.billNo || (i + 1)} (${norm.customer || s.customer || s.name || 'Customer'})`,
                 amount: incomeVal,
-                paidAmount: Number(norm.paidAmount !== undefined ? norm.paidAmount : (incomeVal - Number(norm.pendingAmount || 0))),
+                paidAmount: initialPaid,
                 pendingAmount: Math.max(0, Number(norm.pendingAmount || 0)),
                 paymentMode: norm.paymentMode || s.paymentMode || 'Cash',
                 date: cleanDate,
                 timestamp: Number(s.savedAt || s.createdAt || dateSortValue(cleanDate) || 0)
+            });
+
+            subsequentPayments.forEach((p, pIdx) => {
+                const pDate = normalizeToDateKey(p.date) || getTodayDateString();
+                entries.push({
+                    id: `pay_cos_${s.id || s.billNo || i}_${p.id || pIdx}`,
+                    originalId: s.id || (s.billNo ? String(s.billNo) : entryId),
+                    type: 'Income',
+                    category: 'Customer Due Collection',
+                    desc: `💰 Due Collection: ${norm.customer || s.customer || s.name || 'Customer'} (Cosmetics Bill #${s.billNo || (i + 1)})${p.note ? ' - ' + p.note : ''}`,
+                    amount: Number(p.amount || 0),
+                    paidAmount: Number(p.amount || 0),
+                    pendingAmount: 0,
+                    paymentMode: p.paymentMode || 'Cash',
+                    date: pDate,
+                    timestamp: Number(p.timestamp || dateSortValue(pDate) || 0)
+                });
             });
         }
     });

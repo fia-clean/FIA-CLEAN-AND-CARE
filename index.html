@@ -590,7 +590,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.26';
+                var CURRENT_APP_VERSION = '51.2.27';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -617,9 +617,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.26) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.27) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.26');
+                        localStorage.setItem('fia_app_version', '51.2.27');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -887,7 +887,7 @@
                 try {
                     if (window.closeBarcodeScanner) window.closeBarcodeScanner();
                 } catch(e) {}
-                ['billPreviewModal','recordViewModal','settingsModal','changePinModal','resetPinModal','dueAmountListModal','lowStockListModal','customerConsolidatedDetailModal','supplierConsolidatedDetailModal','backupModal','barcodeScannerModal'].forEach(function(id) {
+                ['billPreviewModal','recordViewModal','settingsModal','changePinModal','resetPinModal','dueAmountListModal','lowStockListModal','customerConsolidatedDetailModal','customerPaymentReceiptModal','supplierConsolidatedDetailModal','backupModal','barcodeScannerModal'].forEach(function(id) {
                     var el = document.getElementById(id);
                     if (el) el.classList.add('hidden');
                 });
@@ -984,7 +984,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.26</span>
+                    <span>v51.2.27</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -2250,9 +2250,14 @@
                                     </div>
                                 </div>
                             </div>
-                            <button type="button" id="custDueAlertBtn" onclick="if(window.viewCustomerDuesFromBilling) window.viewCustomerDuesFromBilling()" class="shrink-0 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg transition shadow flex items-center gap-1 cursor-pointer">
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button type="button" onclick="if(window.openCustomerDueSettlementModal) window.openCustomerDueSettlementModal(); else if(window.viewCustomerDuesFromBilling) window.viewCustomerDuesFromBilling();" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg transition shadow flex items-center gap-1 cursor-pointer" title="ഒറ്റത്തവണ കുടിശ്ശിക അടവ് ചേർക്കുക">
+                                    💰 Add Payment (അടവ്)
+                                </button>
+                                <button type="button" id="custDueAlertBtn" onclick="if(window.viewCustomerDuesFromBilling) window.viewCustomerDuesFromBilling()" class="bg-rose-700 hover:bg-rose-600 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg transition shadow flex items-center gap-1 cursor-pointer">
                                 👁️ View History
                             </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -3142,6 +3147,31 @@
         </div>
     </div>
 
+        <!-- Customer Due Payment Receipt Modal -->
+    <div id="customerPaymentReceiptModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-3">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col">
+            <div class="bg-emerald-950/80 border-b border-emerald-600/50 p-4 text-center">
+                <div class="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-2 text-2xl border border-emerald-500/40">✅</div>
+                <h3 class="font-extrabold text-white text-base">Payment Recorded!</h3>
+                <p class="text-xs text-emerald-300 mt-0.5">കുടിശ്ശിക അടവ് വിജയകരമായി രേഖപ്പെടുത്തി</p>
+            </div>
+            <div id="customerPaymentReceiptContent" class="p-4 text-xs text-slate-200 space-y-3 overflow-y-auto max-h-[60vh]"></div>
+            <div class="p-3 border-t border-slate-800 space-y-2 bg-slate-950">
+                <button type="button" id="btnSharePaymentReceiptWhatsApp" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl text-xs font-bold transition shadow flex items-center justify-center gap-1.5 cursor-pointer">
+                    📱 Share Receipt on WhatsApp
+                </button>
+                <div class="flex gap-2">
+                    <button type="button" id="btnPrintPaymentReceipt" class="flex-1 bg-slate-800 hover:bg-slate-700 text-sky-300 py-2 rounded-xl text-xs font-bold transition border border-slate-700 cursor-pointer">
+                        🖨️ Print Receipt
+                    </button>
+                    <button type="button" onclick="document.getElementById('customerPaymentReceiptModal').classList.add('hidden')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-xl text-xs font-bold transition border border-slate-700 cursor-pointer">
+                        ✕ Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Dealer / Supplier Consolidated Detail Modal -->
     <div id="supplierConsolidatedDetailModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
         <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg md:max-w-3xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
@@ -3731,7 +3761,7 @@
     <script>
         // Force App Update & Cache Busting
         window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.26) immediately.")) {
+            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.27) immediately.")) {
                 try {
                     if ('serviceWorker' in navigator) {
                         var registrations = await navigator.serviceWorker.getRegistrations();
@@ -3785,7 +3815,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.26')
+                navigator.serviceWorker.register('./sw.js?v=51.2.27')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

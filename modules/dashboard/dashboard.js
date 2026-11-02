@@ -322,8 +322,11 @@ export function renderDueAmountList() {
                 </div>
 
                 <div class="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800/80">
+                    <button type="button" onclick="window.closeDueAmountList(true); window.openCustomerConsolidationCustomer('${encodeURIComponent(cg.name)}');" class="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer shadow">
+                        💰 Settle Due (അടവ്)
+                    </button>
                     <button type="button" onclick="window.closeDueAmountList(true); window.openCustomerConsolidationCustomer('${encodeURIComponent(cg.name)}');" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer">
-                        👁️ Full Statement & History
+                        👁️ Full Statement
                     </button>
                     ${cg.phone && cg.phone !== 'No mobile' ? `
                     <button type="button" onclick="window.shareCustomerDueWhatsApp('${safeName}', '${cg.phone}', ${cg.totalDue}, ${cg.billCount})" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer">

@@ -1568,6 +1568,15 @@ export function checkCustomerDueInBilling(name) {
     checkCustomerDueInBilling(name);
 }
 
+export function openCustomerDueSettlementModal(name) {
+    const target = (name || document.getElementById('custName')?.value || '').trim().toUpperCase();
+    if (target && typeof window.openCustomerConsolidationCustomer === 'function') {
+        window.openCustomerConsolidationCustomer(target);
+    } else {
+        alert('Please enter or select a customer name.');
+    }
+}
+
 export function viewCustomerDuesFromBilling() {
     const name = (document.getElementById('custName')?.value || '').trim().toUpperCase();
     if (name && typeof window.openCustomerConsolidationCustomer === 'function') {
@@ -1816,6 +1825,15 @@ export function saveCustomer(e) {
                 const payPortion = Math.min(cDue, remainingPaid);
                 c.pendingAmount = Math.max(0, cDue - payPortion);
                 c.paidAmount = (Number(c.paidAmount || 0)) + payPortion;
+                if (!Array.isArray(c.paymentHistory)) c.paymentHistory = [];
+                c.paymentHistory.push({
+                    id: generateUniqueRecordId('pay'),
+                    date: getTodayDateString(),
+                    amount: payPortion,
+                    paymentMode: document.getElementById('billPaymentMode')?.value || 'Cash',
+                    note: `Settled with Bill #${billNo}`,
+                    timestamp: Date.now()
+                });
                 c.savedAt = Date.now();
                 remainingPaid -= payPortion;
             }

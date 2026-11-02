@@ -13,7 +13,8 @@ import {
     formatDateDDMMYYYY,
     dateSortValue,
     money,
-    toTitleCase
+    toTitleCase,
+    generateUniqueRecordId
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
 import { normalizeCosSale } from '../billing/billing-history.js';
@@ -893,6 +894,26 @@ export function renderCustomerConsolidationView() {
 }
 
 let selectedCustomerConsolidatedName = '';
+let lastDuePaymentReceiptData = null;
+
+export function openCustomerDueSettlementModal(custName) {
+    let target = custName;
+    if (!target) {
+        target = (document.getElementById('custName')?.value || '').trim();
+    }
+    if (!target) {
+        alert('Please enter or select a customer name.');
+        return;
+    }
+    openCustomerConsolidationCustomer(encodeURIComponent(target));
+    setTimeout(() => {
+        const amtInput = document.getElementById('custDuePayAmount');
+        if (amtInput) {
+            amtInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            amtInput.focus();
+        }
+    }, 200);
+}
 
 export function openCustomerConsolidationCustomer(encodedName) {
     const name = decodeURIComponent(encodedName || '').trim().toUpperCase();
@@ -900,7 +921,7 @@ export function openCustomerConsolidationCustomer(encodedName) {
     const title = document.getElementById('customerConsolidatedDetailTitle');
     const content = document.getElementById('customerConsolidatedDetailContent');
     if (!content) return;
-    if (title) title.textContent = name + ' - Consolidated Report';
+    if (title) title.textContent = name + ' - Consolidated Report & Dues';
 
     let purchaseCount = 0, total = 0, paid = 0, due = 0, credit = 0;
     const customerBills = [];
@@ -951,19 +972,110 @@ export function openCustomerConsolidationCustomer(encodedName) {
     const phone = ((state.customers || []).find(c => c && !isCustItemDeleted(c) && String(c.name || '').trim().toUpperCase() === name && c.phone)?.phone) ||
         ((state.cosSales || []).find(s => s && !isCustItemDeleted(s) && String(s.customer || '').trim().toUpperCase() === name && s.phone)?.phone || '');
 
+    const unpaidCount = customerBills.filter(b => b.pendingAmount > 0.001).length;
+
     content.innerHTML = `
-        <div class="space-y-3">
-            <div class="bg-slate-950/70 rounded-xl p-3 border border-slate-800 flex justify-between items-center">
+        <div class="space-y-3.5">
+            <!-- Customer Header -->
+            <div class="bg-slate-950/80 rounded-2xl p-3 sm:p-4 border border-slate-800 flex justify-between items-center shadow-md">
                 <div>
-                    <div class="font-bold text-slate-100 text-sm">${name}</div>
+                    <div class="font-extrabold text-slate-100 text-sm sm:text-base">${name}</div>
                     <div class="text-slate-400 text-xs mt-0.5">📞 ${phone || 'No Phone'}</div>
                 </div>
                 <div class="text-right">
-                    <span class="text-[10px] text-slate-400 uppercase font-semibold">${due > 0 ? 'Net Balance Due' : (credit > 0 ? 'Available Credit Balance' : 'Net Balance')}</span>
-                    <p class="text-base font-black ${due > 0 ? 'text-rose-400' : (credit > 0 ? 'text-sky-400' : 'text-emerald-400')}">₹${due > 0 ? due.toFixed(2) : (credit > 0 ? credit.toFixed(2) : '0.00')}</p>
+                    <span class="text-[10px] text-slate-400 uppercase font-semibold block">${due > 0 ? 'Net Balance Due (ബാക്കി കുടിശ്ശിക)' : (credit > 0 ? 'Available Credit Balance' : 'Net Balance')}</span>
+                    <p class="text-lg sm:text-xl font-black ${due > 0 ? 'text-rose-400' : (credit > 0 ? 'text-sky-400' : 'text-emerald-400')}">₹${due > 0 ? due.toFixed(2) : (credit > 0 ? credit.toFixed(2) : '0.00')}</p>
                 </div>
             </div>
-            <div class="bg-slate-950/70 rounded-xl p-3 border border-slate-800">
+
+            <!-- ONE-CLICK MULTI-BILL DUE PAYMENT CARD (ഒറ്റത്തവണ കുടിശ്ശിക അടവ്) -->
+            ${due > 0.001 ? `
+            <div class="bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-950 p-3.5 sm:p-4 rounded-2xl border border-emerald-500/50 shadow-xl space-y-3">
+                <div class="flex items-center justify-between gap-2 border-b border-emerald-900/60 pb-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="text-emerald-400 text-xl">💰</span>
+                        <div>
+                            <h4 class="font-extrabold text-white text-xs sm:text-sm">ഒറ്റത്തവണ കുടിശ്ശിക അടവ് (Settle Due Payment)</h4>
+                            <p class="text-[10.5px] text-emerald-200/80">ഒരു തുക നൽകി പഴയ ബില്ലുകളിലെ കുടിശ്ശിക ഒറ്റയടിക്ക് തീർക്കുക (FIFO Auto-Allocation)</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 shrink-0">
+                        Pending: ₹${due.toFixed(2)} (${unpaidCount} bills)
+                    </span>
+                </div>
+
+                <!-- Payment Form Fields -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                    <div class="sm:col-span-1">
+                        <label class="block text-[10px] font-bold text-slate-300 mb-1">അടയ്ക്കുന്ന തുക (Amount Paid) *</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-slate-400 font-bold text-xs">₹</span>
+                            <input 
+                                type="number" 
+                                id="custDuePayAmount" 
+                                step="0.01" 
+                                min="1" 
+                                max="999999" 
+                                placeholder="${due.toFixed(2)}" 
+                                oninput="window.previewDueAllocation('${encodeURIComponent(name)}')" 
+                                class="w-full pl-7 pr-3 py-2 bg-slate-950 border border-emerald-500/60 rounded-xl text-white font-black text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-300 mb-1">പെയ്മെന്റ് രീതി (Mode)</label>
+                        <select id="custDuePayMode" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500">
+                            <option value="Cash">💵 Cash (ക്യാഷ്)</option>
+                            <option value="UPI">📱 Google Pay / PhonePe (UPI)</option>
+                            <option value="Bank">🏦 Bank Transfer</option>
+                            <option value="Cheque">📜 Cheque</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-300 mb-1">തീയതി (Payment Date)</label>
+                        <input type="date" id="custDuePayDate" value="${getTodayDateString()}" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500" />
+                    </div>
+                </div>
+
+                <!-- Quick Preset Pill Buttons -->
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] text-slate-400 font-semibold">Quick Amount:</span>
+                    <button type="button" onclick="document.getElementById('custDuePayAmount').value = '${due.toFixed(2)}'; window.previewDueAllocation('${encodeURIComponent(name)}');" class="bg-emerald-700/70 hover:bg-emerald-600 text-emerald-100 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-emerald-500/50 transition cursor-pointer">
+                        Full ₹${due.toFixed(2)}
+                    </button>
+                    ${due >= 500 ? `<button type="button" onclick="document.getElementById('custDuePayAmount').value = '500'; window.previewDueAllocation('${encodeURIComponent(name)}');" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-700 transition cursor-pointer">₹500</button>` : ''}
+                    ${due >= 200 ? `<button type="button" onclick="document.getElementById('custDuePayAmount').value = '200'; window.previewDueAllocation('${encodeURIComponent(name)}');" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-700 transition cursor-pointer">₹200</button>` : ''}
+                    ${due >= 100 ? `<button type="button" onclick="document.getElementById('custDuePayAmount').value = '100'; window.previewDueAllocation('${encodeURIComponent(name)}');" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-700 transition cursor-pointer">₹100</button>` : ''}
+                </div>
+
+                <!-- Live Auto-Calculation Strip -->
+                <div id="custDueLiveCalcStrip" class="bg-slate-950/90 border border-slate-800 rounded-xl p-2.5 text-xs grid grid-cols-3 gap-2 text-center shadow-inner">
+                    <div>
+                        <span class="text-[9.5px] text-slate-400 block uppercase font-bold">Total Dues</span>
+                        <b class="text-white font-mono text-sm">₹${due.toFixed(2)}</b>
+                    </div>
+                    <div>
+                        <span class="text-[9.5px] text-emerald-400 block uppercase font-bold">Paying Now</span>
+                        <b id="dueCalcPayingNow" class="text-emerald-400 font-mono text-sm font-black">₹0.00</b>
+                    </div>
+                    <div>
+                        <span id="dueCalcRemainingLabel" class="text-[9.5px] text-rose-400 block uppercase font-bold">Remaining Due</span>
+                        <b id="dueCalcRemainingVal" class="text-rose-400 font-mono text-sm font-black">₹${due.toFixed(2)}</b>
+                    </div>
+                </div>
+
+                <!-- Note & Confirm Button -->
+                <div class="flex flex-col sm:flex-row gap-2 items-center pt-1">
+                    <input type="text" id="custDuePayNote" placeholder="കുറിപ്പ് (Note e.g. GPay Ref / Cash counter)" class="w-full sm:flex-1 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-emerald-500" />
+                    <button type="button" onclick="window.confirmCustomerDueSettlement('${encodeURIComponent(name)}')" class="w-full sm:w-auto shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer active:scale-95">
+                        <span id="btnConfirmDueSettlementText">✅ Confirm & Settle Payment</span>
+                    </button>
+                </div>
+            </div>
+            ` : ''}
+
+            <!-- Summary Cards -->
+            <div class="bg-slate-950/70 rounded-2xl p-3 border border-slate-800 shadow-md">
                 <div class="text-center text-slate-200 text-xs font-bold mb-3 tracking-wider uppercase">Customer Financial Summary</div>
                 <div class="grid grid-cols-2 gap-2 text-center">
                     <div class="bg-slate-900 rounded-lg p-2.5"><div class="text-slate-400 text-[10px]">Total Purchases</div><b class="text-white text-base">${purchaseCount}</b></div>
@@ -974,17 +1086,19 @@ export function openCustomerConsolidationCustomer(encodedName) {
                 </div>
             </div>
 
+            <!-- Invoices List -->
             <div class="space-y-2 pt-1">
                 <div class="flex justify-between items-center px-1">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">All Invoices & Dues (${customerBills.length})</span>
                     <span class="text-[10px] ${due > 0 ? 'text-rose-400 font-bold' : (credit > 0 ? 'text-sky-400 font-bold' : 'text-emerald-400')}">${due > 0 ? `⚠️ Unpaid: ₹${due.toFixed(2)}` : (credit > 0 ? `💳 Credit: ₹${credit.toFixed(2)}` : '✅ All Settled')}</span>
                 </div>
-                <div class="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
+                <div class="space-y-1.5 max-h-72 overflow-y-auto pr-0.5">
                     ${customerBills.map(b => {
                         const billTarget = (b.billNo && b.billNo !== '—') ? b.billNo : b.id;
                         const viewFn = b.isCosmetics ? `window.previewCosSaleBill('${billTarget}')` : `window.previewBill('${billTarget}')`;
                         const isPending = b.pendingAmount > 0.001;
                         const hasCredit = Number(b.creditAmount || 0) > 0.001;
+                        const billPillId = `billAllocPill_${b.isCosmetics ? 'cos_' : ''}${b.id || b.billNo}`;
                         return `
                         <div class="bg-slate-900/90 border ${isPending ? 'border-rose-900/60' : (hasCredit ? 'border-emerald-800/60' : 'border-slate-800')} rounded-xl p-2.5 flex justify-between items-center text-xs">
                             <div class="min-w-0 flex-1 pr-2">
@@ -993,6 +1107,7 @@ export function openCustomerConsolidationCustomer(encodedName) {
                                     <span class="font-bold text-sky-400 font-mono">#${b.billNo}</span>
                                     <span class="text-slate-400 text-[10px]">📅 ${formatDateDDMMYYYY(b.date)}</span>
                                     ${b.isCosmetics ? '<span class="text-[9px] bg-pink-950 text-pink-300 px-1 py-0.5 rounded border border-pink-800 font-semibold">Cosmetics</span>' : ''}
+                                    <span id="${billPillId}" class="hidden text-[9px] font-bold px-1.5 py-0.5 rounded"></span>
                                 </div>
                                 <p class="text-[10.5px] text-slate-300 mt-0.5 leading-snug break-words">
                                     <span class="font-bold text-slate-100">${name}</span> • <span class="text-slate-300 font-mono">📞 ${phone || 'No mobile'}</span> • <span class="text-slate-400 font-mono">📅 ${formatDateDDMMYYYY(b.date)}</span>
@@ -1004,7 +1119,13 @@ export function openCustomerConsolidationCustomer(encodedName) {
                                     ${(!isPending && !hasCredit) ? ' • <span class="text-emerald-400">Paid</span>' : ''}
                                 </div>
                             </div>
-                            <button type="button" onclick="${viewFn}" class="shrink-0 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">View</button>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                ${isPending ? `
+                                <button type="button" onclick="window.paySingleDueBill('${encodeURIComponent(name)}', '${b.isCosmetics ? 'cos' : 'clean'}', '${b.id || b.billNo}', ${b.pendingAmount})" class="bg-emerald-800 hover:bg-emerald-700 text-emerald-100 border border-emerald-600/60 px-2 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer" title="Pay this bill amount">
+                                    Pay ₹${b.pendingAmount.toFixed(0)}
+                                </button>` : ''}
+                                <button type="button" onclick="${viewFn}" class="bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">View</button>
+                            </div>
                         </div>`;
                     }).join('') || '<div class="text-center text-slate-500 py-3 text-xs">No bills found for this customer.</div>'}
                 </div>
@@ -1015,6 +1136,466 @@ export function openCustomerConsolidationCustomer(encodedName) {
 
 export function closeCustomerConsolidatedDetail() {
     document.getElementById('customerConsolidatedDetailModal')?.classList.add('hidden');
+}
+
+export function previewDueAllocation(encodedName) {
+    const name = decodeURIComponent(encodedName || '').trim().toUpperCase();
+    if (!name) return;
+    const inputVal = document.getElementById('custDuePayAmount')?.value;
+    const payAmt = parseFloat(inputVal) || 0;
+
+    const unpaidBills = [];
+    (state.customers || []).forEach(c => {
+        if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
+        if (String(c.name || '').trim().toUpperCase() !== name) return;
+        const g = Number(c.grandTotal || 0);
+        const p = c.paidAmount !== undefined ? Number(c.paidAmount) : g;
+        const d = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, g - p);
+        if (d > 0.001) {
+            unpaidBills.push({
+                id: c.id,
+                billNo: c.billNo || 'Bill',
+                date: c.date,
+                grandTotal: g,
+                paidAmount: p,
+                pendingAmount: d,
+                isCosmetics: false
+            });
+        }
+    });
+
+    (state.cosSales || []).forEach(s => {
+        if (!s || isCustItemDeleted(s) || s.isCancelled || s.status === 'cancelled') return;
+        if (String(s.customer || '').trim().toUpperCase() !== name) return;
+        const n = normalizeCosSale(s);
+        const g = Number(n.grandTotal || 0);
+        const p = Number(n.paidAmount || 0);
+        const d = Number(n.pendingAmount || 0);
+        if (d > 0.001) {
+            unpaidBills.push({
+                id: s.id,
+                billNo: s.billNo || 'Bill',
+                date: s.date,
+                grandTotal: g,
+                paidAmount: p,
+                pendingAmount: d,
+                isCosmetics: true
+            });
+        }
+    });
+
+    unpaidBills.sort((a, b) => dateSortValue(a.date) - dateSortValue(b.date));
+
+    const totalDue = unpaidBills.reduce((s, b) => s + b.pendingAmount, 0);
+    const payingNowEl = document.getElementById('dueCalcPayingNow');
+    const remainingLabelEl = document.getElementById('dueCalcRemainingLabel');
+    const remainingValEl = document.getElementById('dueCalcRemainingVal');
+    const confirmBtnText = document.getElementById('btnConfirmDueSettlementText');
+
+    if (payingNowEl) payingNowEl.textContent = '₹' + payAmt.toFixed(2);
+
+    if (payAmt > totalDue) {
+        const excess = payAmt - totalDue;
+        if (remainingLabelEl) remainingLabelEl.textContent = 'മുൻകൂർ ക്രെഡിറ്റ് (ADVANCE CREDIT)';
+        if (remainingValEl) {
+            remainingValEl.textContent = '+₹' + excess.toFixed(2);
+            remainingValEl.className = 'text-sky-400 font-mono text-sm font-black';
+        }
+    } else {
+        const remDue = Math.max(0, totalDue - payAmt);
+        if (remainingLabelEl) remainingLabelEl.textContent = 'ബാക്കി കുടിശ്ശിക (REMAINING DUE)';
+        if (remainingValEl) {
+            remainingValEl.textContent = '₹' + remDue.toFixed(2);
+            remainingValEl.className = (remDue > 0 ? 'text-rose-400' : 'text-emerald-400') + ' font-mono text-sm font-black';
+        }
+    }
+
+    if (confirmBtnText) {
+        confirmBtnText.textContent = payAmt > 0 ? `✅ Confirm & Settle ₹${payAmt.toFixed(2)}` : '✅ Confirm & Settle Payment';
+    }
+
+    // Update individual bill badges
+    let remToAllocate = payAmt;
+    unpaidBills.forEach(b => {
+        const pillId = `billAllocPill_${b.isCosmetics ? 'cos_' : ''}${b.id || b.billNo}`;
+        const pill = document.getElementById(pillId);
+        if (!pill) return;
+
+        if (remToAllocate <= 0.001 || payAmt <= 0.001) {
+            pill.className = 'hidden text-[9px] font-bold px-1.5 py-0.5 rounded';
+            pill.textContent = '';
+        } else {
+            const payPortion = Math.min(b.pendingAmount, remToAllocate);
+            const newBal = Math.max(0, b.pendingAmount - payPortion);
+            pill.classList.remove('hidden');
+            if (newBal <= 0.001) {
+                pill.className = 'inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/50';
+                pill.textContent = `✅ Cleared (-₹${payPortion.toFixed(2)})`;
+            } else {
+                pill.className = 'inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/50';
+                pill.textContent = `⏳ Paid -₹${payPortion.toFixed(2)} (Bal: ₹${newBal.toFixed(2)})`;
+            }
+            remToAllocate -= payPortion;
+        }
+    });
+}
+
+export function confirmCustomerDueSettlement(encodedName) {
+    const name = decodeURIComponent(encodedName || '').trim().toUpperCase();
+    if (!name) return;
+
+    const amtInput = document.getElementById('custDuePayAmount');
+    const payAmt = parseFloat(amtInput?.value);
+    if (!Number.isFinite(payAmt) || payAmt <= 0) {
+        alert("Please enter a valid payment amount greater than 0.");
+        amtInput?.focus();
+        return;
+    }
+
+    const payMode = document.getElementById('custDuePayMode')?.value || 'Cash';
+    const payDate = document.getElementById('custDuePayDate')?.value || getTodayDateString();
+    const payNote = (document.getElementById('custDuePayNote')?.value || '').trim();
+
+    const unpaidBills = [];
+    (state.customers || []).forEach((c, idx) => {
+        if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
+        if (String(c.name || '').trim().toUpperCase() !== name) return;
+        const g = Number(c.grandTotal || 0);
+        const p = c.paidAmount !== undefined ? Number(c.paidAmount) : g;
+        const d = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, g - p);
+        if (d > 0.001) {
+            unpaidBills.push({
+                record: c,
+                index: idx,
+                billNo: c.billNo || 'Bill',
+                date: c.date,
+                grandTotal: g,
+                paidAmount: p,
+                pendingAmount: d,
+                isCosmetics: false
+            });
+        }
+    });
+
+    (state.cosSales || []).forEach((s, idx) => {
+        if (!s || isCustItemDeleted(s) || s.isCancelled || s.status === 'cancelled') return;
+        if (String(s.customer || '').trim().toUpperCase() !== name) return;
+        const n = normalizeCosSale(s);
+        const g = Number(n.grandTotal || 0);
+        const p = Number(n.paidAmount || 0);
+        const d = Number(n.pendingAmount || 0);
+        if (d > 0.001) {
+            unpaidBills.push({
+                record: s,
+                index: idx,
+                billNo: s.billNo || 'Bill',
+                date: s.date,
+                grandTotal: g,
+                paidAmount: p,
+                pendingAmount: d,
+                isCosmetics: true
+            });
+        }
+    });
+
+    if (unpaidBills.length === 0) {
+        alert(`No unpaid dues found for customer "${name}".`);
+        return;
+    }
+
+    unpaidBills.sort((a, b) => dateSortValue(a.date) - dateSortValue(b.date));
+
+    const totalDueBefore = unpaidBills.reduce((s, b) => s + b.pendingAmount, 0);
+
+    let remainingToPay = payAmt;
+    const settledBillDetails = [];
+
+    unpaidBills.forEach(b => {
+        if (remainingToPay <= 0.001) return;
+        const payPortion = Math.min(b.pendingAmount, remainingToPay);
+        if (payPortion > 0) {
+            const rec = b.record;
+            const updatedPaid = Math.round(((Number(rec.paidAmount || 0)) + payPortion) * 100) / 100;
+            const totalVal = Number(rec.grandTotal !== undefined ? rec.grandTotal : (rec.total || 0));
+            const updatedPending = Math.max(0, Math.round((totalVal - updatedPaid) * 100) / 100);
+
+            rec.paidAmount = updatedPaid;
+            rec.pendingAmount = updatedPending;
+            if (!Array.isArray(rec.paymentHistory)) rec.paymentHistory = [];
+            rec.paymentHistory.push({
+                id: generateUniqueRecordId('pay'),
+                date: payDate,
+                amount: payPortion,
+                paymentMode: payMode,
+                note: payNote ? payNote : 'Due settlement across multiple bills',
+                timestamp: Date.now()
+            });
+            rec.savedAt = Date.now();
+
+            settledBillDetails.push({
+                billNo: b.billNo,
+                date: b.date,
+                paidNow: payPortion,
+                remaining: updatedPending,
+                cleared: updatedPending <= 0.001,
+                isCosmetics: b.isCosmetics
+            });
+
+            remainingToPay -= payPortion;
+        }
+    });
+
+    const excessCredit = remainingToPay > 0.001 ? Math.round(remainingToPay * 100) / 100 : 0;
+    if (excessCredit > 0) {
+        let profile = (state.customers || []).find(c => c && !c.billNo && String(c.name || '').trim().toUpperCase() === name);
+        if (!profile) {
+            profile = {
+                id: generateUniqueRecordId('cust'),
+                name: name,
+                phone: unpaidBills[0]?.record?.phone || '',
+                items: [],
+                grandTotal: 0,
+                paidAmount: 0,
+                pendingAmount: 0,
+                creditAmount: excessCredit,
+                excessRetainedAsCredit: true,
+                date: payDate,
+                savedAt: Date.now()
+            };
+            unmarkIdDeleted(profile.id);
+            state.customers.push(profile);
+        } else {
+            profile.creditAmount = Math.round(((Number(profile.creditAmount || 0)) + excessCredit) * 100) / 100;
+            profile.excessRetainedAsCredit = true;
+            profile.savedAt = Date.now();
+        }
+    }
+
+    const remainingDueAfter = Math.max(0, Math.round((totalDueBefore - payAmt) * 100) / 100);
+
+    // Save and sync
+    saveLocalStateSafely();
+    syncToFirebase();
+
+    // Refresh UI
+    if (typeof window.renderCustomers === 'function') window.renderCustomers();
+    if (typeof window.renderCustomerConsolidationReport === 'function') window.renderCustomerConsolidationReport();
+    if (typeof window.renderCustomerConsolidationView === 'function') window.renderCustomerConsolidationView();
+    if (typeof window.renderDueAmountList === 'function') window.renderDueAmountList();
+    if (typeof window.checkCustomerDueInBilling === 'function') window.checkCustomerDueInBilling(name);
+    if (typeof window.renderAccounts === 'function') window.renderAccounts();
+    if (typeof window.renderSalesHistory === 'function') window.renderSalesHistory();
+
+    const customerPhone = unpaidBills[0]?.record?.phone || '';
+    lastDuePaymentReceiptData = {
+        receiptNo: 'RCP-' + Date.now().toString().slice(-6),
+        customerName: name,
+        customerPhone: customerPhone,
+        date: formatDateDDMMYYYY(payDate),
+        rawDate: payDate,
+        amountReceived: payAmt,
+        paymentMode: payMode,
+        note: payNote,
+        previousDue: totalDueBefore,
+        remainingDue: remainingDueAfter,
+        excessCredit: excessCredit,
+        settledBills: settledBillDetails
+    };
+
+    // Re-render Customer modal to reflect updated balances
+    openCustomerConsolidationCustomer(encodeURIComponent(name));
+
+    // Show Non-blocking Payment Receipt Modal
+    showDuePaymentReceiptModal(lastDuePaymentReceiptData);
+}
+
+export function paySingleDueBill(encodedName, billType, identifier, pendingAmount) {
+    const amtInput = document.getElementById('custDuePayAmount');
+    if (amtInput) {
+        amtInput.value = Number(pendingAmount).toFixed(2);
+        previewDueAllocation(encodedName);
+        amtInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        amtInput.focus();
+    }
+}
+
+export function showDuePaymentReceiptModal(r) {
+    if (!r) return;
+    const modal = document.getElementById('customerPaymentReceiptModal');
+    const content = document.getElementById('customerPaymentReceiptContent');
+    const btnWhatsApp = document.getElementById('btnSharePaymentReceiptWhatsApp');
+    const btnPrint = document.getElementById('btnPrintPaymentReceipt');
+
+    if (!modal || !content) {
+        if (typeof window.showAppToast === 'function') {
+            window.showAppToast(`₹${r.amountReceived.toFixed(2)} paid! Remaining due: ₹${r.remainingDue.toFixed(2)}`, 'success');
+        } else {
+            alert(`Payment of ₹${r.amountReceived.toFixed(2)} recorded!\nRemaining Balance Due: ₹${r.remainingDue.toFixed(2)}`);
+        }
+        return;
+    }
+
+    content.innerHTML = `
+        <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
+            <div class="flex justify-between items-center text-slate-300 text-xs">
+                <span>Customer: <strong class="text-white">${r.customerName}</strong></span>
+                <span class="text-slate-400 font-mono text-[10px]">#${r.receiptNo}</span>
+            </div>
+            <div class="flex justify-between items-center text-slate-400 text-[11px]">
+                <span>Date: <strong class="text-slate-200">${r.date}</strong></span>
+                <span>Mode: <strong class="text-emerald-400">${r.paymentMode}</strong></span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-center">
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 block uppercase font-bold">Previous Due</span>
+                <b class="text-slate-200 text-sm">₹${r.previousDue.toFixed(2)}</b>
+            </div>
+            <div class="bg-emerald-950/60 border border-emerald-700/60 p-2.5 rounded-xl">
+                <span class="text-[10px] text-emerald-300 block uppercase font-bold">Amount Paid</span>
+                <b class="text-emerald-400 text-base font-black">₹${r.amountReceived.toFixed(2)}</b>
+            </div>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-2xl border ${r.remainingDue > 0 ? 'border-rose-900/60' : 'border-emerald-800/60'} text-center">
+            <span class="text-[10px] text-slate-400 block uppercase font-bold">Remaining Balance Due (ബാക്കി കുടിശ്ശിക)</span>
+            <b class="text-lg font-black ${r.remainingDue > 0 ? 'text-rose-400' : 'text-emerald-400'}">₹${r.remainingDue.toFixed(2)}</b>
+            ${r.excessCredit > 0 ? `<div class="text-[11px] text-sky-400 font-bold mt-1">💳 Advance Credit Added: ₹${r.excessCredit.toFixed(2)}</div>` : ''}
+        </div>
+
+        <div class="space-y-1">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Settled Invoices (${r.settledBills.length}):</span>
+            <div class="space-y-1 max-h-36 overflow-y-auto pr-0.5">
+                ${r.settledBills.map(b => `
+                    <div class="flex justify-between items-center bg-slate-950 p-2 rounded-lg border border-slate-800 text-[11px]">
+                        <div>
+                            <span class="font-bold text-white">#${b.billNo}</span>
+                            <span class="text-slate-400 text-[10px] ml-1">📅 ${formatDateDDMMYYYY(b.date)}</span>
+                            ${b.isCosmetics ? '<span class="text-[9px] text-pink-300 font-semibold ml-1">💄</span>' : ''}
+                        </div>
+                        <div class="text-right">
+                            <span class="text-emerald-400 font-bold">₹${b.paidNow.toFixed(2)}</span>
+                            <span class="text-[9px] ${b.cleared ? 'text-emerald-300' : 'text-rose-400'} ml-1">(${b.cleared ? 'Cleared' : `Bal ₹${b.remaining.toFixed(2)}`})</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    if (btnWhatsApp) {
+        btnWhatsApp.onclick = () => shareDuePaymentReceiptWhatsApp(r);
+    }
+    if (btnPrint) {
+        btnPrint.onclick = () => printDuePaymentReceipt(r);
+    }
+
+    modal.classList.remove('hidden');
+}
+
+export function closeDuePaymentReceiptModal() {
+    document.getElementById('customerPaymentReceiptModal')?.classList.add('hidden');
+}
+
+export function printDuePaymentReceipt(receiptData) {
+    const r = receiptData || lastDuePaymentReceiptData;
+    if (!r) return;
+    const printWin = window.open('', '_blank', 'width=450,height=650');
+    if (!printWin) {
+        alert('Please allow popups to print the receipt.');
+        return;
+    }
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Payment Receipt - ${r.receiptNo}</title>
+        <style>
+            @page { size: 80mm auto; margin: 3mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif; font-size: 11px; margin: 0; padding: 10px; color: #000; line-height: 1.4; }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .bold { font-weight: bold; }
+            .divider { border-top: 1px dashed #666; margin: 6px 0; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+            .title { font-size: 14px; font-weight: bold; letter-spacing: 0.5px; }
+        </style>
+    </head>
+    <body onload="window.print(); window.close();">
+        <div class="text-center">
+            <div class="title">FIA CLEAN & CARE</div>
+            <div>Edathanattukara • Mob: 8086452106</div>
+            <div class="divider"></div>
+            <div class="bold" style="font-size: 12px; margin-bottom: 2px;">DUE PAYMENT RECEIPT</div>
+            <div>Receipt #: ${r.receiptNo}</div>
+            <div>Date: ${r.date}</div>
+        </div>
+        <div class="divider"></div>
+        <div class="row"><span>Customer:</span><span class="bold">${r.customerName}</span></div>
+        <div class="row"><span>Phone:</span><span>${r.customerPhone || '—'}</span></div>
+        <div class="row"><span>Payment Mode:</span><span class="bold">${r.paymentMode}</span></div>
+        ${r.note ? `<div class="row"><span>Note:</span><span>${r.note}</span></div>` : ''}
+        <div class="divider"></div>
+        <div class="row"><span>Previous Total Due:</span><span>₹${Number(r.previousDue).toFixed(2)}</span></div>
+        <div class="row bold" style="font-size: 13px;"><span>AMOUNT RECEIVED:</span><span>₹${Number(r.amountReceived).toFixed(2)}</span></div>
+        <div class="row bold" style="font-size: 13px;"><span>REMAINING BALANCE DUE:</span><span>₹${Number(r.remainingDue).toFixed(2)}</span></div>
+        ${r.excessCredit > 0 ? `<div class="row bold"><span>Advance Credit Added:</span><span>₹${Number(r.excessCredit).toFixed(2)}</span></div>` : ''}
+        <div class="divider"></div>
+        <div class="bold" style="margin-bottom: 4px;">Invoices Settled (${r.settledBills.length}):</div>
+        ${r.settledBills.map(b => `
+            <div class="row" style="font-size: 10px;">
+                <span>Bill #${b.billNo}</span>
+                <span>Paid ₹${Number(b.paidNow).toFixed(2)} ${b.cleared ? '[Cleared]' : `[Bal ₹${Number(b.remaining).toFixed(2)}]`}</span>
+            </div>
+        `).join('')}
+        <div class="divider"></div>
+        <div class="text-center" style="font-size: 10px; margin-top: 8px;">
+            Thank you for your prompt payment!<br/>
+            FIA CLEAN & CARE
+        </div>
+    </body>
+    </html>
+    `;
+    printWin.document.write(html);
+    printWin.document.close();
+}
+
+export function shareDuePaymentReceiptWhatsApp(receiptData) {
+    const r = receiptData || lastDuePaymentReceiptData;
+    if (!r) return;
+    const phone = String(r.customerPhone || '').replace(/\D/g, '');
+    let lines = [];
+    lines.push(`*FIA CLEAN & CARE*`);
+    lines.push(`*EDATHANATTUKARA • MOB: 8086452106*`);
+    lines.push(`--------------------------------`);
+    lines.push(`*PAYMENT RECEIPT (പേയ്മെന്റ് രസീത്)*`);
+    lines.push(`*Receipt No:* ${r.receiptNo}`);
+    lines.push(`*Date:* ${r.date}`);
+    lines.push(`*Customer:* ${r.customerName}`);
+    if (r.customerPhone) lines.push(`*Phone:* ${r.customerPhone}`);
+    lines.push(`*Payment Mode:* ${r.paymentMode}`);
+    if (r.note) lines.push(`*Note:* ${r.note}`);
+    lines.push(`--------------------------------`);
+    lines.push(`Previous Total Due: ₹${Number(r.previousDue).toFixed(2)}`);
+    lines.push(`*✅ AMOUNT RECEIVED (ലഭിച്ച തുക): ₹${Number(r.amountReceived).toFixed(2)}*`);
+    lines.push(`*⚠️ REMAINING BALANCE DUE (ബാക്കി കുടിശ്ശിക): ₹${Number(r.remainingDue).toFixed(2)}*`);
+    if (r.excessCredit > 0) {
+        lines.push(`*💳 Advance Credit in Account: ₹${Number(r.excessCredit).toFixed(2)}*`);
+    }
+    lines.push(`--------------------------------`);
+    lines.push(`*Settled Invoices (തുക വരവ് വെച്ച ബില്ലുകൾ):*`);
+    r.settledBills.forEach(b => {
+        lines.push(`• Bill #${b.billNo}: Paid ₹${Number(b.paidNow).toFixed(2)} ${b.cleared ? '(✅ Cleared)' : `(⏳ Bal: ₹${Number(b.remaining).toFixed(2)})`}`);
+    });
+    lines.push(`--------------------------------`);
+    lines.push(`_Thank you for your business!_`);
+    lines.push(`_FIA Clean & Care_`);
+    
+    const msg = lines.join('\n');
+    const url = phone ? `https://api.whatsapp.com/send?phone=91${phone}&text=${encodeURIComponent(msg)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
 }
 
 export function shareSelectedCustomerConsolidatedDetail() {
@@ -1147,6 +1728,14 @@ if (typeof window !== 'undefined') {
     window.openCustomerConsolidationCustomer = openCustomerConsolidationCustomer;
     window.closeCustomerConsolidatedDetail = closeCustomerConsolidatedDetail;
     window.shareSelectedCustomerConsolidatedDetail = shareSelectedCustomerConsolidatedDetail;
+    window.openCustomerDueSettlementModal = openCustomerDueSettlementModal;
+    window.previewDueAllocation = previewDueAllocation;
+    window.confirmCustomerDueSettlement = confirmCustomerDueSettlement;
+    window.paySingleDueBill = paySingleDueBill;
+    window.showDuePaymentReceiptModal = showDuePaymentReceiptModal;
+    window.closeDuePaymentReceiptModal = closeDuePaymentReceiptModal;
+    window.printDuePaymentReceipt = printDuePaymentReceipt;
+    window.shareDuePaymentReceiptWhatsApp = shareDuePaymentReceiptWhatsApp;
     window.viewCustomerProfile = viewCustomerProfile;
     window.renderCustomers = renderCustomers;
     window.onBillingCustomerSearchInput = onBillingCustomerSearchInput;

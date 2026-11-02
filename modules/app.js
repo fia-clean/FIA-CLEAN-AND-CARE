@@ -96,6 +96,14 @@ import {
     renderCustomerConsolidationReport,
     shareCustomerConsolidationReport,
     getCustomerTotalPendingDue,
+    openCustomerDueSettlementModal,
+    previewDueAllocation,
+    confirmCustomerDueSettlement,
+    paySingleDueBill,
+    showDuePaymentReceiptModal,
+    closeDuePaymentReceiptModal,
+    printDuePaymentReceipt,
+    shareDuePaymentReceiptWhatsApp,
     onBillingCustomerSearchInput,
     openBillingCustomerDropdown,
     closeBillingCustomerDropdown,
@@ -449,6 +457,14 @@ if (typeof window !== 'undefined') {
     window.checkCustomerDueInBilling = checkCustomerDueInBilling;
     window.checkCustomerDueOnNameChange = checkCustomerDueOnNameChange;
     window.viewCustomerDuesFromBilling = viewCustomerDuesFromBilling;
+    window.openCustomerDueSettlementModal = openCustomerDueSettlementModal;
+    window.previewDueAllocation = previewDueAllocation;
+    window.confirmCustomerDueSettlement = confirmCustomerDueSettlement;
+    window.paySingleDueBill = paySingleDueBill;
+    window.showDuePaymentReceiptModal = showDuePaymentReceiptModal;
+    window.closeDuePaymentReceiptModal = closeDuePaymentReceiptModal;
+    window.printDuePaymentReceipt = printDuePaymentReceipt;
+    window.shareDuePaymentReceiptWhatsApp = shareDuePaymentReceiptWhatsApp;
     window.handleBiometricAuth = handleBiometricAuth;
     window.updateBiometricUI = updateBiometricUI;
     window.resetDeviceBiometrics = resetDeviceBiometrics;
