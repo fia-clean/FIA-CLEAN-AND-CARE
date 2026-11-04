@@ -111,7 +111,7 @@ export function previewBill(identifier) {
     const prevDueVal = Number(c.previousDue || 0);
     const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
     const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
-    const paidVal = c.paidAmount !== undefined ? Number(c.paidAmount) : grandVal;
+    const paidVal = c.totalReceived !== undefined ? Number(c.totalReceived) : (c.paidAmount !== undefined ? Number(c.paidAmount) : grandVal);
     const finalPending = Math.max(0, totalWithDueVal - paidVal);
     const excessVal = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paidVal - totalWithDueVal);
 

@@ -329,7 +329,7 @@ export function getAllMasterEntries() {
                 : [];
             const subsequentSum = subsequentPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
             const totalPaidVal = Number(c.paidAmount !== undefined ? c.paidAmount : (incomeVal - Number(c.pendingAmount || 0)));
-            const initialPaid = Math.max(0, totalPaidVal - subsequentSum);
+            const initialPaid = Math.min(incomeVal, Math.max(0, totalPaidVal - subsequentSum));
 
             entries.push({
                 id: entryId,
@@ -382,7 +382,7 @@ export function getAllMasterEntries() {
                 : [];
             const subsequentSum = subsequentPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
             const totalPaidVal = Number(norm.paidAmount !== undefined ? norm.paidAmount : (incomeVal - Number(norm.pendingAmount || 0)));
-            const initialPaid = Math.max(0, totalPaidVal - subsequentSum);
+            const initialPaid = Math.min(incomeVal, Math.max(0, totalPaidVal - subsequentSum));
 
             entries.push({
                 id: entryId,
@@ -592,14 +592,28 @@ export function renderAccounts() {
         return (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0);
     });
 
-    const incSales = filtered.filter(e => e.type === 'Income').reduce((s, e) => s + Number(e.amount || 0), 0);
+    const isSalesBill = e => e && e.type === 'Income' && (e.category === 'Cleaning Sale' || e.category === 'Combined Sale' || e.category === 'Cosmetics Sale');
+    const isDueCollection = e => e && e.type === 'Income' && e.category === 'Customer Due Collection';
+
+    // 1. Sales: Strictly actual sales billed in this period (excluding clearance of old dues!)
+    const incSales = filtered.filter(isSalesBill).reduce((s, e) => s + Number(e.amount || 0), 0);
+    
+    // 2. Dues collected from older bills during this period
+    const incDueCollection = filtered.filter(isDueCollection).reduce((s, e) => s + Number(e.paidAmount !== undefined ? e.paidAmount : (e.amount || 0)), 0);
+
+    // 3. Total collection: Actual cash/payments received during this period (sales cash + dues cleared + other cash income)
     const incCollection = filtered.filter(e => e.type === 'Income').reduce((s, e) => s + Number(e.paidAmount !== undefined ? e.paidAmount : (e.amount || 0)), 0);
-    const incDue = filtered.filter(e => e.type === 'Income').reduce((s, e) => s + Math.max(0, Number(e.pendingAmount || 0)), 0);
+
+    // 4. Pending credit generated from this period's sales
+    const incDue = filtered.filter(isSalesBill).reduce((s, e) => s + Math.max(0, Number(e.pendingAmount || 0)), 0);
+
+    // 5. Total Expenses
     const expTotal = filtered.filter(e => e.type === 'Expense').reduce((s, e) => s + Number(e.amount || 0), 0);
 
     const openingBalance = Number(state.dayBookOpeningBalance || 0);
     const openingExpense = Number(state.dayBookOpeningExpense || 0);
-    const currentIncome = openingBalance + incSales;
+    // In Cash / Day Book, Income represents the actual cash/collection inflow
+    const currentIncome = openingBalance + incCollection;
     const currentExpense = openingExpense + expTotal;
     const netBalance = currentIncome - currentExpense;
 
@@ -736,9 +750,17 @@ export function renderAccounts() {
     if (expProgressBar) expProgressBar.style.width = expPct + '%';
 
     // Financial Cards: Sales, Collection, Due & Expense
-    const periodLabel = (state.currentDayBookPreset === 'today') ? "Today's" : (state.currentDayBookPreset === 'month' ? "This Month" : "Total");
+    const periodLabel = (state.currentDayBookPreset === 'today') 
+        ? "Today's" 
+        : (state.currentDayBookPreset === 'yesterday' 
+            ? "Yesterday's" 
+            : (state.currentDayBookPreset === 'month' ? "This Month" : "Total"));
     const summaryEl = document.getElementById('accountsSummaryContainer');
     if (summaryEl) {
+        const salesPaidPortion = Math.max(0, incCollection - incDueCollection);
+        const collectionSubtitle = incDueCollection > 0 
+            ? `Sales: ₹${salesPaidPortion.toFixed(0)} + Dues: ₹${incDueCollection.toFixed(0)}` 
+            : 'Cash / Paid In';
         summaryEl.innerHTML = `
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
                 <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 flex flex-col justify-between shadow-xs">
@@ -749,7 +771,7 @@ export function renderAccounts() {
                 <div class="bg-sky-50 p-2.5 rounded-xl border border-sky-200 flex flex-col justify-between shadow-xs">
                     <span class="text-[10px] text-sky-800 font-bold uppercase tracking-wider">${periodLabel} Collection</span>
                     <b class="text-sky-950 font-black text-sm mt-1">₹${incCollection.toFixed(2)}</b>
-                    <span class="text-[9px] text-sky-700 mt-0.5 font-medium">Cash / Paid In</span>
+                    <span class="text-[9px] text-sky-700 mt-0.5 font-medium">${collectionSubtitle}</span>
                 </div>
                 <div class="bg-rose-50 p-2.5 rounded-xl border border-rose-200 flex flex-col justify-between shadow-xs">
                     <span class="text-[10px] text-rose-800 font-bold uppercase tracking-wider">${periodLabel} Due</span>

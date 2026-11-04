@@ -10,6 +10,7 @@ import {
     formatDateDDMMYYYY,
     normalizeToDateKey,
     getTodayDateString,
+    getYesterdayDateString,
     dateSortValue,
     toTitleCase
 } from '../core/state.js';
@@ -51,6 +52,9 @@ export function getSalesHistoryRows() {
         const isBill = Boolean(c.billNo) || safeItems.length > 0 || hasTotal;
         if (isBill) {
             const billNo = c.billNo || ('CLN-' + String(i + 1).padStart(4, '0'));
+            const bTotal = Number(c.grandTotal || 0);
+            const bPaid = Math.min(bTotal, Number(c.paidAmount !== undefined ? c.paidAmount : bTotal));
+            const bDue = Number(c.pendingAmount !== undefined ? c.pendingAmount : Math.max(0, bTotal - bPaid));
             rows.push({
                 type: (c.billType === 'Combined' ? 'combined' : 'cleaning'),
                 index: i,
@@ -60,9 +64,11 @@ export function getSalesHistoryRows() {
                 savedAt: c.savedAt || c.date,
                 name: c.name || 'Customer',
                 phone: c.phone || '',
-                total: Number(c.grandTotal || 0),
-                paid: Number(c.paidAmount !== undefined ? c.paidAmount : (c.grandTotal || 0)),
-                due: Number(c.pendingAmount !== undefined ? c.pendingAmount : Math.max(0, Number(c.grandTotal || 0) - Number(c.paidAmount || 0))),
+                total: bTotal,
+                paid: bPaid,
+                due: bDue,
+                previousDueSettled: Number(c.previousDueSettled || 0),
+                totalReceived: Number(c.totalReceived !== undefined ? c.totalReceived : (c.paidAmount !== undefined ? c.paidAmount : bTotal)),
                 returnedAmount: Number(c.returnedAmount || 0),
                 items: safeItems,
                 saleType: c.saleType || 'Retail',
@@ -78,6 +84,9 @@ export function getSalesHistoryRows() {
         if (!s) return;
         const n = normalizeCosSale(s);
         const billNo = s.billNo || ('COS-' + String(i + 1).padStart(4, '0'));
+        const bTotal = Number(n.grandTotal || 0);
+        const bPaid = Math.min(bTotal, Number(n.paidAmount || 0));
+        const bDue = Number(n.pendingAmount || 0);
         rows.push({
             type: 'cosmetics',
             index: i,
@@ -87,9 +96,11 @@ export function getSalesHistoryRows() {
             savedAt: s.savedAt || s.date,
             name: s.customer || 'Customer',
             phone: s.phone || '',
-            total: Number(n.grandTotal || 0),
-            paid: Number(n.paidAmount || 0),
-            due: Number(n.pendingAmount || 0),
+            total: bTotal,
+            paid: bPaid,
+            due: bDue,
+            previousDueSettled: Number(s.previousDueSettled || 0),
+            totalReceived: Number(s.totalReceived !== undefined ? s.totalReceived : (n.paidAmount || bTotal)),
             returnedAmount: Number(s.returnedAmount || n.returnedAmount || 0),
             items: n.items || [],
             saleType: n.saleType || 'Retail',
@@ -129,9 +140,10 @@ export function renderSalesHistoryCard(r, label) {
         : typeBadge;
 
     const returnBadge = Number(r.returnedAmount || 0) > 0 ? ` · <span class="text-amber-400 font-bold">↩️ Ret: -₹${Number(r.returnedAmount).toFixed(2)}</span>` : '';
+    const oldDueBadge = Number(r.previousDueSettled || 0) > 0 ? ` · <span class="text-sky-400 font-bold">💰 Old Due Paid: ₹${Number(r.previousDueSettled).toFixed(2)}</span>` : '';
     const totalDisplay = isCancelled
         ? `<span class="line-through text-slate-500 font-medium">Total: ₹${r.total.toFixed(2)}</span> <span class="text-rose-400 font-bold text-[11px] block sm:inline sm:ml-2">❌ ${r.cancelReason || 'Order Cancelled'}</span>`
-        : `<span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-400 font-semibold">Paid: ₹${r.paid.toFixed(2)}</span> · <span class="${r.due > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Due: ₹${r.due.toFixed(2)}</span>${returnBadge}`;
+        : `<span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-400 font-semibold">Paid: ₹${r.paid.toFixed(2)}</span> · <span class="${r.due > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Due: ₹${r.due.toFixed(2)}</span>${returnBadge}${oldDueBadge}`;
 
     const cardBg = isCancelled ? 'bg-rose-950/20 border-rose-900/60' : 'bg-slate-900/80 border-slate-800';
 
@@ -174,6 +186,11 @@ export function isDateInPeriod(dateStr, period, customStart, customEnd) {
     const todayStr = getTodayDateString();
     if (period === 'today') {
         return cleanDate === todayStr;
+    }
+
+    if (period === 'yesterday') {
+        const yestStr = typeof getYesterdayDateString === 'function' ? getYesterdayDateString() : '';
+        return cleanDate === yestStr;
     }
 
     const today = new Date();
@@ -227,7 +244,7 @@ export function onSalesHistoryCustomDateChange() {
 }
 
 export function updateSalesHistoryPeriodButtonStyles() {
-    ['all', 'today', 'this_week', 'this_month', 'custom'].forEach(p => {
+    ['all', 'today', 'yesterday', 'this_week', 'this_month', 'custom'].forEach(p => {
         const btn = document.getElementById('shPeriodBtn_' + p);
         if (!btn) return;
         if (p === salesHistoryPeriod) {
@@ -247,6 +264,8 @@ export function renderSalesHistorySummary(rows) {
     const totalAmount = nonCancelled.reduce((sum, r) => sum + Number(r.total || 0), 0);
     const totalPaid = nonCancelled.reduce((sum, r) => sum + Number(r.paid || 0), 0);
     const totalDue = nonCancelled.reduce((sum, r) => sum + Number(r.due || 0), 0);
+    const totalOldDueSettled = nonCancelled.reduce((sum, r) => sum + Number(r.previousDueSettled || 0), 0);
+    const oldDueNote = totalOldDueSettled > 0 ? `<div class="text-[9px] text-sky-400 font-bold mt-0.5">+₹${totalOldDueSettled.toFixed(2)} Dues Cleared</div>` : '';
 
     summaryBox.innerHTML = `
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs">
@@ -261,6 +280,7 @@ export function renderSalesHistorySummary(rows) {
             <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 shadow-xs">
                 <div class="text-[10px] text-slate-400 font-bold uppercase">Collected / Paid</div>
                 <div class="text-sm font-black text-emerald-400 mt-0.5">₹${totalPaid.toFixed(2)}</div>
+                ${oldDueNote}
             </div>
             <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 shadow-xs">
                 <div class="text-[10px] text-slate-400 font-bold uppercase">Pending Due</div>

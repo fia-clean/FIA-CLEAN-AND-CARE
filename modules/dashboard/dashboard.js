@@ -468,12 +468,14 @@ export function updateDashboard() {
     let collectionToday = 0;
     let expenseToday = 0;
 
+    const isSalesBill = e => e && e.type === 'Income' && (e.category === 'Cleaning Sale' || e.category === 'Combined Sale' || e.category === 'Cosmetics Sale');
+
     if (window.getAllMasterEntries) {
         const todayEntries = window.getAllMasterEntries().filter(e => {
             if ((state.clearedDayBookEntries || []).includes(e.id) || (e.originalId && (state.clearedDayBookEntries || []).includes(e.originalId))) return false;
             return normalizeToDateKey(e.date) === today;
         });
-        salesToday = todayEntries.filter(e => e.type === 'Income').reduce((s, e) => s + Number(e.amount || 0), 0);
+        salesToday = todayEntries.filter(isSalesBill).reduce((s, e) => s + Number(e.amount || 0), 0);
         collectionToday = todayEntries.filter(e => e.type === 'Income').reduce((s, e) => s + Number(e.paidAmount !== undefined ? e.paidAmount : (e.amount || 0)), 0);
         expenseToday = todayEntries.filter(e => e.type === 'Expense').reduce((s, e) => s + Number(e.amount || 0), 0);
     } else {
@@ -531,7 +533,7 @@ export function updateDashboard() {
             if ((state.clearedDayBookEntries || []).includes(e.id) || (e.originalId && (state.clearedDayBookEntries || []).includes(e.originalId))) return false;
             const ed = normalizeToDateKey(e.date);
             if (!ed) return false;
-            return ed >= firstDayStr && ed <= lastDayStr && e.type === 'Income';
+            return ed >= firstDayStr && ed <= lastDayStr && isSalesBill(e);
         });
         thisMonthSales = monthEntries.reduce((s, e) => s + Number(e.amount || 0), 0);
     } else {

@@ -244,6 +244,15 @@ export function getTodayDateString() {
     return `${year}-${month}-${day}`;
 }
 
+export function getYesterdayDateString() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 export function todayDDMMYYYY() {
     const today = new Date();
     const day = String(today.getDate()).padStart(2, '0');
@@ -519,6 +528,23 @@ export function normalizeCustomerRecords() {
     });
 
     const dedupedProfiles = Array.from(profilesByName.values());
+
+    // 3. Sanitize bill pendingAmount and paidAmount so dues never exceed grandTotal
+    billsList.forEach(c => {
+        if (!c || !c.billNo) return;
+        const gTotal = Number(c.grandTotal || 0);
+        if (gTotal > 0) {
+            if (c.pendingAmount !== undefined && Number(c.pendingAmount) > gTotal) {
+                c.pendingAmount = Math.max(0, gTotal - (Number(c.paidAmount) > 0 ? Number(c.paidAmount) : 0));
+                modified = true;
+            }
+            if (c.paidAmount !== undefined && Number(c.paidAmount) > gTotal) {
+                c.paidAmount = gTotal;
+                modified = true;
+            }
+        }
+    });
+
     if (dedupedProfiles.length + billsList.length !== state.customers.length || modified) {
         state.customers = [...dedupedProfiles, ...billsList];
         saveLocalStateSafely();
@@ -889,6 +915,7 @@ if (typeof window !== 'undefined') {
     window.formatDateDDMMYYYY = formatDateDDMMYYYY;
     window.parseDateDDMMYYYY = parseDateDDMMYYYY;
     window.getTodayDateString = getTodayDateString;
+    window.getYesterdayDateString = getYesterdayDateString;
     window.todayDDMMYYYY = todayDDMMYYYY;
     window.money = money;
     window.openBackupModal = openBackupModal;

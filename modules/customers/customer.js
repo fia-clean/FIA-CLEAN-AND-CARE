@@ -699,7 +699,7 @@ export function renderCustomerConsolidationReport() {
         }
         if (!c.isCancelled && c.status !== 'cancelled') {
             let gTotal = Number(c.grandTotal || 0);
-            let paid = c.paidAmount !== undefined ? Number(c.paidAmount) : gTotal;
+            let paid = Math.min(gTotal, c.paidAmount !== undefined ? Number(c.paidAmount) : gTotal);
             let pending = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, gTotal - paid);
 
             customerMap[key].totalPurchase += gTotal;
@@ -811,7 +811,7 @@ export function renderCustomerConsolidationView() {
         if (c.phone && !grouped[name].phone) grouped[name].phone = c.phone;
 
         const total = Number(c.grandTotal || 0);
-        const paid = c.paidAmount !== undefined ? Number(c.paidAmount) : total;
+        const paid = Math.min(total, c.paidAmount !== undefined ? Number(c.paidAmount) : total);
         const due = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, total - paid);
         const ret = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paid - total);
 
@@ -1626,7 +1626,7 @@ export function viewCustomerProfile(name) {
     const custBills = (state.customers || []).filter(c => c && !isCustItemDeleted(c) && !c.isCancelled && c.status !== 'cancelled' && String(c.name || '').trim().toUpperCase() === upperTarget);
     const phone = custBills.find(c => c.phone)?.phone || 'No mobile';
     const totalPurchase = custBills.reduce((sum, c) => sum + Number(c.grandTotal || 0), 0);
-    const totalPaid = custBills.reduce((sum, c) => sum + Number(c.paidAmount || (c.grandTotal || 0)), 0);
+    const totalPaid = custBills.reduce((sum, c) => sum + Math.min(Number(c.grandTotal || 0), Number(c.paidAmount !== undefined ? c.paidAmount : (c.grandTotal || 0))), 0);
     const totalPending = custBills.reduce((sum, c) => sum + Math.max(0, Number(c.pendingAmount || 0)), 0);
     
     const html = `

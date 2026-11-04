@@ -2130,6 +2130,7 @@
                         <div class="flex items-center gap-1 flex-wrap">
                             <button type="button" id="shPeriodBtn_all" onclick="setSalesHistoryPeriod('all')" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-sm transition">All Time</button>
                             <button type="button" id="shPeriodBtn_today" onclick="setSalesHistoryPeriod('today')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">Today</button>
+                            <button type="button" id="shPeriodBtn_yesterday" onclick="setSalesHistoryPeriod('yesterday')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">Yesterday</button>
                             <button type="button" id="shPeriodBtn_this_week" onclick="setSalesHistoryPeriod('this_week')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">This Week</button>
                             <button type="button" id="shPeriodBtn_this_month" onclick="setSalesHistoryPeriod('this_month')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">This Month</button>
                             <button type="button" id="shPeriodBtn_custom" onclick="setSalesHistoryPeriod('custom')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs hover:bg-slate-800 transition">Custom Range</button>
@@ -2408,53 +2409,6 @@
                             </div>
                         </div>
 
-                        <!-- Customer Previous Due Addition Row (Visible when customer has previous due) -->
-                        <div id="billPreviousDueRow" class="hidden bg-amber-950/40 border border-amber-800/60 rounded-xl p-2.5 space-y-1.5">
-                            <div class="flex items-center justify-between">
-                                <label class="text-[11px] font-bold text-amber-300 flex items-center gap-1">
-                                    <span>⚠️</span> Previous Due (പഴയ ബാക്കി):
-                                </label>
-                                <label class="text-[10px] text-slate-300 flex items-center gap-1 cursor-pointer select-none">
-                                    <input type="checkbox" id="billIncludePrevDue" checked onchange="calculateBalance()" class="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500">
-                                    <span>Include in Bill</span>
-                                </label>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <span class="text-[9px] text-slate-400 block mb-0.5">Old Due (₹):</span>
-                                    <input type="number" id="billPreviousDue" value="0.00" oninput="calculateBalance()" class="w-full p-2 border border-amber-700/60 rounded-lg text-xs bg-slate-950 text-amber-300 font-bold focus:outline-none min-w-0" step="any">
-                                </div>
-                                <div>
-                                    <span class="text-[9px] text-slate-400 block mb-0.5">Total with Old Due (₹):</span>
-                                    <input type="number" id="billTotalWithDue" placeholder="0.00" readonly class="w-full p-2 border border-slate-700 rounded-lg text-xs bg-slate-900 text-white font-extrabold cursor-not-allowed min-w-0">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Customer Previous Credit / Advance Row (Visible when customer has old credit balance) -->
-                        <div id="billPreviousCreditRow" class="hidden bg-emerald-950/40 border border-emerald-800/60 rounded-xl p-2.5 space-y-1.5">
-                            <div class="flex items-center justify-between">
-                                <label class="text-[11px] font-bold text-emerald-300 flex items-center gap-1">
-                                    <span>💳</span> Customer Credit / Advance (പഴയ ക്രെഡിറ്റ്):
-                                </label>
-                                <label class="text-[10px] text-slate-300 flex items-center gap-1 cursor-pointer select-none">
-                                    <input type="checkbox" id="billIncludePrevCredit" checked onchange="calculateBalance()" class="rounded border-slate-700 text-emerald-600 focus:ring-emerald-500">
-                                    <span>Apply to Bill (കുറയ്ക്കുക)</span>
-                                </label>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <span class="text-[9px] text-slate-400 block mb-0.5">Old Credit (₹):</span>
-                                    <input type="number" id="billPreviousCredit" value="0.00" oninput="calculateBalance()" class="w-full p-2 border border-emerald-700/60 rounded-lg text-xs bg-slate-950 text-emerald-300 font-bold focus:outline-none min-w-0" step="any">
-                                </div>
-                                <div>
-                                    <span class="text-[9px] text-slate-400 block mb-0.5">Payable after Credit (₹):</span>
-                                    <input type="number" id="billTotalAfterCredit" placeholder="0.00" readonly class="w-full p-2 border border-slate-700 rounded-lg text-xs bg-slate-900 text-emerald-400 font-extrabold cursor-not-allowed min-w-0">
-                                </div>
-                            </div>
-                                </div>
-                            </div>
-                        </div>
 
                         <div class="grid grid-cols-2 gap-2">
                             <div>
@@ -3746,7 +3700,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.24"></script>
+    <script type="module" src="./modules/app.js?v=51.2.28"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
