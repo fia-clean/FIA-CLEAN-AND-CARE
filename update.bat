@@ -1,11 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
-title FIA CLEAN & CARE - One-Click App Updater v51.2.28
+title FIA CLEAN & CARE - One-Click App Updater v51.2.29
 color 0A
 
 echo ====================================================================
 echo             FIA CLEAN & CARE - ONE-CLICK APP UPDATER
-echo                  Version: v51.2.28 (Live Release)
+echo                  Version: v51.2.29 (Live Release)
 echo ====================================================================
 echo.
 
@@ -15,7 +15,7 @@ echo [1/4] Checking Changed Files...
 git status -s
 echo.
 
-set COMMIT_MSG=Release v51.2.28: Fix sales vs collection daybook calculation, remove billing include options, fix due compounding (%date% %time%)
+set COMMIT_MSG=Release v51.2.29: Restore previous balance inclusion in billing without compounding dues (%date% %time%)
 
 echo [2/4] Staging all files...
 git add -A
@@ -40,14 +40,14 @@ if %errorlevel% equ 0 (
     color 0A
     echo.
     echo ====================================================================
-    echo        [SUCCESS] APP v51.2.28 UPDATED AND PUSHED TO GITHUB!
+    echo        [SUCCESS] APP v51.2.29 UPDATED AND PUSHED TO GITHUB!
     echo ====================================================================
     echo.
     echo  ------------------------------------------------------------------
-    echo   HOW TO ACTIVATE v51.2.28 ON YOUR PHONE / PC:
+    echo   HOW TO ACTIVATE v51.2.29 ON YOUR PHONE / PC:
     echo  ------------------------------------------------------------------
     echo   1. Open FIA Clean App on your phone / PC.
-    echo   2. Tap the version badge at top: [ v51.2.28 ]
+    echo   2. Tap the version badge at top: [ v51.2.29 ]
     echo   3. Tap 'OK' - Cache clears and updates instantly!
     echo.
     echo   (Or go to Settings --^> 'Check for Updates / Clear Cache')

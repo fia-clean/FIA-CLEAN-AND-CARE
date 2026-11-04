@@ -1477,16 +1477,24 @@ export function checkCustomerDueInBilling(name) {
     const banner = document.getElementById('custDueAlertBanner');
     const amtEl = document.getElementById('custDueAlertAmount');
     const countEl = document.getElementById('custDueAlertCount');
+    const prevDueInput = document.getElementById('billPreviousDue');
+    const prevDueRow = document.getElementById('billPreviousDueRow');
     const creditBanner = document.getElementById('custCreditAlertBanner');
     const creditAmtEl = document.getElementById('custCreditAlertAmount');
+    const prevCreditInput = document.getElementById('billPreviousCredit');
+    const prevCreditRow = document.getElementById('billPreviousCreditRow');
 
     if (!name || !name.trim()) {
         if (banner) banner.classList.add('hidden');
+        if (prevDueRow) prevDueRow.classList.add('hidden');
         if (creditBanner) creditBanner.classList.add('hidden');
+        if (prevCreditRow) prevCreditRow.classList.add('hidden');
+        if (prevCreditInput) prevCreditInput.value = '0.00';
         const changeActionRow = document.getElementById('billChangeActionRow');
         if (changeActionRow) changeActionRow.classList.add('hidden');
         const keepExcessBox = document.getElementById('billKeepExcessCredit');
         if (keepExcessBox) keepExcessBox.checked = false;
+        if (prevDueInput) prevDueInput.value = '0.00';
         calculateBalance();
         return;
     }
@@ -1497,15 +1505,27 @@ export function checkCustomerDueInBilling(name) {
         if (banner) banner.classList.remove('hidden');
         if (amtEl) amtEl.textContent = '₹' + totalPending.toFixed(2);
         if (countEl) countEl.textContent = `(${billCount} bill${billCount > 1 ? 's' : ''} unpaid)`;
+        if (prevDueRow) prevDueRow.classList.remove('hidden');
+        if (prevDueInput) prevDueInput.value = totalPending.toFixed(2);
+        const incBox = document.getElementById('billIncludePrevDue');
+        if (incBox) incBox.checked = true;
     } else {
         if (banner) banner.classList.add('hidden');
+        if (prevDueRow) prevDueRow.classList.add('hidden');
+        if (prevDueInput) prevDueInput.value = '0.00';
     }
 
     if (totalCredit > 0.001) {
         if (creditBanner) creditBanner.classList.remove('hidden');
         if (creditAmtEl) creditAmtEl.textContent = '₹' + totalCredit.toFixed(2);
+        if (prevCreditRow) prevCreditRow.classList.remove('hidden');
+        if (prevCreditInput) prevCreditInput.value = totalCredit.toFixed(2);
+        const incCreditBox = document.getElementById('billIncludePrevCredit');
+        if (incCreditBox) incCreditBox.checked = true;
     } else {
         if (creditBanner) creditBanner.classList.add('hidden');
+        if (prevCreditRow) prevCreditRow.classList.add('hidden');
+        if (prevCreditInput) prevCreditInput.value = '0.00';
     }
     calculateBalance();
 }
@@ -1542,17 +1562,38 @@ export function calculateBalance() {
         netPayableEl.value = netPayable.toFixed(2);
     }
 
+    const includePrev = document.getElementById('billIncludePrevDue')?.checked ?? false;
+    const prevDueInput = document.getElementById('billPreviousDue');
+    const prevDueVal = (includePrev && prevDueInput) ? (parseFloat(prevDueInput.value) || 0) : 0;
+
+    const includePrevCredit = document.getElementById('billIncludePrevCredit')?.checked ?? false;
+    const prevCreditInput = document.getElementById('billPreviousCredit');
+    const prevCreditVal = (includePrevCredit && prevCreditInput) ? (parseFloat(prevCreditInput.value) || 0) : 0;
+
+    const billAmountBeforeCredit = netPayable + prevDueVal;
+    const appliedCredit = Math.min(billAmountBeforeCredit, prevCreditVal);
+    const totalWithDue = Math.max(0, billAmountBeforeCredit - appliedCredit);
+
+    const totalWithDueEl = document.getElementById('billTotalWithDue');
+    if (totalWithDueEl) {
+        totalWithDueEl.value = (netPayable + prevDueVal).toFixed(2);
+    }
+    const totalAfterCreditEl = document.getElementById('billTotalAfterCredit');
+    if (totalAfterCreditEl) {
+        totalAfterCreditEl.value = totalWithDue.toFixed(2);
+    }
+
     const paidInputRaw = document.getElementById('billPaidAmt')?.value;
     const paidInput = parseFloat(paidInputRaw);
     const isPaidEmpty = paidInputRaw === '' || paidInputRaw === undefined;
-    const effectivePaid = isPaidEmpty ? netPayable : (Number.isFinite(paidInput) ? paidInput : 0);
+    const effectivePaid = isPaidEmpty ? totalWithDue : (Number.isFinite(paidInput) ? paidInput : 0);
     
     const paidEl = document.getElementById('billPaidAmt');
     if (paidEl && isPaidEmpty) {
-        paidEl.placeholder = netPayable.toFixed(2);
+        paidEl.placeholder = totalWithDue.toFixed(2);
     }
 
-    const balance = netPayable - effectivePaid;
+    const balance = totalWithDue - effectivePaid;
     const due = Math.max(0, balance);
     const excess = Math.max(0, -balance);
     const field = document.getElementById('billPendingAmt');
@@ -1562,7 +1603,7 @@ export function calculateBalance() {
     if (field) field.value = due.toFixed(2);
     if (status) {
         if (balance > 0.001) {
-            status.textContent = 'BALANCE DUE: ₹' + due.toFixed(2);
+            status.textContent = (prevDueVal > 0 ? 'NET BALANCE DUE: ₹' : 'BALANCE DUE: ₹') + due.toFixed(2);
             status.className = 'text-xs font-black mt-1 text-right text-rose-600 animate-pulse';
             if (changeActionRow) changeActionRow.classList.add('hidden');
         } else if (balance < -0.001) {
@@ -1699,9 +1740,38 @@ export function saveCustomer(e) {
     let billNo = (index >= 0 && state.customers[index]?.billNo) || getNextBillNumber();
     const billId = (index >= 0 && state.customers[index]?.id) || generateUniqueRecordId('bill');
 
+    const includePrev = document.getElementById('billIncludePrevDue')?.checked ?? false;
+    const previousDue = includePrev ? (parseFloat(document.getElementById('billPreviousDue')?.value) || 0) : 0;
+    const includePrevCredit = document.getElementById('billIncludePrevCredit')?.checked ?? false;
+    const previousCredit = includePrevCredit ? (parseFloat(document.getElementById('billPreviousCredit')?.value) || 0) : 0;
+
+    const billBeforeCredit = grandTotal + previousDue;
+    const appliedCredit = Math.min(billBeforeCredit, previousCredit);
+    const totalWithDue = Math.max(0, billBeforeCredit - appliedCredit);
+
+    // If customer had credit and applied it, deduct credit from previous credit bills
+    if (appliedCredit > 0.001) {
+        let remainingCreditToDeduct = appliedCredit;
+        const cleanCustName = name.toLowerCase();
+        (state.customers || []).forEach(c => {
+            if (remainingCreditToDeduct <= 0.001) return;
+            if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
+            if (String(c.name || '').trim().toLowerCase() !== cleanCustName) return;
+            if (index >= 0 && (c.id === billId || c.billNo === billNo)) return;
+            let cr = c.creditAmount !== undefined ? Number(c.creditAmount) : (c.excessRetainedAsCredit ? Number(c.excessAmount || 0) : 0);
+            if (cr > 0.001) {
+                const deductPortion = Math.min(cr, remainingCreditToDeduct);
+                c.creditAmount = Math.max(0, cr - deductPortion);
+                if (c.creditAmount <= 0.001) c.excessRetainedAsCredit = false;
+                c.savedAt = Date.now();
+                remainingCreditToDeduct -= deductPortion;
+            }
+        });
+    }
+
     const paidAmount = parseFloat(document.getElementById('billPaidAmt')?.value);
     const isPaidEmpty = document.getElementById('billPaidAmt')?.value === '' || document.getElementById('billPaidAmt')?.value === undefined;
-    const safePaidAmount = isPaidEmpty ? grandTotal : (Number.isFinite(paidAmount) ? Math.max(0, paidAmount) : 0);
+    const safePaidAmount = isPaidEmpty ? totalWithDue : (Number.isFinite(paidAmount) ? Math.max(0, paidAmount) : 0);
     
     // Allocate payment:
     const currentBillPaid = Math.min(grandTotal, safePaidAmount);
@@ -1768,10 +1838,10 @@ export function saveCustomer(e) {
         subTotal,
         discount,
         grandTotal,
-        previousDue: 0,
-        previousCredit: 0,
-        appliedCredit: 0,
-        totalWithDue: grandTotal,
+        previousDue,
+        previousCredit,
+        appliedCredit,
+        totalWithDue,
         paidAmount: currentBillPaid,
         totalReceived: safePaidAmount,
         previousDueSettled: duesSettled,
@@ -1822,8 +1892,24 @@ export function resetCustomerForm() {
     if (notice) notice.innerHTML = '';
     const prevBanner = document.getElementById('custDueAlertBanner');
     if (prevBanner) prevBanner.classList.add('hidden');
+    const prevDueRow = document.getElementById('billPreviousDueRow');
+    if (prevDueRow) prevDueRow.classList.add('hidden');
+    const prevDueInput = document.getElementById('billPreviousDue');
+    if (prevDueInput) prevDueInput.value = '0.00';
+    const totalWithDueEl = document.getElementById('billTotalWithDue');
+    if (totalWithDueEl) totalWithDueEl.value = '';
+    const incBox = document.getElementById('billIncludePrevDue');
+    if (incBox) incBox.checked = true;
     const creditBanner = document.getElementById('custCreditAlertBanner');
     if (creditBanner) creditBanner.classList.add('hidden');
+    const prevCreditRow = document.getElementById('billPreviousCreditRow');
+    if (prevCreditRow) prevCreditRow.classList.add('hidden');
+    const prevCreditInput = document.getElementById('billPreviousCredit');
+    if (prevCreditInput) prevCreditInput.value = '0.00';
+    const totalAfterCreditEl = document.getElementById('billTotalAfterCredit');
+    if (totalAfterCreditEl) totalAfterCreditEl.value = '';
+    const incCreditBox = document.getElementById('billIncludePrevCredit');
+    if (incCreditBox) incCreditBox.checked = true;
     const changeActionRow = document.getElementById('billChangeActionRow');
     if (changeActionRow) changeActionRow.classList.add('hidden');
     const keepExcessBox = document.getElementById('billKeepExcessCredit');
@@ -1871,6 +1957,27 @@ export function editCustomerBill(identifier) {
     const paymentModeEl = document.getElementById('billPaymentMode');
     if (paymentModeEl) paymentModeEl.value = c.paymentMode || 'Cash';
     
+    const prevDueInput = document.getElementById('billPreviousDue');
+    if (prevDueInput) prevDueInput.value = Number(c.previousDue || 0).toFixed(2);
+    const prevDueRow = document.getElementById('billPreviousDueRow');
+    const incBox = document.getElementById('billIncludePrevDue');
+    if (incBox) incBox.checked = Number(c.previousDue || 0) > 0;
+    if (prevDueRow) {
+        if (Number(c.previousDue || 0) > 0) prevDueRow.classList.remove('hidden');
+        else prevDueRow.classList.add('hidden');
+    }
+
+    const prevCreditInput = document.getElementById('billPreviousCredit');
+    const prevCreditRow = document.getElementById('billPreviousCreditRow');
+    const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
+    if (prevCreditInput) prevCreditInput.value = prevCreditVal.toFixed(2);
+    const incCreditBox = document.getElementById('billIncludePrevCredit');
+    if (incCreditBox) incCreditBox.checked = prevCreditVal > 0;
+    if (prevCreditRow) {
+        if (prevCreditVal > 0) prevCreditRow.classList.remove('hidden');
+        else prevCreditRow.classList.add('hidden');
+    }
+
     const keepExcessBox = document.getElementById('billKeepExcessCredit');
     if (keepExcessBox) keepExcessBox.checked = Boolean(c.excessRetainedAsCredit);
 

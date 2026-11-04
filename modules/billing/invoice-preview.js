@@ -952,7 +952,7 @@ export function sendBillViaWhatsApp() {
         const total = Number(i.total || 0).toFixed(2);
         return `${idx + 1}. *${cleanName}* | ${qtyDisplay} | ₹${rate} | ₹${total}`;
     }).join('\n');
-    const paidVal = c.paidAmount !== undefined ? c.paidAmount : c.grandTotal;
+    const paidVal = c.totalReceived !== undefined ? c.totalReceived : (c.paidAmount !== undefined ? c.paidAmount : c.grandTotal);
     const prevDueVal = Number(c.previousDue || 0);
     const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
     const totalWithDueVal = Number(c.totalWithDue || (Number(c.grandTotal || 0) + prevDueVal));
