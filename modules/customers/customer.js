@@ -811,8 +811,8 @@ export function renderCustomerConsolidationView() {
         if (c.phone && !grouped[name].phone) grouped[name].phone = c.phone;
 
         const total = Number(c.grandTotal || 0);
-        const paid = Math.min(total, c.paidAmount !== undefined ? Number(c.paidAmount) : total);
-        const due = c.pendingAmount !== undefined ? Number(c.pendingAmount) : Math.max(0, total - paid);
+        const due = Math.max(0, Number(c.pendingAmount !== undefined ? c.pendingAmount : Math.max(0, total - Number(c.paidAmount || 0))));
+        const paid = Number(c.paidAmount !== undefined ? c.paidAmount : (total - due));
         const ret = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paid - total);
 
         grouped[name].rows.push({
@@ -874,6 +874,7 @@ export function renderCustomerConsolidationView() {
                         `Paid ₹${r.paid.toFixed(2)}`
                     ];
                     if (r.due > 0) detailParts.push(`Due ₹${r.due.toFixed(2)}`);
+                    else detailParts.push(`Due ₹0.00 (Settled)`);
                     if (r.ret > 0) detailParts.push(`Return ₹${r.ret.toFixed(2)}`);
                     return `<div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:justify-between gap-2.5 sm:items-center">
                         <div class="min-w-0 flex-1">
@@ -1321,6 +1322,9 @@ export function confirmCustomerDueSettlement(encodedName) {
 
             rec.paidAmount = updatedPaid;
             rec.pendingAmount = updatedPending;
+            rec.totalReceived = Math.max(Number(rec.totalReceived || 0), updatedPaid);
+            rec.paid = updatedPaid;
+            rec.balance = updatedPending;
             if (!Array.isArray(rec.paymentHistory)) rec.paymentHistory = [];
             rec.paymentHistory.push({
                 id: generateUniqueRecordId('pay'),

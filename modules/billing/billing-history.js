@@ -53,8 +53,10 @@ export function getSalesHistoryRows() {
         if (isBill) {
             const billNo = c.billNo || ('CLN-' + String(i + 1).padStart(4, '0'));
             const bTotal = Number(c.grandTotal || 0);
-            const bPaid = Math.min(bTotal, Number(c.paidAmount !== undefined ? c.paidAmount : bTotal));
-            const bDue = Number(c.pendingAmount !== undefined ? c.pendingAmount : Math.max(0, bTotal - bPaid));
+            const bDue = Math.max(0, Number(c.pendingAmount !== undefined ? c.pendingAmount : Math.max(0, bTotal - Number(c.paidAmount || 0))));
+            const bPaid = Number(c.paidAmount !== undefined ? c.paidAmount : (bTotal - bDue));
+            const paymentHistory = Array.isArray(c.paymentHistory) ? c.paymentHistory : [];
+            const histSettled = paymentHistory.reduce((sum, p) => sum + Number(p?.amount || 0), 0);
             rows.push({
                 type: (c.billType === 'Combined' ? 'combined' : 'cleaning'),
                 index: i,
@@ -68,6 +70,8 @@ export function getSalesHistoryRows() {
                 paid: bPaid,
                 due: bDue,
                 previousDueSettled: Number(c.previousDueSettled || 0),
+                settledViaPayment: histSettled,
+                paymentHistory: paymentHistory,
                 totalReceived: Number(c.totalReceived !== undefined ? c.totalReceived : (c.paidAmount !== undefined ? c.paidAmount : bTotal)),
                 returnedAmount: Number(c.returnedAmount || 0),
                 items: safeItems,
@@ -85,8 +89,10 @@ export function getSalesHistoryRows() {
         const n = normalizeCosSale(s);
         const billNo = s.billNo || ('COS-' + String(i + 1).padStart(4, '0'));
         const bTotal = Number(n.grandTotal || 0);
-        const bPaid = Math.min(bTotal, Number(n.paidAmount || 0));
-        const bDue = Number(n.pendingAmount || 0);
+        const bDue = Math.max(0, Number(n.pendingAmount || 0));
+        const bPaid = Number(n.paidAmount !== undefined ? n.paidAmount : (bTotal - bDue));
+        const paymentHistory = Array.isArray(s.paymentHistory) ? s.paymentHistory : [];
+        const histSettled = paymentHistory.reduce((sum, p) => sum + Number(p?.amount || 0), 0);
         rows.push({
             type: 'cosmetics',
             index: i,
@@ -100,6 +106,8 @@ export function getSalesHistoryRows() {
             paid: bPaid,
             due: bDue,
             previousDueSettled: Number(s.previousDueSettled || 0),
+            settledViaPayment: histSettled,
+            paymentHistory: paymentHistory,
             totalReceived: Number(s.totalReceived !== undefined ? s.totalReceived : (n.paidAmount || bTotal)),
             returnedAmount: Number(s.returnedAmount || n.returnedAmount || 0),
             items: n.items || [],
@@ -141,9 +149,13 @@ export function renderSalesHistoryCard(r, label) {
 
     const returnBadge = Number(r.returnedAmount || 0) > 0 ? ` · <span class="text-amber-400 font-bold">↩️ Ret: -₹${Number(r.returnedAmount).toFixed(2)}</span>` : '';
     const oldDueBadge = Number(r.previousDueSettled || 0) > 0 ? ` · <span class="text-sky-400 font-bold">💰 Old Due Paid: ₹${Number(r.previousDueSettled).toFixed(2)}</span>` : '';
+    const dueSettledBadge = Number(r.settledViaPayment || 0) > 0 ? ` · <span class="text-emerald-400 font-bold">✅ Due Settled: ₹${Number(r.settledViaPayment).toFixed(2)}</span>` : '';
+    const dueDisplay = r.due > 0 
+        ? `<span class="text-rose-400 font-bold">Due: ₹${r.due.toFixed(2)}</span>` 
+        : `<span class="text-emerald-400 font-semibold">Due: ₹0.00 (Settled)</span>`;
     const totalDisplay = isCancelled
         ? `<span class="line-through text-slate-500 font-medium">Total: ₹${r.total.toFixed(2)}</span> <span class="text-rose-400 font-bold text-[11px] block sm:inline sm:ml-2">❌ ${r.cancelReason || 'Order Cancelled'}</span>`
-        : `<span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-400 font-semibold">Paid: ₹${r.paid.toFixed(2)}</span> · <span class="${r.due > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">Due: ₹${r.due.toFixed(2)}</span>${returnBadge}${oldDueBadge}`;
+        : `<span>Total: ₹${r.total.toFixed(2)}</span> · <span class="text-emerald-400 font-semibold">Paid: ₹${r.paid.toFixed(2)}</span> · ${dueDisplay}${returnBadge}${oldDueBadge}${dueSettledBadge}`;
 
     const cardBg = isCancelled ? 'bg-rose-950/20 border-rose-900/60' : 'bg-slate-900/80 border-slate-800';
 

@@ -529,10 +529,29 @@ export function normalizeCustomerRecords() {
 
     const dedupedProfiles = Array.from(profilesByName.values());
 
-    // 3. Sanitize bill pendingAmount and paidAmount so dues never exceed grandTotal
+    // 3. Sanitize bill pendingAmount, paidAmount and synchronize due settlements
     billsList.forEach(c => {
         if (!c || !c.billNo) return;
         const gTotal = Number(c.grandTotal || 0);
+
+        // If paymentHistory exists, calculate total subsequent settlements
+        const histSum = Array.isArray(c.paymentHistory)
+            ? c.paymentHistory.reduce((sum, p) => sum + (Number(p && p.amount) || 0), 0)
+            : 0;
+
+        if (histSum > 0 && gTotal > 0) {
+            const effectivePaid = Math.min(gTotal, Math.max(Number(c.paidAmount || 0), histSum));
+            if (c.paidAmount !== effectivePaid) {
+                c.paidAmount = effectivePaid;
+                modified = true;
+            }
+            const effectivePending = Math.max(0, gTotal - effectivePaid);
+            if (c.pendingAmount !== effectivePending) {
+                c.pendingAmount = effectivePending;
+                modified = true;
+            }
+        }
+
         if (gTotal > 0) {
             if (c.pendingAmount !== undefined && Number(c.pendingAmount) > gTotal) {
                 c.pendingAmount = Math.max(0, gTotal - (Number(c.paidAmount) > 0 ? Number(c.paidAmount) : 0));
@@ -542,8 +561,56 @@ export function normalizeCustomerRecords() {
                 c.paidAmount = gTotal;
                 modified = true;
             }
+            if (c.pendingAmount !== undefined && Number(c.pendingAmount) <= 0.001) {
+                c.pendingAmount = 0;
+                if (c.paidAmount === undefined || Number(c.paidAmount) < gTotal) {
+                    c.paidAmount = gTotal;
+                    modified = true;
+                }
+            }
+            // Keep totalReceived, paid and balance synchronized
+            if (c.paidAmount !== undefined && (c.totalReceived === undefined || Number(c.totalReceived) < Number(c.paidAmount))) {
+                c.totalReceived = Number(c.paidAmount);
+                modified = true;
+            }
+            if (c.paid !== c.paidAmount) {
+                c.paid = c.paidAmount;
+            }
+            if (c.balance !== c.pendingAmount) {
+                c.balance = c.pendingAmount;
+            }
         }
     });
+
+    if (Array.isArray(state.cosSales)) {
+        state.cosSales.forEach(s => {
+            if (!s) return;
+            const norm = typeof normalizeCosSale === 'function' ? normalizeCosSale(s) : s;
+            const gTotal = Number(norm.grandTotal !== undefined ? norm.grandTotal : (s.grandTotal || s.total || 0));
+            const histSum = Array.isArray(s.paymentHistory)
+                ? s.paymentHistory.reduce((sum, p) => sum + (Number(p && p.amount) || 0), 0)
+                : 0;
+            if (histSum > 0 && gTotal > 0) {
+                const effectivePaid = Math.min(gTotal, Math.max(Number(s.paidAmount || s.paid || 0), histSum));
+                s.paidAmount = effectivePaid;
+                s.paid = effectivePaid;
+                s.pendingAmount = Math.max(0, gTotal - effectivePaid);
+                s.balance = s.pendingAmount;
+                s.totalReceived = Math.max(Number(s.totalReceived || 0), effectivePaid);
+                modified = true;
+            }
+            if (s.pendingAmount !== undefined && Number(s.pendingAmount) <= 0.001) {
+                s.pendingAmount = 0;
+                s.balance = 0;
+                if (Number(s.paidAmount || s.paid || 0) < gTotal) {
+                    s.paidAmount = gTotal;
+                    s.paid = gTotal;
+                    s.totalReceived = gTotal;
+                    modified = true;
+                }
+            }
+        });
+    }
 
     if (dedupedProfiles.length + billsList.length !== state.customers.length || modified) {
         state.customers = [...dedupedProfiles, ...billsList];

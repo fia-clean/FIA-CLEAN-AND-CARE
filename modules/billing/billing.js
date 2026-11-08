@@ -1791,6 +1791,9 @@ export function saveCustomer(e) {
                 const payPortion = Math.min(cDue, excessCash);
                 c.pendingAmount = Math.max(0, cDue - payPortion);
                 c.paidAmount = (Number(c.paidAmount || 0)) + payPortion;
+                c.totalReceived = Math.max(Number(c.totalReceived || 0), c.paidAmount);
+                c.paid = c.paidAmount;
+                c.balance = c.pendingAmount;
                 if (!Array.isArray(c.paymentHistory)) c.paymentHistory = [];
                 c.paymentHistory.push({
                     id: generateUniqueRecordId('pay'),
@@ -1948,7 +1951,7 @@ export function editCustomerBill(identifier) {
     renderBillPreviewInput();
     const discountEl = document.getElementById('billDiscountAmt');
     if (discountEl) discountEl.value = (c.discount !== undefined && Number(c.discount) > 0) ? Number(c.discount) : '';
-    document.getElementById('billPaidAmt').value = c.totalReceived !== undefined ? Number(c.totalReceived) : (c.paidAmount !== undefined ? Number(c.paidAmount) : Number(c.grandTotal || 0));
+    document.getElementById('billPaidAmt').value = c.paidAmount !== undefined ? Number(c.paidAmount) : (c.totalReceived !== undefined ? Number(c.totalReceived) : Number(c.grandTotal || 0));
     const paymentModeEl = document.getElementById('billPaymentMode');
     if (paymentModeEl) paymentModeEl.value = c.paymentMode || 'Cash';
     

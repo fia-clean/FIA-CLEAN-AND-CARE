@@ -111,8 +111,8 @@ export function previewBill(identifier) {
     const prevDueVal = Number(c.previousDue || 0);
     const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
     const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
-    const paidVal = c.totalReceived !== undefined ? Number(c.totalReceived) : (c.paidAmount !== undefined ? Number(c.paidAmount) : grandVal);
-    const finalPending = Math.max(0, totalWithDueVal - paidVal);
+    const paidVal = Number(c.paidAmount !== undefined ? c.paidAmount : (c.totalReceived !== undefined ? c.totalReceived : grandVal));
+    const finalPending = Math.max(0, Number(c.pendingAmount !== undefined ? c.pendingAmount : (totalWithDueVal - paidVal)));
     const excessVal = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paidVal - totalWithDueVal);
 
     const billHTML = `
@@ -213,11 +213,20 @@ export function previewBill(identifier) {
                         <span>Paid:</span>
                         <span>₹${paidVal.toFixed(2)}</span>
                     </div>
+                    ${Array.isArray(c.paymentHistory) && c.paymentHistory.length > 0 ? c.paymentHistory.map(p => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #0284c7 !important; font-size: 10px; font-weight: 700; margin-top: 2px; padding: 2px 4px; background: #f0f9ff; border-radius: 4px;">
+                        <span>💰 Due Settled (${formatDateDDMMYYYY(p.date)} • ${p.paymentMode || 'Cash'}):</span>
+                        <span>+₹${Number(p.amount || 0).toFixed(2)}</span>
+                    </div>`).join('') : ''}
                     ${finalPending > 0 ? `
                     <div style="display: flex; justify-content: space-between; align-items: center; color: #b91c1c !important; font-weight: 800; margin-top: 2px; padding: 2px 4px; background: #fef2f2; border-radius: 4px;">
                         <span>⚠️ ${prevDueVal > 0 ? 'Net Balance Due:' : 'Balance Due:'}</span>
                         <span>₹${finalPending.toFixed(2)}</span>
-                    </div>` : ''}
+                    </div>` : `
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #047857 !important; font-weight: 800; margin-top: 2px; padding: 3px 6px; background: #ecfdf5; border-radius: 4px; border: 1px solid #a7f3d0;">
+                        <span>✅ Balance Due:</span>
+                        <span>₹0.00 (PAID IN FULL)</span>
+                    </div>`}
                     ${excessVal > 0 ? `
                     <div style="display: flex; justify-content: space-between; align-items: center; color: #b45309 !important; font-weight: 800; margin-top: 2px; padding: 2px 4px; background: #fffbeb; border-radius: 4px;">
                         <span>${c.excessRetainedAsCredit ? '💳 Retained as Customer Credit:' : '🔄 Return / Change:'}</span>
@@ -446,7 +455,7 @@ function getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal
     const prevDueVal = Number(c.previousDue || 0);
     const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
     const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
-    const finalPending = Math.max(0, totalWithDueVal - paidVal);
+    const finalPending = Math.max(0, Number(c.pendingAmount !== undefined ? c.pendingAmount : (totalWithDueVal - paidVal)));
 
     return `
         <div class="totals-container" style="page-break-inside: avoid !important; break-inside: avoid !important; margin-top: 14px;">
@@ -489,11 +498,20 @@ function getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal
                     <span>Paid Amount:</span>
                     <span>₹${paidVal.toFixed(2)}</span>
                 </div>
+                ${Array.isArray(c.paymentHistory) && c.paymentHistory.length > 0 ? c.paymentHistory.map(p => `
+                <div style="display: flex; justify-content: space-between; align-items: center; color: #0284c7; font-size: 10.5px; font-weight: 700; margin-top: 3px; padding: 2px 4px; background: #f0f9ff; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                    <span>💰 Due Settled (${formatDateDDMMYYYY(p.date)} • ${p.paymentMode || 'Cash'}):</span>
+                    <span>+₹${Number(p.amount || 0).toFixed(2)}</span>
+                </div>`).join('') : ''}
                 ${finalPending > 0 ? `
                 <div style="display: flex; justify-content: space-between; align-items: center; color: #b91c1c; font-weight: 800; margin-top: 4px; padding: 3px 6px; background: #fef2f2; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
                     <span>⚠️ ${prevDueVal > 0 ? 'Net Balance Due:' : 'Balance Due:'}</span>
                     <span>₹${finalPending.toFixed(2)}</span>
-                </div>` : ''}
+                </div>` : `
+                <div style="display: flex; justify-content: space-between; align-items: center; color: #047857; font-weight: 800; margin-top: 4px; padding: 3px 6px; background: #ecfdf5; border-radius: 4px; border: 1px solid #a7f3d0; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                    <span>✅ Balance Due:</span>
+                    <span>₹0.00 (PAID IN FULL)</span>
+                </div>`}
                 ${excessVal > 0 ? `
                 <div style="display: flex; justify-content: space-between; align-items: center; color: #b45309; font-weight: 800; margin-top: 4px; padding: 3px 6px; background: #fffbeb; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
                     <span>🔄 Return / Change:</span>
