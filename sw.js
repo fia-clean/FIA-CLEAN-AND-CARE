@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-v51.2.31';
+const CACHE_NAME = 'fia-clean-care-v51.2.33';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [
@@ -35,7 +35,6 @@ const PRECACHE_ASSETS = [
   './modules/daybook/daybook.js',
   './modules/dno/dno.js'
 ];
-
 
 // External CDN dependencies to cache dynamically
 const CDN_HOSTS = [
@@ -99,70 +98,69 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 1. Navigation / Document requests (Opening the web app / reloading) - Network First with Cache Fallback
+  // 1. Navigation / Document requests: Fast Network with 1200ms timeout, falling back to instant cache!
   if (request.mode === 'navigate' || request.destination === 'document' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
     event.respondWith(
-      fetch(request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          // If offline or network fails, return cached index.html immediately!
-          return caches.match(request, { ignoreSearch: true }).then((cached) => {
-            return cached || caches.match('./index.html', { ignoreSearch: true }) || caches.match('./');
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(request, { ignoreSearch: true })
+          || await cache.match('./index.html', { ignoreSearch: true })
+          || await cache.match('./');
+
+        // If no cached version (first install), fetch from network
+        if (!cached) {
+          return fetch(request).then((networkRes) => {
+            if (networkRes && networkRes.status === 200) {
+              cache.put(request, networkRes.clone());
+            }
+            return networkRes;
           });
-        })
+        }
+
+        // Fast network race: If network responds within 1200ms, use it; otherwise serve cached shell instantly!
+        const timeoutPromise = new Promise((resolve) => {
+          setTimeout(() => resolve(cached), 1200);
+        });
+
+        const networkPromise = fetch(request)
+          .then((networkRes) => {
+            if (networkRes && networkRes.status === 200) {
+              cache.put(request, networkRes.clone());
+            }
+            return networkRes;
+          })
+          .catch(() => cached);
+
+        return Promise.race([networkPromise, timeoutPromise]);
+      })
     );
     return;
   }
 
-  // 2. Local app assets (HTML, manifest, icons, JS modules)
+  // 2. Local app assets (HTML, manifest, icons, JS modules, CSS) - Stale While Revalidate (Instant Cache response!)
   if (url.origin === location.origin) {
-    // For ES modules and JS, use Network-First to guarantee immediate updates on refresh, with cache fallback
-    if (url.pathname.includes('/modules/') || url.pathname.endsWith('.js')) {
-      event.respondWith(
-        fetch(request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, responseClone);
-              });
-            }
-            return networkResponse;
-          })
-          .catch(() => {
-            return caches.match(request, { ignoreSearch: true }).then((cached) => {
-              if (cached) return cached;
-              const cleanUrl = request.url.split('?')[0];
-              return caches.match(cleanUrl, { ignoreSearch: true });
-            });
-          })
-      );
-      return;
-    }
-
     event.respondWith(
-      caches.match(request, { ignoreSearch: true }).then((cachedResponse) => {
-        const fetchPromise = fetch(request)
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(request, { ignoreSearch: true })
+          || await cache.match(request.url.split('?')[0], { ignoreSearch: true });
+
+        // Update in background silently
+        const networkFetch = fetch(request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
-              const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, responseClone);
-              });
+              cache.put(request, networkResponse.clone());
             }
             return networkResponse;
           })
-          .catch(() => cachedResponse);
+          .catch(() => null);
 
-        return cachedResponse || fetchPromise;
+        // If available in cache, serve IMMEDIATELY (0ms latency on mobile!)
+        if (cached) {
+          return cached;
+        }
+
+        // If not yet in cache, await network fetch
+        const res = await networkFetch;
+        return res || cached;
       })
     );
     return;

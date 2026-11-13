@@ -616,6 +616,14 @@ export function normalizeCustomerRecords() {
         state.customers = [...dedupedProfiles, ...billsList];
         saveLocalStateSafely();
     }
+
+    if (typeof window !== 'undefined' && typeof window.auditAndRepairCustomerBalances === 'function') {
+        try {
+            window.auditAndRepairCustomerBalances();
+        } catch (e) {
+            console.warn('auditAndRepairCustomerBalances error:', e);
+        }
+    }
 }
 
 // -------------------------------------------------------------

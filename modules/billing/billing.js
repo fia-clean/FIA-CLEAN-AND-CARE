@@ -1658,6 +1658,30 @@ export function saveCustomer(e) {
                 rec.product.savedAt = Date.now();
             }
         });
+
+        // Revert any previous due settlements made by this bill before re-calculating
+        const targetBillNo = oldBill.billNo;
+        if (targetBillNo) {
+            const revertSettlement = (list) => {
+                (list || []).forEach(other => {
+                    if (!other || !Array.isArray(other.paymentHistory)) return;
+                    for (let pIdx = other.paymentHistory.length - 1; pIdx >= 0; pIdx--) {
+                        const p = other.paymentHistory[pIdx];
+                        if (p && p.note && (p.note.includes(`via Bill #${targetBillNo}`) || (oldBill.id && p.note.includes(`via Bill #${oldBill.id}`)))) {
+                            const remAmt = Number(p.amount || 0);
+                            other.paymentHistory.splice(pIdx, 1);
+                            other.pendingAmount = Math.round(((Number(other.pendingAmount || 0)) + remAmt) * 100) / 100;
+                            other.paidAmount = Math.max(0, Math.round(((Number(other.paidAmount || 0)) - remAmt) * 100) / 100);
+                            other.paid = other.paidAmount;
+                            other.balance = other.pendingAmount;
+                            other.savedAt = Date.now();
+                        }
+                    }
+                });
+            };
+            revertSettlement(state.customers);
+            revertSettlement(state.cosSales);
+        }
     }
 
     // Comprehensive Pre-Check: Validate bulk stock sufficiency for all bill items
@@ -1778,35 +1802,54 @@ export function saveCustomer(e) {
     let excessCash = Math.max(0, safePaidAmount - grandTotal);
     let duesSettled = 0;
 
-    // If customer paid extra beyond current bill, apply to previous unpaid bills (oldest first):
+    // If customer paid extra beyond current bill, apply to previous unpaid bills (FIFO oldest first across Cleaning & Cosmetics):
     if (excessCash > 0.001) {
-        const cleanCustName = name.toLowerCase();
+        const cleanCustName = name.toUpperCase();
+        const eligibleBills = [];
+
         (state.customers || []).forEach(c => {
-            if (excessCash <= 0.001) return;
             if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
-            if (String(c.name || '').trim().toLowerCase() !== cleanCustName) return;
+            if (String(c.name || '').trim().toUpperCase() !== cleanCustName) return;
             if (index >= 0 && (c.id === billId || c.billNo === billNo)) return;
             const cDue = Number(c.pendingAmount || 0);
             if (cDue > 0.001) {
-                const payPortion = Math.min(cDue, excessCash);
-                c.pendingAmount = Math.max(0, cDue - payPortion);
-                c.paidAmount = (Number(c.paidAmount || 0)) + payPortion;
-                c.totalReceived = Math.max(Number(c.totalReceived || 0), c.paidAmount);
-                c.paid = c.paidAmount;
-                c.balance = c.pendingAmount;
-                if (!Array.isArray(c.paymentHistory)) c.paymentHistory = [];
-                c.paymentHistory.push({
-                    id: generateUniqueRecordId('pay'),
-                    date: getTodayDateString(),
-                    amount: payPortion,
-                    paymentMode: document.getElementById('billPaymentMode')?.value || 'Cash',
-                    note: `Settled via Bill #${billNo}`,
-                    timestamp: Date.now()
-                });
-                c.savedAt = Date.now();
-                excessCash -= payPortion;
-                duesSettled += payPortion;
+                eligibleBills.push({ record: c, due: cDue, date: c.date, isCos: false });
             }
+        });
+
+        (state.cosSales || []).forEach(s => {
+            if (!s || isCustItemDeleted(s) || s.isCancelled || s.status === 'cancelled') return;
+            const norm = typeof normalizeCosSale === 'function' ? normalizeCosSale(s) : s;
+            if (String(s.customer || norm.customer || '').trim().toUpperCase() !== cleanCustName) return;
+            const sDue = Number(norm.pendingAmount || 0);
+            if (sDue > 0.001) {
+                eligibleBills.push({ record: s, due: sDue, date: s.date, isCos: true });
+            }
+        });
+
+        eligibleBills.sort((a, b) => dateSortValue(a.date) - dateSortValue(b.date));
+
+        eligibleBills.forEach(item => {
+            if (excessCash <= 0.001) return;
+            const c = item.record;
+            const payPortion = Math.min(item.due, excessCash);
+            c.pendingAmount = Math.max(0, Math.round((item.due - payPortion) * 100) / 100);
+            c.paidAmount = Math.round(((Number(c.paidAmount || 0)) + payPortion) * 100) / 100;
+            c.totalReceived = Math.max(Number(c.totalReceived || 0), c.paidAmount);
+            c.paid = c.paidAmount;
+            c.balance = c.pendingAmount;
+            if (!Array.isArray(c.paymentHistory)) c.paymentHistory = [];
+            c.paymentHistory.push({
+                id: generateUniqueRecordId('pay'),
+                date: getTodayDateString(),
+                amount: payPortion,
+                paymentMode: document.getElementById('billPaymentMode')?.value || 'Cash',
+                note: `Settled via Bill #${billNo}`,
+                timestamp: Date.now()
+            });
+            c.savedAt = Date.now();
+            excessCash = Math.max(0, Math.round((excessCash - payPortion) * 100) / 100);
+            duesSettled += payPortion;
         });
     }
 
@@ -1951,7 +1994,7 @@ export function editCustomerBill(identifier) {
     renderBillPreviewInput();
     const discountEl = document.getElementById('billDiscountAmt');
     if (discountEl) discountEl.value = (c.discount !== undefined && Number(c.discount) > 0) ? Number(c.discount) : '';
-    document.getElementById('billPaidAmt').value = c.paidAmount !== undefined ? Number(c.paidAmount) : (c.totalReceived !== undefined ? Number(c.totalReceived) : Number(c.grandTotal || 0));
+    document.getElementById('billPaidAmt').value = c.totalReceived !== undefined ? Number(c.totalReceived) : (c.paidAmount !== undefined ? Number(c.paidAmount) : Number(c.grandTotal || 0));
     const paymentModeEl = document.getElementById('billPaymentMode');
     if (paymentModeEl) paymentModeEl.value = c.paymentMode || 'Cash';
     

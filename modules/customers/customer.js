@@ -565,7 +565,8 @@ export function getCustomerTotalPendingDue(custName, excludeBillId = null) {
                 paidAmount: p,
                 pendingAmount: pending,
                 id: c.id,
-                index: idx
+                index: idx,
+                isCosmetics: false
             });
         }
         // Calculate customer credit / advance balance retained from change/excess
@@ -579,7 +580,34 @@ export function getCustomerTotalPendingDue(custName, excludeBillId = null) {
                 paidAmount: p,
                 creditAmount: credit,
                 id: c.id,
-                index: idx
+                index: idx,
+                isCosmetics: false
+            });
+        }
+    });
+
+    // Also include Cosmetics Bills (state.cosSales) in total pending dues
+    (state.cosSales || []).forEach((s, idx) => {
+        if (!s || isCustItemDeleted(s) || s.isCancelled || s.status === 'cancelled') return;
+        if (excludeBillId !== null && excludeBillId !== undefined) {
+            if (String(s.id) === String(excludeBillId) || String(s.billNo) === String(excludeBillId) || idx === excludeBillId) return;
+        }
+        const norm = typeof normalizeCosSale === 'function' ? normalizeCosSale(s) : s;
+        if (String(s.customer || norm.customer || '').trim().toUpperCase() !== cleanName) return;
+        const g = Number(norm.grandTotal || 0);
+        const p = Number(norm.paidAmount || 0);
+        const pending = Number(norm.pendingAmount || 0);
+        if (pending > 0.001) {
+            totalPending += pending;
+            unpaidBills.push({
+                billNo: s.billNo || 'Bill',
+                date: s.date,
+                grandTotal: g,
+                paidAmount: p,
+                pendingAmount: pending,
+                id: s.id,
+                index: idx,
+                isCosmetics: true
             });
         }
     });
@@ -592,6 +620,113 @@ export function getCustomerTotalPendingDue(custName, excludeBillId = null) {
         creditBillCount: creditBills.length,
         creditBills
     };
+}
+
+export function auditAndRepairCustomerBalances() {
+    if (!Array.isArray(state.customers)) return false;
+    let modified = false;
+
+    const allNames = new Set();
+    state.customers.forEach(c => {
+        if (c && c.name && !isCustItemDeleted(c)) allNames.add(String(c.name).trim().toUpperCase());
+    });
+    if (Array.isArray(state.cosSales)) {
+        state.cosSales.forEach(s => {
+            if (s && !isCustItemDeleted(s)) {
+                const norm = typeof normalizeCosSale === 'function' ? normalizeCosSale(s) : s;
+                const name = String(s.customer || norm.customer || '').trim().toUpperCase();
+                if (name) allNames.add(name);
+            }
+        });
+    }
+
+    allNames.forEach(custName => {
+        const custCleaningBills = (state.customers || []).filter(c => c && !isCustItemDeleted(c) && !c.isCancelled && c.status !== 'cancelled' && c.billNo && String(c.name || '').trim().toUpperCase() === custName);
+        const custCosBills = (state.cosSales || []).filter(s => s && !isCustItemDeleted(s) && !s.isCancelled && s.status !== 'cancelled' && s.billNo && String(s.customer || (typeof normalizeCosSale === 'function' ? normalizeCosSale(s).customer : '') || '').trim().toUpperCase() === custName);
+
+        const allCustBills = [
+            ...custCleaningBills.map(b => ({ record: b, isCos: false })),
+            ...custCosBills.map(s => ({ record: s, isCos: true }))
+        ].sort((a, b) => {
+            const dA = dateSortValue(a.record.date || a.record.createdAt || 0);
+            const dB = dateSortValue(b.record.date || b.record.createdAt || 0);
+            return dA - dB;
+        });
+
+        allCustBills.forEach(({ record: b }) => {
+            const gTotal = Number(b.grandTotal !== undefined ? b.grandTotal : (b.total || 0));
+            const totRec = Number(b.totalReceived !== undefined ? b.totalReceived : (b.paidAmount !== undefined ? b.paidAmount : gTotal));
+            
+            // If this bill received payment in excess of its grandTotal to settle older dues
+            if (totRec > gTotal + 0.001) {
+                const excessToSettle = totRec - gTotal;
+                
+                // If this bill itself erroneously had pendingAmount > 0 while it received excess payment, clear it!
+                if (b.pendingAmount !== undefined && Number(b.pendingAmount) > 0.001) {
+                    b.pendingAmount = 0;
+                    b.balance = 0;
+                    b.paidAmount = gTotal;
+                    b.paid = gTotal;
+                    b.savedAt = Date.now();
+                    modified = true;
+                }
+
+                // Verify older bills received this settlement
+                const olderBills = allCustBills.filter(item => {
+                    if (item.record.id === b.id || item.record.billNo === b.billNo) return false;
+                    const dCur = dateSortValue(b.date || b.createdAt || 0);
+                    const dOlder = dateSortValue(item.record.date || item.record.createdAt || 0);
+                    return dOlder <= dCur;
+                });
+
+                let settledFound = 0;
+                olderBills.forEach(item => {
+                    const rec = item.record;
+                    if (Array.isArray(rec.paymentHistory)) {
+                        rec.paymentHistory.forEach(p => {
+                            if (p && p.note && (p.note.includes(`via Bill #${b.billNo}`) || p.note.includes(`via Bill #${b.id}`))) {
+                                settledFound += Number(p.amount || 0);
+                            }
+                        });
+                    }
+                });
+
+                if (settledFound < excessToSettle - 0.01) {
+                    let remSettle = excessToSettle - settledFound;
+                    for (const item of olderBills) {
+                        if (remSettle <= 0.001) break;
+                        const rec = item.record;
+                        const curPending = Number(rec.pendingAmount !== undefined ? rec.pendingAmount : Math.max(0, Number(rec.grandTotal || 0) - Number(rec.paidAmount || 0)));
+                        if (curPending > 0.001) {
+                            const portion = Math.min(curPending, remSettle);
+                            rec.pendingAmount = Math.max(0, Math.round((curPending - portion) * 100) / 100);
+                            rec.paidAmount = Math.round(((Number(rec.paidAmount || 0)) + portion) * 100) / 100;
+                            rec.totalReceived = Math.max(Number(rec.totalReceived || 0), rec.paidAmount);
+                            rec.paid = rec.paidAmount;
+                            rec.balance = rec.pendingAmount;
+                            if (!Array.isArray(rec.paymentHistory)) rec.paymentHistory = [];
+                            rec.paymentHistory.push({
+                                id: generateUniqueRecordId('pay'),
+                                date: b.date || getTodayDateString(),
+                                amount: portion,
+                                paymentMode: b.paymentMode || 'Cash',
+                                note: `Settled via Bill #${b.billNo || b.id}`,
+                                timestamp: Date.now()
+                            });
+                            rec.savedAt = Date.now();
+                            remSettle = Math.max(0, Math.round((remSettle - portion) * 100) / 100);
+                            modified = true;
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+    if (modified) {
+        saveLocalStateSafely();
+    }
+    return modified;
 }
 
 export function fillExistingCustomer() {
@@ -939,6 +1074,7 @@ export function openCustomerConsolidationCustomer(encodedName) {
         customerBills.push({
             billNo: c.billNo || '—',
             date: c.date,
+            createdAt: c.createdAt || c.timestamp || c.savedAt || 0,
             grandTotal: g,
             paidAmount: p,
             pendingAmount: d,
@@ -958,6 +1094,7 @@ export function openCustomerConsolidationCustomer(encodedName) {
         customerBills.push({
             billNo: s.billNo || '—',
             date: s.date,
+            createdAt: s.createdAt || s.timestamp || s.savedAt || 0,
             grandTotal: g,
             paidAmount: p,
             pendingAmount: d,
@@ -968,7 +1105,17 @@ export function openCustomerConsolidationCustomer(encodedName) {
         });
     });
 
-    customerBills.sort((a, b) => dateSortValue(b.date) - dateSortValue(a.date));
+    // Sort customer bills in strict descending order (Latest purchase first)
+    customerBills.sort((a, b) => {
+        const diffDate = (dateSortValue(b.date) || 0) - (dateSortValue(a.date) || 0);
+        if (diffDate !== 0) return diffDate;
+        const seqB = parseInt(String(b.billNo || '').replace(/\D/g, ''), 10) || 0;
+        const seqA = parseInt(String(a.billNo || '').replace(/\D/g, ''), 10) || 0;
+        if (seqB !== seqA) return seqB - seqA;
+        const timeB = Number(b.createdAt || 0);
+        const timeA = Number(a.createdAt || 0);
+        return timeB - timeA;
+    });
 
     const phone = ((state.customers || []).find(c => c && !isCustItemDeleted(c) && String(c.name || '').trim().toUpperCase() === name && c.phone)?.phone) ||
         ((state.cosSales || []).find(s => s && !isCustItemDeleted(s) && String(s.customer || '').trim().toUpperCase() === name && s.phone)?.phone || '');
@@ -1627,11 +1774,45 @@ export function shareSelectedCustomerConsolidatedDetail() {
 
 export function viewCustomerProfile(name) {
     const upperTarget = String(name || '').trim().toUpperCase();
-    const custBills = (state.customers || []).filter(c => c && !isCustItemDeleted(c) && !c.isCancelled && c.status !== 'cancelled' && String(c.name || '').trim().toUpperCase() === upperTarget);
+    const cleanBills = (state.customers || []).filter(c => c && !isCustItemDeleted(c) && !c.isCancelled && c.status !== 'cancelled' && String(c.name || '').trim().toUpperCase() === upperTarget).map(c => ({
+        billNo: c.billNo || 'Bill',
+        date: c.date,
+        createdAt: c.createdAt || c.timestamp || c.savedAt || 0,
+        grandTotal: Number(c.grandTotal || 0),
+        paidAmount: Math.min(Number(c.grandTotal || 0), Number(c.paidAmount !== undefined ? c.paidAmount : (c.grandTotal || 0))),
+        pendingAmount: Math.max(0, Number(c.pendingAmount || 0)),
+        isCos: false,
+        phone: c.phone
+    }));
+    const cosBills = (state.cosSales || []).filter(s => s && !isCustItemDeleted(s) && !s.isCancelled && s.status !== 'cancelled' && String(s.customer || '').trim().toUpperCase() === upperTarget).map(s => {
+        const norm = typeof normalizeCosSale === 'function' ? normalizeCosSale(s) : s;
+        const g = Number(norm.grandTotal || 0);
+        const p = Number(norm.paidAmount || 0);
+        return {
+            billNo: s.billNo || 'COS-Bill',
+            date: s.date,
+            createdAt: s.createdAt || s.timestamp || s.savedAt || 0,
+            grandTotal: g,
+            paidAmount: p,
+            pendingAmount: Math.max(0, Number(norm.pendingAmount || 0)),
+            isCos: true,
+            phone: s.phone
+        };
+    });
+
+    const custBills = [...cleanBills, ...cosBills].sort((a, b) => {
+        const diffDate = (dateSortValue(b.date) || 0) - (dateSortValue(a.date) || 0);
+        if (diffDate !== 0) return diffDate;
+        const seqB = parseInt(String(b.billNo || '').replace(/\D/g, ''), 10) || 0;
+        const seqA = parseInt(String(a.billNo || '').replace(/\D/g, ''), 10) || 0;
+        if (seqB !== seqA) return seqB - seqA;
+        return Number(b.createdAt || 0) - Number(a.createdAt || 0);
+    });
+
     const phone = custBills.find(c => c.phone)?.phone || 'No mobile';
     const totalPurchase = custBills.reduce((sum, c) => sum + Number(c.grandTotal || 0), 0);
-    const totalPaid = custBills.reduce((sum, c) => sum + Math.min(Number(c.grandTotal || 0), Number(c.paidAmount !== undefined ? c.paidAmount : (c.grandTotal || 0))), 0);
-    const totalPending = custBills.reduce((sum, c) => sum + Math.max(0, Number(c.pendingAmount || 0)), 0);
+    const totalPaid = custBills.reduce((sum, c) => sum + Number(c.paidAmount || 0), 0);
+    const totalPending = custBills.reduce((sum, c) => sum + Number(c.pendingAmount || 0), 0);
     
     const html = `
         <div class="space-y-3 text-xs">
@@ -1645,14 +1826,18 @@ export function viewCustomerProfile(name) {
                 </div>
             </div>
             <div class="space-y-1.5 max-h-60 overflow-y-auto">
-                <p class="text-[10px] font-bold text-slate-400 uppercase">Recent Invoices</p>
+                <p class="text-[10px] font-bold text-slate-400 uppercase">Recent Invoices (Latest First)</p>
                 ${custBills.map(b => `
                     <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between items-center text-[11px]">
                         <div>
-                            <span class="font-bold text-cyan-300">#${b.billNo || 'Bill'}</span>
+                            <span class="font-bold ${b.isCos ? 'text-pink-300' : 'text-cyan-300'}">#${b.billNo}</span>
+                            ${b.isCos ? '<span class="text-[9px] bg-pink-950 text-pink-300 px-1 py-0.2 rounded border border-pink-800 ml-1">Cos</span>' : ''}
                             <span class="text-slate-400 ml-1.5">${formatDateDDMMYYYY(b.date)}</span>
                         </div>
-                        <div class="font-bold text-white">₹${Number(b.grandTotal || 0).toFixed(2)}</div>
+                        <div class="text-right">
+                            <span class="font-bold text-white">₹${Number(b.grandTotal || 0).toFixed(2)}</span>
+                            ${b.pendingAmount > 0.001 ? `<span class="text-rose-400 text-[10px] ml-1.5 block sm:inline font-bold">Due: ₹${b.pendingAmount.toFixed(2)}</span>` : ''}
+                        </div>
                     </div>
                 `).join('') || '<p class="text-slate-500 text-[11px]">No invoices recorded.</p>'}
             </div>
@@ -1742,6 +1927,7 @@ if (typeof window !== 'undefined') {
     window.shareDuePaymentReceiptWhatsApp = shareDuePaymentReceiptWhatsApp;
     window.viewCustomerProfile = viewCustomerProfile;
     window.renderCustomers = renderCustomers;
+    window.auditAndRepairCustomerBalances = auditAndRepairCustomerBalances;
     window.onBillingCustomerSearchInput = onBillingCustomerSearchInput;
     window.openBillingCustomerDropdown = openBillingCustomerDropdown;
     window.closeBillingCustomerDropdown = closeBillingCustomerDropdown;

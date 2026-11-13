@@ -222,13 +222,48 @@ export function renderDueAmountList() {
     const totalEl = document.getElementById('dueAmountListTotal');
     if (!container) return;
 
-    const dueRows = (state.customers || []).map((c, index) => ({
+    // Helper: Sort bills in strict descending order (Latest purchase first)
+    const compareBillsDescending = (a, b) => {
+        const diffDate = (dateSortValue(b && b.date) || 0) - (dateSortValue(a && a.date) || 0);
+        if (diffDate !== 0) return diffDate;
+        const seqB = parseInt(String(b && b.billNo || '').replace(/\D/g, ''), 10) || 0;
+        const seqA = parseInt(String(a && a.billNo || '').replace(/\D/g, ''), 10) || 0;
+        if (seqB !== seqA) return seqB - seqA;
+        const timeB = Number((b && (b.createdAt || b.timestamp || b.savedAt)) || 0);
+        const timeA = Number((a && (a.createdAt || a.timestamp || a.savedAt)) || 0);
+        return timeB - timeA;
+    };
+
+    // 1. Collect all Cleaning bills with pending dues
+    const cleanDueRows = (state.customers || []).map((c, index) => ({
         c,
         index,
+        isCos: false,
         due: Math.max(0, Number(c && c.pendingAmount || 0))
-    }))
-    .filter(row => row.c && row.due > 0 && !row.c.isCancelled && row.c.status !== 'cancelled' && !isCustItemDeleted(row.c))
-    .sort((a, b) => b.due - a.due);
+    })).filter(row => row.c && row.due > 0.001 && !row.c.isCancelled && row.c.status !== 'cancelled' && !isCustItemDeleted(row.c));
+
+    // 2. Collect all Cosmetic bills with pending dues
+    const cosDueRows = (state.cosSales || []).map((s, index) => {
+        const norm = typeof normalizeCosSale === 'function' ? normalizeCosSale(s) : s;
+        const gTotal = Number(norm.grandTotal !== undefined ? norm.grandTotal : (s.grandTotal || s.total || 0));
+        const paid = Number(norm.paidAmount !== undefined ? norm.paidAmount : (s.paidAmount || s.paid || 0));
+        const pending = Number(norm.pendingAmount !== undefined ? norm.pendingAmount : Math.max(0, gTotal - paid));
+        return {
+            c: {
+                ...s,
+                name: s.customer || norm.customer || 'Cosmetics Customer',
+                grandTotal: gTotal,
+                paidAmount: paid,
+                pendingAmount: pending
+            },
+            index,
+            isCos: true,
+            due: Math.max(0, pending)
+        };
+    }).filter(row => row.c && row.due > 0.001 && !row.c.isCancelled && row.c.status !== 'cancelled' && !isCustItemDeleted(row.c));
+
+    // Combine and sort by newest purchase first
+    const dueRows = [...cleanDueRows, ...cosDueRows].sort((a, b) => compareBillsDescending(a.c, b.c));
 
     const totalDue = dueRows.reduce((sum, row) => sum + row.due, 0);
     if (totalEl) totalEl.textContent = 'Total Due: ' + money(totalDue);
@@ -239,7 +274,7 @@ export function renderDueAmountList() {
 
     if (dueListViewMode === 'customer') {
         const custGroups = new Map();
-        dueRows.forEach(({ c, index, due }) => {
+        dueRows.forEach(({ c, index, due, isCos }) => {
             const rawName = getDueCustomerName(c);
             const key = rawName.toUpperCase();
             if (!custGroups.has(key)) {
@@ -255,31 +290,45 @@ export function renderDueAmountList() {
             const group = custGroups.get(key);
             group.totalDue += due;
             group.billCount += 1;
-            group.bills.push({ c, index, due });
+            group.bills.push({ c, index, due, isCos });
             if (dateSortValue(c.date) > dateSortValue(group.lastDate)) {
                 group.lastDate = c.date;
             }
             if (!group.phone && c.phone) group.phone = c.phone;
         });
 
-        const sortedCusts = Array.from(custGroups.values()).sort((a, b) => b.totalDue - a.totalDue);
+        // Sort customer groups: Most recent active customer first, then highest due
+        const sortedCusts = Array.from(custGroups.values()).sort((a, b) => {
+            const dDiff = (dateSortValue(b.lastDate) || 0) - (dateSortValue(a.lastDate) || 0);
+            if (dDiff !== 0) return dDiff;
+            return b.totalDue - a.totalDue;
+        });
         
         container.innerHTML = sortedCusts.map(cg => {
             const safeName = String(cg.name).replace(/'/g, "\\'");
             const phoneText = cg.phone && String(cg.phone).trim() ? String(cg.phone).trim() : 'No mobile';
             const dateText = formatDateDDMMYYYY(cg.lastDate) || 'No date';
 
-            const billsHtml = (cg.bills || []).map(b => {
+            // CRITICAL: Sort individual customer bills in Descending Order (Latest Purchase First!)
+            const sortedCustomerBills = (cg.bills || []).slice().sort((a, b) => compareBillsDescending(a.c, b.c));
+
+            const billsHtml = sortedCustomerBills.map(b => {
                 const bCustName = getDueCustomerName(b.c);
                 const bPhone = b.c.phone && String(b.c.phone).trim() ? String(b.c.phone).trim() : phoneText;
                 const bDate = formatDateDDMMYYYY(b.c.date) || 'No date';
                 const bTarget = b.c.billNo || b.c.id || b.index;
+                const viewFn = b.isCos ? `window.previewCosSaleBill('${bTarget}')` : `window.previewBill('${bTarget}')`;
+                const editFn = b.isCos 
+                    ? `window.editCosSaleBill ? window.editCosSaleBill('${bTarget}') : window.previewCosSaleBill('${bTarget}')` 
+                    : `window.editCustomerBill('${bTarget}')`;
+
                 return `
                 <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2 flex items-start justify-between gap-2 text-xs">
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1.5 flex-wrap">
                             <span class="font-bold text-white text-xs truncate">${bCustName}</span>
                             ${b.c.billNo ? `<span class="text-[10px] font-mono text-sky-400 bg-sky-950/80 px-1.5 py-0.5 rounded border border-sky-800/60">#${b.c.billNo}</span>` : ''}
+                            ${b.isCos ? `<span class="text-[9px] bg-pink-950 text-pink-300 px-1 py-0.5 rounded border border-pink-800 font-semibold">Cosmetics</span>` : ''}
                         </div>
                         <p class="text-[10.5px] text-slate-300 mt-0.5 leading-snug break-words">
                             <span class="font-bold text-slate-100">${bCustName}</span> • <span class="text-slate-300 font-mono">📞 ${bPhone}</span> • <span class="text-slate-400 font-mono">📅 ${bDate}</span>
@@ -291,8 +340,8 @@ export function renderDueAmountList() {
                             <span class="text-[8px] text-slate-500 block">Due</span>
                         </div>
                         <div class="flex items-center gap-1">
-                            <button type="button" onclick="window.closeDueAmountList(true); window.previewBill('${bTarget}');" class="bg-blue-900 hover:bg-blue-800 text-blue-200 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-800 cursor-pointer">View</button>
-                            <button type="button" onclick="window.closeDueAmountList(true); if(history.state) history.replaceState({ loggedIn: true, tab: 'billing' }, '', '#billing'); window.editCustomerBill('${bTarget}');" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700 cursor-pointer">Edit</button>
+                            <button type="button" onclick="window.closeDueAmountList(true); ${viewFn};" class="bg-blue-900 hover:bg-blue-800 text-blue-200 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-800 cursor-pointer">View</button>
+                            <button type="button" onclick="window.closeDueAmountList(true); if(history.state) history.replaceState({ loggedIn: true, tab: 'billing' }, '', '#billing'); ${editFn};" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700 cursor-pointer">Edit</button>
                         </div>
                     </div>
                 </div>`;
@@ -316,7 +365,7 @@ export function renderDueAmountList() {
                     </div>
                 </div>
 
-                <!-- Customer's Individual Bills List with Customer Name -->
+                <!-- Customer's Individual Bills List in Descending Order -->
                 <div class="space-y-1.5 pt-0.5">
                     ${billsHtml}
                 </div>
@@ -336,10 +385,15 @@ export function renderDueAmountList() {
             </div>`;
         }).join('');
     } else {
-        container.innerHTML = dueRows.map(({ c, index, due }) => {
+        container.innerHTML = dueRows.map(({ c, index, due, isCos }) => {
             const custName = getDueCustomerName(c);
             const phoneText = c.phone && String(c.phone).trim() ? String(c.phone).trim() : 'No mobile';
             const dateText = formatDateDDMMYYYY(c.date) || 'No date';
+            const targetId = c.billNo || c.id || index;
+            const viewFn = isCos ? `window.previewCosSaleBill('${targetId}')` : `window.previewBill('${targetId}')`;
+            const editFn = isCos 
+                ? `window.editCosSaleBill ? window.editCosSaleBill('${targetId}') : window.previewCosSaleBill('${targetId}')` 
+                : `window.editCustomerBill('${targetId}')`;
 
             return `
             <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
@@ -348,6 +402,7 @@ export function renderDueAmountList() {
                         <div class="flex items-center gap-1.5 flex-wrap">
                             <p class="font-bold text-white text-sm truncate">${custName}</p>
                             ${c.billNo ? `<span class="text-[10px] font-mono text-sky-400 bg-sky-950/80 px-1.5 py-0.5 rounded border border-sky-800/60">#${c.billNo}</span>` : ''}
+                            ${isCos ? `<span class="text-[9px] bg-pink-950 text-pink-300 px-1 py-0.5 rounded border border-pink-800 font-semibold">Cosmetics</span>` : ''}
                         </div>
                         <p class="text-[11px] text-slate-300 mt-1 leading-snug break-words">
                             <span class="font-bold text-slate-100">${custName}</span> • <span class="text-slate-300 font-mono">📞 ${phoneText}</span> • <span class="text-slate-400 font-mono">📅 ${dateText}</span>
@@ -359,9 +414,9 @@ export function renderDueAmountList() {
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-1.5 mt-2.5">
-                    <button type="button" onclick="window.closeDueAmountList(true); window.previewBill('${c.billNo || c.id || index}');" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 text-[10px] font-bold">View</button>
-                    <button type="button" onclick="window.closeDueAmountList(true); if(history.state) history.replaceState({ loggedIn: true, tab: 'billing' }, '', '#billing'); window.editCustomerBill('${c.billNo || c.id || index}');" class="bg-slate-800 text-emerald-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Edit</button>
-                    <button type="button" onclick="window.deleteDueBillFromList('${c.billNo || c.id || index}')" class="bg-slate-800 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Delete</button>
+                    <button type="button" onclick="window.closeDueAmountList(true); ${viewFn};" class="bg-blue-900 text-blue-200 px-2.5 py-1.5 rounded-lg border border-blue-800 text-[10px] font-bold">View</button>
+                    <button type="button" onclick="window.closeDueAmountList(true); if(history.state) history.replaceState({ loggedIn: true, tab: 'billing' }, '', '#billing'); ${editFn};" class="bg-slate-800 text-emerald-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Edit</button>
+                    <button type="button" onclick="window.deleteDueBillFromList('${targetId}')" class="bg-slate-800 text-red-400 px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-bold">Delete</button>
                 </div>
             </div>`;
         }).join('');

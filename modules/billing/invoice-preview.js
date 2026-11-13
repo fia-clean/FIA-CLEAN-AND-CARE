@@ -111,8 +111,8 @@ export function previewBill(identifier) {
     const prevDueVal = Number(c.previousDue || 0);
     const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
     const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
-    const paidVal = Number(c.paidAmount !== undefined ? c.paidAmount : (c.totalReceived !== undefined ? c.totalReceived : grandVal));
-    const finalPending = Math.max(0, Number(c.pendingAmount !== undefined ? c.pendingAmount : (totalWithDueVal - paidVal)));
+    const paidVal = Number(c.totalReceived !== undefined ? c.totalReceived : (c.paidAmount !== undefined ? c.paidAmount : grandVal));
+    const finalPending = Math.max(0, prevDueVal > 0 ? (totalWithDueVal - paidVal) : Number(c.pendingAmount !== undefined ? c.pendingAmount : (grandVal - paidVal)));
     const excessVal = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paidVal - totalWithDueVal);
 
     const billHTML = `
@@ -455,7 +455,7 @@ function getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal
     const prevDueVal = Number(c.previousDue || 0);
     const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
     const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
-    const finalPending = Math.max(0, Number(c.pendingAmount !== undefined ? c.pendingAmount : (totalWithDueVal - paidVal)));
+    const finalPending = Math.max(0, prevDueVal > 0 ? (totalWithDueVal - paidVal) : Number(c.pendingAmount !== undefined ? c.pendingAmount : (grandVal - paidVal)));
 
     return `
         <div class="totals-container" style="page-break-inside: avoid !important; break-inside: avoid !important; margin-top: 14px;">
@@ -536,9 +536,11 @@ export function generateA4Pages(c) {
     const brandBadge = isWholesale ? (isCosmetics ? '🏷️ COSMETICS WHOLESALE' : '🏷️ WHOLESALE INVOICE') : (isCosmetics ? '💄 COSMETICS RETAIL' : '🛍️ RETAIL INVOICE');
 
     const grandVal = Number(c.grandTotal !== undefined ? c.grandTotal : (c.netTotal || c.total || 0));
-    const paidVal = Number(c.paidAmount !== undefined ? c.paidAmount : (grandVal - Number(c.pendingAmount || 0)));
-    const pendingVal = Math.max(0, Number(c.pendingAmount !== undefined ? c.pendingAmount : (grandVal - paidVal)));
-    const excessVal = Math.max(0, Number(c.excessAmount !== undefined ? c.excessAmount : (paidVal - grandVal)));
+    const paidVal = Number(c.totalReceived !== undefined ? c.totalReceived : (c.paidAmount !== undefined ? c.paidAmount : (grandVal - Number(c.pendingAmount || 0))));
+    const prevDueVal = Number(c.previousDue || 0);
+    const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
+    const pendingVal = Math.max(0, prevDueVal > 0 ? (totalWithDueVal - paidVal) : Number(c.pendingAmount !== undefined ? c.pendingAmount : (grandVal - paidVal)));
+    const excessVal = Math.max(0, Number(c.excessAmount !== undefined ? c.excessAmount : (paidVal - totalWithDueVal)));
 
     const allItems = sortBillItemsAlphabetically(c.items || []);
     const itemsCount = allItems.length;

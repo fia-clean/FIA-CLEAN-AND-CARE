@@ -113,7 +113,8 @@ import {
     handleBillingCustomerKeyDown,
     renderBillingCustomerDropdown,
     activateManualCustomerEntry,
-    onManualCustNameChange
+    onManualCustNameChange,
+    auditAndRepairCustomerBalances
 } from './customers/customer.js';
 
 import {
@@ -1110,6 +1111,9 @@ if (typeof window !== 'undefined') {
 
         try {
             loadFromLocalStorage();
+            if (typeof auditAndRepairCustomerBalances === 'function') {
+                auditAndRepairCustomerBalances();
+            }
         } catch (e) {
             console.error('loadFromLocalStorage error:', e);
         }

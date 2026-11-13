@@ -120,8 +120,11 @@ export function getSalesHistoryRows() {
     });
 
     return rows.sort((a, b) => {
-        const d = dateSortValue(b.date) - dateSortValue(a.date);
+        const d = (dateSortValue(b.date) || 0) - (dateSortValue(a.date) || 0);
         if (d !== 0) return d;
+        const seqB = parseInt(String(b.billNo || '').replace(/\D/g, ''), 10) || 0;
+        const seqA = parseInt(String(a.billNo || '').replace(/\D/g, ''), 10) || 0;
+        if (seqB !== seqA) return seqB - seqA;
         const tB = b.savedAt ? new Date(b.savedAt).getTime() : 0;
         const tA = a.savedAt ? new Date(a.savedAt).getTime() : 0;
         if (tB && tA && tB !== tA) return tB - tA;
