@@ -590,7 +590,7 @@
 
             // Automatic Cache Buster & SW Upgrade on Version Change
             (function() {
-                var CURRENT_APP_VERSION = '51.2.33';
+                var CURRENT_APP_VERSION = '51.2.34';
                 try {
                     var storedVer = localStorage.getItem('fia_app_version');
                     if (storedVer && storedVer !== CURRENT_APP_VERSION) {
@@ -607,7 +607,7 @@
                             }).catch(function() {});
                         }
                         setTimeout(function() {
-                            window.location.href = window.location.pathname + '?v=' + Date.now();
+                            window.location.replace(window.location.origin + window.location.pathname + '?forceUpdate=' + Date.now());
                         }, 250);
                     } else if (!storedVer) {
                         localStorage.setItem('fia_app_version', CURRENT_APP_VERSION);
@@ -617,9 +617,9 @@
 
             // Force App Update & Cache Busting (Available immediately on page boot)
             window.forceAppUpdate = async function() {
-                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.33) immediately.")) {
+                if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.34) immediately.")) {
                     try {
-                        localStorage.setItem('fia_app_version', '51.2.33');
+                        localStorage.removeItem('fia_app_version');
                         if ('serviceWorker' in navigator) {
                             var registrations = await navigator.serviceWorker.getRegistrations();
                             for (var i = 0; i < registrations.length; i++) {
@@ -635,7 +635,7 @@
                     } catch (e) {
                         console.error('Cache clear error:', e);
                     }
-                    window.location.href = window.location.pathname + '?v=' + Date.now();
+                    window.location.replace(window.location.origin + window.location.pathname + '?forceUpdate=' + Date.now());
                 }
             };
 
@@ -984,7 +984,7 @@
                 </span>
                 <span id="topAppVersionBadge" class="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-white/95 border border-slate-300/90 px-2.5 py-1 rounded-full shadow-2xs whitespace-nowrap shrink-0 cursor-pointer hover:bg-slate-100 transition" onclick="forceAppUpdate()" title="FIA App Version. Tap to check updates / clear cache">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>v51.2.33</span>
+                    <span>v51.2.34</span>
                 </span>
             </div>
             <!-- Line 2: Quick Action Buttons (Compact 4-Column Grid on Mobile, Flex on Desktop) -->
@@ -3744,7 +3744,7 @@
     <div id="printSection" class="hidden"></div>
 
     <!-- JavaScript Application Logic (Modular ES6 Architecture) -->
-    <script type="module" src="./modules/app.js?v=51.2.33"></script>
+    <script type="module" src="./modules/app.js?v=51.2.34"></script>
 
     <!-- Fast In-App Notification Toast (Non-blocking) -->
     <div id="appToastBanner" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-[9999999] px-4 py-2.5 rounded-2xl text-xs font-extrabold shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2"></div>
@@ -3757,29 +3757,6 @@
 
     <!-- PWA Service Worker Registration, Instant Cache Refresh & Install Banner -->
     <script>
-        // Force App Update & Cache Busting
-        window.forceAppUpdate = async function() {
-            if (confirm("Load new updates and clear cache?\n\nThis will activate the latest version (v51.2.33) immediately.")) {
-                try {
-                    if ('serviceWorker' in navigator) {
-                        var registrations = await navigator.serviceWorker.getRegistrations();
-                        for (var i = 0; i < registrations.length; i++) {
-                            await registrations[i].unregister();
-                        }
-                    }
-                    if ('caches' in window) {
-                        var cacheKeys = await caches.keys();
-                        for (var j = 0; j < cacheKeys.length; j++) {
-                            await caches.delete(cacheKeys[j]);
-                        }
-                    }
-                } catch (e) {
-                    console.error('Cache clear error:', e);
-                }
-                window.location.href = window.location.pathname + '?v=' + Date.now();
-            }
-        };
-
         // PWA Install Prompt Handling
         var deferredPwaPrompt = null;
         window.addEventListener('beforeinstallprompt', function(e) {
@@ -3813,7 +3790,7 @@
 
         if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js?v=51.2.33')
+                navigator.serviceWorker.register('./sw.js?v=51.2.34')
                     .then(function(reg) {
                         console.log('FIA Service Worker registered, scope:', reg.scope);
                         reg.update();

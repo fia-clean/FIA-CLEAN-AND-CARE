@@ -127,6 +127,13 @@ export function updateRecentTransactions() {
 
 export function openDueAmountList() {
     pushDashboardModalState('dueAmount');
+    if (typeof window.auditAndRepairCustomerBalances === 'function') {
+        try {
+            window.auditAndRepairCustomerBalances();
+        } catch (e) {
+            console.warn('auditAndRepairCustomerBalances error in openDueAmountList:', e);
+        }
+    }
     renderDueAmountList();
     const modal = document.getElementById('dueAmountListModal');
     if (modal) modal.classList.remove('hidden');
@@ -222,6 +229,14 @@ export function renderDueAmountList() {
     const totalEl = document.getElementById('dueAmountListTotal');
     if (!container) return;
 
+    if (typeof window.auditAndRepairCustomerBalances === 'function') {
+        try {
+            window.auditAndRepairCustomerBalances();
+        } catch (e) {
+            console.warn('auditAndRepairCustomerBalances in renderDueAmountList:', e);
+        }
+    }
+
     // Helper: Sort bills in strict descending order (Latest purchase first)
     const compareBillsDescending = (a, b) => {
         const diffDate = (dateSortValue(b && b.date) || 0) - (dateSortValue(a && a.date) || 0);
@@ -297,11 +312,11 @@ export function renderDueAmountList() {
             if (!group.phone && c.phone) group.phone = c.phone;
         });
 
-        // Sort customer groups: Most recent active customer first, then highest due
+        // Sort customer groups: 1st Criteria - Highest Total Due Amount First (Descending)
         const sortedCusts = Array.from(custGroups.values()).sort((a, b) => {
-            const dDiff = (dateSortValue(b.lastDate) || 0) - (dateSortValue(a.lastDate) || 0);
-            if (dDiff !== 0) return dDiff;
-            return b.totalDue - a.totalDue;
+            const dueDiff = (Number(b.totalDue) || 0) - (Number(a.totalDue) || 0);
+            if (dueDiff !== 0) return dueDiff;
+            return (dateSortValue(b.lastDate) || 0) - (dateSortValue(a.lastDate) || 0);
         });
         
         container.innerHTML = sortedCusts.map(cg => {
@@ -385,7 +400,13 @@ export function renderDueAmountList() {
             </div>`;
         }).join('');
     } else {
-        container.innerHTML = dueRows.map(({ c, index, due, isCos }) => {
+        // Individual bill mode: Highest due bill first, then latest purchase
+        const sortedDueRows = dueRows.slice().sort((a, b) => {
+            const dueDiff = (Number(b.due) || 0) - (Number(a.due) || 0);
+            if (dueDiff !== 0) return dueDiff;
+            return compareBillsDescending(a.c, b.c);
+        });
+        container.innerHTML = sortedDueRows.map(({ c, index, due, isCos }) => {
             const custName = getDueCustomerName(c);
             const phoneText = c.phone && String(c.phone).trim() ? String(c.phone).trim() : 'No mobile';
             const dateText = formatDateDDMMYYYY(c.date) || 'No date';

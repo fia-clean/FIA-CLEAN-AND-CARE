@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fia-clean-care-v51.2.33';
+const CACHE_NAME = 'fia-clean-care-v51.2.34';
 
 // Static core assets to pre-cache immediately on service worker install
 const PRECACHE_ASSETS = [
@@ -95,6 +95,27 @@ self.addEventListener('fetch', (event) => {
     url.protocol === 'ws:' ||
     url.protocol === 'wss:'
   ) {
+    return;
+  }
+
+  // Cache-busting update parameter: bypass cache completely and fetch fresh from network!
+  if (url.search.includes('forceUpdate=') || url.search.includes('update=') || url.search.includes('v=')) {
+    event.respondWith(
+      fetch(new Request(request.url, { cache: 'no-store' }))
+        .then((networkRes) => {
+          if (networkRes && networkRes.status === 200) {
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, networkRes.clone());
+              if (request.mode === 'navigate' || request.destination === 'document' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+                cache.put('./index.html', networkRes.clone());
+                cache.put('./', networkRes.clone());
+              }
+            });
+          }
+          return networkRes;
+        })
+        .catch(() => caches.match(request))
+    );
     return;
   }
 
