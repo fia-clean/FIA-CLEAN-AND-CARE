@@ -72,6 +72,59 @@ export function formatInvoiceItemQty(item) {
     return displayStr;
 }
 
+export function calculateInvoicePreviewBalances(c) {
+    const grandVal = Number(c?.grandTotal !== undefined ? c.grandTotal : (c?.netTotal || c?.total || 0));
+    const discountVal = Number(c?.discount || 0);
+    const subTotalVal = Number(c?.subTotal || (grandVal + discountVal));
+    const prevDueVal = Number(c?.previousDue || 0);
+    const prevDueSettledVal = Number(c?.previousDueSettled || 0);
+    const prevCreditVal = Number(c?.previousCredit || c?.appliedCredit || 0);
+    const totalWithDueVal = Number(c?.totalWithDue || (grandVal + prevDueVal));
+
+    const totalRecVal = c?.totalReceived !== undefined ? Number(c.totalReceived) : NaN;
+    const paidAmtVal = c?.paidAmount !== undefined ? Number(c.paidAmount) : NaN;
+
+    let paidVal;
+    if (Number.isFinite(totalRecVal) && totalRecVal >= (Number.isFinite(paidAmtVal) ? paidAmtVal : 0)) {
+        paidVal = totalRecVal;
+    } else if (Number.isFinite(paidAmtVal)) {
+        paidVal = Math.round((paidAmtVal + prevDueSettledVal) * 100) / 100;
+    } else {
+        paidVal = grandVal;
+    }
+
+    const thisBillPending = Math.max(0, Number(c?.pendingAmount !== undefined ? c.pendingAmount : Math.max(0, grandVal - (Number.isFinite(paidAmtVal) ? paidAmtVal : grandVal))));
+
+    let finalPending = 0;
+    if (prevDueVal > 0) {
+        const remPrevDue = Math.max(0, prevDueVal - prevDueSettledVal);
+        if (thisBillPending <= 0.001 && (paidVal >= totalWithDueVal - 0.01 || prevDueSettledVal >= prevDueVal - 0.01)) {
+            finalPending = 0;
+        } else {
+            finalPending = Math.max(0, Math.round((thisBillPending + remPrevDue) * 100) / 100);
+        }
+    } else {
+        finalPending = thisBillPending;
+    }
+
+    const excessVal = c?.excessAmount !== undefined 
+        ? Number(c.excessAmount) 
+        : Math.max(0, Math.round((paidVal - totalWithDueVal) * 100) / 100);
+
+    return {
+        grandVal,
+        discountVal,
+        subTotalVal,
+        prevDueVal,
+        prevDueSettledVal,
+        prevCreditVal,
+        totalWithDueVal,
+        paidVal,
+        finalPending,
+        excessVal
+    };
+}
+
 export function previewBill(identifier) {
     let c = null;
     if (typeof identifier === 'number') {
@@ -105,15 +158,17 @@ export function previewBill(identifier) {
         </tr>`;
     }).join('');
 
-    const grandVal = Number(c.grandTotal || 0);
-    const discountVal = Number(c.discount || 0);
-    const subTotalVal = Number(c.subTotal || (grandVal + discountVal));
-    const prevDueVal = Number(c.previousDue || 0);
-    const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
-    const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
-    const paidVal = Number(c.totalReceived !== undefined ? c.totalReceived : (c.paidAmount !== undefined ? c.paidAmount : grandVal));
-    const finalPending = Math.max(0, prevDueVal > 0 ? (totalWithDueVal - paidVal) : Number(c.pendingAmount !== undefined ? c.pendingAmount : (grandVal - paidVal)));
-    const excessVal = c.excessAmount !== undefined ? Number(c.excessAmount) : Math.max(0, paidVal - totalWithDueVal);
+    const {
+        grandVal,
+        discountVal,
+        subTotalVal,
+        prevDueVal,
+        prevCreditVal,
+        totalWithDueVal,
+        paidVal,
+        finalPending,
+        excessVal
+    } = calculateInvoicePreviewBalances(c);
 
     const billHTML = `
         <div id="fiaInvoiceCaptureCard" style="font-family: Arial, Helvetica, sans-serif; color: #000000 !important; background-color: #ffffff !important; padding: 16px 12px; width: 380px; max-width: 100%; min-height: 520px; display: flex; flex-direction: column; justify-content: space-between; margin: 0 auto; box-sizing: border-box; border-radius: 12px; border: 2px solid ${themeColor};">
@@ -449,13 +504,18 @@ function getA4ItemRowHtml(item, idx) {
     </tr>`;
 }
 
-function getA4TotalsHtml(c, themeColor, grandVal, paidVal, pendingVal, excessVal) {
-    const discountVal = Number(c.discount || 0);
-    const subTotalVal = Number(c.subTotal || (grandVal + discountVal));
-    const prevDueVal = Number(c.previousDue || 0);
-    const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
-    const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
-    const finalPending = Math.max(0, prevDueVal > 0 ? (totalWithDueVal - paidVal) : Number(c.pendingAmount !== undefined ? c.pendingAmount : (grandVal - paidVal)));
+function getA4TotalsHtml(c, themeColor, grandValParam, paidValParam, pendingValParam, excessValParam) {
+    const {
+        grandVal,
+        discountVal,
+        subTotalVal,
+        prevDueVal,
+        prevCreditVal,
+        totalWithDueVal,
+        paidVal,
+        finalPending,
+        excessVal
+    } = calculateInvoicePreviewBalances(c);
 
     return `
         <div class="totals-container" style="page-break-inside: avoid !important; break-inside: avoid !important; margin-top: 14px;">
@@ -535,12 +595,12 @@ export function generateA4Pages(c) {
     const brandTitle = isCosmetics ? 'FIA COSMETICS & CARE' : 'FIA CLEAN AND CARE';
     const brandBadge = isWholesale ? (isCosmetics ? '🏷️ COSMETICS WHOLESALE' : '🏷️ WHOLESALE INVOICE') : (isCosmetics ? '💄 COSMETICS RETAIL' : '🛍️ RETAIL INVOICE');
 
-    const grandVal = Number(c.grandTotal !== undefined ? c.grandTotal : (c.netTotal || c.total || 0));
-    const paidVal = Number(c.totalReceived !== undefined ? c.totalReceived : (c.paidAmount !== undefined ? c.paidAmount : (grandVal - Number(c.pendingAmount || 0))));
-    const prevDueVal = Number(c.previousDue || 0);
-    const totalWithDueVal = Number(c.totalWithDue || (grandVal + prevDueVal));
-    const pendingVal = Math.max(0, prevDueVal > 0 ? (totalWithDueVal - paidVal) : Number(c.pendingAmount !== undefined ? c.pendingAmount : (grandVal - paidVal)));
-    const excessVal = Math.max(0, Number(c.excessAmount !== undefined ? c.excessAmount : (paidVal - totalWithDueVal)));
+    const {
+        grandVal,
+        paidVal,
+        finalPending: pendingVal,
+        excessVal
+    } = calculateInvoicePreviewBalances(c);
 
     const allItems = sortBillItemsAlphabetically(c.items || []);
     const itemsCount = allItems.length;
@@ -972,19 +1032,23 @@ export function sendBillViaWhatsApp() {
         const total = Number(i.total || 0).toFixed(2);
         return `${idx + 1}. *${cleanName}* | ${qtyDisplay} | ₹${rate} | ₹${total}`;
     }).join('\n');
-    const paidVal = c.totalReceived !== undefined ? c.totalReceived : (c.paidAmount !== undefined ? c.paidAmount : c.grandTotal);
-    const prevDueVal = Number(c.previousDue || 0);
-    const prevCreditVal = Number(c.previousCredit || c.appliedCredit || 0);
-    const totalWithDueVal = Number(c.totalWithDue || (Number(c.grandTotal || 0) + prevDueVal));
-    const finalPendingVal = Math.max(0, totalWithDueVal - Number(paidVal));
-    const excessVal = Number(c.excessAmount || 0);
+
+    const {
+        grandVal,
+        prevDueVal,
+        prevCreditVal,
+        totalWithDueVal,
+        paidVal,
+        finalPending: finalPendingVal,
+        excessVal
+    } = calculateInvoicePreviewBalances(c);
     
     let totalsBlock = '';
     if (prevDueVal > 0) {
-        totalsBlock = `*Current Bill:* ₹${Number(c.grandTotal || 0).toFixed(2)}\n*Previous Due (പഴയ ബാക്കി):* ₹${prevDueVal.toFixed(2)}\n*Total Amount Due:* *₹${totalWithDueVal.toFixed(2)}*\n*Paid Today:* ₹${Number(paidVal).toFixed(2)}\n${finalPendingVal > 0 ? `*⚠️ Net Balance Due:* *₹${finalPendingVal.toFixed(2)}*\n` : ''}`;
+        totalsBlock = `*Current Bill:* ₹${grandVal.toFixed(2)}\n*Previous Due (പഴയ ബാക്കി):* ₹${prevDueVal.toFixed(2)}\n*Total Amount Due:* *₹${totalWithDueVal.toFixed(2)}*\n*Paid Today:* ₹${paidVal.toFixed(2)}\n${finalPendingVal > 0 ? `*⚠️ Net Balance Due:* *₹${finalPendingVal.toFixed(2)}*\n` : '*✅ Balance Due:* *₹0.00 (PAID IN FULL)*\n'}`;
     } else {
-        const dueLine = Number(c.pendingAmount || 0) > 0 ? `*Balance Due:* ₹${Number(c.pendingAmount || 0).toFixed(2)}\n` : '';
-        totalsBlock = `*Grand Total:* *₹${Number(c.grandTotal || 0).toFixed(2)}*\n*Paid:* ₹${Number(paidVal).toFixed(2)}\n${dueLine}`;
+        const dueLine = finalPendingVal > 0 ? `*Balance Due:* ₹${finalPendingVal.toFixed(2)}\n` : '*Balance Due:* ₹0.00 (PAID IN FULL)\n';
+        totalsBlock = `*Grand Total:* *₹${grandVal.toFixed(2)}*\n*Paid:* ₹${paidVal.toFixed(2)}\n${dueLine}`;
     }
 
     const creditLine = prevCreditVal > 0 ? `*Customer Credit / Advance (പഴയ അഡ്വാൻസ്):* -₹${prevCreditVal.toFixed(2)}\n` : '';

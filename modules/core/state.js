@@ -569,8 +569,10 @@ export function normalizeCustomerRecords() {
                 }
             }
             // Keep totalReceived, paid and balance synchronized
-            if (c.paidAmount !== undefined && (c.totalReceived === undefined || Number(c.totalReceived) < Number(c.paidAmount))) {
-                c.totalReceived = Number(c.paidAmount);
+            const prevDueSettled = Number(c.previousDueSettled || 0);
+            const minExpectedTotalRec = Number(c.paidAmount || 0) + prevDueSettled;
+            if (minExpectedTotalRec > 0 && (c.totalReceived === undefined || Number(c.totalReceived) < minExpectedTotalRec)) {
+                c.totalReceived = minExpectedTotalRec;
                 modified = true;
             }
             if (c.paid !== c.paidAmount) {

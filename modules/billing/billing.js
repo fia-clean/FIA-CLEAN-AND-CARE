@@ -1994,7 +1994,10 @@ export function editCustomerBill(identifier) {
     renderBillPreviewInput();
     const discountEl = document.getElementById('billDiscountAmt');
     if (discountEl) discountEl.value = (c.discount !== undefined && Number(c.discount) > 0) ? Number(c.discount) : '';
-    document.getElementById('billPaidAmt').value = c.totalReceived !== undefined ? Number(c.totalReceived) : (c.paidAmount !== undefined ? Number(c.paidAmount) : Number(c.grandTotal || 0));
+    const effectivePaid = Number(c.totalReceived !== undefined 
+        ? c.totalReceived 
+        : (Number(c.paidAmount || 0) + Number(c.previousDueSettled || 0)));
+    document.getElementById('billPaidAmt').value = effectivePaid > 0 ? effectivePaid.toFixed(2) : (c.grandTotal ? Number(c.grandTotal).toFixed(2) : '');
     const paymentModeEl = document.getElementById('billPaymentMode');
     if (paymentModeEl) paymentModeEl.value = c.paymentMode || 'Cash';
     

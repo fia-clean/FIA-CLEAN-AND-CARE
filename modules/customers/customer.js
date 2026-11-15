@@ -653,8 +653,32 @@ export function auditAndRepairCustomerBalances() {
             return dA - dB;
         });
 
-        allCustBills.forEach(({ record: b }) => {
+        allCustBills.forEach(({ record: b }, idx) => {
             const gTotal = Number(b.grandTotal !== undefined ? b.grandTotal : (b.total || 0));
+            const prevDueVal = Number(b.previousDue || 0);
+            let prevDueSettled = Number(b.previousDueSettled || 0);
+
+            // If bill recorded previousDue and has zero pending, check if older dues were settled
+            if (prevDueVal > 0) {
+                const olderBills = allCustBills.slice(0, idx);
+                const olderPending = olderBills.reduce((sum, item) => sum + Math.max(0, Number(item.record.pendingAmount || 0)), 0);
+                
+                // If this bill itself is fully settled, and older pending is 0, then older due is settled!
+                if (Number(b.pendingAmount || 0) <= 0.001 && olderPending <= 0.001) {
+                    if (prevDueSettled < prevDueVal) {
+                        b.previousDueSettled = prevDueVal;
+                        prevDueSettled = prevDueVal;
+                        modified = true;
+                    }
+                }
+            }
+
+            const expectedTotRec = Number(b.paidAmount || 0) + prevDueSettled;
+            if (expectedTotRec > 0 && (b.totalReceived === undefined || Number(b.totalReceived) < expectedTotRec - 0.01)) {
+                b.totalReceived = expectedTotRec;
+                modified = true;
+            }
+
             const totRec = Number(b.totalReceived !== undefined ? b.totalReceived : (b.paidAmount !== undefined ? b.paidAmount : gTotal));
             
             // If this bill received payment in excess of its grandTotal to settle older dues
@@ -672,12 +696,7 @@ export function auditAndRepairCustomerBalances() {
                 }
 
                 // Verify older bills received this settlement
-                const olderBills = allCustBills.filter(item => {
-                    if (item.record.id === b.id || item.record.billNo === b.billNo) return false;
-                    const dCur = dateSortValue(b.date || b.createdAt || 0);
-                    const dOlder = dateSortValue(item.record.date || item.record.createdAt || 0);
-                    return dOlder <= dCur;
-                });
+                const olderBills = allCustBills.slice(0, idx);
 
                 let settledFound = 0;
                 olderBills.forEach(item => {
@@ -722,87 +741,6 @@ export function auditAndRepairCustomerBalances() {
             }
         });
     });
-
-    // =========================================================================
-    // Targeted Hard-Guarantee Repair: Bill #0116 / Bismi Alanallur (₹395.00 Net Due)
-    // =========================================================================
-    try {
-        const isBismiCust = (name) => {
-            const n = String(name || '').trim().toUpperCase();
-            return n.includes('BISMI') || n.includes('ബിസ്മി') || n.includes('ALANALLUR') || n.includes('അളനല്ലൂർ');
-        };
-
-        const isBill116 = (b) => {
-            if (!b) return false;
-            const bNo = String(b.billNo || '').replace(/\D/g, '');
-            return bNo === '0116' || bNo === '116';
-        };
-
-        const bismiCleaningBills = (state.customers || []).filter(c => c && !isCustItemDeleted(c) && !c.isCancelled && c.status !== 'cancelled' && (isBismiCust(c.name) || isBill116(c)));
-        const bismiCosBills = (state.cosSales || []).filter(s => s && !isCustItemDeleted(s) && !s.isCancelled && s.status !== 'cancelled' && (isBismiCust(s.customer) || isBill116(s)));
-
-        const target116 = bismiCleaningBills.find(isBill116) || bismiCosBills.find(isBill116);
-
-        if (target116 || bismiCleaningBills.length > 0 || bismiCosBills.length > 0) {
-            if (target116) {
-                const bTotal = Number(target116.grandTotal || target116.total || 330);
-                if (Number(target116.pendingAmount || 0) > 0.001 || Number(target116.paidAmount || 0) < bTotal - 0.01 || Number(target116.totalReceived || 0) < 399.99) {
-                    target116.grandTotal = bTotal;
-                    target116.paidAmount = bTotal;
-                    target116.paid = bTotal;
-                    target116.pendingAmount = 0;
-                    target116.balance = 0;
-                    target116.totalReceived = 400;
-                    target116.totalWithDue = 795;
-                    target116.previousDueSettled = 70;
-                    target116.savedAt = Date.now();
-                    modified = true;
-                }
-            }
-
-            const allBismi = [
-                ...bismiCleaningBills.map(b => ({ record: b, isCos: false })),
-                ...bismiCosBills.map(s => ({ record: s, isCos: true }))
-            ].filter(item => !isBill116(item.record));
-
-            if (allBismi.length > 0) {
-                const currentOlderPending = allBismi.reduce((sum, item) => sum + Math.max(0, Number(item.record.pendingAmount || 0)), 0);
-                if (Math.abs(currentOlderPending - 395) > 0.01) {
-                    allBismi.sort((a, b) => (dateSortValue(a.record.date || a.record.createdAt || 0)) - (dateSortValue(b.record.date || b.record.createdAt || 0)));
-                    let remPending = 395.00;
-                    allBismi.forEach((item, idx) => {
-                        const rec = item.record;
-                        const recGTotal = Number(rec.grandTotal || rec.total || 0);
-                        if (idx === allBismi.length - 1) {
-                            rec.pendingAmount = remPending;
-                            rec.balance = remPending;
-                            rec.paidAmount = Math.max(0, Math.round((recGTotal - remPending) * 100) / 100);
-                            rec.paid = rec.paidAmount;
-                            rec.savedAt = Date.now();
-                        } else {
-                            const alloc = Math.min(recGTotal, remPending);
-                            rec.pendingAmount = alloc;
-                            rec.balance = alloc;
-                            rec.paidAmount = Math.max(0, Math.round((recGTotal - alloc) * 100) / 100);
-                            rec.paid = rec.paidAmount;
-                            rec.savedAt = Date.now();
-                            remPending = Math.max(0, remPending - alloc);
-                        }
-                    });
-                    modified = true;
-                }
-            } else if (target116) {
-                if (Math.abs(Number(target116.pendingAmount || 0) - 395) > 0.01) {
-                    target116.pendingAmount = 395.00;
-                    target116.balance = 395.00;
-                    target116.savedAt = Date.now();
-                    modified = true;
-                }
-            }
-        }
-    } catch (bismiErr) {
-        console.warn('Targeted Bismi repair error:', bismiErr);
-    }
 
     if (modified) {
         saveLocalStateSafely();
@@ -1557,7 +1495,8 @@ export function confirmCustomerDueSettlement(encodedName) {
 
             rec.paidAmount = updatedPaid;
             rec.pendingAmount = updatedPending;
-            rec.totalReceived = Math.max(Number(rec.totalReceived || 0), updatedPaid);
+            const recPrevDueSettled = Number(rec.previousDueSettled || 0);
+            rec.totalReceived = Math.max(Number(rec.totalReceived || 0), updatedPaid + recPrevDueSettled);
             rec.paid = updatedPaid;
             rec.balance = updatedPending;
             if (!Array.isArray(rec.paymentHistory)) rec.paymentHistory = [];
@@ -1581,6 +1520,33 @@ export function confirmCustomerDueSettlement(encodedName) {
             });
 
             remainingToPay -= payPortion;
+        }
+    });
+
+    // Post-settlement sync: If older dues of this customer are now cleared,
+    // ensure any subsequent bill that recorded previousDue updates previousDueSettled and totalReceived
+    const allCustBillsForSync = [
+        ...(state.customers || []).filter(c => c && !isCustItemDeleted(c) && !c.isCancelled && c.status !== 'cancelled' && c.billNo && String(c.name || '').trim().toUpperCase() === name).map(b => ({ record: b, isCos: false })),
+        ...(state.cosSales || []).filter(s => s && !isCustItemDeleted(s) && !s.isCancelled && s.status !== 'cancelled' && s.billNo && String(s.customer || '').trim().toUpperCase() === name).map(s => ({ record: s, isCos: true }))
+    ].sort((a, b) => {
+        const dA = dateSortValue(a.record.date || a.record.createdAt || 0);
+        const dB = dateSortValue(b.record.date || b.record.createdAt || 0);
+        if (dA !== dB) return dA - dB;
+        const seqA = parseInt(String(a.record.billNo || '').replace(/\D/g, ''), 10) || 0;
+        const seqB = parseInt(String(b.record.billNo || '').replace(/\D/g, ''), 10) || 0;
+        return seqA - seqB;
+    });
+
+    allCustBillsForSync.forEach(({ record: rec }, i) => {
+        const prevDue = Number(rec.previousDue || 0);
+        if (prevDue > 0) {
+            const olderBills = allCustBillsForSync.slice(0, i);
+            const olderPending = olderBills.reduce((sum, item) => sum + Math.max(0, Number(item.record.pendingAmount || 0)), 0);
+            if (olderPending <= 0.001) {
+                rec.previousDueSettled = prevDue;
+                rec.totalReceived = Math.max(Number(rec.totalReceived || 0), Number(rec.paidAmount || 0) + prevDue);
+                rec.savedAt = Date.now();
+            }
         }
     });
 
