@@ -97,11 +97,10 @@ export function calculateInvoicePreviewBalances(c) {
 
     let finalPending = 0;
     if (prevDueVal > 0) {
-        const remPrevDue = Math.max(0, prevDueVal - prevDueSettledVal);
-        if (thisBillPending <= 0.001 && (paidVal >= totalWithDueVal - 0.01 || prevDueSettledVal >= prevDueVal - 0.01)) {
+        if (prevDueSettledVal >= prevDueVal - 0.01 && (paidVal >= totalWithDueVal - 0.01 || thisBillPending <= 0.001)) {
             finalPending = 0;
         } else {
-            finalPending = Math.max(0, Math.round((thisBillPending + remPrevDue) * 100) / 100);
+            finalPending = Math.max(0, Math.round((totalWithDueVal - paidVal) * 100) / 100);
         }
     } else {
         finalPending = thisBillPending;
