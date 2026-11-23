@@ -16,6 +16,7 @@ import {
     isItemDeleted,
     isCustItemDeleted
 } from '../core/state.js';
+import { round2, calculateDayBookSummary } from '../core/accounting-engine.js';
 import { syncToFirebase, pullFromFirebase } from '../core/db.js';
 import { normalizeCosSale } from '../billing/billing-history.js';
 
@@ -592,44 +593,33 @@ export function renderAccounts() {
         return (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0);
     });
 
-    const isSalesBill = e => e && e.type === 'Income' && (e.category === 'Cleaning Sale' || e.category === 'Combined Sale' || e.category === 'Cosmetics Sale');
-    const isDueCollection = e => e && e.type === 'Income' && e.category === 'Customer Due Collection';
+    const summary = calculateDayBookSummary({
+        entries: allEntries,
+        fromDate,
+        toDate,
+        clearedIds: state.clearedDayBookEntries || [],
+        openingBalance: state.dayBookOpeningBalance || 0,
+        openingExpense: state.dayBookOpeningExpense || 0
+    });
 
-    // 1. Sales: Strictly actual sales billed in this period (excluding clearance of old dues!)
-    const incSales = filtered.filter(isSalesBill).reduce((s, e) => s + Number(e.amount || 0), 0);
-    
-    // 2. Dues collected from older bills during this period
-    const incDueCollection = filtered.filter(isDueCollection).reduce((s, e) => s + Number(e.paidAmount !== undefined ? e.paidAmount : (e.amount || 0)), 0);
-
-    // 3. Total collection: Actual cash/payments received during this period (sales cash + dues cleared + other cash income)
-    const incCollection = filtered.filter(e => e.type === 'Income').reduce((s, e) => s + Number(e.paidAmount !== undefined ? e.paidAmount : (e.amount || 0)), 0);
-
-    // 4. Pending credit generated from this period's sales
-    const incDue = filtered.filter(isSalesBill).reduce((s, e) => s + Math.max(0, Number(e.pendingAmount || 0)), 0);
-
-    // 5. Total Expenses
-    const expTotal = filtered.filter(e => e.type === 'Expense').reduce((s, e) => s + Number(e.amount || 0), 0);
-
-    const openingBalance = Number(state.dayBookOpeningBalance || 0);
-    const openingExpense = Number(state.dayBookOpeningExpense || 0);
-    // In Cash / Day Book, Income represents the actual cash/collection inflow
-    const currentIncome = openingBalance + incCollection;
-    const currentExpense = openingExpense + expTotal;
-    const netBalance = currentIncome - currentExpense;
+    const incSales = summary.totalSales;
+    const incDueCollection = summary.duesCollected;
+    const incCollection = summary.totalCollection;
+    const incDue = summary.periodDue;
+    const expTotal = summary.totalExpense;
+    const openingBalance = summary.openingBalance;
+    const openingExpense = summary.openingExpense;
+    const currentIncome = summary.grossIncome;
+    const currentExpense = summary.grossExpense;
+    const netBalance = summary.netBalance;
 
     const totalTurnover = currentIncome + currentExpense;
     const incPct = totalTurnover > 0 ? Math.round((currentIncome / totalTurnover) * 100) : 50;
     const expPct = totalTurnover > 0 ? (100 - incPct) : 50;
 
-    // 1. Profit Margin on Sales (വിൽപ്പനയിൽ നിന്നുള്ള ലാഭശതമാനം)
-    const rawMarginPct = currentIncome > 0 ? (netBalance / currentIncome) * 100 : 0;
-    const marginPct = Math.abs(rawMarginPct).toFixed(1);
-
-    // 2. Markup on Cost / Purchases (മുടക്കുമുതലിൽ നിന്നുള്ള ലാഭശതമാനം / ROI)
-    const rawMarkupPct = currentExpense > 0 ? (netBalance / currentExpense) * 100 : 0;
-    const markupPct = Math.abs(rawMarkupPct).toFixed(1);
-
-    const isProfit = netBalance >= 0;
+    const marginPct = Math.abs(summary.marginPct).toFixed(1);
+    const markupPct = Math.abs(summary.markupPct).toFixed(1);
+    const isProfit = summary.isProfit;
 
     // SVG Donut Ring & Graphical Widget
     const circle = document.getElementById('profitRingCircle');

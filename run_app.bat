@@ -4,7 +4,7 @@ color 0B
 
 echo ====================================================================
 echo             FIA CLEAN & CARE - APPLICATION LAUNCHER
-echo                  Version: v51.2.36 (Live Release)
+echo                  Version: v52.0.0 (Locked Final Stable Release)
 echo ====================================================================
 echo.
 

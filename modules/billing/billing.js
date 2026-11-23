@@ -12,6 +12,7 @@ import {
     saveLocalStateSafely,
     dateSortValue
 } from '../core/state.js';
+import { round2, calculateBillTotals, allocatePaymentFIFO } from '../core/accounting-engine.js';
 import { syncToFirebase } from '../core/db.js';
 import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName, formatInvoiceItemQty } from './invoice-preview.js?v=51.2.26';
 import { normalizeCosSale } from './billing-history.js';
@@ -1549,66 +1550,51 @@ export function viewCustomerDuesFromBilling() {
 }
 
 export function calculateBalance() {
-    const subTotal = (state.currentBillItems || []).reduce((sum, i) => sum + Number(i.total || 0), 0);
     const discountRaw = parseFloat(document.getElementById('billDiscountAmt')?.value);
-    const discount = Number.isFinite(discountRaw) && discountRaw > 0 ? Math.min(subTotal, discountRaw) : 0;
-    const netPayable = Math.max(0, subTotal - discount);
+    const prevDueVal = parseFloat(document.getElementById('billPreviousDue')?.value) || 0;
+    const prevCreditVal = parseFloat(document.getElementById('billPreviousCredit')?.value) || 0;
+    const paidInputRaw = document.getElementById('billPaidAmt')?.value;
+
+    const totals = calculateBillTotals({
+        items: state.currentBillItems,
+        discount: discountRaw,
+        previousDue: prevDueVal,
+        previousCredit: prevCreditVal,
+        paidAmount: (paidInputRaw === '' || paidInputRaw === undefined) ? null : paidInputRaw
+    });
 
     const netPayableEl = document.getElementById('billNetPayable');
-    if (netPayableEl) {
-        netPayableEl.value = netPayable.toFixed(2);
-    }
-
-    const prevDueInput = document.getElementById('billPreviousDue');
-    const prevDueVal = prevDueInput ? (parseFloat(prevDueInput.value) || 0) : 0;
-
-    const prevCreditInput = document.getElementById('billPreviousCredit');
-    const prevCreditVal = prevCreditInput ? (parseFloat(prevCreditInput.value) || 0) : 0;
-
-    const billAmountBeforeCredit = netPayable + prevDueVal;
-    const appliedCredit = Math.min(billAmountBeforeCredit, prevCreditVal);
-    const totalWithDue = Math.max(0, billAmountBeforeCredit - appliedCredit);
+    if (netPayableEl) netPayableEl.value = totals.grandTotal.toFixed(2);
 
     const totalWithDueEl = document.getElementById('billTotalWithDue');
-    if (totalWithDueEl) {
-        totalWithDueEl.value = (netPayable + prevDueVal).toFixed(2);
-    }
+    if (totalWithDueEl) totalWithDueEl.value = (totals.grandTotal + totals.previousDue).toFixed(2);
+
     const totalAfterCreditEl = document.getElementById('billTotalAfterCredit');
-    if (totalAfterCreditEl) {
-        totalAfterCreditEl.value = totalWithDue.toFixed(2);
-    }
+    if (totalAfterCreditEl) totalAfterCreditEl.value = totals.totalWithDue.toFixed(2);
 
-    const paidInputRaw = document.getElementById('billPaidAmt')?.value;
-    const paidInput = parseFloat(paidInputRaw);
-    const isPaidEmpty = paidInputRaw === '' || paidInputRaw === undefined;
-    const effectivePaid = isPaidEmpty 
-        ? (prevDueVal > 0 ? 0 : totalWithDue) 
-        : (Number.isFinite(paidInput) ? Math.max(0, paidInput) : 0);
-    
     const paidEl = document.getElementById('billPaidAmt');
-    if (paidEl && isPaidEmpty) {
-        paidEl.placeholder = (prevDueVal > 0 ? '0.00' : totalWithDue.toFixed(2));
+    if (paidEl && (paidInputRaw === '' || paidInputRaw === undefined)) {
+        paidEl.placeholder = totals.paidAmount.toFixed(2);
     }
 
-    const balance = totalWithDue - effectivePaid;
-    const due = Math.max(0, balance);
-    const excess = Math.max(0, -balance);
     const field = document.getElementById('billPendingAmt');
+    if (field) field.value = totals.pendingDue.toFixed(2);
+
     const status = document.getElementById('billBalanceStatus');
     const changeActionRow = document.getElementById('billChangeActionRow');
     const changeCreditAmtEl = document.getElementById('billChangeCreditAmt');
-    if (field) field.value = due.toFixed(2);
+
     if (status) {
-        if (balance > 0.001) {
-            status.textContent = (prevDueVal > 0 ? 'NET BALANCE DUE: ₹' : 'BALANCE DUE: ₹') + due.toFixed(2);
+        if (totals.netBalanceDue > 0.001) {
+            status.textContent = (totals.previousDue > 0 ? 'NET BALANCE DUE: ₹' : 'BALANCE DUE: ₹') + totals.netBalanceDue.toFixed(2);
             status.className = 'text-xs font-black mt-1 text-right text-rose-600 animate-pulse';
             if (changeActionRow) changeActionRow.classList.add('hidden');
-        } else if (balance < -0.001) {
-            status.textContent = 'BALANCE RETURN / CHANGE: ₹' + excess.toFixed(2);
+        } else if (totals.netReturnExcess > 0.001) {
+            status.textContent = 'BALANCE RETURN / CHANGE: ₹' + totals.netReturnExcess.toFixed(2);
             status.className = 'text-xs font-black mt-1 text-right text-sky-700';
             if (changeActionRow) {
                 changeActionRow.classList.remove('hidden');
-                if (changeCreditAmtEl) changeCreditAmtEl.textContent = '₹' + excess.toFixed(2);
+                if (changeCreditAmtEl) changeCreditAmtEl.textContent = '₹' + totals.netReturnExcess.toFixed(2);
             }
         } else {
             status.textContent = 'PAID IN FULL — BALANCE: ₹0.00';
@@ -1773,22 +1759,31 @@ export function saveCustomer(e) {
             return;
         }
 
-        const subTotal = state.currentBillItems.reduce((sum, i) => sum + Number(i.total || 0), 0);
         const discountRaw = parseFloat(document.getElementById('billDiscountAmt')?.value);
-        const discount = Number.isFinite(discountRaw) && discountRaw > 0 ? Math.min(subTotal, discountRaw) : 0;
-        const grandTotal = Math.max(0, subTotal - discount);
-
-        let billNo = (index >= 0 && state.customers[index]?.billNo) || getNextBillNumber();
-        const billId = (index >= 0 && state.customers[index]?.id) || generateUniqueRecordId('bill');
-
         const prevDueInput = document.getElementById('billPreviousDue');
         const previousDue = prevDueInput ? (parseFloat(prevDueInput.value) || 0) : 0;
         const prevCreditInput = document.getElementById('billPreviousCredit');
         const previousCredit = prevCreditInput ? (parseFloat(prevCreditInput.value) || 0) : 0;
+        const paidInputRaw = document.getElementById('billPaidAmt')?.value;
+        const isPaidEmpty = paidInputRaw === '' || paidInputRaw === undefined;
 
-        const billBeforeCredit = grandTotal + previousDue;
-        const appliedCredit = Math.min(billBeforeCredit, previousCredit);
-        const totalWithDue = Math.max(0, billBeforeCredit - appliedCredit);
+        const billCalc = calculateBillTotals({
+            items: state.currentBillItems,
+            discount: discountRaw,
+            previousDue,
+            previousCredit,
+            paidAmount: isPaidEmpty ? null : paidInputRaw
+        });
+
+        const subTotal = billCalc.subTotal;
+        const discount = billCalc.discount;
+        const grandTotal = billCalc.grandTotal;
+
+        let billNo = (index >= 0 && state.customers[index]?.billNo) || getNextBillNumber();
+        const billId = (index >= 0 && state.customers[index]?.id) || generateUniqueRecordId('bill');
+
+        const appliedCredit = billCalc.appliedCredit;
+        const totalWithDue = billCalc.totalWithDue;
 
         // If customer had credit and applied it, deduct credit from previous credit bills
         if (appliedCredit > 0.001) {
@@ -1810,17 +1805,10 @@ export function saveCustomer(e) {
             });
         }
 
-        const paidInputRaw = document.getElementById('billPaidAmt')?.value;
-        const paidAmount = parseFloat(paidInputRaw);
-        const isPaidEmpty = paidInputRaw === '' || paidInputRaw === undefined;
-        const safePaidAmount = isPaidEmpty 
-            ? (previousDue > 0 ? 0 : totalWithDue) 
-            : (Number.isFinite(paidAmount) ? Math.max(0, paidAmount) : 0);
-        
-        // Allocate payment:
-        const currentBillPaid = Math.min(grandTotal, safePaidAmount);
-        const pendingAmount = Math.max(0, grandTotal - currentBillPaid);
-        let excessCash = Math.max(0, safePaidAmount - grandTotal);
+        const safePaidAmount = billCalc.paidAmount;
+        const currentBillPaid = billCalc.currentBillPaid;
+        const pendingAmount = billCalc.pendingDue;
+        let excessCash = billCalc.excessCash;
         let duesSettled = 0;
 
         // If customer paid extra beyond current bill, apply to previous unpaid bills (FIFO oldest first across Cleaning & Cosmetics):

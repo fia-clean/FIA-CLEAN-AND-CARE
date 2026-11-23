@@ -12,6 +12,7 @@ import {
     isCustItemDeleted,
     isItemDeleted
 } from '../core/state.js';
+import { round2, calculateDayBookSummary } from '../core/accounting-engine.js';
 
 export function pushDashboardModalState(modalName) {
     if (state.isLoggedIn && (!history.state || history.state.modal !== modalName)) {
@@ -547,13 +548,15 @@ export function updateDashboard() {
     const isSalesBill = e => e && e.type === 'Income' && (e.category === 'Cleaning Sale' || e.category === 'Combined Sale' || e.category === 'Cosmetics Sale');
 
     if (window.getAllMasterEntries) {
-        const todayEntries = window.getAllMasterEntries().filter(e => {
-            if ((state.clearedDayBookEntries || []).includes(e.id) || (e.originalId && (state.clearedDayBookEntries || []).includes(e.originalId))) return false;
-            return normalizeToDateKey(e.date) === today;
+        const todaySummary = calculateDayBookSummary({
+            entries: window.getAllMasterEntries(),
+            fromDate: today,
+            toDate: today,
+            clearedIds: state.clearedDayBookEntries || []
         });
-        salesToday = todayEntries.filter(isSalesBill).reduce((s, e) => s + Number(e.amount || 0), 0);
-        collectionToday = todayEntries.filter(e => e.type === 'Income').reduce((s, e) => s + Number(e.paidAmount !== undefined ? e.paidAmount : (e.amount || 0)), 0);
-        expenseToday = todayEntries.filter(e => e.type === 'Expense').reduce((s, e) => s + Number(e.amount || 0), 0);
+        salesToday = todaySummary.totalSales;
+        collectionToday = todaySummary.totalCollection;
+        expenseToday = todaySummary.totalExpense;
     } else {
         (state.customers || []).forEach(c => {
             if (normalizeToDateKey(c.date) === today) {
