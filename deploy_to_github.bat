@@ -1,23 +1,65 @@
 @echo off
-echo ========================================================
-echo   FIA CLEAN AND CARE - Git Push to GitHub
-echo ========================================================
-cd /d "c:\Users\DELL\Documents\antigravity\lively-lovelace"
+setlocal enabledelayedexpansion
+title FIA CLEAN & CARE - Git Push to GitHub v51.2.37
+color 0A
 
-echo Checking git status...
+echo ====================================================================
+echo             FIA CLEAN & CARE - ONE-CLICK APP UPDATER
+echo                  Version: v51.2.37 (Live Release)
+echo ====================================================================
+echo.
+
+cd /d "%~dp0"
+
+echo [1/4] Checking Changed Files...
 git status -s
+echo.
 
-echo Adding modified files...
-git add index.html dev.html sw.js manifest.json icon-192.png icon-512.png icon.svg apple-touch-icon.png favicon.png lib/ modules/ public/ src/ deploy_to_github.bat deploy_to_github.ps1
+set COMMIT_MSG=Release v51.2.37: Atomic billing transaction, fix dateSortValue reference error, and eliminate ghost stock deductions (%date% %time%)
 
-echo Committing updates...
-git commit -m "feat(security): v51.2.22 - eliminate hardcoded master keys and implement Firebase Admin PIN reset"
+echo [2/4] Staging all files...
+git add -A
+echo      Done.
+echo.
 
-echo Pushing to GitHub (origin main)...
+echo [3/4] Committing changes: "%COMMIT_MSG%"...
+git commit -m "%COMMIT_MSG%"
+echo.
+
+echo [4/4] Pushing update to GitHub (origin main)...
 git push origin main
+if %errorlevel% neq 0 (
+    color 0E
+    echo.
+    echo [NOTE] Push had conflict or remote update. Syncing with remote...
+    git pull origin main --rebase
+    git push origin main
+)
 
-echo ========================================================
-echo   Done! GitHub and GitHub Pages are now updating.
-echo   Please wait 30-60 seconds, then hard refresh (Ctrl+F5)
-echo   or clear site cache on your browser/PWA.
-echo ========================================================
+if %errorlevel% equ 0 (
+    color 0A
+    echo.
+    echo ====================================================================
+    echo        [SUCCESS] APP v51.2.37 UPDATED AND PUSHED TO GITHUB!
+    echo ====================================================================
+    echo.
+    echo  ------------------------------------------------------------------
+    echo   HOW TO ACTIVATE v51.2.37 ON YOUR PHONE / PC:
+    echo  ------------------------------------------------------------------
+    echo   1. Open FIA Clean App on your phone / PC.
+    echo   2. Tap the version badge at top: [ v51.2.37 ]
+    echo   3. Tap 'OK' - Cache clears and updates instantly!
+    echo.
+    echo   (Or go to Settings --^> 'Check for Updates / Clear Cache')
+    echo ====================================================================
+) else (
+    color 0C
+    echo.
+    echo ====================================================================
+    echo   [ERROR] Push failed. Please check your internet connection.
+    echo ====================================================================
+    echo.
+)
+
+echo.
+pause
