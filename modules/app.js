@@ -130,7 +130,7 @@ import {
     downloadBillImage,
     sendBillViaWhatsApp,
     closeBillPreview
-} from './billing/invoice-preview.js?v=51.2.36';
+} from './billing/invoice-preview.js?v=51.2.37';
 
 import {
     renderSalesHistory,

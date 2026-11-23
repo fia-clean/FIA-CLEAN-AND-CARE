@@ -9,7 +9,8 @@ import {
     getTodayDateString,
     toTitleCase,
     generateUniqueRecordId,
-    saveLocalStateSafely
+    saveLocalStateSafely,
+    dateSortValue
 } from '../core/state.js';
 import { syncToFirebase } from '../core/db.js';
 import { previewBill, previewCosSaleBill, sortBillItemsAlphabetically, getCleanInvoiceProductName, formatInvoiceItemQty } from './invoice-preview.js?v=51.2.26';
@@ -1635,98 +1636,47 @@ export function getNextCosBillNumber() {
     return 'COS-' + String(maxNo + 1).padStart(4, '0');
 }
 
+let isSavingCustomerLock = false;
+
 export function saveCustomer(e) {
     if (e && e.preventDefault) e.preventDefault();
+    if (isSavingCustomerLock) {
+        console.warn('[Billing] Duplicate saveCustomer prevented by lock.');
+        return;
+    }
+
+    const submitBtn = document.getElementById('custSubmitBtn');
+    const origBtnText = submitBtn ? submitBtn.innerText : 'Save Bill & Folder';
+
     const index = parseInt(document.getElementById('custIndex').value, 10);
     const name = (document.getElementById('custName')?.value || '').trim().toUpperCase();
     const phone = (document.getElementById('custPhone')?.value || '').trim();
     const saleType = document.querySelector('input[name="saleType"]:checked')?.value || 'Retail';
 
-    if (state.currentBillItems.length === 0) { alert("Please add at least one item."); return; }
+    if (!name) {
+        alert('Please enter or select a customer name.');
+        return;
+    }
+
+    if (state.currentBillItems.length === 0) { 
+        alert("Please add at least one item."); 
+        return; 
+    }
 
     const oldBill = index !== -1 ? state.customers[index] : null;
-    if (oldBill) {
-        restorePackageStock(oldBill.items || []);
-        (oldBill.items || []).forEach(oldItem => {
-            const rec = getStockProductRecord(oldItem);
-            if (rec && rec.product) {
-                const isPcs = isProductPieceTracked(rec.product, rec.category);
-                const deduction = isPcs 
-                    ? Number(oldItem.numberOfUnits || 1) 
-                    : (parseFloat(oldItem.stockDeductionQty != null ? oldItem.stockDeductionQty : oldItem.qty) || 0);
-                rec.product.stock = (parseFloat(rec.product.stock) || 0) + deduction;
-                rec.product.savedAt = Date.now();
-            }
-        });
 
-        // Revert any previous due settlements made by this bill before re-calculating
-        const targetBillNo = oldBill.billNo;
-        if (targetBillNo) {
-            const revertSettlement = (list) => {
-                (list || []).forEach(other => {
-                    if (!other || !Array.isArray(other.paymentHistory)) return;
-                    for (let pIdx = other.paymentHistory.length - 1; pIdx >= 0; pIdx--) {
-                        const p = other.paymentHistory[pIdx];
-                        if (p && p.note && (p.note.includes(`via Bill #${targetBillNo}`) || (oldBill.id && p.note.includes(`via Bill #${oldBill.id}`)))) {
-                            const remAmt = Number(p.amount || 0);
-                            other.paymentHistory.splice(pIdx, 1);
-                            other.pendingAmount = Math.round(((Number(other.pendingAmount || 0)) + remAmt) * 100) / 100;
-                            other.paidAmount = Math.max(0, Math.round(((Number(other.paidAmount || 0)) - remAmt) * 100) / 100);
-                            other.paid = other.paidAmount;
-                            other.balance = other.pendingAmount;
-                            other.savedAt = Date.now();
-                        }
-                    }
-                });
-            };
-            revertSettlement(state.customers);
-            revertSettlement(state.cosSales);
-        }
+    isSavingCustomerLock = true;
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Saving Bill...';
     }
 
-    // Comprehensive Pre-Check: Validate bulk stock sufficiency for all bill items
-    const stockDeficits = [];
-    const bulkNeededByProd = new Map();
-    state.currentBillItems.forEach(item => {
-        const rec = getStockProductRecord(item);
-        if (rec && rec.product) {
-            const key = String(rec.product.id || rec.product.name);
-            const cur = bulkNeededByProd.get(key) || { product: rec.product, needed: 0 };
-            cur.needed += Number(item.stockDeductionQty || 0);
-            bulkNeededByProd.set(key, cur);
-        }
-    });
+    const deductedProducts = [];
+    let packageDeducted = false;
 
-    for (const [_, info] of bulkNeededByProd) {
-        const avail = Number(info.product.stock || 0);
-        if (info.needed > avail) {
-            stockDeficits.push(`• ${info.product.name}: Needed ${info.needed.toFixed(2)} ${info.product.unit || ''}, Available ${avail.toFixed(2)} ${info.product.unit || ''}`);
-        }
-    }
-
-    // Comprehensive Pre-Check: Validate container packaging stock
-    const pkgNeededById = new Map();
-    state.currentBillItems.forEach(item => {
-        if (!item.packageId) return;
-        const pkg = (state.packages || []).find(p => String(p.id) === String(item.packageId));
-        if (pkg) {
-            const key = String(pkg.id);
-            const cur = pkgNeededById.get(key) || { pkg, needed: 0 };
-            cur.needed += Number(item.numberOfUnits || 1);
-            pkgNeededById.set(key, cur);
-        }
-    });
-
-    for (const [_, info] of pkgNeededById) {
-        const avail = Number(info.pkg.stock || 0);
-        if (info.needed > avail) {
-            stockDeficits.push(`• Container (${info.pkg.name}): Needed ${info.needed} ${info.pkg.unit || 'Pcs'}, Available ${avail} ${info.pkg.unit || 'Pcs'}`);
-        }
-    }
-
-    if (stockDeficits.length > 0) {
+    try {
         if (oldBill) {
-            checkAndDeductPackageStock(oldBill.items || []);
+            restorePackageStock(oldBill.items || []);
             (oldBill.items || []).forEach(oldItem => {
                 const rec = getStockProductRecord(oldItem);
                 if (rec && rec.product) {
@@ -1734,176 +1684,286 @@ export function saveCustomer(e) {
                     const deduction = isPcs 
                         ? Number(oldItem.numberOfUnits || 1) 
                         : (parseFloat(oldItem.stockDeductionQty != null ? oldItem.stockDeductionQty : oldItem.qty) || 0);
-                    rec.product.stock = Math.max(0, (parseFloat(rec.product.stock) || 0) - deduction);
+                    rec.product.stock = (parseFloat(rec.product.stock) || 0) + deduction;
                     rec.product.savedAt = Date.now();
                 }
             });
+
+            // Revert any previous due settlements made by this bill before re-calculating
+            const targetBillNo = oldBill.billNo;
+            if (targetBillNo) {
+                const revertSettlement = (list) => {
+                    (list || []).forEach(other => {
+                        if (!other || !Array.isArray(other.paymentHistory)) return;
+                        for (let pIdx = other.paymentHistory.length - 1; pIdx >= 0; pIdx--) {
+                            const p = other.paymentHistory[pIdx];
+                            if (p && p.note && (p.note.includes(`via Bill #${targetBillNo}`) || (oldBill.id && p.note.includes(`via Bill #${oldBill.id}`)))) {
+                                const remAmt = Number(p.amount || 0);
+                                other.paymentHistory.splice(pIdx, 1);
+                                other.pendingAmount = Math.round(((Number(other.pendingAmount || 0)) + remAmt) * 100) / 100;
+                                other.paidAmount = Math.max(0, Math.round(((Number(other.paidAmount || 0)) - remAmt) * 100) / 100);
+                                other.paid = other.paidAmount;
+                                other.balance = other.pendingAmount;
+                                other.savedAt = Date.now();
+                            }
+                        }
+                    });
+                };
+                revertSettlement(state.customers);
+                revertSettlement(state.cosSales);
+            }
         }
-        alert(`⚠️ Cannot complete billing!\nInsufficient stock for the following items:\n\n${stockDeficits.join('\n')}\n\nPlease adjust quantities or add stock.`);
-        return;
-    }
 
-    state.currentBillItems.forEach(item => {
-        const rec = getStockProductRecord(item);
-        if (rec && rec.product) {
-            rec.product.stock = Math.max(0, (parseFloat(rec.product.stock) || 0) - (parseFloat(item.stockDeductionQty) || 0));
-            rec.product.savedAt = Date.now();
+        // Comprehensive Pre-Check: Validate bulk stock sufficiency for all bill items
+        const stockDeficits = [];
+        const bulkNeededByProd = new Map();
+        state.currentBillItems.forEach(item => {
+            const rec = getStockProductRecord(item);
+            if (rec && rec.product) {
+                const key = String(rec.product.id || rec.product.name);
+                const cur = bulkNeededByProd.get(key) || { product: rec.product, needed: 0 };
+                cur.needed += Number(item.stockDeductionQty || 0);
+                bulkNeededByProd.set(key, cur);
+            }
+        });
+
+        for (const [_, info] of bulkNeededByProd) {
+            const avail = Number(info.product.stock || 0);
+            if (info.needed > avail) {
+                stockDeficits.push(`• ${info.product.name}: Needed ${info.needed.toFixed(2)} ${info.product.unit || ''}, Available ${avail.toFixed(2)} ${info.product.unit || ''}`);
+            }
         }
-    });
-    checkAndDeductPackageStock(state.currentBillItems);
 
-    const subTotal = state.currentBillItems.reduce((sum, i) => sum + Number(i.total || 0), 0);
-    const discountRaw = parseFloat(document.getElementById('billDiscountAmt')?.value);
-    const discount = Number.isFinite(discountRaw) && discountRaw > 0 ? Math.min(subTotal, discountRaw) : 0;
-    const grandTotal = Math.max(0, subTotal - discount);
-
-    let billNo = (index >= 0 && state.customers[index]?.billNo) || getNextBillNumber();
-    const billId = (index >= 0 && state.customers[index]?.id) || generateUniqueRecordId('bill');
-
-    const prevDueInput = document.getElementById('billPreviousDue');
-    const previousDue = prevDueInput ? (parseFloat(prevDueInput.value) || 0) : 0;
-    const prevCreditInput = document.getElementById('billPreviousCredit');
-    const previousCredit = prevCreditInput ? (parseFloat(prevCreditInput.value) || 0) : 0;
-
-    const billBeforeCredit = grandTotal + previousDue;
-    const appliedCredit = Math.min(billBeforeCredit, previousCredit);
-    const totalWithDue = Math.max(0, billBeforeCredit - appliedCredit);
-
-    // If customer had credit and applied it, deduct credit from previous credit bills
-    if (appliedCredit > 0.001) {
-        let remainingCreditToDeduct = appliedCredit;
-        const cleanCustName = name.toLowerCase();
-        (state.customers || []).forEach(c => {
-            if (remainingCreditToDeduct <= 0.001) return;
-            if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
-            if (String(c.name || '').trim().toLowerCase() !== cleanCustName) return;
-            if (index >= 0 && (c.id === billId || c.billNo === billNo)) return;
-            let cr = c.creditAmount !== undefined ? Number(c.creditAmount) : (c.excessRetainedAsCredit ? Number(c.excessAmount || 0) : 0);
-            if (cr > 0.001) {
-                const deductPortion = Math.min(cr, remainingCreditToDeduct);
-                c.creditAmount = Math.max(0, cr - deductPortion);
-                if (c.creditAmount <= 0.001) c.excessRetainedAsCredit = false;
-                c.savedAt = Date.now();
-                remainingCreditToDeduct -= deductPortion;
-            }
-        });
-    }
-
-    const paidInputRaw = document.getElementById('billPaidAmt')?.value;
-    const paidAmount = parseFloat(paidInputRaw);
-    const isPaidEmpty = paidInputRaw === '' || paidInputRaw === undefined;
-    const safePaidAmount = isPaidEmpty 
-        ? (previousDue > 0 ? 0 : totalWithDue) 
-        : (Number.isFinite(paidAmount) ? Math.max(0, paidAmount) : 0);
-    
-    // Allocate payment:
-    const currentBillPaid = Math.min(grandTotal, safePaidAmount);
-    const pendingAmount = Math.max(0, grandTotal - currentBillPaid);
-    let excessCash = Math.max(0, safePaidAmount - grandTotal);
-    let duesSettled = 0;
-
-    // If customer paid extra beyond current bill, apply to previous unpaid bills (FIFO oldest first across Cleaning & Cosmetics):
-    if (excessCash > 0.001) {
-        const cleanCustName = name.toUpperCase();
-        const eligibleBills = [];
-
-        (state.customers || []).forEach(c => {
-            if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
-            if (String(c.name || '').trim().toUpperCase() !== cleanCustName) return;
-            if (index >= 0 && (c.id === billId || c.billNo === billNo)) return;
-            const cDue = Number(c.pendingAmount || 0);
-            if (cDue > 0.001) {
-                eligibleBills.push({ record: c, due: cDue, date: c.date, isCos: false });
+        // Comprehensive Pre-Check: Validate container packaging stock
+        const pkgNeededById = new Map();
+        state.currentBillItems.forEach(item => {
+            if (!item.packageId) return;
+            const pkg = (state.packages || []).find(p => String(p.id) === String(item.packageId));
+            if (pkg) {
+                const key = String(pkg.id);
+                const cur = pkgNeededById.get(key) || { pkg, needed: 0 };
+                cur.needed += Number(item.numberOfUnits || 1);
+                pkgNeededById.set(key, cur);
             }
         });
 
-        (state.cosSales || []).forEach(s => {
-            if (!s || isCustItemDeleted(s) || s.isCancelled || s.status === 'cancelled') return;
-            const norm = typeof normalizeCosSale === 'function' ? normalizeCosSale(s) : s;
-            if (String(s.customer || norm.customer || '').trim().toUpperCase() !== cleanCustName) return;
-            const sDue = Number(norm.pendingAmount || 0);
-            if (sDue > 0.001) {
-                eligibleBills.push({ record: s, due: sDue, date: s.date, isCos: true });
+        for (const [_, info] of pkgNeededById) {
+            const avail = Number(info.pkg.stock || 0);
+            if (info.needed > avail) {
+                stockDeficits.push(`• Container (${info.pkg.name}): Needed ${info.needed} ${info.pkg.unit || 'Pcs'}, Available ${avail} ${info.pkg.unit || 'Pcs'}`);
             }
-        });
+        }
 
-        eligibleBills.sort((a, b) => dateSortValue(a.date) - dateSortValue(b.date));
+        if (stockDeficits.length > 0) {
+            if (oldBill) {
+                checkAndDeductPackageStock(oldBill.items || []);
+                (oldBill.items || []).forEach(oldItem => {
+                    const rec = getStockProductRecord(oldItem);
+                    if (rec && rec.product) {
+                        const isPcs = isProductPieceTracked(rec.product, rec.category);
+                        const deduction = isPcs 
+                            ? Number(oldItem.numberOfUnits || 1) 
+                            : (parseFloat(oldItem.stockDeductionQty != null ? oldItem.stockDeductionQty : oldItem.qty) || 0);
+                        rec.product.stock = Math.max(0, (parseFloat(rec.product.stock) || 0) - deduction);
+                        rec.product.savedAt = Date.now();
+                    }
+                });
+            }
+            alert(`⚠️ Cannot complete billing!\nInsufficient stock for the following items:\n\n${stockDeficits.join('\n')}\n\nPlease adjust quantities or add stock.`);
+            return;
+        }
 
-        eligibleBills.forEach(item => {
-            if (excessCash <= 0.001) return;
-            const c = item.record;
-            const payPortion = Math.min(item.due, excessCash);
-            c.pendingAmount = Math.max(0, Math.round((item.due - payPortion) * 100) / 100);
-            c.paidAmount = Math.round(((Number(c.paidAmount || 0)) + payPortion) * 100) / 100;
-            c.totalReceived = Math.max(Number(c.totalReceived || 0), c.paidAmount);
-            c.paid = c.paidAmount;
-            c.balance = c.pendingAmount;
-            if (!Array.isArray(c.paymentHistory)) c.paymentHistory = [];
-            c.paymentHistory.push({
-                id: generateUniqueRecordId('pay'),
-                date: getTodayDateString(),
-                amount: payPortion,
-                paymentMode: document.getElementById('billPaymentMode')?.value || 'Cash',
-                note: `Settled via Bill #${billNo}`,
-                timestamp: Date.now()
+        const subTotal = state.currentBillItems.reduce((sum, i) => sum + Number(i.total || 0), 0);
+        const discountRaw = parseFloat(document.getElementById('billDiscountAmt')?.value);
+        const discount = Number.isFinite(discountRaw) && discountRaw > 0 ? Math.min(subTotal, discountRaw) : 0;
+        const grandTotal = Math.max(0, subTotal - discount);
+
+        let billNo = (index >= 0 && state.customers[index]?.billNo) || getNextBillNumber();
+        const billId = (index >= 0 && state.customers[index]?.id) || generateUniqueRecordId('bill');
+
+        const prevDueInput = document.getElementById('billPreviousDue');
+        const previousDue = prevDueInput ? (parseFloat(prevDueInput.value) || 0) : 0;
+        const prevCreditInput = document.getElementById('billPreviousCredit');
+        const previousCredit = prevCreditInput ? (parseFloat(prevCreditInput.value) || 0) : 0;
+
+        const billBeforeCredit = grandTotal + previousDue;
+        const appliedCredit = Math.min(billBeforeCredit, previousCredit);
+        const totalWithDue = Math.max(0, billBeforeCredit - appliedCredit);
+
+        // If customer had credit and applied it, deduct credit from previous credit bills
+        if (appliedCredit > 0.001) {
+            let remainingCreditToDeduct = appliedCredit;
+            const cleanCustName = name.toLowerCase();
+            (state.customers || []).forEach(c => {
+                if (remainingCreditToDeduct <= 0.001) return;
+                if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
+                if (String(c.name || '').trim().toLowerCase() !== cleanCustName) return;
+                if (index >= 0 && (c.id === billId || c.billNo === billNo)) return;
+                let cr = c.creditAmount !== undefined ? Number(c.creditAmount) : (c.excessRetainedAsCredit ? Number(c.excessAmount || 0) : 0);
+                if (cr > 0.001) {
+                    const deductPortion = Math.min(cr, remainingCreditToDeduct);
+                    c.creditAmount = Math.max(0, cr - deductPortion);
+                    if (c.creditAmount <= 0.001) c.excessRetainedAsCredit = false;
+                    c.savedAt = Date.now();
+                    remainingCreditToDeduct -= deductPortion;
+                }
             });
-            c.savedAt = Date.now();
-            excessCash = Math.max(0, Math.round((excessCash - payPortion) * 100) / 100);
-            duesSettled += payPortion;
+        }
+
+        const paidInputRaw = document.getElementById('billPaidAmt')?.value;
+        const paidAmount = parseFloat(paidInputRaw);
+        const isPaidEmpty = paidInputRaw === '' || paidInputRaw === undefined;
+        const safePaidAmount = isPaidEmpty 
+            ? (previousDue > 0 ? 0 : totalWithDue) 
+            : (Number.isFinite(paidAmount) ? Math.max(0, paidAmount) : 0);
+        
+        // Allocate payment:
+        const currentBillPaid = Math.min(grandTotal, safePaidAmount);
+        const pendingAmount = Math.max(0, grandTotal - currentBillPaid);
+        let excessCash = Math.max(0, safePaidAmount - grandTotal);
+        let duesSettled = 0;
+
+        // If customer paid extra beyond current bill, apply to previous unpaid bills (FIFO oldest first across Cleaning & Cosmetics):
+        if (excessCash > 0.001) {
+            const cleanCustName = name.toUpperCase();
+            const eligibleBills = [];
+
+            (state.customers || []).forEach(c => {
+                if (!c || isCustItemDeleted(c) || c.isCancelled || c.status === 'cancelled') return;
+                if (String(c.name || '').trim().toUpperCase() !== cleanCustName) return;
+                if (index >= 0 && (c.id === billId || c.billNo === billNo)) return;
+                const cDue = Number(c.pendingAmount || 0);
+                if (cDue > 0.001) {
+                    eligibleBills.push({ record: c, due: cDue, date: c.date, isCos: false });
+                }
+            });
+
+            (state.cosSales || []).forEach(s => {
+                if (!s || isCustItemDeleted(s) || s.isCancelled || s.status === 'cancelled') return;
+                const norm = typeof normalizeCosSale === 'function' ? normalizeCosSale(s) : s;
+                if (String(s.customer || norm.customer || '').trim().toUpperCase() !== cleanCustName) return;
+                const sDue = Number(norm.pendingAmount || 0);
+                if (sDue > 0.001) {
+                    eligibleBills.push({ record: s, due: sDue, date: s.date, isCos: true });
+                }
+            });
+
+            eligibleBills.sort((a, b) => (dateSortValue(a.date) || 0) - (dateSortValue(b.date) || 0));
+
+            eligibleBills.forEach(item => {
+                if (excessCash <= 0.001) return;
+                const c = item.record;
+                const payPortion = Math.min(item.due, excessCash);
+                c.pendingAmount = Math.max(0, Math.round((item.due - payPortion) * 100) / 100);
+                c.paidAmount = Math.round(((Number(c.paidAmount || 0)) + payPortion) * 100) / 100;
+                c.totalReceived = Math.max(Number(c.totalReceived || 0), c.paidAmount);
+                c.paid = c.paidAmount;
+                c.balance = c.pendingAmount;
+                if (!Array.isArray(c.paymentHistory)) c.paymentHistory = [];
+                c.paymentHistory.push({
+                    id: generateUniqueRecordId('pay'),
+                    date: getTodayDateString(),
+                    amount: payPortion,
+                    paymentMode: document.getElementById('billPaymentMode')?.value || 'Cash',
+                    note: `Settled via Bill #${billNo}`,
+                    timestamp: Date.now()
+                });
+                c.savedAt = Date.now();
+                excessCash = Math.max(0, Math.round((excessCash - payPortion) * 100) / 100);
+                duesSettled += payPortion;
+            });
+        }
+
+        const remainingExcess = Math.max(0, excessCash);
+        const keepAsCredit = Boolean(document.getElementById('billKeepExcessCredit')?.checked && remainingExcess > 0.001);
+        const creditAmount = keepAsCredit ? remainingExcess : 0;
+        const excessAmount = remainingExcess;
+
+        const paymentMode = document.getElementById('billPaymentMode')?.value || 'Cash';
+        
+        unmarkIdDeleted(billId);
+        unmarkIdDeleted('custname_' + name.toLowerCase());
+
+        const existingProfile = (state.customers || []).find(c => c && !c.billNo && String(c.name || '').trim().toLowerCase() === name.toLowerCase());
+        const customerType = existingProfile?.customerType || saleType;
+        if (existingProfile && (!existingProfile.customerType || existingProfile.customerType !== saleType)) {
+            existingProfile.customerType = saleType;
+            existingProfile.saleType = saleType;
+            existingProfile.savedAt = Date.now();
+        }
+
+        const customerData = {
+            id: billId,
+            billNo,
+            name,
+            phone,
+            saleType,
+            customerType,
+            paymentMode,
+            items: sortBillItemsAlphabetically(state.currentBillItems).map(i => ({...i})),
+            subTotal,
+            discount,
+            grandTotal,
+            previousDue,
+            previousCredit,
+            appliedCredit,
+            totalWithDue,
+            paidAmount: currentBillPaid,
+            totalReceived: safePaidAmount,
+            previousDueSettled: duesSettled,
+            pendingAmount,
+            excessAmount,
+            excessRetainedAsCredit: keepAsCredit,
+            creditAmount,
+            date: (index >= 0 && state.customers[index]?.date) || getTodayDateString(),
+            savedAt: Date.now()
+        };
+
+        // All checks & calculations passed successfully. Now deduct product and package stock atomically:
+        state.currentBillItems.forEach(item => {
+            const rec = getStockProductRecord(item);
+            if (rec && rec.product) {
+                const isPcs = isProductPieceTracked(rec.product, rec.category);
+                const deduction = isPcs 
+                    ? Number(item.numberOfUnits || 1) 
+                    : (parseFloat(item.stockDeductionQty != null ? item.stockDeductionQty : item.qty) || 0);
+                rec.product.stock = Math.max(0, (parseFloat(rec.product.stock) || 0) - deduction);
+                rec.product.savedAt = Date.now();
+                deductedProducts.push({ product: rec.product, amount: deduction });
+            }
         });
+
+        checkAndDeductPackageStock(state.currentBillItems);
+        packageDeducted = true;
+
+        let savedIndex = index === -1 ? state.customers.push(customerData) - 1 : (state.customers[index] = customerData, index);
+
+        syncToFirebase();
+        previewBill(savedIndex);
+        resetCustomerForm();
+        if (window.renderAll) window.renderAll();
+    } catch (err) {
+        console.error('[Billing] Error in saveCustomer:', err);
+        // Safely rollback any stock deduction that occurred
+        if (deductedProducts.length > 0) {
+            deductedProducts.forEach(d => {
+                if (d.product) {
+                    d.product.stock = (parseFloat(d.product.stock) || 0) + d.amount;
+                    d.product.savedAt = Date.now();
+                }
+            });
+        }
+        if (packageDeducted) {
+            restorePackageStock(state.currentBillItems);
+        }
+        alert('⚠️ Error saving bill: ' + (err.message || err) + '\n\nStock was protected and NOT lost. Please try again.');
+    } finally {
+        isSavingCustomerLock = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = origBtnText;
+        }
     }
-
-    const remainingExcess = Math.max(0, excessCash);
-    const keepAsCredit = Boolean(document.getElementById('billKeepExcessCredit')?.checked && remainingExcess > 0.001);
-    const creditAmount = keepAsCredit ? remainingExcess : 0;
-    const excessAmount = remainingExcess;
-
-    const paymentMode = document.getElementById('billPaymentMode')?.value || 'Cash';
-    
-    unmarkIdDeleted(billId);
-    unmarkIdDeleted('custname_' + name.toLowerCase());
-
-    const existingProfile = (state.customers || []).find(c => c && !c.billNo && String(c.name || '').trim().toLowerCase() === name.toLowerCase());
-    const customerType = existingProfile?.customerType || saleType;
-    if (existingProfile && (!existingProfile.customerType || existingProfile.customerType !== saleType)) {
-        existingProfile.customerType = saleType;
-        existingProfile.saleType = saleType;
-        existingProfile.savedAt = Date.now();
-    }
-
-    const customerData = {
-        id: billId,
-        billNo,
-        name,
-        phone,
-        saleType,
-        customerType,
-        paymentMode,
-        items: sortBillItemsAlphabetically(state.currentBillItems).map(i => ({...i})),
-        subTotal,
-        discount,
-        grandTotal,
-        previousDue,
-        previousCredit,
-        appliedCredit,
-        totalWithDue,
-        paidAmount: currentBillPaid,
-        totalReceived: safePaidAmount,
-        previousDueSettled: duesSettled,
-        pendingAmount,
-        excessAmount,
-        excessRetainedAsCredit: keepAsCredit,
-        creditAmount,
-        date: (index >= 0 && state.customers[index]?.date) || getTodayDateString(),
-        savedAt: Date.now()
-    };
-
-    let savedIndex = index === -1 ? state.customers.push(customerData) - 1 : (state.customers[index] = customerData, index);
-
-    syncToFirebase();
-    previewBill(savedIndex);
-    resetCustomerForm();
-    if (window.renderAll) window.renderAll();
 }
 
 export function resetCustomerForm() {
@@ -2976,8 +3036,15 @@ export function resetCombinedBillForm(focus = true) {
     if (focus) setTimeout(() => document.getElementById('combinedCustomerName')?.focus(), 80);
 }
 
+let isSavingCombinedBillLock = false;
+
 export function saveCombinedBill(e) {
     if (e && e.preventDefault) e.preventDefault();
+    if (isSavingCombinedBillLock) {
+        console.warn('[Billing] Duplicate saveCombinedBill prevented by lock.');
+        return;
+    }
+
     const idx = parseInt(document.getElementById('combinedBillIndex')?.value, 10);
     const name = (document.getElementById('combinedCustomerName')?.value.trim() || '').toUpperCase();
     const phone = document.getElementById('combinedCustomerPhone')?.value.trim() || '';
@@ -2986,107 +3053,134 @@ export function saveCombinedBill(e) {
         alert('Please enter customer and add at least one item.');
         return;
     }
-    if (idx >= 0 && state.customers[idx]?.items) {
-        restorePackageStock(state.customers[idx].items);
-        state.customers[idx].items.forEach(old => {
-            const p = combinedStockRecord(old);
-            if (p) p.stock += Number(old.stockDeductionQty || old.qty || 0);
-        });
-    }
 
-    // Comprehensive Pre-Check: Validate bulk stock & package stock
-    const combinedDeficits = [];
-    const bulkNeeded = new Map();
-    state.currentBillItems.forEach(item => {
-        const p = combinedStockRecord(item);
-        if (p) {
-            const key = String(p.id || p.name);
-            const cur = bulkNeeded.get(key) || { product: p, needed: 0 };
-            cur.needed += Number(item.stockDeductionQty || 0);
-            bulkNeeded.set(key, cur);
-        }
-    });
-    for (const [_, info] of bulkNeeded) {
-        const avail = Number(info.product.stock || 0);
-        if (info.needed > avail) {
-            combinedDeficits.push(`• ${info.product.name}: Needed ${info.needed.toFixed(2)} ${info.product.unit || ''}, Available ${avail.toFixed(2)} ${info.product.unit || ''}`);
-        }
-    }
+    isSavingCombinedBillLock = true;
+    const deductedProducts = [];
+    let packageDeducted = false;
 
-    const pkgNeeded = new Map();
-    state.currentBillItems.forEach(item => {
-        if (!item.packageId) return;
-        const pkg = (state.packages || []).find(p => String(p.id) === String(item.packageId));
-        if (pkg) {
-            const key = String(pkg.id);
-            const cur = pkgNeeded.get(key) || { pkg, needed: 0 };
-            cur.needed += Number(item.numberOfUnits || 1);
-            pkgNeeded.set(key, cur);
-        }
-    });
-    for (const [_, info] of pkgNeeded) {
-        const avail = Number(info.pkg.stock || 0);
-        if (info.needed > avail) {
-            combinedDeficits.push(`• Container (${info.pkg.name}): Needed ${info.needed} ${info.pkg.unit || 'Pcs'}, Available ${avail} ${info.pkg.unit || 'Pcs'}`);
-        }
-    }
-
-    if (combinedDeficits.length > 0) {
+    try {
         if (idx >= 0 && state.customers[idx]?.items) {
-            checkAndDeductPackageStock(state.customers[idx].items);
+            restorePackageStock(state.customers[idx].items);
             state.customers[idx].items.forEach(old => {
                 const p = combinedStockRecord(old);
-                if (p) p.stock = Math.max(0, (Number(p.stock) || 0) - Number(old.stockDeductionQty || old.qty || 0));
+                if (p) p.stock += Number(old.stockDeductionQty || old.qty || 0);
             });
         }
-        alert(`⚠️ Cannot complete billing!\nInsufficient stock for the following items:\n\n${combinedDeficits.join('\n')}\n\nPlease adjust quantities or add stock.`);
-        return;
-    }
 
-    checkAndDeductPackageStock(state.currentBillItems);
-    state.currentBillItems.forEach(item => {
-        const p = combinedStockRecord(item);
-        if (p) {
-            p.stock = Math.max(0, Number(p.stock || 0) - Number(item.stockDeductionQty || 0));
-            p.savedAt = Date.now();
+        // Comprehensive Pre-Check: Validate bulk stock & package stock
+        const combinedDeficits = [];
+        const bulkNeeded = new Map();
+        state.currentBillItems.forEach(item => {
+            const p = combinedStockRecord(item);
+            if (p) {
+                const key = String(p.id || p.name);
+                const cur = bulkNeeded.get(key) || { product: p, needed: 0 };
+                cur.needed += Number(item.stockDeductionQty || 0);
+                bulkNeeded.set(key, cur);
+            }
+        });
+        for (const [_, info] of bulkNeeded) {
+            const avail = Number(info.product.stock || 0);
+            if (info.needed > avail) {
+                combinedDeficits.push(`• ${info.product.name}: Needed ${info.needed.toFixed(2)} ${info.product.unit || ''}, Available ${avail.toFixed(2)} ${info.product.unit || ''}`);
+            }
         }
-    });
 
-    const total = state.currentBillItems.reduce((s, i) => s + Number(i.total || 0), 0);
-    const paidRaw = parseFloat(document.getElementById('combinedPaidAmt')?.value);
-    const paid = Number.isFinite(paidRaw) ? Math.max(0, paidRaw) : total;
-    const due = Math.max(0, total - paid);
-    const excess = Math.max(0, paid - total);
-    const old = idx >= 0 ? state.customers[idx] : null;
-    const billNo = old?.billNo || getNextCombinedBillNumber();
-    unmarkIdDeleted(billNo);
-    unmarkIdDeleted('cust_' + name.toLowerCase());
-    unmarkIdDeleted('custname_' + name.toLowerCase());
+        const pkgNeeded = new Map();
+        state.currentBillItems.forEach(item => {
+            if (!item.packageId) return;
+            const pkg = (state.packages || []).find(p => String(p.id) === String(item.packageId));
+            if (pkg) {
+                const key = String(pkg.id);
+                const cur = pkgNeeded.get(key) || { pkg, needed: 0 };
+                cur.needed += Number(item.numberOfUnits || 1);
+                pkgNeeded.set(key, cur);
+            }
+        });
+        for (const [_, info] of pkgNeeded) {
+            const avail = Number(info.pkg.stock || 0);
+            if (info.needed > avail) {
+                combinedDeficits.push(`• Container (${info.pkg.name}): Needed ${info.needed} ${info.pkg.unit || 'Pcs'}, Available ${avail} ${info.pkg.unit || 'Pcs'}`);
+            }
+        }
 
-    const billId = (old && old.id) || ('bill_' + (billNo || Date.now()) + '_' + Math.random().toString(36).slice(2, 7));
-    unmarkIdDeleted(billNo);
-    unmarkIdDeleted(billId);
+        if (combinedDeficits.length > 0) {
+            if (idx >= 0 && state.customers[idx]?.items) {
+                checkAndDeductPackageStock(state.customers[idx].items);
+                state.customers[idx].items.forEach(old => {
+                    const p = combinedStockRecord(old);
+                    if (p) p.stock = Math.max(0, (Number(p.stock) || 0) - Number(old.stockDeductionQty || old.qty || 0));
+                });
+            }
+            alert(`⚠️ Cannot complete billing!\nInsufficient stock for the following items:\n\n${combinedDeficits.join('\n')}\n\nPlease adjust quantities or add stock.`);
+            return;
+        }
 
-    const bill = {
-        id: billId,
-        billNo,
-        billType: 'Combined',
-        name, phone, saleType,
-        paymentMode: document.getElementById('combinedPaymentMode')?.value || 'Cash',
-        items: sortBillItemsAlphabetically(state.currentBillItems).map(i => ({...i})),
-        grandTotal: total,
-        paidAmount: paid,
-        pendingAmount: due,
-        excessAmount: excess,
-        date: old?.date || getTodayDateString(),
-        savedAt: Date.now()
-    };
+        const total = state.currentBillItems.reduce((s, i) => s + Number(i.total || 0), 0);
+        const paidRaw = parseFloat(document.getElementById('combinedPaidAmt')?.value);
+        const paid = Number.isFinite(paidRaw) ? Math.max(0, paidRaw) : total;
+        const due = Math.max(0, total - paid);
+        const excess = Math.max(0, paid - total);
+        const old = idx >= 0 ? state.customers[idx] : null;
+        const billNo = old?.billNo || getNextCombinedBillNumber();
+        unmarkIdDeleted(billNo);
+        unmarkIdDeleted('cust_' + name.toLowerCase());
+        unmarkIdDeleted('custname_' + name.toLowerCase());
 
-    if (idx >= 0) state.customers[idx] = bill; else state.customers.push(bill);
-    syncToFirebase();
-    if (window.renderAll) window.renderAll();
-    previewBill(idx >= 0 ? idx : state.customers.length - 1);
-    resetCombinedBillForm(false);
+        const billId = (old && old.id) || ('bill_' + (billNo || Date.now()) + '_' + Math.random().toString(36).slice(2, 7));
+        unmarkIdDeleted(billNo);
+        unmarkIdDeleted(billId);
+
+        const bill = {
+            id: billId,
+            billNo,
+            billType: 'Combined',
+            name, phone, saleType,
+            paymentMode: document.getElementById('combinedPaymentMode')?.value || 'Cash',
+            items: sortBillItemsAlphabetically(state.currentBillItems).map(i => ({...i})),
+            grandTotal: total,
+            paidAmount: paid,
+            pendingAmount: due,
+            excessAmount: excess,
+            date: old?.date || getTodayDateString(),
+            savedAt: Date.now()
+        };
+
+        // All checks passed. Atomically deduct stock now:
+        state.currentBillItems.forEach(item => {
+            const p = combinedStockRecord(item);
+            if (p) {
+                const deduction = Number(item.stockDeductionQty || 0);
+                p.stock = Math.max(0, Number(p.stock || 0) - deduction);
+                p.savedAt = Date.now();
+                deductedProducts.push({ product: p, amount: deduction });
+            }
+        });
+        checkAndDeductPackageStock(state.currentBillItems);
+        packageDeducted = true;
+
+        if (idx >= 0) state.customers[idx] = bill; else state.customers.push(bill);
+        syncToFirebase();
+        if (window.renderAll) window.renderAll();
+        previewBill(idx >= 0 ? idx : state.customers.length - 1);
+        resetCombinedBillForm(false);
+    } catch (err) {
+        console.error('[Billing] Error in saveCombinedBill:', err);
+        if (deductedProducts.length > 0) {
+            deductedProducts.forEach(d => {
+                if (d.product) {
+                    d.product.stock = (parseFloat(d.product.stock) || 0) + d.amount;
+                    d.product.savedAt = Date.now();
+                }
+            });
+        }
+        if (packageDeducted) {
+            restorePackageStock(state.currentBillItems);
+        }
+        alert('⚠️ Error saving combined bill: ' + (err.message || err) + '\n\nStock was protected and NOT lost.');
+    } finally {
+        isSavingCombinedBillLock = false;
+    }
 }
 
 export function editCombinedSavedBill(index) {
