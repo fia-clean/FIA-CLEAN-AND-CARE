@@ -1,11 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
-title FIA CLEAN & CARE - Git Push to GitHub v51.2.37
+title FIA CLEAN & CARE - Git Push to GitHub v52.0.0
 color 0A
 
 echo ====================================================================
 echo             FIA CLEAN & CARE - ONE-CLICK APP UPDATER
-echo                  Version: v51.2.37 (Live Release)
+echo               Version: v52.0.0 (Locked Final Stable Release)
 echo ====================================================================
 echo.
 
@@ -15,7 +15,7 @@ echo [1/4] Checking Changed Files...
 git status -s
 echo.
 
-set COMMIT_MSG=Release v51.2.37: Atomic billing transaction, fix dateSortValue reference error, and eliminate ghost stock deductions (%date% %time%)
+set COMMIT_MSG=Release v52.0.0: Unified pure accounting engine with 117 automated regression tests (Locked Final Stable Milestone) (%date% %time%)
 
 echo [2/4] Staging all files...
 git add -A
@@ -40,14 +40,14 @@ if %errorlevel% equ 0 (
     color 0A
     echo.
     echo ====================================================================
-    echo        [SUCCESS] APP v51.2.37 UPDATED AND PUSHED TO GITHUB!
+    echo        [SUCCESS] APP v52.0.0 UPDATED AND PUSHED TO GITHUB!
     echo ====================================================================
     echo.
     echo  ------------------------------------------------------------------
-    echo   HOW TO ACTIVATE v51.2.37 ON YOUR PHONE / PC:
+    echo   HOW TO ACTIVATE v52.0.0 ON YOUR PHONE / PC:
     echo  ------------------------------------------------------------------
     echo   1. Open FIA Clean App on your phone / PC.
-    echo   2. Tap the version badge at top: [ v51.2.37 ]
+    echo   2. Tap the version badge at top: [ v52.0.0 ]
     echo   3. Tap 'OK' - Cache clears and updates instantly!
     echo.
     echo   (Or go to Settings --^> 'Check for Updates / Clear Cache')
