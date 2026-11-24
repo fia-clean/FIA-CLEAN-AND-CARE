@@ -628,6 +628,41 @@ export function normalizeCustomerRecords() {
     }
 }
 
+export function normalizePurchases() {
+    let modified = false;
+
+    const processPurchaseList = (list, isCos) => {
+        if (!Array.isArray(list)) return;
+        list.forEach(p => {
+            if (!p || isItemDeleted(p, isCos ? 'cosPurchase' : 'purchase')) return;
+            const gross = parseFloat(isCos ? (p.amount ?? p.rawCost) : (p.rawCost ?? p.amount)) || 0;
+            const retAmount = parseFloat(p.returnedAmount) || 0;
+            const netAmount = Math.max(0, Number((gross - retAmount).toFixed(2)));
+            
+            // In FIA Clean & Care, dealer purchases are paid in full ready cash.
+            // Any existing purchases with paid: 0 or pending balance are auto-reconciled to fully paid.
+            const paid = parseFloat(p.paid);
+            if (!p.isExplicitCredit && (isNaN(paid) || paid === 0 || parseFloat(p.balance || 0) > 0 || parseFloat(p.netBalance || 0) > 0)) {
+                p.paid = netAmount;
+                p.balance = 0;
+                p.netBalance = 0;
+                p.refundDue = 0;
+                modified = true;
+            }
+        });
+    };
+
+    processPurchaseList(state.purchases, false);
+    processPurchaseList(state.cosPurchases, true);
+
+    if (modified) {
+        saveLocalStateSafely();
+        if (typeof window !== 'undefined' && typeof window.syncToFirebase === 'function') {
+            window.syncToFirebase();
+        }
+    }
+}
+
 // -------------------------------------------------------------
 // Local Storage Persistence
 // -------------------------------------------------------------
@@ -720,12 +755,14 @@ export function loadFromLocalStorage() {
 
         normalizeLoadedProducts();
         normalizeCustomerRecords();
+        normalizePurchases();
     } catch (e) {
         console.warn('Failed to load from localStorage:', e);
     }
 }
 
 export function saveLocalStateSafely() {
+    if (typeof localStorage === 'undefined') return;
     try {
         const saveCollectionSafely = (key, memoryList, filterFn) => {
             const cleanList = (memoryList || []).filter(filterFn);
@@ -1012,5 +1049,6 @@ if (typeof window !== 'undefined') {
     window.isBareBillNo = isBareBillNo;
     window.saveLocalStateSafely = saveLocalStateSafely;
     window.notifyStateChange = notifyStateChange;
+    window.normalizePurchases = normalizePurchases;
 }
 

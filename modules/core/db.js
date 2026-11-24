@@ -14,7 +14,8 @@ import {
     saveLocalStateSafely,
     createAutomaticLocalBackup,
     normalizeLoadedProducts,
-    normalizeCustomerRecords
+    normalizeCustomerRecords,
+    normalizePurchases
 } from './state.js';
 
 export let lastLocalCloudUpdatedAt = 0;
@@ -673,6 +674,7 @@ export function applyCloudData(data, isRealtimeEvent = false) {
     state.orderNotes = mergeCollection(state.orderNotes, data.orderNotes, 'id');
     normalizeLoadedProducts();
     normalizeCustomerRecords();
+    normalizePurchases();
 
     if (data.clearedDayBookEntries) {
         const cloudCleared = Array.isArray(data.clearedDayBookEntries) ? data.clearedDayBookEntries : Object.values(data.clearedDayBookEntries);

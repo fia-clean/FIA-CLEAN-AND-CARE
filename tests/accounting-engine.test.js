@@ -14,6 +14,8 @@ import {
     calculateDayBookSummary,
     calculateCustomerLedger
 } from '../modules/core/accounting-engine.js';
+import { reconcilePurchase } from '../modules/operations/purchases.js';
+import { normalizePurchases, state } from '../modules/core/state.js';
 
 let passed = 0;
 let failed = 0;
@@ -536,6 +538,66 @@ for (let i = 0; i < 10; i++) {
     driftTest = round2(driftTest + 0.1);
 }
 assertEqual(driftTest, 1.0, 'Test 50: Zero float drift on repeated increments');
+
+// --- GROUP 6: Purchases Auto-Paid Reconciliation & Migration ---
+console.log('\n--- GROUP 6: Purchases Auto-Paid Reconciliation & Migration ---');
+
+// Test 51: Legacy purchase (e.g. Lead Chemicals ₹12,500) where paid was 0 & balance was 12500
+const legacyPurch1 = {
+    id: 'purch_lead_chemicals',
+    supplierName: 'LEAD CHEMICALS',
+    rawMaterial: 'Chemicals',
+    rawQty: 10,
+    rawCost: 12500,
+    paid: 0,
+    balance: 12500
+};
+reconcilePurchase(legacyPurch1, false);
+assertEqual(legacyPurch1.paid, 12500, 'Test 51: Legacy purchase paid auto-reconciled to full net cost (12,500)');
+assertEqual(legacyPurch1.balance, 0, 'Test 51: Legacy purchase balance due auto-cleared to 0');
+assertEqual(legacyPurch1.netBalance, 0, 'Test 51: Legacy purchase net balance is 0');
+assertEqual(legacyPurch1.refundDue, 0, 'Test 51: Refund due is 0');
+
+// Test 52: Legacy cosmetics purchase with null/empty paid
+const legacyCosPurch = {
+    id: 'cospurch_perinthalmanna',
+    supplier: 'Oru Kuppi Perinthalmanna',
+    item: 'Bottles Bulk',
+    qty: 50,
+    amount: 12000,
+    paid: null,
+    balance: 12000
+};
+reconcilePurchase(legacyCosPurch, true);
+assertEqual(legacyCosPurch.paid, 12000, 'Test 52: Cosmetics purchase with null paid auto-reconciled to 12,000');
+assertEqual(legacyCosPurch.balance, 0, 'Test 52: Cosmetics balance due is 0');
+
+// Test 53: State normalizePurchases function batch migration
+state.purchases = [
+    { id: 'p1', supplierName: 'Dealer A', rawCost: 5000, paid: 0, balance: 5000 },
+    { id: 'p2', supplierName: 'Dealer B', rawCost: 3000, paid: 3000, balance: 0 }
+];
+state.cosPurchases = [
+    { id: 'cp1', supplier: 'Dealer C', amount: 8000, paid: 0, balance: 8000 }
+];
+normalizePurchases();
+assertEqual(state.purchases[0].paid, 5000, 'Test 53: State batch normalizer auto-pays unmigrated cleaning purchase');
+assertEqual(state.purchases[0].balance, 0, 'Test 53: State batch normalizer clears due on cleaning purchase');
+assertEqual(state.cosPurchases[0].paid, 8000, 'Test 53: State batch normalizer auto-pays unmigrated cosmetics purchase');
+assertEqual(state.cosPurchases[0].balance, 0, 'Test 53: State batch normalizer clears due on cosmetics purchase');
+
+// Test 54: Purchase with return retains correct net calculation
+const purchWithReturn = {
+    id: 'purch_ret_1',
+    supplierName: 'Dealer D',
+    rawCost: 1000,
+    rawQty: 10,
+    rawUnitPrice: 100,
+    returns: [{ qty: 2, amount: 200, isCashRefund: true }]
+};
+reconcilePurchase(purchWithReturn, false);
+assertEqual(purchWithReturn.netPurchaseAmount, 800, 'Test 54: Net purchase amount is 800 after 200 return');
+assertEqual(purchWithReturn.balance, 0, 'Test 54: Balance due remains 0 on cash refund return');
 
 console.log('\n================================================================');
 if (failed === 0) {

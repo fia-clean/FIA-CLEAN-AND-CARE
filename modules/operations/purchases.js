@@ -176,6 +176,13 @@ export function reconcilePurchase(p, isCos) {
     p.netQty = Math.max(0, Number((origQty - p.returnedQty).toFixed(2)));
     p.netPurchaseAmount = Math.max(0, Number((grossCost - p.returnedAmount).toFixed(2)));
     
+    // Auto-mark purchases as Paid in Full:
+    // Dealer purchases in FIA Clean & Care are paid in ready cash unless explicitly marked as credit.
+    // If paid was 0/unset or balance is pending, treat as fully paid.
+    if (!p.isExplicitCredit && (p.paid === undefined || p.paid === null || p.paid === '' || parseFloat(p.paid) === 0 || parseFloat(p.balance || 0) > 0)) {
+        p.paid = Number((p.netPurchaseAmount + cashRefundTotal).toFixed(2));
+    }
+
     const paid = parseFloat(p.paid) || 0;
     // When cash is refunded into hand, effective money remaining paid to supplier is reduced:
     const effectivePaid = Math.max(0, paid - cashRefundTotal);
@@ -322,13 +329,46 @@ export function fillPurchaseStockDetails() {
 export function calculatePurchaseTotal() {
     const q = parseFloat(document.getElementById('rawQty')?.value) || 0;
     const up = parseFloat(document.getElementById('rawUnitPrice')?.value) || 0;
-    if (up > 0) document.getElementById('rawCost').value = (q * up).toFixed(2);
+    if (up > 0) {
+        document.getElementById('rawCost').value = (q * up).toFixed(2);
+    } else {
+        const curCost = parseFloat(document.getElementById('rawCost')?.value) || 0;
+        if (curCost > 0 && q > 0 && document.getElementById('rawUnitPrice')) {
+            document.getElementById('rawUnitPrice').value = (curCost / q).toFixed(2);
+        }
+    }
+    const costVal = parseFloat(document.getElementById('rawCost')?.value) || 0;
+    const paidInput = document.getElementById('purchasePaid');
+    if (paidInput && !paidInput.dataset.manual) {
+        paidInput.value = costVal > 0 ? costVal.toFixed(2) : '';
+    }
     calculatePurchaseBalance();
 }
 
-export function calculatePurchaseBalance() {
+export function onPurchaseTotalInput() {
+    const costVal = parseFloat(document.getElementById('rawCost')?.value) || 0;
+    const q = parseFloat(document.getElementById('rawQty')?.value) || 0;
+    const upEl = document.getElementById('rawUnitPrice');
+    if (q > 0 && costVal > 0 && upEl) {
+        upEl.value = (costVal / q).toFixed(2);
+    }
+    const paidInput = document.getElementById('purchasePaid');
+    if (paidInput && !paidInput.dataset.manual) {
+        paidInput.value = costVal > 0 ? costVal.toFixed(2) : '';
+    }
+    calculatePurchaseBalance();
+}
+
+export function calculatePurchaseBalance(isManual = false) {
     const t = parseFloat(document.getElementById('rawCost')?.value) || 0;
-    const p = parseFloat(document.getElementById('purchasePaid')?.value) || 0;
+    const paidEl = document.getElementById('purchasePaid');
+    if (isManual && paidEl) {
+        paidEl.dataset.manual = 'true';
+    }
+    if (paidEl && !paidEl.dataset.manual && t > 0) {
+        paidEl.value = t.toFixed(2);
+    }
+    const p = parseFloat(paidEl?.value) || 0;
     const b = Math.max(0, t - p);
     const el = document.getElementById('purchaseBalance');
     if (el) el.value = b.toFixed(2);
@@ -370,7 +410,8 @@ export function savePurchase(e) {
     const rawUnit = document.getElementById('rawUnit').value;
     const rawBarcode = document.getElementById('rawBarcode').value.trim() || (selectedProduct?.barcode || '');
     const rawCost = parseFloat(document.getElementById('rawCost').value) || 0;
-    const paid = parseFloat(document.getElementById('purchasePaid').value) || 0;
+    const paidInputVal = document.getElementById('purchasePaid')?.value;
+    const paid = (paidInputVal === '' || paidInputVal === undefined) ? rawCost : (parseFloat(paidInputVal) || 0);
     const balance = Math.max(0, rawCost - paid);
     const supplierName = document.getElementById('supplierName').value.trim();
     const supplierMobile = document.getElementById('supplierMobile').value.trim();
@@ -480,7 +521,11 @@ export function editPurchase(identifier) {
     document.getElementById('rawUnit').value = p.rawUnit || '';
     document.getElementById('rawUnitPrice').value = p.rawUnitPrice ?? '';
     document.getElementById('rawCost').value = p.rawCost ?? '';
-    document.getElementById('purchasePaid').value = p.paid ?? '';
+    const paidInput = document.getElementById('purchasePaid');
+    if (paidInput) {
+        paidInput.value = p.paid ?? '';
+        paidInput.dataset.manual = 'true';
+    }
     document.getElementById('purchaseBalance').value = p.balance ?? '';
 
     document.getElementById('purchaseFormTitle').innerText = '✏️ Edit Cleaning Products Purchase';
@@ -591,6 +636,8 @@ export function resetPurchaseForm() {
         f.reset();
         delete f.dataset.purchaseId;
     }
+    const paidInput = document.getElementById('purchasePaid');
+    if (paidInput) delete paidInput.dataset.manual;
     document.getElementById('purchIndex').value = '-1';
     document.getElementById('purchaseFormTitle').innerText = 'Cleaning Products Purchase';
     document.getElementById('purchSubmitBtn').innerText = 'Save Purchase';
@@ -1338,17 +1385,50 @@ export function fillCosPurchaseStockDetails() {
 export function calculateCosPurchaseTotal() {
     const qty = parseFloat(document.getElementById('cosPQty')?.value) || 0;
     const unitPrice = parseFloat(document.getElementById('cosPUnitPrice')?.value) || 0;
-    const total = qty * unitPrice;
-    if (unitPrice > 0 && document.getElementById('cosPAmount')) document.getElementById('cosPAmount').value = total.toFixed(2);
+    if (unitPrice > 0) {
+        const total = qty * unitPrice;
+        if (document.getElementById('cosPAmount')) document.getElementById('cosPAmount').value = total.toFixed(2);
+    } else {
+        const curAmt = parseFloat(document.getElementById('cosPAmount')?.value) || 0;
+        if (curAmt > 0 && qty > 0 && document.getElementById('cosPUnitPrice')) {
+            document.getElementById('cosPUnitPrice').value = (curAmt / qty).toFixed(2);
+        }
+    }
+    const amtVal = parseFloat(document.getElementById('cosPAmount')?.value) || 0;
+    const paidInput = document.getElementById('cosPPaid');
+    if (paidInput && !paidInput.dataset.manual) {
+        paidInput.value = amtVal > 0 ? amtVal.toFixed(2) : '';
+    }
     calculateCosPurchaseBalance();
 }
 
-export function calculateCosPurchaseBalance() {
+export function onCosPurchaseAmountInput() {
+    const amtVal = parseFloat(document.getElementById('cosPAmount')?.value) || 0;
+    const qty = parseFloat(document.getElementById('cosPQty')?.value) || 0;
+    const upEl = document.getElementById('cosPUnitPrice');
+    if (qty > 0 && amtVal > 0 && upEl) {
+        upEl.value = (amtVal / qty).toFixed(2);
+    }
+    const paidInput = document.getElementById('cosPPaid');
+    if (paidInput && !paidInput.dataset.manual) {
+        paidInput.value = amtVal > 0 ? amtVal.toFixed(2) : '';
+    }
+    calculateCosPurchaseBalance();
+}
+
+export function calculateCosPurchaseBalance(isManual = false) {
     const total = parseFloat(document.getElementById('cosPAmount')?.value) || 0;
-    const paid = parseFloat(document.getElementById('cosPPaid')?.value) || 0;
-    const balance = total - paid;
+    const paidEl = document.getElementById('cosPPaid');
+    if (isManual && paidEl) {
+        paidEl.dataset.manual = 'true';
+    }
+    if (paidEl && !paidEl.dataset.manual && total > 0) {
+        paidEl.value = total.toFixed(2);
+    }
+    const paid = parseFloat(paidEl?.value) || 0;
+    const balance = Math.max(0, total - paid);
     const bEl = document.getElementById('cosPBalance');
-    if (bEl) bEl.value = balance > 0 ? balance.toFixed(2) : 0;
+    if (bEl) bEl.value = balance > 0 ? balance.toFixed(2) : '0.00';
 }
 
 export function saveCosPurchase(e) {
@@ -1373,7 +1453,8 @@ export function saveCosPurchase(e) {
     const unit = document.getElementById('cosPUnit').value;
     const amount = parseFloat(document.getElementById('cosPAmount').value) || 0;
     const unitPrice = parseFloat(document.getElementById('cosPUnitPrice')?.value) || (qty > 0 ? Number((amount / qty).toFixed(2)) : 0);
-    const paid = parseFloat(document.getElementById('cosPPaid').value) || 0;
+    const paidInputVal = document.getElementById('cosPPaid')?.value;
+    const paid = (paidInputVal === '' || paidInputVal === undefined) ? amount : (parseFloat(paidInputVal) || 0);
     const balance = Math.max(0, amount - paid);
     const date = document.getElementById('cosPurchaseDate').value || getTodayPurchaseDate();
 
@@ -1589,7 +1670,11 @@ export function editCosPurchase(identifier) {
     const upEl = document.getElementById('cosPUnitPrice');
     if (upEl) upEl.value = unitPrice;
     document.getElementById('cosPAmount').value = p.amount ?? '';
-    document.getElementById('cosPPaid').value = p.paid ?? '';
+    const cosPaidInput = document.getElementById('cosPPaid');
+    if (cosPaidInput) {
+        cosPaidInput.value = p.paid ?? '';
+        cosPaidInput.dataset.manual = 'true';
+    }
     document.getElementById('cosPBalance').value = p.balance ?? '';
 
     document.getElementById('cosPFormTitle').innerText = '✏️ Edit Cosmetics Purchase';
@@ -1703,6 +1788,8 @@ export function resetCosPurchaseForm() {
         f.reset();
         delete f.dataset.purchaseId;
     }
+    const cosPaidInput = document.getElementById('cosPPaid');
+    if (cosPaidInput) delete cosPaidInput.dataset.manual;
     document.getElementById('cosPIndex').value = '-1';
     document.getElementById('cosPFormTitle').innerText = 'Cosmetics Purchase Entry';
     document.getElementById('cosPSubmitBtn').innerText = 'Save Purchase';
@@ -2339,7 +2426,11 @@ if (typeof window !== 'undefined') {
     window.togglePurchaseInputs = togglePurchaseInputs;
     window.fillPurchaseStockDetails = fillPurchaseStockDetails;
     window.calculatePurchaseTotal = calculatePurchaseTotal;
+    window.onPurchaseTotalInput = onPurchaseTotalInput;
     window.calculatePurchaseBalance = calculatePurchaseBalance;
+    window.calculateCosPurchaseTotal = calculateCosPurchaseTotal;
+    window.onCosPurchaseAmountInput = onCosPurchaseAmountInput;
+    window.calculateCosPurchaseBalance = calculateCosPurchaseBalance;
     window.ensurePurchaseTimestamps = ensurePurchaseTimestamps;
     window.savePurchase = savePurchase;
     window.editPurchase = editPurchase;
@@ -2370,6 +2461,7 @@ if (typeof window !== 'undefined') {
     window.renderCosPurchases = renderCosPurchases;
     window.resetCosPurchaseForm = resetCosPurchaseForm;
     window.getConsolidatedPurchaseData = getConsolidatedPurchaseData;
+    window.reconcilePurchase = reconcilePurchase;
     window.switchPurchaseConsolidationView = switchPurchaseConsolidationView;
     window.renderPurchaseConsolidationView = renderPurchaseConsolidationView;
     window.renderPurchaseConsolidationReport = renderPurchaseConsolidationReport;

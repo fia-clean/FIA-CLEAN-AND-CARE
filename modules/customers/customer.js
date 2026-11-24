@@ -1149,7 +1149,7 @@ export function renderCustomerConsolidationView() {
                     if (r.ret > 0) detailParts.push(`Return ₹${r.ret.toFixed(2)}`);
                     return `<div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:justify-between gap-2.5 sm:items-center">
                         <div class="min-w-0 flex-1">
-                            <div class="font-bold text-slate-100">#${ri + 1} • ${e.name.toUpperCase()} • ${detailParts[0]} ${r.cosmetics ? '<span class="text-[10px] text-pink-300 font-semibold ml-1">💄 Cosmetics</span>' : ''}</div>
+                            <div class="font-bold text-slate-100">#${ri + 1} • ${e.name.toUpperCase()} • <button type="button" onclick="${viewFn}" class="font-bold text-sky-400 hover:text-sky-300 underline cursor-pointer inline-flex items-center gap-0.5" title="Click to view invoice">${detailParts[0]} 👁️</button> ${r.cosmetics ? '<span class="text-[10px] text-pink-300 font-semibold ml-1">💄 Cosmetics</span>' : ''}</div>
                             <div class="text-[10px] text-slate-400 mt-1"><span class="font-bold text-slate-200">${e.name.toUpperCase()}</span> • ${detailParts.slice(1).join(' | ')}</div>
                             <div class="text-[10px] text-slate-500 mt-0.5">${r.saleType} • ${r.paymentMode}</div>
                         </div>
@@ -1388,7 +1388,10 @@ export function openCustomerConsolidationCustomer(encodedName) {
                             <div class="min-w-0 flex-1 pr-2">
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="font-bold text-white text-xs">${name}</span>
-                                    <span class="font-bold text-sky-400 font-mono">#${b.billNo}</span>
+                                    <button type="button" onclick="${viewFn}" class="font-bold text-sky-400 hover:text-sky-300 underline font-mono cursor-pointer transition text-xs flex items-center gap-0.5" title="Click to view Bill #${b.billNo}">
+                                        <span>#${b.billNo}</span>
+                                        <span class="text-[10px]">👁️</span>
+                                    </button>
                                     <span class="text-slate-400 text-[10px]">📅 ${formatDateDDMMYYYY(b.date)}</span>
                                     ${b.isCosmetics ? '<span class="text-[9px] bg-pink-950 text-pink-300 px-1 py-0.5 rounded border border-pink-800 font-semibold">Cosmetics</span>' : ''}
                                     <span id="${billPillId}" class="hidden text-[9px] font-bold px-1.5 py-0.5 rounded"></span>
@@ -1782,19 +1785,23 @@ export function showDuePaymentReceiptModal(r) {
         <div class="space-y-1">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Settled Invoices (${r.settledBills.length}):</span>
             <div class="space-y-1 max-h-36 overflow-y-auto pr-0.5">
-                ${r.settledBills.map(b => `
+                ${r.settledBills.map(b => {
+                    const billTarget = (b.billNo && b.billNo !== '—') ? b.billNo : b.id;
+                    const viewFn = b.isCosmetics ? `window.previewCosSaleBill('${billTarget}')` : `window.previewBill('${billTarget}')`;
+                    return `
                     <div class="flex justify-between items-center bg-slate-950 p-2 rounded-lg border border-slate-800 text-[11px]">
                         <div>
-                            <span class="font-bold text-white">#${b.billNo}</span>
+                            <button type="button" onclick="${viewFn}" class="font-bold text-sky-400 hover:text-sky-300 underline font-mono cursor-pointer" title="Click to view Bill #${b.billNo}">#${b.billNo} 👁️</button>
                             <span class="text-slate-400 text-[10px] ml-1">📅 ${formatDateDDMMYYYY(b.date)}</span>
                             ${b.isCosmetics ? '<span class="text-[9px] text-pink-300 font-semibold ml-1">💄</span>' : ''}
                         </div>
-                        <div class="text-right">
+                        <div class="text-right flex items-center gap-1.5">
                             <span class="text-emerald-400 font-bold">₹${b.paidNow.toFixed(2)}</span>
                             <span class="text-[9px] ${b.cleared ? 'text-emerald-300' : 'text-rose-400'} ml-1">(${b.cleared ? 'Cleared' : `Bal ₹${b.remaining.toFixed(2)}`})</span>
+                            <button type="button" onclick="${viewFn}" class="bg-slate-800 hover:bg-slate-700 text-sky-300 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-slate-700 ml-1">👁️</button>
                         </div>
-                    </div>
-                `).join('')}
+                    </div>`;
+                }).join('')}
             </div>
         </div>
     `;
@@ -1991,19 +1998,25 @@ export function viewCustomerProfile(name) {
             </div>
             <div class="space-y-1.5 max-h-60 overflow-y-auto">
                 <p class="text-[10px] font-bold text-slate-400 uppercase">Recent Invoices (Latest First)</p>
-                ${custBills.map(b => `
-                    <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between items-center text-[11px]">
+                ${custBills.map(b => {
+                    const billTarget = (b.billNo && b.billNo !== '—') ? b.billNo : (b.id || b.billNo);
+                    const viewFn = b.isCos ? `window.previewCosSaleBill('${billTarget}')` : `window.previewBill('${billTarget}')`;
+                    return `
+                    <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 flex justify-between items-center text-[11px] hover:border-slate-700 transition">
                         <div>
-                            <span class="font-bold ${b.isCos ? 'text-pink-300' : 'text-cyan-300'}">#${b.billNo}</span>
+                            <button type="button" onclick="${viewFn}" class="font-bold ${b.isCos ? 'text-pink-300 hover:text-pink-200' : 'text-cyan-300 hover:text-cyan-200'} underline cursor-pointer text-xs" title="Click to view invoice #${b.billNo}">#${b.billNo} 👁️</button>
                             ${b.isCos ? '<span class="text-[9px] bg-pink-950 text-pink-300 px-1 py-0.2 rounded border border-pink-800 ml-1">Cos</span>' : ''}
                             <span class="text-slate-400 ml-1.5">${formatDateDDMMYYYY(b.date)}</span>
                         </div>
-                        <div class="text-right">
-                            <span class="font-bold text-white">₹${Number(b.grandTotal || 0).toFixed(2)}</span>
-                            ${b.pendingAmount > 0.001 ? `<span class="text-rose-400 text-[10px] ml-1.5 block sm:inline font-bold">Due: ₹${b.pendingAmount.toFixed(2)}</span>` : ''}
+                        <div class="text-right flex items-center gap-2">
+                            <div>
+                                <span class="font-bold text-white">₹${Number(b.grandTotal || 0).toFixed(2)}</span>
+                                ${b.pendingAmount > 0.001 ? `<span class="text-rose-400 text-[10px] ml-1.5 block sm:inline font-bold">Due: ₹${b.pendingAmount.toFixed(2)}</span>` : ''}
+                            </div>
+                            <button type="button" onclick="${viewFn}" class="bg-slate-800 hover:bg-slate-700 text-sky-300 px-2 py-1 rounded text-[11px] font-semibold border border-slate-700 transition cursor-pointer">View</button>
                         </div>
-                    </div>
-                `).join('') || '<p class="text-slate-500 text-[11px]">No invoices recorded.</p>'}
+                    </div>`;
+                }).join('') || '<p class="text-slate-500 text-[11px]">No invoices recorded.</p>'}
             </div>
         </div>
     `;
