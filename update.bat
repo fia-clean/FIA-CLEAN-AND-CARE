@@ -1,11 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
-title FIA CLEAN & CARE - One-Click App Updater v52.0.1
+title FIA CLEAN & CARE - One-Click App Updater v52.0.2
 color 0A
 
 echo ====================================================================
 echo             FIA CLEAN & CARE - ONE-CLICK APP UPDATER
-echo               Version: v52.0.1 (Purchase Auto-Paid & Click-to-View Invoices)
+echo               Version: v52.0.2 (Detergent Liquid Combined Analysis)
 echo ====================================================================
 echo.
 
@@ -15,7 +15,7 @@ echo [1/4] Checking Changed Files...
 git status -s
 echo.
 
-set COMMIT_MSG=Release v52.0.1: Purchase auto-paid cash default and click-to-view invoices in customer details (%date% %time%)
+set COMMIT_MSG=Release v52.0.2: Combined Detergent Liquid analysis in Billing Analysis tab (%date% %time%)
 
 echo [2/4] Staging all files...
 git add -A
@@ -40,14 +40,14 @@ if %errorlevel% equ 0 (
     color 0A
     echo.
     echo ====================================================================
-    echo        [SUCCESS] APP v52.0.1 UPDATED AND PUSHED TO GITHUB!
+    echo        [SUCCESS] APP v52.0.2 UPDATED AND PUSHED TO GITHUB!
     echo ====================================================================
     echo.
     echo  ------------------------------------------------------------------
-    echo   HOW TO ACTIVATE v52.0.1 ON YOUR PHONE / PC:
+    echo   HOW TO ACTIVATE v52.0.2 ON YOUR PHONE / PC:
     echo  ------------------------------------------------------------------
     echo   1. Open FIA Clean App on your phone / PC.
-    echo   2. Tap the version badge at top: [ v52.0.1 ]
+    echo   2. Tap the version badge at top: [ v52.0.2 ]
     echo   3. Tap 'OK' - Cache clears and updates instantly!
     echo.
     echo   (Or go to Settings --^> 'Check for Updates / Clear Cache')

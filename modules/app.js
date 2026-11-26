@@ -153,7 +153,10 @@ import {
     onProductAnalysisSearch,
     onProductAnalysisCustomDateChange,
     shareProductAnalysisWhatsApp,
-    refreshProductAnalysisFromCloud
+    refreshProductAnalysisFromCloud,
+    toggleDetergentGroupConfig,
+    toggleDetergentGroupProduct,
+    resetDetergentGroupConfig
 } from './billing/product-analysis.js';
 
 import {
@@ -450,6 +453,9 @@ if (typeof window !== 'undefined') {
     window.onProductAnalysisCustomDateChange = onProductAnalysisCustomDateChange;
     window.shareProductAnalysisWhatsApp = shareProductAnalysisWhatsApp;
     window.refreshProductAnalysisFromCloud = refreshProductAnalysisFromCloud;
+    window.toggleDetergentGroupConfig = toggleDetergentGroupConfig;
+    window.toggleDetergentGroupProduct = toggleDetergentGroupProduct;
+    window.resetDetergentGroupConfig = resetDetergentGroupConfig;
     window.checkRemoteTimestampFast = checkRemoteTimestampFast;
     window.showAppToast = showAppToast;
     window.switchDueListViewMode = switchDueListViewMode;
